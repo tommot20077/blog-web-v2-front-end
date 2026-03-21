@@ -1,0 +1,252 @@
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { articleService, type ArticleDetailItem } from '../api/articleService';
+import { useMarkdownRenderer } from '../composables/useMarkdownRenderer';
+
+const route = useRoute();
+const router = useRouter();
+const uuid = route.params.uuid as string;
+
+const article = ref<ArticleDetailItem | null>(null);
+const isLoading = ref(true);
+
+// Markdown 原始字串的 computed ref，供 useMarkdownRenderer 消費
+const markdownSource = computed(() => article.value?.content ?? '');
+
+// 使用 composable 將 Markdown 渲染為安全 HTML
+const { renderedHtml, isReady: isShikiReady } = useMarkdownRenderer(markdownSource);
+
+onMounted(async () => {
+  window.scrollTo({ top: 0, behavior: 'auto' });
+  try {
+    article.value = await articleService.getArticleByUuid(uuid);
+  } catch (error) {
+    console.error('Error loading article details', error);
+  } finally {
+    isLoading.value = false;
+  }
+});
+
+const goBack = () => {
+  if (window.history.length > 1) {
+    router.back();
+  } else {
+    router.push('/articles');
+  }
+};
+</script>
+
+<template>
+  <div class="w-full flex-1 pt-8 md:pt-16 pb-32">
+    
+    <!-- 全局加載中動畫 -->
+    <div v-if="isLoading" class="flex flex-col items-center justify-center pt-32 pb-64 min-h-[60vh]">
+      <div class="flex gap-3 items-center opacity-80">
+        <div class="w-4 h-4 rounded-full bg-[var(--text-main)] animate-bounce"></div>
+        <div class="w-4 h-4 rounded-full bg-[var(--text-main)] animate-bounce" style="animation-delay: 0.15s"></div>
+        <div class="w-4 h-4 rounded-full bg-[var(--text-main)] animate-bounce" style="animation-delay: 0.3s"></div>
+      </div>
+      <p class="mt-8 font-bold tracking-widest opacity-60">萃取文章細節中...</p>
+    </div>
+
+    <!-- 找不到文章 (404) -->
+    <div v-else-if="!article" class="flex flex-col items-center justify-center pt-32 pb-64 min-h-[60vh]">
+      <div class="text-6xl mb-6">🏜️</div>
+      <p class="font-bold tracking-widest opacity-60 text-xl text-center leading-relaxed">這是一片荒蕪之地<br>找不到該篇文章（404）</p>
+      <button @click="router.push('/articles')" class="mt-8 px-8 py-3 rounded-full border border-[var(--glass-border)] bg-[var(--glass-panel)] backdrop-blur-md opacity-80 hover:opacity-100 transition-all font-bold tracking-widest text-sm hover:scale-105 shadow-sm">
+        返回列表頁面
+      </button>
+    </div>
+
+    <!-- 實際文章渲染層 -->
+    <article v-else class="max-w-4xl mx-auto px-6 w-full animate-fade-in-up">
+      
+      <!-- 返回按鈕列 -->
+      <div class="mb-10 w-full flex items-center">
+        <button 
+          @click="goBack" 
+          class="flex items-center gap-3 opacity-50 hover:opacity-100 transition-opacity font-bold text-xs tracking-widest px-4 py-2 -ml-4 rounded-xl hover:bg-black/5 dark:hover:bg-white/10"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+          回列表
+        </button>
+      </div>
+
+      <!-- 開頭 Hero 資訊 -->
+      <header class="mb-16 border-b pb-12" style="border-color: var(--glass-border)">
+        <div class="flex flex-wrap gap-2 mb-8">
+            <span v-for="tag in article.tags" :key="tag" class="px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-widest bg-[var(--text-main)] text-[var(--bg-color)] shadow-md">
+                # {{ tag }}
+            </span>
+        </div>
+        <h1 class="text-4xl md:text-5xl lg:text-6xl font-black mb-8 leading-tight tracking-tight" style="color: var(--text-main)">
+          {{ article.title }}
+        </h1>
+        <div class="flex flex-wrap items-center gap-6 text-sm font-bold opacity-50 tracking-wide uppercase">
+            <div class="flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                <span>{{ article.publishedAt }}</span>
+            </div>
+            <span class="opacity-30">|</span>
+            <div class="flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                <span>{{ article.viewCount }} 觀看次數</span>
+            </div>
+            <span class="opacity-30">|</span>
+            <div class="flex items-center gap-2">
+                <span>約 5 分鐘閱讀時間</span>
+            </div>
+        </div>
+      </header>
+
+      <!-- 文章本文 -->
+      <!-- markdown-it + Shiki 渲染 → DOMPurify 消毒 → Typography .prose 排版 -->
+      <section 
+        class="article-content prose prose-lg dark:prose-invert max-w-none leading-relaxed tracking-wide"
+        v-html="renderedHtml">
+      </section>
+      
+      <!-- 結尾操作區塊 -->
+      <footer class="mt-24 pt-12 border-t flex flex-col md:flex-row items-center justify-between gap-6" style="border-color: var(--glass-border)">
+        <p class="font-bold text-xs opacity-40 tracking-widest uppercase">END OF ARTICLE.</p>
+        <button 
+          @click="() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }" 
+          class="flex items-center justify-center w-12 h-12 rounded-full border bg-[var(--glass-panel)] backdrop-blur-md opacity-70 hover:opacity-100 hover:-translate-y-2 transition-all shadow-sm group"
+          style="border-color: var(--glass-border);"
+        >
+          <svg class="w-5 h-5 group-hover:animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>
+        </button>
+      </footer>
+      
+    </article>
+  </div>
+</template>
+
+<style scoped>
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Shiki 程式碼區塊：覆寫 Typography 的預設樣式，讓 Shiki 全權處理 */
+.article-content :deep(pre) {
+  background: transparent !important;
+  padding: 0 !important;
+  margin: 1.5em 0 !important;
+}
+.article-content :deep(pre code) {
+  display: block;
+  padding: 1.25em 1.5em;
+  border-radius: 1rem;
+  font-size: 0.875em;
+  line-height: 1.7;
+  overflow-x: auto;
+  border: 1px solid var(--glass-border);
+}
+
+/* Shiki 雙主題 CSS Variables 切換 */
+.article-content :deep(.shiki) {
+  background-color: var(--shiki-light-bg, #f6f8fa) !important;
+}
+.article-content :deep(.shiki span) {
+  color: var(--shiki-light, inherit);
+}
+html.dark .article-content :deep(.shiki) {
+  background-color: var(--shiki-dark-bg, #24292e) !important;
+}
+html.dark .article-content :deep(.shiki span) {
+  color: var(--shiki-dark, inherit);
+}
+
+/* blockquote 客製化，與整體設計語言保持一致 */
+.article-content :deep(blockquote) {
+  border-left-color: var(--text-main);
+  background: var(--glass-panel);
+  padding: 0.75em 1.5em;
+  border-radius: 0 0.75rem 0.75rem 0;
+  opacity: 0.85;
+}
+
+/* 連結顏色 */
+.article-content :deep(a) {
+  color: #3b82f6;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* 圖片圓角 + 陰影 */
+.article-content :deep(img) {
+  border-radius: 1.5rem;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+}
+
+/* 確保刪除線顯示正確 */
+.article-content :deep(del),
+.article-content :deep(s),
+.article-content :deep(strike) {
+  text-decoration: line-through;
+}
+
+/* 行內程式碼樣式（非 pre 區塊），讓其更明顯 */
+.article-content :deep(:not(pre) > code) {
+  background-color: var(--glass-panel);
+  border: 1px solid var(--glass-border);
+  padding: 0.15em 0.4em;
+  border-radius: 0.375rem;
+  font-size: 0.85em;
+  color: #d23669;
+}
+html.dark .article-content :deep(:not(pre) > code) {
+  color: #ff7b72;
+}
+
+/* 表格樣式優化 */
+.article-content :deep(table) {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 2em 0;
+  font-size: 0.9em;
+}
+.article-content :deep(th),
+.article-content :deep(td) {
+  border: 1px solid var(--glass-border);
+  padding: 0.75em 1em;
+}
+.article-content :deep(th) {
+  background-color: var(--glass-panel);
+  font-weight: 700;
+  text-align: left;
+}
+.article-content :deep(tr:nth-child(even)) {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+html.dark .article-content :deep(tr:nth-child(even)) {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+/* 任務清單樣式（markdown-it-task-lists） */
+.article-content :deep(.task-list-item) {
+  list-style-type: none;
+  position: relative;
+  margin-left: -1.5rem; /* 微調縮進與一般列表對齊 */
+}
+.article-content :deep(.task-list-item input[type="checkbox"]) {
+  position: absolute;
+  left: -1.5rem;
+  top: 0.35rem;
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--text-main);
+  cursor: pointer;
+}
+</style>
