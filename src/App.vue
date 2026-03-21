@@ -1,14 +1,17 @@
 <script setup lang="ts">
 import NavigationBar from './components/layout/NavigationBar.vue'
+import AppFooter from './components/layout/AppFooter.vue'
+import MobileBottomNav from './components/layout/MobileBottomNav.vue'
+import ToastContainer from './components/ui/ToastContainer.vue'
 </script>
 
 <template>
   <div class="min-h-screen relative font-sans flex flex-col">
     <!-- 導覽列 -->
     <NavigationBar />
-    
+
     <!-- 路由視圖出口 -->
-    <div class="flex-1 w-full flex flex-col relative">
+    <div class="flex-1 w-full flex flex-col relative pb-16 md:pb-0">
       <router-view v-slot="{ Component, route }">
         <transition name="fade" mode="out-in">
           <div :key="route.path" class="w-full flex-1 flex flex-col">
@@ -17,6 +20,15 @@ import NavigationBar from './components/layout/NavigationBar.vue'
         </transition>
       </router-view>
     </div>
+
+    <!-- Footer -->
+    <AppFooter />
+
+    <!-- 手機底部導覽列 -->
+    <MobileBottomNav />
+
+    <!-- Toast 通知容器 -->
+    <ToastContainer />
   </div>
 </template>
 
