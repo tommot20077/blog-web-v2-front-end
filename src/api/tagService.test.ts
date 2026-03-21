@@ -1,4 +1,14 @@
 import { tagService } from './tagService';
+import apiClient from './apiClient';
+
+vi.mock('./apiClient', () => ({
+  default: {
+    get: vi.fn(),
+    post: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn(),
+  },
+}));
 
 describe('tagService', () => {
   describe('Mock 路由 (VITE_USE_MOCK=true)', () => {
@@ -24,7 +34,6 @@ describe('tagService', () => {
   describe('API 模式 (VITE_USE_MOCK=false)', () => {
     beforeEach(() => {
       vi.stubEnv('VITE_USE_MOCK', 'false');
-      vi.stubEnv('VITE_API_BASE_URL', 'http://test-api');
     });
 
     afterEach(() => {
@@ -35,17 +44,18 @@ describe('tagService', () => {
     it('成功回應時正確解析結果', async () => {
       const mockData = [{ uuid: 't-1', name: 'Vue', slug: 'vue', articleCount: 18 }];
 
-      vi.spyOn(globalThis, 'fetch').mockResolvedValue({
-        ok: true,
-        json: async () => ({ code: '0', data: mockData }),
-      } as Response);
+      // apiClient response interceptor 已解包，直接回傳 data
+      vi.mocked(apiClient.get).mockResolvedValue(mockData);
 
       const result = await tagService.getHotTags(10);
       expect(result).toEqual(mockData);
+      expect(apiClient.get).toHaveBeenCalledWith('/api/v1/tags/hot', {
+        params: { limit: 10 },
+      });
     });
 
     it('網路錯誤時回傳空陣列並呼叫 console.error', async () => {
-      vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('Network failure'));
+      vi.mocked(apiClient.get).mockRejectedValue(new Error('Network failure'));
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
       const result = await tagService.getHotTags();

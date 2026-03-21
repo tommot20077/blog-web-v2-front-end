@@ -1,5 +1,15 @@
 import { articleService } from './articleService';
 import type { PageResult, ArticleItem } from './articleService';
+import apiClient from './apiClient';
+
+vi.mock('./apiClient', () => ({
+  default: {
+    get: vi.fn(),
+    post: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn(),
+  },
+}));
 
 describe('articleService', () => {
   // ============================================================
@@ -39,7 +49,6 @@ describe('articleService', () => {
   describe('API 模式 (VITE_USE_MOCK=false)', () => {
     beforeEach(() => {
       vi.stubEnv('VITE_USE_MOCK', 'false');
-      vi.stubEnv('VITE_API_BASE_URL', 'http://test-api');
     });
 
     afterEach(() => {
@@ -48,7 +57,7 @@ describe('articleService', () => {
     });
 
     describe('getArticles', () => {
-      it('成功回應 { code: 200, data: {...} } → 正確解析 PageResult', async () => {
+      it('成功回應 → apiClient 解包後直接回傳 PageResult', async () => {
         const mockData: PageResult<ArticleItem> = {
           records: [
             {
@@ -66,31 +75,21 @@ describe('articleService', () => {
           pages: 1,
         };
 
-        vi.spyOn(globalThis, 'fetch').mockResolvedValue({
-          ok: true,
-          json: async () => ({ code: 200, data: mockData }),
-        } as Response);
+        // apiClient response interceptor 已解包，直接回傳 data
+        vi.mocked(apiClient.get).mockResolvedValue(mockData);
 
-        const { articleService: freshService } = await import(
-          './articleService'
-        );
-        const result = await freshService.getArticles(1, 6, '全部', '');
+        const result = await articleService.getArticles(1, 6, '全部', '');
 
         expect(result).toEqual(mockData);
       });
 
       it('網路錯誤 → 回傳空 PageResult 並呼叫 console.error', async () => {
-        vi.spyOn(globalThis, 'fetch').mockRejectedValue(
-          new Error('Network failure'),
-        );
+        vi.mocked(apiClient.get).mockRejectedValue(new Error('Network failure'));
         const consoleSpy = vi
           .spyOn(console, 'error')
           .mockImplementation(() => {});
 
-        const { articleService: freshService } = await import(
-          './articleService'
-        );
-        const result = await freshService.getArticles(1, 6, '全部', '');
+        const result = await articleService.getArticles(1, 6, '全部', '');
 
         expect(result.records).toEqual([]);
         expect(result.total).toBe(0);
@@ -103,31 +102,75 @@ describe('articleService', () => {
         );
       });
 
-      it('URL 參數組裝正確（含 category + keyword）', async () => {
-        const fetchSpy = vi
-          .spyOn(globalThis, 'fetch')
-          .mockResolvedValue({
-            ok: true,
-            json: async () => ({
-              code: 200,
-              data: { records: [], total: 0, size: 6, current: 1, pages: 0 },
-            }),
-          } as Response);
+      it('URL 路徑與參數組裝正確（含 category + keyword）', async () => {
+        vi.mocked(apiClient.get).mockResolvedValue({
+          records: [],
+          total: 0,
+          size: 10,
+          current: 2,
+          pages: 0,
+        });
 
-        const { articleService: freshService } = await import(
-          './articleService'
-        );
-        await freshService.getArticles(2, 10, 'Backend', '微服務');
+        await articleService.getArticles(2, 10, 'Backend', '微服務');
 
-        expect(fetchSpy).toHaveBeenCalledOnce();
-        const calledUrl = fetchSpy.mock.calls[0][0] as string;
+        expect(apiClient.get).toHaveBeenCalledOnce();
+        expect(apiClient.get).toHaveBeenCalledWith('/api/v1/articles', {
+          params: {
+            pageNum: '2',
+            pageSize: '10',
+            categorySlug: 'Backend',
+            keyword: '微服務',
+          },
+        });
+      });
 
-        expect(calledUrl).toContain('http://test-api/api/v1/articles?');
-        expect(calledUrl).toContain('pageNum=2');
-        expect(calledUrl).toContain('pageSize=10');
-        expect(calledUrl).toContain('categorySlug=Backend');
-        expect(calledUrl).toContain(
-          `keyword=${encodeURIComponent('微服務')}`,
+      it('category 為「全部」時不帶 categorySlug 參數', async () => {
+        vi.mocked(apiClient.get).mockResolvedValue({
+          records: [],
+          total: 0,
+          size: 6,
+          current: 1,
+          pages: 0,
+        });
+
+        await articleService.getArticles(1, 6, '全部', '');
+
+        expect(apiClient.get).toHaveBeenCalledWith('/api/v1/articles', {
+          params: {
+            pageNum: '1',
+            pageSize: '6',
+          },
+        });
+      });
+    });
+
+    describe('getArticleByUuid', () => {
+      it('成功回應 → 回傳文章詳情', async () => {
+        const mockDetail = {
+          uuid: 'detail-1',
+          title: '詳情文章',
+          content: '# Hello',
+        };
+        vi.mocked(apiClient.get).mockResolvedValue(mockDetail);
+
+        const result = await articleService.getArticleByUuid('detail-1');
+
+        expect(result).toEqual(mockDetail);
+        expect(apiClient.get).toHaveBeenCalledWith('/api/v1/articles/detail-1');
+      });
+
+      it('網路錯誤 → 回傳 null 並呼叫 console.error', async () => {
+        vi.mocked(apiClient.get).mockRejectedValue(new Error('Network failure'));
+        const consoleSpy = vi
+          .spyOn(console, 'error')
+          .mockImplementation(() => {});
+
+        const result = await articleService.getArticleByUuid('nonexistent');
+
+        expect(result).toBeNull();
+        expect(consoleSpy).toHaveBeenCalledWith(
+          'Fetch article detail failed:',
+          expect.any(Error),
         );
       });
     });

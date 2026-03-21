@@ -1,3 +1,5 @@
+import apiClient from './apiClient';
+
 // 推薦文章回應型別（對齊後端 RecommendArticleResponse）
 export interface RecommendArticleResponse {
   uuid: string;
@@ -23,16 +25,10 @@ export const recommendService = {
     }
 
     try {
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-      const params = new URLSearchParams({ period, limit: limit.toString() });
-      const response = await fetch(`${baseUrl}/api/v1/recommend/trending?${params.toString()}`);
-      if (!response.ok) throw new Error('Network response was not ok');
-      const resData = await response.json();
-
-      if (resData.code === '0' && resData.data) {
-        return resData.data as RecommendArticleResponse[];
-      }
-      throw new Error(resData.message || 'API Error');
+      const data = await apiClient.get<unknown, RecommendArticleResponse[]>('/api/v1/recommend/trending', {
+        params: { period, limit },
+      });
+      return data;
     } catch (error) {
       console.error('Fetch trending articles failed:', error);
       return [];
