@@ -5,9 +5,15 @@ export function createMockArticle(overrides: Partial<ArticleItem> = {}): Article
     uuid: 'test-uuid-1',
     title: '測試文章標題',
     summary: '這是測試摘要內容',
+    coverImageUrl: null,
+    authorNickname: 'TestAuthor',
     viewCount: 100,
+    likeCount: 10,
+    commentCount: 5,
     publishedAt: '2026-03-20',
     tags: ['Vue', 'Frontend'],
+    categories: ['Frontend'],
+    slug: 'test-article',
     ...overrides,
   }
 }

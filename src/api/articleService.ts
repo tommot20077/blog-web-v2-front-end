@@ -3,9 +3,15 @@ export interface ArticleItem {
   uuid: string;
   title: string;
   summary: string;
+  coverImageUrl: string | null;
+  authorNickname: string;
   viewCount: number;
+  likeCount: number;
+  commentCount: number;
   publishedAt: string;
   tags: string[];
+  categories: string[];
+  slug: string;
 }
 
 export interface ArticleDetailItem extends ArticleItem {
