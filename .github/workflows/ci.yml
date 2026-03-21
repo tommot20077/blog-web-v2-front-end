@@ -7,7 +7,7 @@ on:
     branches: [main, develop]
 
 jobs:
-  unit-tests:
+  unit-and-component-tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
