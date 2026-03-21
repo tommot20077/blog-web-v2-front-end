@@ -1,5 +1,8 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, useId } from 'vue';
+
+/** 用於 label-input 關聯的唯一 ID */
+const inputId = useId();
 
 const props = withDefaults(
   defineProps<{
@@ -40,6 +43,7 @@ const isPassword = computed(() => props.type === 'password');
 <template>
   <div class="flex flex-col gap-1.5">
     <label
+      :for="inputId"
       class="text-sm font-medium"
       style="color: var(--text-main)"
     >
@@ -48,6 +52,7 @@ const isPassword = computed(() => props.type === 'password');
 
     <div class="relative">
       <input
+        :id="inputId"
         :type="inputType"
         :value="modelValue"
         :placeholder="placeholder"
