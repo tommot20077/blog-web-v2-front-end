@@ -9,6 +9,8 @@
   --glass-panel: rgba(255, 255, 255, 0.6);
   --glass-border: rgba(255, 255, 255, 0.8);
   --accent-color: #FF8D28;
+  --skeleton-base: rgba(0, 0, 0, 0.06);
+  --skeleton-shine: rgba(0, 0, 0, 0.02);
 }
 
 [data-theme="dark"] {
@@ -18,6 +20,8 @@
   --glass-panel: rgba(255, 255, 255, 0.08); /* 深色模式下的玻璃背景通常要更透一點 */
   --glass-border: rgba(255, 255, 255, 0.15);
   --accent-color: #FF8D28;
+  --skeleton-base: rgba(255, 255, 255, 0.06);
+  --skeleton-shine: rgba(255, 255, 255, 0.03);
 }
 
 body {
