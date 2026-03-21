@@ -89,11 +89,10 @@ apiClient.interceptors.response.use(
     const authStore = useAuthStore()
 
     try {
-      const newToken = await authStore.refreshToken()
-      authStore.accessToken = newToken
+      await authStore.refreshToken()
 
       // 更新原始請求的 Authorization header
-      originalConfig.headers.Authorization = `Bearer ${newToken}`
+      originalConfig.headers.Authorization = `Bearer ${authStore.accessToken}`
 
       // 處理等待佇列中的請求
       processQueue(null)

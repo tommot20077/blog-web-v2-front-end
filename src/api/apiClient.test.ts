@@ -19,6 +19,17 @@ let responseFulfilled: (response: AxiosResponse) => unknown
 let responseRejected: (error: unknown) => Promise<unknown>
 let mockInstanceRequest: ReturnType<typeof vi.fn>
 
+// mock authService 以打斷 auth.ts → authService → apiClient circular dependency
+vi.mock('./authService', () => ({
+  authService: {
+    login: vi.fn(),
+    register: vi.fn(),
+    refresh: vi.fn(),
+    logout: vi.fn(),
+    getMe: vi.fn(),
+  },
+}))
+
 // 在檔案頂層 mock axios（vitest 會 hoist）
 vi.mock('axios', async () => {
   const actual = await vi.importActual<typeof import('axios')>('axios')
@@ -165,7 +176,9 @@ describe('apiClient', () => {
   describe('Response interceptor — 401 refresh queue', () => {
     it('非 /auth/refresh 的 401 觸發 token refresh 並重發原請求', async () => {
       const authStore = useAuthStore()
-      authStore.refreshToken = vi.fn().mockResolvedValue('new-access-token')
+      authStore.refreshToken = vi.fn().mockImplementation(async () => {
+        authStore.accessToken = 'new-access-token'
+      })
 
       mockInstanceRequest.mockResolvedValue({
         data: { code: 200, message: 'OK', data: { id: 1 } },
@@ -183,9 +196,14 @@ describe('apiClient', () => {
     it('多個請求同時 401 時僅觸發一次 refresh，其餘排入佇列', async () => {
       const authStore = useAuthStore()
 
-      let resolveRefresh!: (token: string) => void
+      let resolveRefresh!: () => void
       authStore.refreshToken = vi.fn().mockImplementation(
-        () => new Promise<string>((resolve) => { resolveRefresh = resolve }),
+        () => new Promise<void>((resolve) => {
+          resolveRefresh = () => {
+            authStore.accessToken = 'new-token'
+            resolve()
+          }
+        }),
       )
 
       mockInstanceRequest.mockResolvedValue({
@@ -199,7 +217,7 @@ describe('apiClient', () => {
       // 只呼叫一次 refreshToken
       expect(authStore.refreshToken).toHaveBeenCalledOnce()
 
-      resolveRefresh('new-token')
+      resolveRefresh()
       await Promise.all([p1, p2, p3])
 
       // 三個請求都應該被重發

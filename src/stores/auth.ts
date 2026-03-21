@@ -1,26 +1,79 @@
 /**
- * Auth Store 最小佔位（stub）
+ * Auth Store — 認證狀態管理
  *
- * 提供 apiClient interceptor 所需的介面。
- * 此檔案將在 Task 8 中被完整實作取代。
+ * 管理使用者認證狀態，包含：
+ * - access token（記憶體存放，不寫入 localStorage）
+ * - 使用者資料
+ * - 角色判斷（isAdmin, isAuthor）
+ * - 登入後重導向 URL
  */
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
+import { authService } from '../api/authService'
+import type { User, LoginPayload, RegisterPayload } from '../types/auth'
 
 export const useAuthStore = defineStore('auth', () => {
-  /** 存於記憶體的 Access Token，絕不寫入 localStorage */
+  // State
+  const user = ref<User | null>(null)
   const accessToken = ref<string | null>(null)
+  const returnUrl = ref<string | null>(null)
 
-  /** 嘗試使用 HttpOnly cookie 刷新 access token */
-  async function refreshToken(): Promise<string> {
-    // stub：Task 8 實作
-    throw new Error('refreshToken not implemented')
+  // Getters
+  const isAuthenticated = computed(() => !!accessToken.value)
+  const isAdmin = computed(() => user.value?.role === 'ADMIN')
+  const isAuthor = computed(() => user.value?.role === 'AUTHOR' || isAdmin.value)
+  const userRole = computed(() => user.value?.role ?? null)
+
+  // Actions
+  async function login(payload: LoginPayload) {
+    const tokens = await authService.login(payload)
+    accessToken.value = tokens.accessToken
+    await fetchUser()
+    const redirect = returnUrl.value
+    returnUrl.value = null
+    return redirect
   }
 
-  /** 登出並清除狀態 */
-  function logout() {
+  async function register(payload: RegisterPayload) {
+    const tokens = await authService.register(payload)
+    accessToken.value = tokens.accessToken
+    await fetchUser()
+  }
+
+  async function logout() {
+    try { await authService.logout() } catch { /* 忽略登出 API 錯誤 */ }
+    user.value = null
     accessToken.value = null
+    returnUrl.value = null
   }
 
-  return { accessToken, refreshToken, logout }
+  async function refreshToken() {
+    const tokens = await authService.refresh()
+    accessToken.value = tokens.accessToken
+    await fetchUser()
+  }
+
+  async function fetchUser() {
+    user.value = await authService.getMe()
+  }
+
+  function setReturnUrl(url: string | null) {
+    returnUrl.value = url
+  }
+
+  return {
+    user,
+    accessToken,
+    returnUrl,
+    isAuthenticated,
+    isAdmin,
+    isAuthor,
+    userRole,
+    login,
+    register,
+    logout,
+    refreshToken,
+    fetchUser,
+    setReturnUrl,
+  }
 })
