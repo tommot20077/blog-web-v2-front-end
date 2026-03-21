@@ -1,4 +1,5 @@
 import type { ArticleItem, ArticleDetailItem, PageResult } from '../api/articleService'
+import type { User } from '../types/auth'
 
 export function createMockArticle(overrides: Partial<ArticleItem> = {}): ArticleItem {
   return {
@@ -33,6 +34,19 @@ export function createMockPageResult<T>(records: T[], overrides: Partial<PageRes
     size: 6,
     current: 1,
     pages: Math.ceil(records.length / 6) || 1,
+    ...overrides,
+  }
+}
+
+export function createMockUser(overrides: Partial<User> = {}): User {
+  return {
+    uuid: 'test-user-uuid',
+    email: 'test@test.com',
+    nickname: 'TestUser',
+    avatarUrl: null,
+    role: 'USER',
+    emailVerified: true,
+    createdAt: '2026-01-01',
     ...overrides,
   }
 }
