@@ -1,8 +1,20 @@
 <script setup lang="ts">
+import { onMounted } from 'vue'
+import { useAuthStore } from './stores/auth'
 import NavigationBar from './components/layout/NavigationBar.vue'
 import AppFooter from './components/layout/AppFooter.vue'
 import MobileBottomNav from './components/layout/MobileBottomNav.vue'
 import ToastContainer from './components/ui/ToastContainer.vue'
+
+const authStore = useAuthStore()
+
+onMounted(async () => {
+  try {
+    await authStore.refreshToken()
+  } catch {
+    // 靜默失敗，使用者未登入
+  }
+})
 </script>
 
 <template>

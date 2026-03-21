@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router';
 import { useToast } from '../../composables/useToast';
+import { useAuthStore } from '../../stores/auth';
 
 const route = useRoute();
 const router = useRouter();
 const { showToast } = useToast();
+const authStore = useAuthStore();
 
 const tabs = [
   { key: 'home', label: '首頁', to: '/', icon: 'home' },
@@ -20,6 +22,15 @@ function isActive(tab: typeof tabs[number]): boolean {
 }
 
 function handleTabClick(tab: typeof tabs[number]) {
+  if (tab.key === 'profile') {
+    if (authStore.isAuthenticated) {
+      router.push('/');
+    } else {
+      router.push('/login');
+    }
+    return;
+  }
+
   if (tab.to) {
     router.push(tab.to);
   } else {
