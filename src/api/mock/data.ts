@@ -2,6 +2,7 @@ import type { ArticleItem, ArticleDetailItem } from '../articleService';
 import type { RecommendArticleResponse } from '../recommendService';
 import type { TagDetailResponse } from '../tagService';
 import { mockMarkdownContent } from './mockArticleContent';
+import type { CategoryOption, TagSuggestion, QuotaInfo, EditorArticle, MyArticle } from '../../types/editor';
 
 // 模擬作者名稱池
 const MOCK_AUTHORS = ['Yuan', '小明', 'TechLead', '旅行者', 'DevGuru'] as const;
@@ -92,3 +93,140 @@ export const mockZoneEntries: ZoneEntry[] = [
     coverImageUrl: 'https://picsum.photos/seed/zone-photo/800/400',
   },
 ];
+
+// ── 編輯器 / 我的文章 / Admin 種子資料 ──────────────────────────────────────
+
+export const mockCategories: CategoryOption[] = [
+  { id: 'cat-1', name: 'Vue', slug: 'vue' },
+  { id: 'cat-2', name: 'React', slug: 'react' },
+  { id: 'cat-3', name: 'TypeScript', slug: 'typescript' },
+  { id: 'cat-4', name: 'DevOps', slug: 'devops' },
+  { id: 'cat-5', name: 'Backend', slug: 'backend' },
+];
+
+export const mockTagPool: TagSuggestion[] = [
+  { name: 'Vue', articleCount: 18 },
+  { name: 'Vue Router', articleCount: 8 },
+  { name: 'Vite', articleCount: 10 },
+  { name: 'TypeScript', articleCount: 15 },
+  { name: 'Tailwind CSS', articleCount: 9 },
+  { name: 'Node.js', articleCount: 11 },
+  { name: 'Docker', articleCount: 8 },
+  { name: 'CI/CD', articleCount: 6 },
+  { name: 'Testing', articleCount: 8 },
+  { name: 'Performance', articleCount: 3 },
+  { name: 'Pinia', articleCount: 7 },
+  { name: 'Playwright', articleCount: 4 },
+];
+
+export const mockQuota: QuotaInfo = {
+  usedBytes: 52_428_800,   // 50 MB
+  totalBytes: 104_857_600, // 100 MB
+};
+
+// 各狀態文章的種子資料（用於「我的文章」和 Admin）
+export const mockEditorArticles: EditorArticle[] = [
+  {
+    uuid: 'editor-draft-1',
+    title: '草稿文章：Vue 3 Composition API 深入解析',
+    summary: '深入探討 Composition API 的設計理念與實踐',
+    content: '# Vue 3 Composition API\n\n這是一篇草稿文章...',
+    coverImageUrl: null,
+    status: 'DRAFT',
+    categories: [{ id: 'cat-1', name: 'Vue', slug: 'vue' }],
+    tags: ['Vue', 'TypeScript'],
+    rejectReason: null,
+    createdAt: '2026-03-01T10:00:00Z',
+    updatedAt: '2026-03-15T12:00:00Z',
+  },
+  {
+    uuid: 'editor-pending-1',
+    title: '待審核文章：Pinia 狀態管理最佳實踐',
+    summary: '從零開始學習 Pinia，掌握 Vue 3 狀態管理',
+    content: '# Pinia 狀態管理\n\n這篇文章正在審核中...',
+    coverImageUrl: 'https://picsum.photos/seed/pending-1/800/400',
+    status: 'PENDING_REVIEW',
+    categories: [{ id: 'cat-1', name: 'Vue', slug: 'vue' }],
+    tags: ['Vue', 'Pinia'],
+    rejectReason: null,
+    createdAt: '2026-03-10T10:00:00Z',
+    updatedAt: '2026-03-20T09:00:00Z',
+  },
+  {
+    uuid: 'editor-pending-2',
+    title: '待審核文章：TypeScript 進階技巧整理',
+    summary: 'TypeScript 泛型、裝飾器與型別守衛的實際應用',
+    content: '# TypeScript 進階技巧\n\n第二篇待審文章...',
+    coverImageUrl: null,
+    status: 'PENDING_REVIEW',
+    categories: [{ id: 'cat-3', name: 'TypeScript', slug: 'typescript' }],
+    tags: ['TypeScript'],
+    rejectReason: null,
+    createdAt: '2026-03-12T10:00:00Z',
+    updatedAt: '2026-03-22T14:00:00Z',
+  },
+  {
+    uuid: 'editor-published-1',
+    title: '已發布：Vite 建構工具完全指南',
+    summary: '從配置到優化，全面掌握 Vite 的使用方式',
+    content: '# Vite 完全指南\n\n已發布文章...',
+    coverImageUrl: 'https://picsum.photos/seed/published-1/800/400',
+    status: 'PUBLISHED',
+    categories: [{ id: 'cat-1', name: 'Vue', slug: 'vue' }],
+    tags: ['Vite', 'Vue'],
+    rejectReason: null,
+    createdAt: '2026-02-01T10:00:00Z',
+    updatedAt: '2026-02-15T16:00:00Z',
+  },
+  {
+    uuid: 'editor-rejected-1',
+    title: '被退回：Docker 容器化部署入門',
+    summary: '從基礎開始學習 Docker，逐步掌握容器化部署',
+    content: '# Docker 入門\n\n被退回的文章...',
+    coverImageUrl: null,
+    status: 'REJECTED',
+    categories: [{ id: 'cat-4', name: 'DevOps', slug: 'devops' }],
+    tags: ['Docker', 'DevOps'],
+    rejectReason: '文章內容過於簡略，請補充更多實際案例與程式碼範例，確保讀者能從中獲得實際幫助。',
+    createdAt: '2026-01-15T10:00:00Z',
+    updatedAt: '2026-03-05T11:00:00Z',
+  },
+  {
+    uuid: 'editor-archived-1',
+    title: '已封存：舊版 Vue CLI 使用指南',
+    summary: '這是一篇關於舊版 Vue CLI 的文章，現已封存',
+    content: '# Vue CLI 指南\n\n已封存的舊文章...',
+    coverImageUrl: null,
+    status: 'ARCHIVED',
+    categories: [{ id: 'cat-1', name: 'Vue', slug: 'vue' }],
+    tags: ['Vue'],
+    rejectReason: null,
+    createdAt: '2025-06-01T10:00:00Z',
+    updatedAt: '2025-12-01T10:00:00Z',
+  },
+];
+
+// 可變的 in-memory 文章儲存（編輯器 CRUD 操作對象）
+export let editorArticleStore: EditorArticle[] = [...mockEditorArticles];
+
+export function resetEditorArticleStore(): void {
+  editorArticleStore = [...mockEditorArticles];
+}
+
+// 將 EditorArticle 轉換為 MyArticle 格式（列表用）
+export function toMyArticle(a: EditorArticle): MyArticle {
+  return {
+    uuid: a.uuid,
+    title: a.title,
+    summary: a.summary,
+    coverImageUrl: a.coverImageUrl,
+    status: a.status,
+    tags: a.tags,
+    rejectReason: a.rejectReason,
+    createdAt: a.createdAt,
+    updatedAt: a.updatedAt,
+    viewCount: 0,
+    likeCount: 0,
+    commentCount: 0,
+  };
+}

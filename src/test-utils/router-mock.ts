@@ -14,6 +14,9 @@ export function createTestRouter(initialRoute = '/') {
       { path: '/forgot-password', name: 'forgot-password', component: StubComponent, meta: { guestOnly: true } },
       { path: '/reset-password', name: 'reset-password', component: StubComponent, meta: { guestOnly: true } },
       { path: '/verify-email', name: 'verify-email', component: StubComponent },
+      { path: '/editor', name: 'editor-new', component: StubComponent },
+      { path: '/editor/:uuid', name: 'editor-edit', component: StubComponent, props: true },
+      { path: '/my-articles', name: 'my-articles', component: StubComponent },
     ],
   })
   router.push(initialRoute)
