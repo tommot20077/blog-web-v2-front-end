@@ -30,7 +30,7 @@ function mockDelay<T>(fn: () => T, delay = 400): Promise<T> {
 export function loginMock(payload: LoginPayload): Promise<AuthTokens> {
   return mockDelay(() => {
     const user = registeredUsers.find(
-      (u) => u.email === payload.email && u.password === payload.password,
+      (u) => (u.email === payload.identifier || u.nickname === payload.identifier) && u.password === payload.password,
     );
     if (!user) {
       throw new Error('帳號或密碼錯誤');

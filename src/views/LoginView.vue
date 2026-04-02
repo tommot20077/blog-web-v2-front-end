@@ -43,7 +43,7 @@ async function handleSubmit() {
 
   isSubmitting.value = true
   try {
-    const redirect = await authStore.login({ email: email.value, password: password.value })
+    const redirect = await authStore.login({ identifier: email.value, password: password.value })
     router.push(redirect || '/')
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : '登入失敗'

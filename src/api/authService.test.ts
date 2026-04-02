@@ -30,7 +30,7 @@ describe('authService', () => {
 
     it('login 委派給 loginMock 並回傳 AuthTokens', async () => {
       const { authService } = await import('./authService')
-      const payload: LoginPayload = { email: 'admin@test.com', password: 'Password1' }
+      const payload: LoginPayload = { identifier: 'admin@test.com', password: 'Password1' }
 
       const result = await authService.login(payload)
 
@@ -57,7 +57,7 @@ describe('authService', () => {
     it('refresh 委派給 refreshTokenMock 並回傳 AuthTokens', async () => {
       const { authService } = await import('./authService')
       // 先登入讓 refreshTokenValid = true
-      await authService.login({ email: 'admin@test.com', password: 'Password1' })
+      await authService.login({ identifier: 'admin@test.com', password: 'Password1' })
 
       const result = await authService.refresh()
 
@@ -94,7 +94,7 @@ describe('authService', () => {
     it('getMe 委派給 getMeMock 並回傳 User 物件', async () => {
       const { authService } = await import('./authService')
       // 先登入
-      await authService.login({ email: 'admin@test.com', password: 'Password1' })
+      await authService.login({ identifier: 'admin@test.com', password: 'Password1' })
 
       const result = await authService.getMe()
 
@@ -130,7 +130,7 @@ describe('authService', () => {
       mockPost.mockResolvedValue(mockTokens)
 
       const { authService } = await import('./authService')
-      const payload: LoginPayload = { email: 'test@test.com', password: 'Password1' }
+      const payload: LoginPayload = { identifier: 'test@test.com', password: 'Password1' }
       const result = await authService.login(payload)
 
       expect(mockPost).toHaveBeenCalledWith('/api/v1/auth/login', payload)
@@ -222,7 +222,7 @@ describe('authService', () => {
       const { authService } = await import('./authService')
       const result = await authService.getMe()
 
-      expect(mockGet).toHaveBeenCalledWith('/api/v1/auth/me')
+      expect(mockGet).toHaveBeenCalledWith('/api/v1/users/me')
       expect(result).toEqual(mockUser)
     })
 

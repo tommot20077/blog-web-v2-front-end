@@ -33,7 +33,7 @@ export interface User {
 
 // 登入請求
 export interface LoginPayload {
-  email: string;
+  identifier: string;
   password: string;
 }
 

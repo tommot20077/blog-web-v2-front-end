@@ -24,7 +24,7 @@ describe('authMockService', () => {
   // --- loginMock ---
   describe('loginMock', () => {
     it('正確帳密登入 → 回傳 AuthTokens', async () => {
-      const promise = loginMock({ email: 'admin@test.com', password: 'Password1' });
+      const promise = loginMock({ identifier: 'admin@test.com', password: 'Password1' });
       await vi.advanceTimersByTimeAsync(500);
       const result = await promise;
 
@@ -36,14 +36,14 @@ describe('authMockService', () => {
     });
 
     it('錯誤密碼登入 → 拋出錯誤', async () => {
-      const promise = loginMock({ email: 'admin@test.com', password: 'WrongPass' });
+      const promise = loginMock({ identifier: 'admin@test.com', password: 'WrongPass' });
       const assertion = expect(promise).rejects.toThrow('帳號或密碼錯誤');
       await vi.advanceTimersByTimeAsync(500);
       await assertion;
     });
 
     it('不存在的 email 登入 → 拋出錯誤', async () => {
-      const promise = loginMock({ email: 'unknown@test.com', password: 'Password1' });
+      const promise = loginMock({ identifier: 'unknown@test.com', password: 'Password1' });
       const assertion = expect(promise).rejects.toThrow('帳號或密碼錯誤');
       await vi.advanceTimersByTimeAsync(500);
       await assertion;
@@ -82,7 +82,7 @@ describe('authMockService', () => {
   // --- refreshTokenMock ---
   describe('refreshTokenMock', () => {
     it('登入後 refresh → 回傳新 AuthTokens', async () => {
-      const loginPromise = loginMock({ email: 'admin@test.com', password: 'Password1' });
+      const loginPromise = loginMock({ identifier: 'admin@test.com', password: 'Password1' });
       await vi.advanceTimersByTimeAsync(500);
       await loginPromise;
 
@@ -106,7 +106,7 @@ describe('authMockService', () => {
   // --- logoutMock ---
   describe('logoutMock', () => {
     it('登入後登出 → refreshToken 失效、getMe 拋出錯誤', async () => {
-      const loginPromise = loginMock({ email: 'admin@test.com', password: 'Password1' });
+      const loginPromise = loginMock({ identifier: 'admin@test.com', password: 'Password1' });
       await vi.advanceTimersByTimeAsync(500);
       await loginPromise;
 
@@ -175,7 +175,7 @@ describe('authMockService', () => {
   // --- getMeMock ---
   describe('getMeMock', () => {
     it('已登入 → 回傳 User 物件', async () => {
-      const loginPromise = loginMock({ email: 'user@test.com', password: 'Password1' });
+      const loginPromise = loginMock({ identifier: 'user@test.com', password: 'Password1' });
       await vi.advanceTimersByTimeAsync(500);
       await loginPromise;
 

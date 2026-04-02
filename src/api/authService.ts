@@ -63,7 +63,7 @@ export const authService = {
       const { getMeMock } = await import('./mock/authMockService')
       return getMeMock()
     }
-    return apiClient.get('/api/v1/auth/me')
+    return apiClient.get('/api/v1/users/me')
   },
 
   async resendVerification(email: string): Promise<void> {
