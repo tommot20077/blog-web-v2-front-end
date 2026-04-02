@@ -39,11 +39,11 @@ export const articleService = {
     }
 
     // --- 【API 模式】呼叫真實後端 ---
-    // 對應後端: GET /api/v1/articles?pageNum={page}&pageSize={size}&categorySlug={category}&keyword={keyword}
+    // 對應後端: GET /api/v1/articles?page={page}&size={size}&categorySlug={category}&keyword={keyword}
     try {
       const params: Record<string, string> = {
-        pageNum: page.toString(),
-        pageSize: size.toString(),
+        page: page.toString(),
+        size: size.toString(),
       };
 
       if (category && category !== '全部') {
