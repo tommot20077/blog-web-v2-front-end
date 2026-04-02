@@ -78,7 +78,7 @@ function create401Error(url: string) {
     config: createConfig(url),
     response: {
       status: 401,
-      data: { code: 401, message: 'Unauthorized', data: null },
+      data: { code: 'A0200', message: 'Unauthorized', data: null },
     },
     isAxiosError: true,
     message: 'Unauthorized',
@@ -149,9 +149,9 @@ describe('apiClient', () => {
   // 3. Response interceptor — 成功路徑
   // ============================================================
   describe('Response interceptor — 成功', () => {
-    it('code=200 時解包回傳 response.data.data', () => {
+    it('code="00000" 時解包回傳 response.data.data', () => {
       const mockResponse = {
-        data: { code: 200, message: 'OK', data: { id: 1, name: 'test' } },
+        data: { code: '00000', message: 'OK', data: { id: 1, name: 'test' } },
         status: 200,
       } as AxiosResponse
 
@@ -160,13 +160,33 @@ describe('apiClient', () => {
       expect(result).toEqual({ id: 1, name: 'test' })
     })
 
-    it('code !== 200 時 reject 並帶後端 message', () => {
+    it('code !== "00000" 時 reject 並帶後端 message', () => {
       const mockResponse = {
-        data: { code: 400, message: '參數錯誤', data: null },
+        data: { code: 'A0001', message: '參數錯誤', data: null },
         status: 200,
       } as AxiosResponse
 
       expect(() => responseFulfilled(mockResponse)).toThrow('參數錯誤')
+    })
+
+    it('code 為字串 "00000" 時解包回傳 response.data.data', () => {
+      const mockResponse = {
+        data: { code: '00000', message: '操作成功', data: { id: 2, name: 'backend-test' } },
+        status: 200,
+      } as AxiosResponse
+
+      const result = responseFulfilled(mockResponse)
+
+      expect(result).toEqual({ id: 2, name: 'backend-test' })
+    })
+
+    it('code 為字串錯誤碼 "A0001" 時 reject 並帶後端 message', () => {
+      const mockResponse = {
+        data: { code: 'A0001', message: '用戶不存在', data: null },
+        status: 200,
+      } as AxiosResponse
+
+      expect(() => responseFulfilled(mockResponse)).toThrow('用戶不存在')
     })
   })
 
@@ -181,7 +201,7 @@ describe('apiClient', () => {
       })
 
       mockInstanceRequest.mockResolvedValue({
-        data: { code: 200, message: 'OK', data: { id: 1 } },
+        data: { code: '00000', message: 'OK', data: { id: 1 } },
       })
 
       const error = create401Error('/api/v1/articles')
@@ -207,7 +227,7 @@ describe('apiClient', () => {
       )
 
       mockInstanceRequest.mockResolvedValue({
-        data: { code: 200, message: 'OK', data: { id: 'retried' } },
+        data: { code: '00000', message: 'OK', data: { id: 'retried' } },
       })
 
       const p1 = responseRejected(create401Error('/api/v1/articles'))
@@ -255,7 +275,7 @@ describe('apiClient', () => {
     it('403 錯誤帶後端 message reject', async () => {
       const error = {
         config: createConfig('/api/v1/admin'),
-        response: { status: 403, data: { code: 403, message: '權限不足', data: null } },
+        response: { status: 403, data: { code: 'A0300', message: '權限不足', data: null } },
         isAxiosError: true,
         message: 'Forbidden',
       }
@@ -266,7 +286,7 @@ describe('apiClient', () => {
     it('500 錯誤帶後端 message reject', async () => {
       const error = {
         config: createConfig('/api/v1/articles'),
-        response: { status: 500, data: { code: 500, message: '伺服器內部錯誤', data: null } },
+        response: { status: 500, data: { code: 'B0001', message: '伺服器內部錯誤', data: null } },
         isAxiosError: true,
         message: 'Internal Server Error',
       }

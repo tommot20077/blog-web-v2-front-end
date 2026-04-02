@@ -8,6 +8,23 @@ export interface TagDetailResponse {
   articleCount: number;
 }
 
+// 後端原始 Tag entity 結構
+interface BackendTag {
+  id: string;
+  name: string;
+  slug: string;
+  usageCount: number;
+  color?: string | null;
+  icon?: string | null;
+  description?: string | null;
+  parentId?: string | null;
+  createdAt?: string;
+}
+
+function mapBackendTag(raw: BackendTag): TagDetailResponse {
+  return { uuid: raw.id, name: raw.name, slug: raw.slug, articleCount: raw.usageCount };
+}
+
 export const tagService = {
   /**
    * 取得熱門標籤（根據 env 決定要打 API 還是委派給 Mock）
@@ -19,10 +36,10 @@ export const tagService = {
     }
 
     try {
-      const data = await apiClient.get<unknown, TagDetailResponse[]>('/api/v1/tags/hot', {
+      const data = await apiClient.get<unknown, BackendTag[]>('/api/v1/tags/hot', {
         params: { limit },
       });
-      return data;
+      return data.map(mapBackendTag);
     } catch (error) {
       console.error('Fetch hot tags failed:', error);
       return [];

@@ -34,12 +34,12 @@ export interface RegisterPayload {
 // 認證 Token 回應
 export interface AuthTokens {
   accessToken: string;
-  expiresIn: number;
+  expiresIn?: number;
 }
 
 // API 通用回應包裝
 export interface ApiResponse<T> {
-  code: number;
+  code: string;
   message: string;
   data: T | null;
 }

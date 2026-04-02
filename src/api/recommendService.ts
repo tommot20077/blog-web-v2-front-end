@@ -14,6 +14,35 @@ export interface RecommendArticleResponse {
   tags: string[];
 }
 
+// 後端實際回傳的原始結構（欄位名稱與前端介面不同）
+interface BackendRecommend {
+  uuid: string;
+  title: string;
+  slug: string;
+  summary: string;
+  authorNickname: string;
+  tagNames: string[];
+  viewCount: number;
+  likeCount: number;
+  publishedAt: string;
+  coverImageUrl?: string | null;
+}
+
+function mapBackendRecommend(raw: BackendRecommend): RecommendArticleResponse {
+  return {
+    uuid: raw.uuid,
+    title: raw.title,
+    slug: raw.slug,
+    summary: raw.summary,
+    coverImageUrl: raw.coverImageUrl ?? null,
+    authorNickname: raw.authorNickname,
+    viewCount: raw.viewCount,
+    likeCount: raw.likeCount,
+    publishedAt: raw.publishedAt,
+    tags: raw.tagNames,
+  };
+}
+
 export const recommendService = {
   /**
    * 取得熱門文章（根據 env 決定要打 API 還是委派給 Mock）
@@ -25,10 +54,10 @@ export const recommendService = {
     }
 
     try {
-      const data = await apiClient.get<unknown, RecommendArticleResponse[]>('/api/v1/recommend/trending', {
+      const data = await apiClient.get<unknown, BackendRecommend[]>('/api/v1/recommend/trending', {
         params: { period, limit },
       });
-      return data;
+      return data.map(mapBackendRecommend);
     } catch (error) {
       console.error('Fetch trending articles failed:', error);
       return [];

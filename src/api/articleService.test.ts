@@ -116,8 +116,8 @@ describe('articleService', () => {
         expect(apiClient.get).toHaveBeenCalledOnce();
         expect(apiClient.get).toHaveBeenCalledWith('/api/v1/articles', {
           params: {
-            pageNum: '2',
-            pageSize: '10',
+            page: '2',
+            size: '10',
             categorySlug: 'Backend',
             keyword: '微服務',
           },
@@ -137,8 +137,8 @@ describe('articleService', () => {
 
         expect(apiClient.get).toHaveBeenCalledWith('/api/v1/articles', {
           params: {
-            pageNum: '1',
-            pageSize: '6',
+            page: '1',
+            size: '6',
           },
         });
       });
