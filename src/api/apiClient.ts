@@ -67,7 +67,7 @@ apiClient.interceptors.response.use(
     if (isSuccessCode(body.code)) {
       return body.data as never
     }
-    // 業務錯誤（HTTP 2xx 但 code !== 200）
+    // 業務錯誤（HTTP 2xx 但 code !== '00000'）
     throw new Error(body.message)
   },
   // 錯誤回應
