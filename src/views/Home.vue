@@ -5,6 +5,10 @@ import LatestArticlesSection from '../components/home/LatestArticlesSection.vue'
 import ZoneEntrySection from '../components/home/ZoneEntrySection.vue';
 import HotTagsSection from '../components/home/HotTagsSection.vue';
 import { useHomePage } from '../composables/useHomePage';
+import { useHeadSetup } from '../composables/useHeadSetup';
+
+// SEO / AEO：注入頁面標題、meta description、OG tags 與 JSON-LD
+useHeadSetup();
 
 const {
   trendingArticles,
@@ -19,11 +23,14 @@ const {
 
 <template>
   <div class="flex flex-col items-center">
+    <!-- SEO 用隱藏標題：供爬蟲與螢幕閱讀器辨識本頁為部落格首頁 -->
+    <h1 class="sr-only">MY BLOG WEB. — 技術部落格首頁</h1>
+
     <!-- Hero Section / 跑馬燈 -->
     <HeroMarquee />
 
     <!-- 內容區塊 -->
-    <div class="w-full max-w-7xl px-4 md:px-8 mt-12 mb-32 space-y-16">
+    <div class="w-full max-w-7xl px-4 sm:px-6 lg:px-8 mt-12 mb-32 space-y-16">
       <TrendingSection
         :articles="trendingArticles"
         :is-loading="isLoadingTrending"

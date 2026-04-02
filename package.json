@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@shikijs/markdown-it": "^4.0.2",
+    "@unhead/vue": "^2.1.12",
     "axios": "^1.13.6",
     "dompurify": "^3.3.3",
     "markdown-it": "^14.1.1",
