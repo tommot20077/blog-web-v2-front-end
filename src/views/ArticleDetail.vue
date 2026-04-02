@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { articleService, type ArticleDetailItem } from '../api/articleService';
 import { useMarkdownRenderer } from '../composables/useMarkdownRenderer';
+import { useWordCount } from '../composables/useWordCount';
 
 const route = useRoute();
 const router = useRouter();
@@ -11,11 +12,14 @@ const uuid = route.params.uuid as string;
 const article = ref<ArticleDetailItem | null>(null);
 const isLoading = ref(true);
 
-// Markdown 原始字串的 computed ref，供 useMarkdownRenderer 消費
+// Markdown 原始字串的 computed ref，供 useMarkdownRenderer 與 useWordCount 消費
 const markdownSource = computed(() => article.value?.content ?? '');
 
 // 使用 composable 將 Markdown 渲染為安全 HTML
 const { renderedHtml, isReady: isShikiReady } = useMarkdownRenderer(markdownSource);
+
+// 動態閱讀時間
+const { readingTimeMinutes } = useWordCount(markdownSource);
 
 onMounted(async () => {
   window.scrollTo({ top: 0, behavior: 'auto' });
@@ -64,8 +68,8 @@ const goBack = () => {
       
       <!-- 返回按鈕列 -->
       <div class="mb-10 w-full flex items-center">
-        <button 
-          @click="goBack" 
+        <button
+          @click="goBack"
           class="flex items-center gap-3 opacity-50 hover:opacity-100 transition-opacity font-bold text-xs tracking-widest px-4 py-2 -ml-4 rounded-xl hover:bg-black/5 dark:hover:bg-white/10"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
@@ -73,30 +77,75 @@ const goBack = () => {
         </button>
       </div>
 
+      <!-- 封面圖 -->
+      <img
+        v-if="article.coverImageUrl"
+        :src="article.coverImageUrl"
+        :alt="article.title"
+        class="w-full aspect-video object-cover rounded-none md:rounded-3xl shadow-lg mb-10"
+      />
+
       <!-- 開頭 Hero 資訊 -->
       <header class="mb-16 border-b pb-12" style="border-color: var(--glass-border)">
-        <div class="flex flex-wrap gap-2 mb-8">
-            <span v-for="tag in article.tags" :key="tag" class="px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-widest bg-[var(--text-main)] text-[var(--bg-color)] shadow-md">
-                # {{ tag }}
-            </span>
+        <!-- 分類 pills（與 tags 視覺區分，使用 accent-color） -->
+        <div v-if="article.categories.length > 0" class="flex flex-wrap gap-2 mb-4">
+          <span
+            v-for="cat in article.categories"
+            :key="cat"
+            class="px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-widest text-white"
+            style="background: var(--accent-color);"
+          >
+            {{ cat }}
+          </span>
         </div>
+
+        <!-- Tags -->
+        <div class="flex flex-wrap gap-2 mb-8">
+          <span v-for="tag in article.tags" :key="tag" class="px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-widest bg-[var(--text-main)] text-[var(--bg-color)] shadow-md">
+            # {{ tag }}
+          </span>
+        </div>
+
         <h1 class="text-4xl md:text-5xl lg:text-6xl font-black mb-8 leading-tight tracking-tight" style="color: var(--text-main)">
           {{ article.title }}
         </h1>
-        <div class="flex flex-wrap items-center gap-6 text-sm font-bold opacity-50 tracking-wide uppercase">
-            <div class="flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                <span>{{ article.publishedAt }}</span>
-            </div>
-            <span class="opacity-30">|</span>
-            <div class="flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                <span>{{ article.viewCount }} 觀看次數</span>
-            </div>
-            <span class="opacity-30">|</span>
-            <div class="flex items-center gap-2">
-                <span>約 5 分鐘閱讀時間</span>
-            </div>
+
+        <!-- metadata 行 -->
+        <div class="flex flex-wrap items-center gap-4 text-sm font-bold opacity-50 tracking-wide uppercase">
+          <!-- 作者 -->
+          <div class="flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+            <span>{{ article.authorNickname }}</span>
+          </div>
+          <span class="opacity-30">|</span>
+          <!-- 發布日期 -->
+          <div class="flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+            <span>{{ article.publishedAt }}</span>
+          </div>
+          <span class="opacity-30">|</span>
+          <!-- 觀看數 -->
+          <div class="flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+            <span>{{ article.viewCount }} 觀看次數</span>
+          </div>
+          <span class="opacity-30">|</span>
+          <!-- 閱讀時間（動態） -->
+          <div class="flex items-center gap-2">
+            <span>約 {{ readingTimeMinutes }} 分鐘閱讀時間</span>
+          </div>
+          <span class="opacity-30">|</span>
+          <!-- 讚數 -->
+          <div class="flex items-center gap-2" data-testid="like-count">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+            <span>{{ article.likeCount }}</span>
+          </div>
+          <span class="opacity-30">|</span>
+          <!-- 留言數 -->
+          <div class="flex items-center gap-2" data-testid="comment-count">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z"/></svg>
+            <span>{{ article.commentCount }}</span>
+          </div>
         </div>
       </header>
 
