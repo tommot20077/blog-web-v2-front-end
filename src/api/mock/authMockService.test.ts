@@ -48,6 +48,15 @@ describe('authMockService', () => {
       await vi.advanceTimersByTimeAsync(500);
       await assertion;
     });
+
+    it('以 nickname 作為 identifier 登入 → 回傳 AuthTokens', async () => {
+      const promise = loginMock({ identifier: 'Yuan', password: 'Password1' });
+      await vi.advanceTimersByTimeAsync(500);
+      const result = await promise;
+
+      expect(result.accessToken).toBeTruthy();
+      expect(result.expiresIn).toBeGreaterThan(0);
+    });
   });
 
   // --- registerMock ---
