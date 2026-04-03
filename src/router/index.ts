@@ -3,6 +3,7 @@ import type { Router } from 'vue-router'
 import Home from '../views/Home.vue'
 import { useAuthStore } from '../stores/auth'
 import { useToast } from '../composables/useToast'
+import { hasRequiredRole } from '../types/auth'
 import type { UserRole } from '../types/auth'
 
 // RouteMeta 型別擴充
@@ -62,6 +63,25 @@ const router = createRouter({
       name: 'verify-email',
       component: () => import('../views/VerifyEmailView.vue')
     },
+    {
+      path: '/editor',
+      name: 'editor-new',
+      component: () => import('../views/EditorView.vue'),
+      meta: { requiresAuth: true, requiredRole: 'AUTHOR' as UserRole }
+    },
+    {
+      path: '/editor/:uuid',
+      name: 'editor-edit',
+      component: () => import('../views/EditorView.vue'),
+      meta: { requiresAuth: true, requiredRole: 'AUTHOR' as UserRole },
+      props: true
+    },
+    {
+      path: '/my-articles',
+      name: 'my-articles',
+      component: () => import('../views/MyArticlesView.vue'),
+      meta: { requiresAuth: true }
+    },
   ],
   scrollBehavior() {
     return { top: 0, behavior: 'smooth' }
@@ -88,8 +108,8 @@ export function setupGuards(targetRouter: Router) {
       return { name: 'login' }
     }
 
-    // 需要特定角色但角色不符
-    if (to.meta.requiredRole && authStore.userRole !== to.meta.requiredRole) {
+    // 需要特定角色但角色不符（含層級繼承：ADMIN 可通過所有角色要求）
+    if (to.meta.requiredRole && !hasRequiredRole(authStore.userRole, to.meta.requiredRole)) {
       showToast('權限不足', 'error')
       return { name: 'home' }
     }
