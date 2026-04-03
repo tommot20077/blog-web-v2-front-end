@@ -61,19 +61,16 @@ describe('authMockService', () => {
 
   // --- registerMock ---
   describe('registerMock', () => {
-    it('註冊新帳號 → 回傳 AuthTokens', async () => {
+    it('註冊新帳號 → resolve void', async () => {
       const promise = registerMock({
         email: 'new@test.com',
         password: 'Password1',
+        username: 'new_user',
         nickname: 'NewUser',
       });
       await vi.advanceTimersByTimeAsync(500);
-      const result = await promise;
 
-      expect(result).toHaveProperty('accessToken');
-      expect(typeof result.accessToken).toBe('string');
-      expect(result).toHaveProperty('expiresIn');
-      expect(typeof result.expiresIn).toBe('number');
+      await expect(promise).resolves.toBeUndefined();
     });
 
     it('註冊重複 email → 拋出錯誤', async () => {

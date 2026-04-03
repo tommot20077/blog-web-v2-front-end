@@ -95,10 +95,12 @@ describe('RegisterView', () => {
     authStore.register = vi.fn().mockResolvedValue(undefined);
 
     const emailInput = screen.getByPlaceholderText('請輸入 Email');
+    const usernameInput = screen.getByPlaceholderText('請輸入使用者名稱（英文、數字）');
     const nicknameInput = screen.getByPlaceholderText('請輸入暱稱');
     const passwordInput = screen.getByPlaceholderText('請輸入密碼');
 
     await fireEvent.update(emailInput, 'test@example.com');
+    await fireEvent.update(usernameInput, 'test_user');
     await fireEvent.update(nicknameInput, 'TestUser');
     await fireEvent.update(passwordInput, 'Password123');
 
@@ -126,10 +128,12 @@ describe('RegisterView', () => {
     authStore.register = vi.fn().mockRejectedValue(new Error('Email 已被使用'));
 
     const emailInput = screen.getByPlaceholderText('請輸入 Email');
+    const usernameInput = screen.getByPlaceholderText('請輸入使用者名稱（英文、數字）');
     const nicknameInput = screen.getByPlaceholderText('請輸入暱稱');
     const passwordInput = screen.getByPlaceholderText('請輸入密碼');
 
     await fireEvent.update(emailInput, 'test@example.com');
+    await fireEvent.update(usernameInput, 'test_user');
     await fireEvent.update(nicknameInput, 'TestUser');
     await fireEvent.update(passwordInput, 'Password123');
 

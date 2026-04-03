@@ -91,17 +91,20 @@ describe('useAuthStore', () => {
   })
 
   describe('register', () => {
-    it('成功時設定 accessToken 並呼叫 fetchUser', async () => {
-      vi.mocked(authService.register).mockResolvedValue(mockTokens)
-      vi.mocked(authService.getMe).mockResolvedValue(mockUser)
+    it('成功時呼叫 authService.register 並 resolve void', async () => {
+      vi.mocked(authService.register).mockResolvedValue(undefined)
 
       const store = useAuthStore()
-      await store.register({ email: 'new@test.com', password: 'password123', nickname: 'NewUser' })
+      await store.register({ email: 'new@test.com', password: 'password123', username: 'new_user', nickname: 'NewUser' })
 
-      expect(store.accessToken).toBe('test-access-token')
-      expect(store.user).toEqual(mockUser)
-      expect(authService.register).toHaveBeenCalledWith({ email: 'new@test.com', password: 'password123', nickname: 'NewUser' })
-      expect(authService.getMe).toHaveBeenCalled()
+      expect(authService.register).toHaveBeenCalledWith({
+        email: 'new@test.com',
+        password: 'password123',
+        username: 'new_user',
+        nickname: 'NewUser',
+      })
+      expect(store.accessToken).toBeNull()
+      expect(store.user).toBeNull()
     })
   })
 

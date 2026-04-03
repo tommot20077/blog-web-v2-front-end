@@ -1,6 +1,31 @@
 import apiClient from './apiClient';
 
-// 這是文章的資料結構型別定義
+interface TagSummaryResponse {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+// 後端回傳的原始文章結構（tags 為物件陣列）
+interface BackendArticleBase {
+  uuid: string;
+  title: string;
+  summary: string;
+  coverImageUrl: string | null;
+  authorNickname: string;
+  viewCount: number;
+  likeCount: number;
+  commentCount: number;
+  publishedAt: string;
+  tags: TagSummaryResponse[];
+  slug: string;
+}
+
+interface BackendArticleDetail extends BackendArticleBase {
+  content: string;
+}
+
+// 前端使用的文章結構（tags 已映射為字串陣列）
 export interface ArticleItem {
   uuid: string;
   title: string;
@@ -12,12 +37,31 @@ export interface ArticleItem {
   commentCount: number;
   publishedAt: string;
   tags: string[];
-  categories: string[];
   slug: string;
 }
 
 export interface ArticleDetailItem extends ArticleItem {
   content: string; // 後端回傳的原始 Markdown 字串
+}
+
+function mapArticle(raw: BackendArticleBase): ArticleItem {
+  return {
+    uuid: raw.uuid,
+    title: raw.title,
+    summary: raw.summary,
+    coverImageUrl: raw.coverImageUrl,
+    authorNickname: raw.authorNickname,
+    viewCount: raw.viewCount,
+    likeCount: raw.likeCount,
+    commentCount: raw.commentCount,
+    publishedAt: raw.publishedAt,
+    tags: raw.tags.map((t) => t.name),
+    slug: raw.slug,
+  };
+}
+
+function mapArticleDetail(raw: BackendArticleDetail): ArticleDetailItem {
+  return { ...mapArticle(raw), content: raw.content };
 }
 
 export interface PageResult<T> {
@@ -53,8 +97,8 @@ export const articleService = {
         params.keyword = keyword;
       }
 
-      const data = await apiClient.get<unknown, PageResult<ArticleItem>>('/api/v1/articles', { params });
-      return data;
+      const data = await apiClient.get<unknown, PageResult<BackendArticleBase>>('/api/v1/articles', { params });
+      return { ...data, records: data.records.map(mapArticle) };
     } catch (error) {
       console.error('Fetch articles failed:', error);
       return { records: [], total: 0, size, current: page, pages: 0 };
@@ -71,8 +115,8 @@ export const articleService = {
     }
 
     try {
-      const data = await apiClient.get<unknown, ArticleDetailItem>(`/api/v1/articles/${uuid}`);
-      return data;
+      const data = await apiClient.get<unknown, BackendArticleDetail>(`/api/v1/articles/${uuid}`);
+      return mapArticleDetail(data);
     } catch (error) {
       console.error('Fetch article detail failed:', error);
       return null;

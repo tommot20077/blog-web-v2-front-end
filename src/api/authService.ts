@@ -10,7 +10,7 @@ export const authService = {
     return apiClient.post('/api/v1/auth/login', payload)
   },
 
-  async register(payload: RegisterPayload): Promise<AuthTokens> {
+  async register(payload: RegisterPayload): Promise<void> {
     if (import.meta.env.VITE_USE_MOCK === 'true') {
       const { registerMock } = await import('./mock/authMockService')
       return registerMock(payload)

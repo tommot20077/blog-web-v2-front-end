@@ -6,7 +6,6 @@ export interface RecommendArticleResponse {
   title: string;
   slug: string;
   summary: string;
-  coverImageUrl: string | null;
   authorNickname: string;
   viewCount: number;
   likeCount: number;
@@ -14,7 +13,7 @@ export interface RecommendArticleResponse {
   tags: string[];
 }
 
-// 後端實際回傳的原始結構（欄位名稱與前端介面不同）
+// 後端實際回傳的原始結構
 interface BackendRecommend {
   uuid: string;
   title: string;
@@ -25,7 +24,6 @@ interface BackendRecommend {
   viewCount: number;
   likeCount: number;
   publishedAt: string;
-  coverImageUrl?: string | null;
 }
 
 function mapBackendRecommend(raw: BackendRecommend): RecommendArticleResponse {
@@ -34,7 +32,6 @@ function mapBackendRecommend(raw: BackendRecommend): RecommendArticleResponse {
     title: raw.title,
     slug: raw.slug,
     summary: raw.summary,
-    coverImageUrl: raw.coverImageUrl ?? null,
     authorNickname: raw.authorNickname,
     viewCount: raw.viewCount,
     likeCount: raw.likeCount,

@@ -40,8 +40,7 @@ describe('recommendService', () => {
       vi.unstubAllEnvs();
     });
 
-    it('成功回應時正確解析結果', async () => {
-      // 後端回傳格式：tagNames（非 tags），無 coverImageUrl
+    it('成功回應時正確解析結果（無 coverImageUrl）', async () => {
       const backendRaw = [
         {
           uuid: 'r-1',
@@ -53,22 +52,18 @@ describe('recommendService', () => {
           viewCount: 100,
           likeCount: 10,
           publishedAt: '2026-03-01',
-          coverImageUrl: null,
         },
       ];
 
-      // apiClient response interceptor 已解包，直接回傳 data
       vi.mocked(apiClient.get).mockResolvedValue(backendRaw);
 
       const result = await recommendService.getTrending('7d', 5);
-      // 映射後應符合前端介面（tags 而非 tagNames）
       expect(result).toEqual([
         {
           uuid: 'r-1',
           title: '熱門文章',
           slug: 'hot',
           summary: '摘要',
-          coverImageUrl: null,
           authorNickname: 'Author',
           viewCount: 100,
           likeCount: 10,
@@ -76,6 +71,7 @@ describe('recommendService', () => {
           tags: ['Vue'],
         },
       ]);
+      expect(result[0]).not.toHaveProperty('coverImageUrl');
       expect(apiClient.get).toHaveBeenCalledWith('/api/v1/recommend/trending', {
         params: { period: '7d', limit: 5 },
       });
@@ -111,26 +107,5 @@ describe('recommendService', () => {
       expect(result[0].tags).toEqual(['Vue', 'JavaScript']);
     });
 
-    it('API 模式：缺少 coverImageUrl 時設為 null', async () => {
-      const backendRaw = [
-        {
-          uuid: 'r-3',
-          title: '測試文章',
-          slug: 'test-article',
-          summary: '摘要',
-          authorNickname: 'Tester',
-          tagNames: ['Test'],
-          viewCount: 10,
-          likeCount: 1,
-          publishedAt: '2024-02-01T00:00:00',
-          // 刻意不帶 coverImageUrl
-        },
-      ];
-
-      vi.mocked(apiClient.get).mockResolvedValue(backendRaw);
-
-      const result = await recommendService.getTrending('7d', 1);
-      expect(result[0].coverImageUrl).toBeNull();
-    });
   });
 });
