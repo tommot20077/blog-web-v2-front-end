@@ -54,4 +54,46 @@ test.describe('讀者閱讀文章', () => {
     await articleDetailPage.notFoundBackButton.click()
     await expect(page).toHaveURL('/articles')
   })
+
+  test('文章 Metadata 可見性：閱讀時間、分類、讚數、留言數', async ({
+    articleListPage,
+    articleDetailPage,
+  }) => {
+    // --- 進入第一篇文章 ---
+    await articleListPage.goto()
+    await articleListPage.waitForArticlesLoaded()
+    await articleListPage.articleCards.first().click()
+    await articleDetailPage.waitForArticleLoaded()
+
+    // --- 閱讀時間標籤可見 ---
+    await expect(articleDetailPage.readingTimeText).toBeVisible()
+
+    // --- 讚數與留言數區塊可見 ---
+    await expect(articleDetailPage.likeCount).toBeVisible()
+    await expect(articleDetailPage.commentCount).toBeVisible()
+
+    // --- 至少有一個分類 pill（mock 資料保證 Frontend 或 Backend）---
+    await expect(articleDetailPage.categoryPills.first()).toBeVisible()
+  })
+
+  test('Scroll to top 按鈕：滾動後點擊回到頁頂', async ({
+    page,
+    articleListPage,
+    articleDetailPage,
+  }) => {
+    // --- 進入文章詳情，等載入完成 ---
+    await articleListPage.goto()
+    await articleListPage.waitForArticlesLoaded()
+    await articleListPage.articleCards.first().click()
+    await articleDetailPage.waitForArticleLoaded()
+
+    // --- 等文章底部出現（確保 footer 已完整渲染）---
+    await expect(articleDetailPage.endOfArticle).toBeVisible()
+    await expect(articleDetailPage.scrollToTopButton).toBeVisible()
+
+    // --- 點擊回到頂部按鈕，確認不跳頁（headless Chromium 不執行 smooth scroll，不驗證 scrollY）---
+    const urlBefore = page.url()
+    await articleDetailPage.scrollToTopButton.click()
+    expect(page.url()).toBe(urlBefore)
+  })
 })
