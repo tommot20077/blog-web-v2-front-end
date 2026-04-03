@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { articleService, type ArticleDetailItem } from '../api/articleService';
+import { useArticleDetail } from '../composables/useArticleDetail';
 import { useMarkdownRenderer } from '../composables/useMarkdownRenderer';
 import { useWordCount } from '../composables/useWordCount';
 
@@ -9,8 +9,7 @@ const route = useRoute();
 const router = useRouter();
 const uuid = route.params.uuid as string;
 
-const article = ref<ArticleDetailItem | null>(null);
-const isLoading = ref(true);
+const { article, isLoading } = useArticleDetail(uuid);
 
 // Markdown 原始字串的 computed ref，供 useMarkdownRenderer 與 useWordCount 消費
 const markdownSource = computed(() => article.value?.content ?? '');
@@ -21,15 +20,8 @@ const { renderedHtml, isReady: isShikiReady } = useMarkdownRenderer(markdownSour
 // 動態閱讀時間
 const { readingTimeMinutes } = useWordCount(markdownSource);
 
-onMounted(async () => {
+onMounted(() => {
   window.scrollTo({ top: 0, behavior: 'auto' });
-  try {
-    article.value = await articleService.getArticleByUuid(uuid);
-  } catch (error) {
-    console.error('Error loading article details', error);
-  } finally {
-    isLoading.value = false;
-  }
 });
 
 const goBack = () => {
