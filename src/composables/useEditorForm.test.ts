@@ -163,6 +163,44 @@ describe('useEditorForm', () => {
     })
   })
 
+  // ── UUID 接力（新建後連續儲存） ────────────────────────────────────────────
+  describe('UUID 接力', () => {
+    it('新建模式第一次 saveDraft 後 isNew 變為 false', async () => {
+      vi.mocked(editorService.createArticle).mockResolvedValue(mockArticle)
+
+      const { isNew, saveDraft } = useEditorForm()
+      expect(isNew.value).toBe(true)
+
+      await saveDraft('內容')
+      expect(isNew.value).toBe(false)
+    })
+
+    it('新建模式第二次 saveDraft 呼叫 updateArticle 而非 createArticle', async () => {
+      vi.mocked(editorService.createArticle).mockResolvedValue(mockArticle)
+      vi.mocked(editorService.updateArticle).mockResolvedValue(mockArticle)
+
+      const { saveDraft } = useEditorForm()
+      await saveDraft('第一次')
+      await saveDraft('第二次')
+
+      expect(editorService.createArticle).toHaveBeenCalledTimes(1)
+      expect(editorService.updateArticle).toHaveBeenCalledOnce()
+      expect(editorService.updateArticle).toHaveBeenCalledWith(
+        mockArticle.uuid,
+        expect.objectContaining({ content: '第二次' }),
+      )
+    })
+
+    it('新建模式第一次 saveDraft 後 article.uuid 被設定', async () => {
+      vi.mocked(editorService.createArticle).mockResolvedValue(mockArticle)
+
+      const { article, saveDraft } = useEditorForm()
+      await saveDraft('內容')
+
+      expect(article.value?.uuid).toBe(mockArticle.uuid)
+    })
+  })
+
   // ── submitForReview ────────────────────────────────────────────────────────
   describe('submitForReview()', () => {
     it('呼叫 myArticlesService.submitForReview（帶 article uuid）', async () => {

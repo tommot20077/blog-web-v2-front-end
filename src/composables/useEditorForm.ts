@@ -13,7 +13,8 @@ export function useEditorForm(uuid?: string) {
   const isSaving = ref(false)
   const article = ref<EditorArticle | null>(null)
 
-  const isNew = computed(() => !uuid)
+  const currentUuid = ref(uuid)
+  const isNew = computed(() => !currentUuid.value)
 
   // 監聽欄位變化，標記為 dirty
   watch([title, summary, coverImageUrl, categoryIds, tagNames], () => {
@@ -21,8 +22,8 @@ export function useEditorForm(uuid?: string) {
   })
 
   async function loadArticle(): Promise<void> {
-    if (!uuid) return
-    const data = await editorService.getArticleForEdit(uuid)
+    if (!currentUuid.value) return
+    const data = await editorService.getArticleForEdit(currentUuid.value)
     if (!data) return
     article.value = data
     title.value = data.title
@@ -49,9 +50,10 @@ export function useEditorForm(uuid?: string) {
       if (isNew.value) {
         saved = await editorService.createArticle(formData)
       } else {
-        saved = await editorService.updateArticle(uuid!, formData)
+        saved = await editorService.updateArticle(currentUuid.value!, formData)
       }
 
+      currentUuid.value = saved.uuid
       article.value = saved
       isDirty.value = false
       return saved
@@ -61,7 +63,7 @@ export function useEditorForm(uuid?: string) {
   }
 
   async function submitForReview(): Promise<void> {
-    const targetUuid = article.value?.uuid ?? uuid
+    const targetUuid = article.value?.uuid ?? currentUuid.value
     if (!targetUuid) return
     await myArticlesService.submitForReview(targetUuid)
   }

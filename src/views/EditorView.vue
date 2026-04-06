@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { Splitpanes, Pane } from 'splitpanes'
 import EditorToolbar from '../components/editor/EditorToolbar.vue'
 import EditorPane from '../components/editor/EditorPane.vue'
@@ -37,6 +38,7 @@ const {
   isNew, isSaving, article, loadArticle, saveDraft, submitForReview,
 } = useEditorForm(props.uuid)
 
+const router = useRouter()
 const { showToast } = useToast()
 
 const wordCount = computed(() => markdownContent.value.trim().length)
@@ -56,11 +58,13 @@ onMounted(async () => {
 // ── 儲存草稿 ──────────────────────────────────────────────────────────────
 async function onSaveDraft() {
   try {
-    await saveDraft(markdownContent.value)
+    const saved = await saveDraft(markdownContent.value)
     showToast('草稿已儲存', 'success')
-  } catch (error) {
+    if (!props.uuid && saved?.uuid) {
+      await router.replace(`/editor/${saved.uuid}`)
+    }
+  } catch {
     showToast('儲存失敗', 'error')
-    throw error
   }
 }
 
