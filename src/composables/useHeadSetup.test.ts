@@ -45,4 +45,41 @@ describe('useHeadSetup', () => {
     const blog = parsed['@graph']?.find((n: { '@type': string }) => n['@type'] === 'Blog');
     expect(blog).toBeDefined();
   });
+
+  it('VITE_SITE_URL 有設定時，siteUrl 使用環境變數', () => {
+    vi.stubEnv('VITE_SITE_URL', 'https://custom.example.com');
+    const { siteUrl } = useHeadSetup();
+    expect(siteUrl).toBe('https://custom.example.com');
+    vi.unstubAllEnvs();
+  });
+
+  it('VITE_SITE_URL 未設定時，siteUrl fallback 到 window.location.origin', () => {
+    vi.stubEnv('VITE_SITE_URL', '');
+    const { siteUrl } = useHeadSetup();
+    expect(siteUrl).toBe(window.location.origin);
+    vi.unstubAllEnvs();
+  });
+
+  it('useHead 拋出例外時，非測試環境記錄 console.warn', async () => {
+    // mock useHead 強制拋出，確保 catch 一定被觸發
+    vi.doMock('@unhead/vue', () => ({
+      useHead: vi.fn().mockImplementation(() => { throw new Error('head provider missing'); }),
+    }));
+    vi.stubEnv('MODE', 'production');
+    vi.resetModules();
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const mod = await import('./useHeadSetup');
+    mod.useHeadSetup();
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('[useHeadSetup]'),
+      expect.any(Error),
+    );
+
+    warnSpy.mockRestore();
+    vi.unstubAllEnvs();
+    vi.resetModules();
+    vi.doUnmock('@unhead/vue');
+  });
 });

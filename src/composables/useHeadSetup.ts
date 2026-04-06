@@ -3,39 +3,6 @@ import { useHead } from '@unhead/vue';
 const SITE_NAME = 'MY BLOG WEB.';
 const SITE_TITLE = `${SITE_NAME} | 技術部落格`;
 const SITE_DESCRIPTION = '分享前後端技術、架構設計與開發實踐的個人技術部落格。';
-const SITE_URL = 'https://myblogweb.com'; // 可依實際 production URL 替換
-
-const ogTags = [
-  { property: 'og:type', content: 'website' },
-  { property: 'og:title', content: SITE_TITLE },
-  { property: 'og:description', content: SITE_DESCRIPTION },
-  { property: 'og:url', content: SITE_URL },
-];
-
-const jsonLd = JSON.stringify({
-  '@context': 'https://schema.org',
-  '@graph': [
-    {
-      '@type': 'WebSite',
-      name: SITE_NAME,
-      url: SITE_URL,
-      description: SITE_DESCRIPTION,
-      inLanguage: 'zh-Hant',
-    },
-    {
-      '@type': 'Blog',
-      name: SITE_TITLE,
-      url: SITE_URL,
-      description: SITE_DESCRIPTION,
-      inLanguage: 'zh-Hant',
-      author: {
-        '@type': 'Person',
-        name: 'Yuan',
-        url: 'https://github.com/tommot20077',
-      },
-    },
-  ],
-});
 
 /**
  * 首頁 SEO / AEO 設定
@@ -45,10 +12,44 @@ const jsonLd = JSON.stringify({
  *  - Open Graph 標籤
  *  - JSON-LD 結構化資料（WebSite + Blog Schema）
  *
- * 在沒有安裝 @unhead/vue 的環境（如單元測試）中會靜默略過 useHead，
- * 但仍回傳所有資料供測試驗證。
+ * 在 app 中未 provide head（例如單元測試未註冊 @unhead/vue plugin）時，
+ * 會靜默略過 useHead 的執行，但仍回傳所有資料供測試驗證。
  */
 export function useHeadSetup() {
+  const siteUrl = import.meta.env.VITE_SITE_URL || window.location.origin;
+
+  const ogTags = [
+    { property: 'og:type', content: 'website' },
+    { property: 'og:title', content: SITE_TITLE },
+    { property: 'og:description', content: SITE_DESCRIPTION },
+    { property: 'og:url', content: siteUrl },
+  ];
+
+  const jsonLd = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'WebSite',
+        name: SITE_NAME,
+        url: siteUrl,
+        description: SITE_DESCRIPTION,
+        inLanguage: 'zh-Hant',
+      },
+      {
+        '@type': 'Blog',
+        name: SITE_TITLE,
+        url: siteUrl,
+        description: SITE_DESCRIPTION,
+        inLanguage: 'zh-Hant',
+        author: {
+          '@type': 'Person',
+          name: 'Yuan',
+          url: 'https://github.com/tommot20077',
+        },
+      },
+    ],
+  });
+
   try {
     useHead({
       title: SITE_TITLE,
@@ -63,11 +64,11 @@ export function useHeadSetup() {
         },
       ],
     });
-  } catch {
-    // 在測試環境或未安裝 head plugin 時靜默略過
+  } catch (error) {
+    if (import.meta.env.MODE !== 'test') {
+      console.warn('[useHeadSetup] Failed to apply head metadata via useHead:', error);
+    }
   }
 
-  // 回傳供測試驗證用（不依賴真實 DOM / head plugin）
-  return { title: SITE_TITLE, description: SITE_DESCRIPTION, ogTags, jsonLd };
+  return { title: SITE_TITLE, description: SITE_DESCRIPTION, ogTags, jsonLd, siteUrl };
 }
-
