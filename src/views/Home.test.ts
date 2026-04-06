@@ -24,6 +24,11 @@ vi.mock('../api/tagService', () => ({
   },
 }))
 
+// mock useHeadSetup — 避免 @unhead/vue 在測試環境出問題
+vi.mock('../composables/useHeadSetup', () => ({
+  useHeadSetup: vi.fn(),
+}))
+
 describe('Home 頁面', () => {
   beforeEach(() => {
     vi.mocked(recommendService.getTrending).mockResolvedValue([]);
@@ -33,9 +38,16 @@ describe('Home 頁面', () => {
     vi.mocked(tagService.getHotTags).mockResolvedValue([]);
   })
 
-  it('渲染 HeroMarquee 元件', () => {
-    const { getByRole } = renderWithRouter(Home)
-    expect(getByRole('heading', { level: 1 })).toBeInTheDocument()
+  it('首頁包含 sr-only h1 標籤，供螢幕閱讀器與爬蟲使用', () => {
+    const { container } = renderWithRouter(Home)
+    const h1 = container.querySelector('h1.sr-only')
+    expect(h1).toBeInTheDocument()
+  })
+
+  it('sr-only h1 包含部落格站名', () => {
+    const { container } = renderWithRouter(Home)
+    const h1 = container.querySelector('h1.sr-only')
+    expect(h1?.textContent).toContain('MY BLOG WEB.')
   })
 
   it('顯示「最新發布」標題', () => {

@@ -4,17 +4,18 @@
 
 <template>
   <div class="mt-20 w-full overflow-hidden whitespace-nowrap py-10 relative">
-    <!-- 兩組文字以實現無縫跑馬燈 -->
-    <div class="flex animate-marquee min-w-max">
-      <h1 class="text-6xl md:text-[10rem] font-black flex gap-12 italic tracking-widest uppercase opacity-[0.03] select-none" style="color: var(--text-main)">
+    <!-- 兩組文字以實現無縫跑馬燈，純裝飾，排除無障礙樹 -->
+    <div class="flex animate-marquee min-w-max" aria-hidden="true">
+      <div class="text-4xl sm:text-6xl lg:text-[10rem] font-black flex gap-12 italic tracking-widest uppercase opacity-[0.03] select-none" style="color: var(--text-main)">
         <span>Animated Text Effects</span>
         <span>Animated Text Effects</span>
         <span>Animated Text Effects</span>
         <span>Animated Text Effects</span>
-      </h1>
+      </div>
     </div>
   </div>
 </template>
+
 
 <style scoped>
 @keyframes marquee {

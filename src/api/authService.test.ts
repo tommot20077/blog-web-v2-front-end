@@ -30,7 +30,7 @@ describe('authService', () => {
 
     it('login 委派給 loginMock 並回傳 AuthTokens', async () => {
       const { authService } = await import('./authService')
-      const payload: LoginPayload = { email: 'admin@test.com', password: 'Password1' }
+      const payload: LoginPayload = { identifier: 'admin@test.com', password: 'Password1' }
 
       const result = await authService.login(payload)
 
@@ -40,24 +40,22 @@ describe('authService', () => {
       expect(typeof result.expiresIn).toBe('number')
     })
 
-    it('register 委派給 registerMock 並回傳 AuthTokens', async () => {
+    it('register 委派給 registerMock 並 resolve void', async () => {
       const { authService } = await import('./authService')
       const payload: RegisterPayload = {
         email: `new-${Date.now()}@test.com`,
         password: 'Password1',
+        username: 'new_user',
         nickname: 'NewUser',
       }
 
-      const result = await authService.register(payload)
-
-      expect(result).toHaveProperty('accessToken')
-      expect(result).toHaveProperty('expiresIn')
+      await expect(authService.register(payload)).resolves.toBeUndefined()
     })
 
     it('refresh 委派給 refreshTokenMock 並回傳 AuthTokens', async () => {
       const { authService } = await import('./authService')
       // 先登入讓 refreshTokenValid = true
-      await authService.login({ email: 'admin@test.com', password: 'Password1' })
+      await authService.login({ identifier: 'admin@test.com', password: 'Password1' })
 
       const result = await authService.refresh()
 
@@ -94,7 +92,7 @@ describe('authService', () => {
     it('getMe 委派給 getMeMock 並回傳 User 物件', async () => {
       const { authService } = await import('./authService')
       // 先登入
-      await authService.login({ email: 'admin@test.com', password: 'Password1' })
+      await authService.login({ identifier: 'admin@test.com', password: 'Password1' })
 
       const result = await authService.getMe()
 
@@ -130,27 +128,26 @@ describe('authService', () => {
       mockPost.mockResolvedValue(mockTokens)
 
       const { authService } = await import('./authService')
-      const payload: LoginPayload = { email: 'test@test.com', password: 'Password1' }
+      const payload: LoginPayload = { identifier: 'test@test.com', password: 'Password1' }
       const result = await authService.login(payload)
 
       expect(mockPost).toHaveBeenCalledWith('/api/v1/auth/login', payload)
       expect(result).toEqual(mockTokens)
     })
 
-    it('register 使用 apiClient.post 呼叫正確的 URL 和 payload', async () => {
-      const mockTokens: AuthTokens = { accessToken: 'token-456', expiresIn: 3600 }
-      mockPost.mockResolvedValue(mockTokens)
+    it('register 使用 apiClient.post 呼叫正確的 URL 和 payload（含 username）', async () => {
+      mockPost.mockResolvedValue(undefined)
 
       const { authService } = await import('./authService')
       const payload: RegisterPayload = {
         email: 'new@test.com',
         password: 'Password1',
+        username: 'new_user',
         nickname: 'New',
       }
-      const result = await authService.register(payload)
+      await authService.register(payload)
 
       expect(mockPost).toHaveBeenCalledWith('/api/v1/auth/register', payload)
-      expect(result).toEqual(mockTokens)
     })
 
     it('refresh 使用 apiClient.post 呼叫正確的 URL（無 body）', async () => {
@@ -222,7 +219,7 @@ describe('authService', () => {
       const { authService } = await import('./authService')
       const result = await authService.getMe()
 
-      expect(mockGet).toHaveBeenCalledWith('/api/v1/auth/me')
+      expect(mockGet).toHaveBeenCalledWith('/api/v1/users/me')
       expect(result).toEqual(mockUser)
     })
 

@@ -33,7 +33,7 @@ export interface User {
 
 // 登入請求
 export interface LoginPayload {
-  email: string;
+  identifier: string;
   password: string;
 }
 
@@ -41,18 +41,19 @@ export interface LoginPayload {
 export interface RegisterPayload {
   email: string;
   password: string;
+  username: string;
   nickname: string;
 }
 
 // 認證 Token 回應
 export interface AuthTokens {
   accessToken: string;
-  expiresIn: number;
+  expiresIn?: number;
 }
 
 // API 通用回應包裝
 export interface ApiResponse<T> {
-  code: number;
+  code: string;
   message: string;
   data: T | null;
 }

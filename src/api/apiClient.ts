@@ -37,6 +37,14 @@ function processQueue(error: unknown) {
   failedQueue = []
 }
 
+/**
+ * 判斷後端業務碼是否代表成功
+ * 後端永遠回傳字串碼，成功碼為 "00000"
+ */
+export function isSuccessCode(code: string): boolean {
+  return code === '00000'
+}
+
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080',
   withCredentials: true,
@@ -56,10 +64,10 @@ apiClient.interceptors.response.use(
   // 成功回應（2xx）
   (response) => {
     const body = response.data as ApiResponse<unknown>
-    if (body.code === 200) {
+    if (isSuccessCode(body.code)) {
       return body.data as never
     }
-    // 業務錯誤（HTTP 2xx 但 code !== 200）
+    // 業務錯誤（HTTP 2xx 但 code !== '00000'）
     throw new Error(body.message)
   },
   // 錯誤回應
