@@ -15,7 +15,7 @@ async function handleLogout() {
 
 <template>
   <!-- 外層容器，設定 pointer-events-none 避免遮擋下方內容，但特定子元素會開啟互動 -->
-  <nav class="fixed top-5 left-0 right-0 z-50 flex justify-center px-10 pointer-events-none">
+  <nav class="fixed top-5 left-0 right-0 z-50 flex justify-center px-4 md:px-10 pointer-events-none">
 
     <!-- 中間的毛玻璃導覽列 (Organism 組件) -->
     <div
@@ -42,8 +42,8 @@ async function handleLogout() {
       >登入 / 註冊</router-link>
     </div>
 
-    <!-- 右側的控制區：天氣模組、深淺色切換器 -->
-    <div class="absolute right-10 top-1/2 -translate-y-1/2 pointer-events-auto flex flex-col items-end gap-1">
+    <!-- 右側的控制區：天氣模組、深淺色切換器（手機版隱藏，桌機版顯示） -->
+    <div class="hidden md:flex absolute right-10 top-1/2 -translate-y-1/2 pointer-events-auto flex-col items-end gap-1">
       <div class="flex items-center gap-3">
         <WeatherWidget />
         <ThemeSwitcher />

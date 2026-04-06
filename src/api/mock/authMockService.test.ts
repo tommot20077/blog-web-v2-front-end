@@ -24,7 +24,7 @@ describe('authMockService', () => {
   // --- loginMock ---
   describe('loginMock', () => {
     it('正確帳密登入 → 回傳 AuthTokens', async () => {
-      const promise = loginMock({ email: 'admin@test.com', password: 'Password1' });
+      const promise = loginMock({ identifier: 'admin@test.com', password: 'Password1' });
       await vi.advanceTimersByTimeAsync(500);
       const result = await promise;
 
@@ -36,35 +36,41 @@ describe('authMockService', () => {
     });
 
     it('錯誤密碼登入 → 拋出錯誤', async () => {
-      const promise = loginMock({ email: 'admin@test.com', password: 'WrongPass' });
+      const promise = loginMock({ identifier: 'admin@test.com', password: 'WrongPass' });
       const assertion = expect(promise).rejects.toThrow('帳號或密碼錯誤');
       await vi.advanceTimersByTimeAsync(500);
       await assertion;
     });
 
     it('不存在的 email 登入 → 拋出錯誤', async () => {
-      const promise = loginMock({ email: 'unknown@test.com', password: 'Password1' });
+      const promise = loginMock({ identifier: 'unknown@test.com', password: 'Password1' });
       const assertion = expect(promise).rejects.toThrow('帳號或密碼錯誤');
       await vi.advanceTimersByTimeAsync(500);
       await assertion;
+    });
+
+    it('以 nickname 作為 identifier 登入 → 回傳 AuthTokens', async () => {
+      const promise = loginMock({ identifier: 'Yuan', password: 'Password1' });
+      await vi.advanceTimersByTimeAsync(500);
+      const result = await promise;
+
+      expect(result.accessToken).toBeTruthy();
+      expect(result.expiresIn).toBeGreaterThan(0);
     });
   });
 
   // --- registerMock ---
   describe('registerMock', () => {
-    it('註冊新帳號 → 回傳 AuthTokens', async () => {
+    it('註冊新帳號 → resolve void', async () => {
       const promise = registerMock({
         email: 'new@test.com',
         password: 'Password1',
+        username: 'new_user',
         nickname: 'NewUser',
       });
       await vi.advanceTimersByTimeAsync(500);
-      const result = await promise;
 
-      expect(result).toHaveProperty('accessToken');
-      expect(typeof result.accessToken).toBe('string');
-      expect(result).toHaveProperty('expiresIn');
-      expect(typeof result.expiresIn).toBe('number');
+      await expect(promise).resolves.toBeUndefined();
     });
 
     it('註冊重複 email → 拋出錯誤', async () => {
@@ -82,7 +88,7 @@ describe('authMockService', () => {
   // --- refreshTokenMock ---
   describe('refreshTokenMock', () => {
     it('登入後 refresh → 回傳新 AuthTokens', async () => {
-      const loginPromise = loginMock({ email: 'admin@test.com', password: 'Password1' });
+      const loginPromise = loginMock({ identifier: 'admin@test.com', password: 'Password1' });
       await vi.advanceTimersByTimeAsync(500);
       await loginPromise;
 
@@ -106,7 +112,7 @@ describe('authMockService', () => {
   // --- logoutMock ---
   describe('logoutMock', () => {
     it('登入後登出 → refreshToken 失效、getMe 拋出錯誤', async () => {
-      const loginPromise = loginMock({ email: 'admin@test.com', password: 'Password1' });
+      const loginPromise = loginMock({ identifier: 'admin@test.com', password: 'Password1' });
       await vi.advanceTimersByTimeAsync(500);
       await loginPromise;
 
@@ -175,7 +181,7 @@ describe('authMockService', () => {
   // --- getMeMock ---
   describe('getMeMock', () => {
     it('已登入 → 回傳 User 物件', async () => {
-      const loginPromise = loginMock({ email: 'user@test.com', password: 'Password1' });
+      const loginPromise = loginMock({ identifier: 'user@test.com', password: 'Password1' });
       await vi.advanceTimersByTimeAsync(500);
       await loginPromise;
 

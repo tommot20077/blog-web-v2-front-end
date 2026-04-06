@@ -42,13 +42,14 @@ describe('tagService', () => {
     });
 
     it('成功回應時正確解析結果', async () => {
-      const mockData = [{ uuid: 't-1', name: 'Vue', slug: 'vue', articleCount: 18 }];
+      const backendData = [{ id: 't-1', name: 'Vue', slug: 'vue', usageCount: 18 }];
+      const expectedData = [{ uuid: 't-1', name: 'Vue', slug: 'vue', articleCount: 18 }];
 
-      // apiClient response interceptor 已解包，直接回傳 data
-      vi.mocked(apiClient.get).mockResolvedValue(mockData);
+      // apiClient response interceptor 已解包，直接回傳 data（後端原始格式）
+      vi.mocked(apiClient.get).mockResolvedValue(backendData);
 
       const result = await tagService.getHotTags(10);
-      expect(result).toEqual(mockData);
+      expect(result).toEqual(expectedData);
       expect(apiClient.get).toHaveBeenCalledWith('/api/v1/tags/hot', {
         params: { limit: 10 },
       });
@@ -61,6 +62,75 @@ describe('tagService', () => {
       const result = await tagService.getHotTags();
       expect(result).toEqual([]);
       expect(consoleSpy).toHaveBeenCalledWith('Fetch hot tags failed:', expect.any(Error));
+    });
+
+    it('API 模式：後端 id 正確映射為 uuid', async () => {
+      const backendData = [
+        {
+          id: '550e8400-e29b-41d4-a716-446655440000',
+          name: 'Vue',
+          slug: 'vue',
+          usageCount: 42,
+          color: '#42b883',
+          icon: null,
+          description: 'Vue.js framework',
+          parentId: null,
+          createdAt: '2024-01-01T00:00:00',
+        },
+      ];
+      vi.mocked(apiClient.get).mockResolvedValue(backendData);
+
+      const result = await tagService.getHotTags(1);
+
+      expect(result[0].uuid).toBe('550e8400-e29b-41d4-a716-446655440000');
+    });
+
+    it('API 模式：後端 usageCount 正確映射為 articleCount', async () => {
+      const backendData = [
+        {
+          id: 'abc-123',
+          name: 'TypeScript',
+          slug: 'typescript',
+          usageCount: 99,
+          color: '#3178c6',
+          icon: null,
+          description: null,
+          parentId: null,
+          createdAt: '2024-01-01T00:00:00',
+        },
+      ];
+      vi.mocked(apiClient.get).mockResolvedValue(backendData);
+
+      const result = await tagService.getHotTags(1);
+
+      expect(result[0].articleCount).toBe(99);
+    });
+
+    it('API 模式：color、icon 等額外欄位不出現在結果中', async () => {
+      const backendData = [
+        {
+          id: 'def-456',
+          name: 'React',
+          slug: 'react',
+          usageCount: 77,
+          color: '#61dafb',
+          icon: 'react-icon',
+          description: 'React framework',
+          parentId: 'parent-id',
+          createdAt: '2024-02-01T00:00:00',
+        },
+      ];
+      vi.mocked(apiClient.get).mockResolvedValue(backendData);
+
+      const result = await tagService.getHotTags(1);
+      const item = result[0] as Record<string, unknown>;
+
+      expect(item).not.toHaveProperty('id');
+      expect(item).not.toHaveProperty('color');
+      expect(item).not.toHaveProperty('icon');
+      expect(item).not.toHaveProperty('description');
+      expect(item).not.toHaveProperty('parentId');
+      expect(item).not.toHaveProperty('createdAt');
     });
   });
 });

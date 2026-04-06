@@ -64,7 +64,7 @@ describe('LoginView', () => {
 
     await flushPromises()
 
-    expect(mockLogin).toHaveBeenCalledWith({ email: 'test@test.com', password: 'password123' })
+    expect(mockLogin).toHaveBeenCalledWith({ identifier: 'test@test.com', password: 'password123' })
   })
 
   it('login 成功導向首頁', async () => {

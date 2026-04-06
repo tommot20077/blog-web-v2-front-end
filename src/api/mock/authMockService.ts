@@ -30,7 +30,7 @@ function mockDelay<T>(fn: () => T, delay = 400): Promise<T> {
 export function loginMock(payload: LoginPayload): Promise<AuthTokens> {
   return mockDelay(() => {
     const user = registeredUsers.find(
-      (u) => u.email === payload.email && u.password === payload.password,
+      (u) => (u.email === payload.identifier || u.nickname === payload.identifier) && u.password === payload.password,
     );
     if (!user) {
       throw new Error('帳號或密碼錯誤');
@@ -41,7 +41,7 @@ export function loginMock(payload: LoginPayload): Promise<AuthTokens> {
   });
 }
 
-export function registerMock(payload: RegisterPayload): Promise<AuthTokens> {
+export function registerMock(payload: RegisterPayload): Promise<void> {
   return mockDelay(() => {
     const exists = registeredUsers.some((u) => u.email === payload.email);
     if (exists) {
@@ -58,9 +58,6 @@ export function registerMock(payload: RegisterPayload): Promise<AuthTokens> {
       createdAt: new Date().toISOString(),
     };
     registeredUsers.push(newUser);
-    setCurrentLoggedInUserId(newUser.uuid);
-    setRefreshTokenValid(true);
-    return generateTokens();
   });
 }
 

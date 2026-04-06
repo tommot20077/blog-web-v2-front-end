@@ -6,12 +6,38 @@ export interface RecommendArticleResponse {
   title: string;
   slug: string;
   summary: string;
-  coverImageUrl: string | null;
   authorNickname: string;
   viewCount: number;
   likeCount: number;
   publishedAt: string;
   tags: string[];
+}
+
+// 後端實際回傳的原始結構
+interface BackendRecommend {
+  uuid: string;
+  title: string;
+  slug: string;
+  summary: string;
+  authorNickname: string;
+  tagNames: string[];
+  viewCount: number;
+  likeCount: number;
+  publishedAt: string;
+}
+
+function mapBackendRecommend(raw: BackendRecommend): RecommendArticleResponse {
+  return {
+    uuid: raw.uuid,
+    title: raw.title,
+    slug: raw.slug,
+    summary: raw.summary,
+    authorNickname: raw.authorNickname,
+    viewCount: raw.viewCount,
+    likeCount: raw.likeCount,
+    publishedAt: raw.publishedAt,
+    tags: raw.tagNames,
+  };
 }
 
 export const recommendService = {
@@ -25,10 +51,10 @@ export const recommendService = {
     }
 
     try {
-      const data = await apiClient.get<unknown, RecommendArticleResponse[]>('/api/v1/recommend/trending', {
+      const data = await apiClient.get<unknown, BackendRecommend[]>('/api/v1/recommend/trending', {
         params: { period, limit },
       });
-      return data;
+      return data.map(mapBackendRecommend);
     } catch (error) {
       console.error('Fetch trending articles failed:', error);
       return [];

@@ -35,13 +35,6 @@ function goToDetail(uuid: string) {
         style="background: var(--glass-panel); border-color: var(--glass-border); backdrop-filter: blur(12px);"
         @click="goToDetail(article.uuid)"
       >
-        <img
-          v-if="article.coverImageUrl"
-          :src="article.coverImageUrl"
-          :alt="article.title"
-          loading="lazy"
-          class="w-full aspect-video object-cover"
-        />
         <div class="p-5 flex flex-col flex-grow">
           <h3 class="font-bold text-lg mb-2 group-hover:opacity-80 transition-opacity line-clamp-2">{{ article.title }}</h3>
           <div class="text-xs opacity-50 mb-2">{{ article.authorNickname }} · {{ article.publishedAt }}</div>

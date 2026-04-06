@@ -57,8 +57,8 @@ describe('articleService', () => {
     });
 
     describe('getArticles', () => {
-      it('成功回應 → apiClient 解包後直接回傳 PageResult', async () => {
-        const mockData: PageResult<ArticleItem> = {
+      it('成功回應 → tags 由物件陣列映射為字串陣列', async () => {
+        const backendData = {
           records: [
             {
               uuid: 'api-1',
@@ -66,7 +66,7 @@ describe('articleService', () => {
               summary: '摘要',
               viewCount: 100,
               publishedAt: '2026-03-01',
-              tags: ['Vue'],
+              tags: [{ id: 't-1', name: 'Vue', slug: 'vue' }],
             },
           ],
           total: 1,
@@ -75,12 +75,11 @@ describe('articleService', () => {
           pages: 1,
         };
 
-        // apiClient response interceptor 已解包，直接回傳 data
-        vi.mocked(apiClient.get).mockResolvedValue(mockData);
+        vi.mocked(apiClient.get).mockResolvedValue(backendData);
 
         const result = await articleService.getArticles(1, 6, '全部', '');
 
-        expect(result).toEqual(mockData);
+        expect(result.records[0].tags).toEqual(['Vue']);
       });
 
       it('網路錯誤 → 回傳空 PageResult 並呼叫 console.error', async () => {
@@ -116,8 +115,8 @@ describe('articleService', () => {
         expect(apiClient.get).toHaveBeenCalledOnce();
         expect(apiClient.get).toHaveBeenCalledWith('/api/v1/articles', {
           params: {
-            pageNum: '2',
-            pageSize: '10',
+            page: '2',
+            size: '10',
             categorySlug: 'Backend',
             keyword: '微服務',
           },
@@ -137,26 +136,42 @@ describe('articleService', () => {
 
         expect(apiClient.get).toHaveBeenCalledWith('/api/v1/articles', {
           params: {
-            pageNum: '1',
-            pageSize: '6',
+            page: '1',
+            size: '6',
           },
         });
       });
     });
 
     describe('getArticleByUuid', () => {
-      it('成功回應 → 回傳文章詳情', async () => {
-        const mockDetail = {
+      it('成功回應 → tags 由物件陣列映射為字串陣列', async () => {
+        const backendDetail = {
           uuid: 'detail-1',
           title: '詳情文章',
           content: '# Hello',
+          tags: [{ id: 't-1', name: 'Vue', slug: 'vue' }, { id: 't-2', name: 'TypeScript', slug: 'typescript' }],
         };
-        vi.mocked(apiClient.get).mockResolvedValue(mockDetail);
+        vi.mocked(apiClient.get).mockResolvedValue(backendDetail);
 
         const result = await articleService.getArticleByUuid('detail-1');
 
-        expect(result).toEqual(mockDetail);
+        expect(result).not.toBeNull();
+        expect(result!.tags).toEqual(['Vue', 'TypeScript']);
         expect(apiClient.get).toHaveBeenCalledWith('/api/v1/articles/detail-1');
+      });
+
+      it('ArticleItem 不含 categories 欄位', async () => {
+        vi.mocked(apiClient.get).mockResolvedValue({
+          uuid: 'detail-2',
+          title: '測試',
+          content: '',
+          tags: [],
+        });
+
+        const result = await articleService.getArticleByUuid('detail-2');
+
+        expect(result).not.toBeNull();
+        expect(result).not.toHaveProperty('categories');
       });
 
       it('網路錯誤 → 回傳 null 並呼叫 console.error', async () => {

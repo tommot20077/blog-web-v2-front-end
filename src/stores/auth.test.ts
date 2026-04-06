@@ -47,11 +47,11 @@ describe('useAuthStore', () => {
       vi.mocked(authService.getMe).mockResolvedValue(mockUser)
 
       const store = useAuthStore()
-      await store.login({ email: 'test@test.com', password: 'password123' })
+      await store.login({ identifier: 'test@test.com', password: 'password123' })
 
       expect(store.accessToken).toBe('test-access-token')
       expect(store.user).toEqual(mockUser)
-      expect(authService.login).toHaveBeenCalledWith({ email: 'test@test.com', password: 'password123' })
+      expect(authService.login).toHaveBeenCalledWith({ identifier: 'test@test.com', password: 'password123' })
       expect(authService.getMe).toHaveBeenCalled()
     })
 
@@ -60,7 +60,7 @@ describe('useAuthStore', () => {
 
       const store = useAuthStore()
 
-      await expect(store.login({ email: 'bad@test.com', password: 'wrong' })).rejects.toThrow('Invalid credentials')
+      await expect(store.login({ identifier: 'bad@test.com', password: 'wrong' })).rejects.toThrow('Invalid credentials')
       expect(store.accessToken).toBeNull()
       expect(store.user).toBeNull()
     })
@@ -72,7 +72,7 @@ describe('useAuthStore', () => {
       const store = useAuthStore()
       store.setReturnUrl('/dashboard')
 
-      const redirect = await store.login({ email: 'test@test.com', password: 'password123' })
+      const redirect = await store.login({ identifier: 'test@test.com', password: 'password123' })
 
       expect(redirect).toBe('/dashboard')
       expect(store.returnUrl).toBeNull()
@@ -84,24 +84,27 @@ describe('useAuthStore', () => {
 
       const store = useAuthStore()
 
-      const redirect = await store.login({ email: 'test@test.com', password: 'password123' })
+      const redirect = await store.login({ identifier: 'test@test.com', password: 'password123' })
 
       expect(redirect).toBeNull()
     })
   })
 
   describe('register', () => {
-    it('成功時設定 accessToken 並呼叫 fetchUser', async () => {
-      vi.mocked(authService.register).mockResolvedValue(mockTokens)
-      vi.mocked(authService.getMe).mockResolvedValue(mockUser)
+    it('成功時呼叫 authService.register 並 resolve void', async () => {
+      vi.mocked(authService.register).mockResolvedValue(undefined)
 
       const store = useAuthStore()
-      await store.register({ email: 'new@test.com', password: 'password123', nickname: 'NewUser' })
+      await store.register({ email: 'new@test.com', password: 'password123', username: 'new_user', nickname: 'NewUser' })
 
-      expect(store.accessToken).toBe('test-access-token')
-      expect(store.user).toEqual(mockUser)
-      expect(authService.register).toHaveBeenCalledWith({ email: 'new@test.com', password: 'password123', nickname: 'NewUser' })
-      expect(authService.getMe).toHaveBeenCalled()
+      expect(authService.register).toHaveBeenCalledWith({
+        email: 'new@test.com',
+        password: 'password123',
+        username: 'new_user',
+        nickname: 'NewUser',
+      })
+      expect(store.accessToken).toBeNull()
+      expect(store.user).toBeNull()
     })
   })
 
@@ -113,7 +116,7 @@ describe('useAuthStore', () => {
 
       const store = useAuthStore()
       // 先登入
-      await store.login({ email: 'test@test.com', password: 'password123' })
+      await store.login({ identifier: 'test@test.com', password: 'password123' })
       store.setReturnUrl('/some-page')
 
       // 登出
@@ -131,7 +134,7 @@ describe('useAuthStore', () => {
       vi.mocked(authService.logout).mockRejectedValue(new Error('Network error'))
 
       const store = useAuthStore()
-      await store.login({ email: 'test@test.com', password: 'password123' })
+      await store.login({ identifier: 'test@test.com', password: 'password123' })
 
       // 不應拋出錯誤
       await store.logout()
@@ -171,7 +174,7 @@ describe('useAuthStore', () => {
       vi.mocked(authService.getMe).mockResolvedValue(createMockUser({ role: 'ADMIN' }))
 
       const store = useAuthStore()
-      await store.login({ email: 'admin@test.com', password: 'password123' })
+      await store.login({ identifier: 'admin@test.com', password: 'password123' })
 
       expect(store.isAdmin).toBe(true)
     })
@@ -181,7 +184,7 @@ describe('useAuthStore', () => {
       vi.mocked(authService.getMe).mockResolvedValue(createMockUser({ role: 'USER' }))
 
       const store = useAuthStore()
-      await store.login({ email: 'user@test.com', password: 'password123' })
+      await store.login({ identifier: 'user@test.com', password: 'password123' })
 
       expect(store.isAdmin).toBe(false)
     })
@@ -193,7 +196,7 @@ describe('useAuthStore', () => {
       vi.mocked(authService.getMe).mockResolvedValue(createMockUser({ role: 'AUTHOR' }))
 
       const store = useAuthStore()
-      await store.login({ email: 'author@test.com', password: 'password123' })
+      await store.login({ identifier: 'author@test.com', password: 'password123' })
 
       expect(store.isAuthor).toBe(true)
     })
@@ -203,7 +206,7 @@ describe('useAuthStore', () => {
       vi.mocked(authService.getMe).mockResolvedValue(createMockUser({ role: 'ADMIN' }))
 
       const store = useAuthStore()
-      await store.login({ email: 'admin@test.com', password: 'password123' })
+      await store.login({ identifier: 'admin@test.com', password: 'password123' })
 
       expect(store.isAuthor).toBe(true)
     })
@@ -213,7 +216,7 @@ describe('useAuthStore', () => {
       vi.mocked(authService.getMe).mockResolvedValue(createMockUser({ role: 'USER' }))
 
       const store = useAuthStore()
-      await store.login({ email: 'user@test.com', password: 'password123' })
+      await store.login({ identifier: 'user@test.com', password: 'password123' })
 
       expect(store.isAuthor).toBe(false)
     })

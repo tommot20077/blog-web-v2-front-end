@@ -35,9 +35,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function register(payload: RegisterPayload) {
-    const tokens = await authService.register(payload)
-    accessToken.value = tokens.accessToken
-    await fetchUser()
+    await authService.register(payload)
   }
 
   async function logout() {

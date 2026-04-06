@@ -34,6 +34,22 @@ describe('NavigationBar', () => {
     expect(weatherWidget).toBeInTheDocument()
   })
 
+  describe('RWD 響應式排版', () => {
+    it('右側控制區（天氣 + 主題切換）在手機版應隱藏，桌機才顯示', () => {
+      const { container } = renderWithRouter(NavigationBar)
+      // 右側容器應帶有 hidden 與 md:flex class 實現 responsive 顯示
+      const rightControls = container.querySelector('.hidden.md\\:flex')
+      expect(rightControls).toBeInTheDocument()
+    })
+
+    it('導覽列外層有響應式水平 padding（手機較小、桌機較大）', () => {
+      const { container } = renderWithRouter(NavigationBar)
+      const nav = container.querySelector('nav')
+      // 應包含 px-4 (手機) 與 md:px-10 (桌機) 的響應式 padding
+      expect(nav?.className).toMatch(/px-4/)
+    })
+  })
+
   describe('Auth-Aware UI', () => {
     it('未登入時顯示「登入 / 註冊」連結', () => {
       const { getByText } = renderWithRouter(NavigationBar)

@@ -19,6 +19,14 @@ vi.mock('../composables/useMarkdownRenderer', () => ({
   })),
 }))
 
+vi.mock('../composables/useWordCount', () => ({
+  useWordCount: vi.fn(() => ({
+    wordCount: computed(() => 100),
+    characterCount: computed(() => 500),
+    readingTimeMinutes: computed(() => 3),
+  })),
+}))
+
 async function renderArticleDetail() {
   const router = createTestRouter('/articles/test-uuid')
   await router.isReady()
@@ -111,5 +119,86 @@ describe('ArticleDetail 頁面', () => {
     await fireEvent.click(screen.getByText('返回列表頁面'))
 
     expect(pushSpy).toHaveBeenCalledWith('/articles')
+  })
+
+  describe('文章標頭 UI 增強', () => {
+    it('有封面圖時顯示 img 元素', async () => {
+      const mockArticle = createMockArticleDetail({
+        coverImageUrl: 'https://example.com/cover.jpg',
+      })
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+      const { container } = await renderArticleDetail()
+      await flushPromises()
+
+      const img = container.querySelector('[data-testid="article-cover-image"]')
+      expect(img).toBeInTheDocument()
+    })
+
+    it('coverImageUrl 為 null 時不顯示封面圖', async () => {
+      const mockArticle = createMockArticleDetail({ coverImageUrl: null })
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+      const { container } = await renderArticleDetail()
+      await flushPromises()
+
+      const coverImg = container.querySelector('[data-testid="article-cover-image"]')
+      expect(coverImg).not.toBeInTheDocument()
+    })
+
+    it('顯示作者暱稱', async () => {
+      const mockArticle = createMockArticleDetail({ authorNickname: 'Yuan' })
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+      await renderArticleDetail()
+      await flushPromises()
+
+      expect(screen.getByText('Yuan')).toBeInTheDocument()
+    })
+
+    it('動態閱讀時間使用 useWordCount 回傳值（mock 回傳 3 分鐘）', async () => {
+      const mockArticle = createMockArticleDetail()
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+      await renderArticleDetail()
+      await flushPromises()
+
+      expect(screen.getByText('約 3 分鐘閱讀時間')).toBeInTheDocument()
+    })
+
+    it('顯示讚數', async () => {
+      const mockArticle = createMockArticleDetail({ likeCount: 42 })
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+      const { container } = await renderArticleDetail()
+      await flushPromises()
+
+      const likeEl = container.querySelector('[data-testid="like-count"]')
+      expect(likeEl).toBeInTheDocument()
+      expect(likeEl?.textContent).toContain('42')
+    })
+
+    it('顯示留言數', async () => {
+      const mockArticle = createMockArticleDetail({ commentCount: 7 })
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+      const { container } = await renderArticleDetail()
+      await flushPromises()
+
+      const commentEl = container.querySelector('[data-testid="comment-count"]')
+      expect(commentEl).toBeInTheDocument()
+      expect(commentEl?.textContent).toContain('7')
+    })
+
+    it('顯示分類標籤', async () => {
+      const mockArticle = createMockArticleDetail({ categories: ['Frontend', 'Vue'] })
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+      await renderArticleDetail()
+      await flushPromises()
+
+      expect(screen.getByText('Frontend')).toBeInTheDocument()
+      expect(screen.getByText('Vue')).toBeInTheDocument()
+    })
   })
 })

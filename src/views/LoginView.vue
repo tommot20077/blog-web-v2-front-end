@@ -13,6 +13,8 @@ import { useFormValidation } from '../composables/useFormValidation'
 import { useAuthStore } from '../stores/auth'
 import { useToast } from '../composables/useToast'
 
+// LoginForm 用於 UI 驗證（僅支援 email 格式輸入）
+// API payload 使用 identifier 欄位，後端同時支援 email 或 username 登入
 interface LoginForm {
   email: string
   password: string
@@ -43,7 +45,7 @@ async function handleSubmit() {
 
   isSubmitting.value = true
   try {
-    const redirect = await authStore.login({ email: email.value, password: password.value })
+    const redirect = await authStore.login({ identifier: email.value, password: password.value })
     router.push(redirect || '/')
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : '登入失敗'

@@ -14,6 +14,7 @@ const { showToast } = useToast();
 
 /** 表單欄位 */
 const email = ref('');
+const username = ref('');
 const nickname = ref('');
 const password = ref('');
 
@@ -23,12 +24,17 @@ const isLoading = ref(false);
 /** 表單驗證 */
 const { errors, validateForm, getPasswordStrength } = useFormValidation<{
   email: string;
+  username: string;
   nickname: string;
   password: string;
 }>({
   email: [
     { type: 'required', message: '請輸入 Email' },
     { type: 'email', message: '請輸入有效的 Email' },
+  ],
+  username: [
+    { type: 'required', message: '請輸入使用者名稱' },
+    { type: 'minLength', message: '使用者名稱最少需要 3 個字元', params: { min: 3 } },
   ],
   nickname: [
     { type: 'required', message: '請輸入暱稱' },
@@ -50,6 +56,7 @@ const passwordStrength = computed(() => {
 async function handleSubmit() {
   const formData = {
     email: email.value,
+    username: username.value,
     nickname: nickname.value,
     password: password.value,
   };
@@ -85,6 +92,15 @@ async function handleSubmit() {
         type="email"
         placeholder="請輸入 Email"
         :error="errors.email"
+        :disabled="isLoading"
+      />
+
+      <FormField
+        v-model="username"
+        label="使用者名稱"
+        type="text"
+        placeholder="請輸入使用者名稱（英文、數字）"
+        :error="errors.username"
         :disabled="isLoading"
       />
 

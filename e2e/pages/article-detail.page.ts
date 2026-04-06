@@ -12,6 +12,10 @@ export class ArticleDetailPage {
   readonly articleContent: Locator
   readonly scrollToTopButton: Locator
   readonly endOfArticle: Locator
+  readonly categoryPills: Locator
+  readonly readingTimeText: Locator
+  readonly likeCount: Locator
+  readonly commentCount: Locator
 
   constructor(page: Page) {
     this.page = page
@@ -25,6 +29,10 @@ export class ArticleDetailPage {
     this.articleContent = page.locator('.article-content')
     this.scrollToTopButton = page.locator('article footer button')
     this.endOfArticle = page.getByText('END OF ARTICLE.')
+    this.categoryPills = page.locator('article header span').filter({ hasNotText: '#' })
+    this.readingTimeText = page.getByText(/分鐘閱讀時間/)
+    this.likeCount = page.locator('[data-testid="like-count"]')
+    this.commentCount = page.locator('[data-testid="comment-count"]')
   }
 
   async goto(uuid: string) {
