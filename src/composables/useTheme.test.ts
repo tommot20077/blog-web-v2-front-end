@@ -19,6 +19,7 @@ describe('useTheme', () => {
     vi.resetModules()
     localStorage.clear()
     document.documentElement.removeAttribute('data-theme')
+    document.documentElement.classList.remove('dark')
     // 每次 beforeEach 重新建立 matchMedia stub（非 vi.fn，不受 mockReset 影響）
     vi.stubGlobal('matchMedia', createMatchMediaMock(false))
   })
@@ -90,6 +91,22 @@ describe('useTheme', () => {
     toggleTheme()
     await nextTick()
     expect(localStorage.getItem('theme')).toBe('light')
+  })
+
+  it('classList dark 同步 → toggleTheme 時 html.classList 正確切換', async () => {
+    const useTheme = await loadUseTheme()
+    const { toggleTheme } = useTheme()
+
+    await nextTick()
+    expect(document.documentElement.classList.contains('dark')).toBe(false)
+
+    toggleTheme()
+    await nextTick()
+    expect(document.documentElement.classList.contains('dark')).toBe(true)
+
+    toggleTheme()
+    await nextTick()
+    expect(document.documentElement.classList.contains('dark')).toBe(false)
   })
 
   it('多次呼叫共享狀態 → 兩次 useTheme() 的 isDark 是同一 ref', async () => {
