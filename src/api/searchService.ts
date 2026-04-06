@@ -37,6 +37,7 @@ export const searchService = {
   },
 
   async getHistory(): Promise<string[]> {
+    // Mock check before auth guard — read operations return empty gracefully without auth
     if (import.meta.env.VITE_USE_MOCK === 'true') {
       const { getSearchHistoryMock } = await import('./mock/searchMockService')
       return getSearchHistoryMock()

@@ -28,9 +28,9 @@ interface BackendTagDetail {
   id: string;
   name: string;
   slug: string;
-  color: string;
-  icon: string;
-  description: string;
+  color: string | null | undefined;
+  icon: string | null | undefined;
+  description: string | null | undefined;
   usageCount: number;
 }
 
@@ -93,6 +93,7 @@ export const tagService = {
    * 追蹤標籤（需要登入）
    */
   async followTag(id: string): Promise<void> {
+    // Auth guard intentionally runs before mock check — write operations require auth in all environments
     const authStore = useAuthStore();
     if (!authStore.isAuthenticated) {
       throw new Error('未登入');
@@ -110,6 +111,7 @@ export const tagService = {
    * 取消追蹤標籤（需要登入）
    */
   async unfollowTag(id: string): Promise<void> {
+    // Auth guard intentionally runs before mock check — write operations require auth in all environments
     const authStore = useAuthStore();
     if (!authStore.isAuthenticated) {
       throw new Error('未登入');

@@ -11,7 +11,6 @@ export function getTrendingMock(limit: number): Promise<RecommendArticleResponse
         title: a.title,
         slug: a.slug,
         summary: a.summary,
-        coverImageUrl: a.coverImageUrl,
         authorNickname: a.authorNickname,
         viewCount: a.viewCount,
         likeCount: a.likeCount,
