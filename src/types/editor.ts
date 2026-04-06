@@ -101,7 +101,7 @@ export interface QuotaInfo {
 
 // ── 分類 / 標籤 ───────────────────────────────────────────────────────────────
 export interface CategoryOption {
-  uuid: string;
+  id: string;
   name: string;
   slug: string;
 }

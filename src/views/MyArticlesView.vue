@@ -15,7 +15,7 @@ const articles = ref<MyArticle[]>([])
 const currentFilter = ref<ArticleStatusFilter>('ALL')
 const currentPage = ref(1)
 const totalPages = ref(1)
-const isLoading = ref(true)
+const isLoading = ref(false)
 const PAGE_SIZE = 10
 
 async function fetchArticles() {
