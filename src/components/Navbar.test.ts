@@ -1,6 +1,7 @@
 import { flushPromises } from '@vue/test-utils'
 import { screen } from '@testing-library/vue'
 import userEvent from '@testing-library/user-event'
+import { reactive, nextTick } from 'vue'
 import Navbar from './Navbar.vue'
 import { renderWithRouter } from '../test-utils'
 import { useAuthStore } from '../stores/auth'
@@ -150,6 +151,44 @@ describe('Navbar', () => {
       renderWithRouter(Navbar)
       await flushPromises()
       expect(screen.queryByText('0')).not.toBeInTheDocument()
+    })
+  })
+
+  // ── 動態 isAdmin 變更 ─────────────────────────────────────────────────────
+  describe('isAdmin 動態變更', () => {
+    it('isAdmin 從 false 變 true 時重新 fetch pendingCount', async () => {
+      const authState = reactive(makeAuthState({ isAuthenticated: true, isAdmin: false }))
+      mockUseAuthStore.mockReturnValue(authState as any)
+      mockGetPendingCount.mockResolvedValue(7)
+
+      renderWithRouter(Navbar)
+      await flushPromises()
+      // 初始 isAdmin=false，不應呼叫
+      expect(mockGetPendingCount).not.toHaveBeenCalled()
+
+      // 角色升級
+      authState.isAdmin = true
+      await nextTick()
+      await flushPromises()
+      expect(mockGetPendingCount).toHaveBeenCalledTimes(1)
+    })
+
+    it('isAuthenticated 從 true 變 false 時 pendingCount 重置為 0', async () => {
+      const authState = reactive(makeAuthState({ isAuthenticated: true, isAdmin: true }))
+      mockUseAuthStore.mockReturnValue(authState as any)
+      mockGetPendingCount.mockResolvedValue(4)
+
+      renderWithRouter(Navbar)
+      await flushPromises()
+      expect(screen.getByText('4')).toBeInTheDocument()
+
+      // 登出
+      authState.isAuthenticated = false
+      authState.isAdmin = false
+      await nextTick()
+      await flushPromises()
+      // badge 應消失（count reset 為 0）
+      expect(screen.queryByText('4')).not.toBeInTheDocument()
     })
   })
 })

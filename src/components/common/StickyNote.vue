@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { defineProps } from 'vue';
-
 interface Note {
   id: string;
   author: string;
@@ -10,9 +8,9 @@ interface Note {
   colorKey: number;     // 隨機顏色索引
 }
 
-const props = defineProps<{
+defineProps<{
   note: Note;
-}>();
+}>()
 
 // 改用更低調、更適應毛玻璃冷調風格的配色，避免太突兀的粉彩
 const noteColors = [

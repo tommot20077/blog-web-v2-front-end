@@ -19,7 +19,8 @@ export const adminService = {
       return getPendingCountMock()
     }
     try {
-      return await apiClient.get<unknown, number>('/api/v1/admin/articles/pending')
+      const result = await this.getPendingArticles(1, 1)
+      return result.total
     } catch (error) {
       console.error('Failed to get pending count:', error)
       return 0

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { adminService } from '../api/adminService'
@@ -8,9 +8,23 @@ const authStore = useAuthStore()
 const router = useRouter()
 const pendingCount = ref(0)
 
+async function fetchPendingCount() {
+  pendingCount.value = await adminService.getPendingCount()
+}
+
 onMounted(async () => {
   if (authStore.isAdmin) {
-    pendingCount.value = await adminService.getPendingCount()
+    await fetchPendingCount()
+  }
+})
+
+// isAdmin 變成 true 時重新抓取（例如用戶在 Navbar 保持 mounted 期間角色升級）
+watch(() => authStore.isAdmin, (isAdmin) => {
+  if (isAdmin) {
+    fetchPendingCount()
+  } else {
+    // 登出或角色降級時清除 badge
+    pendingCount.value = 0
   }
 })
 

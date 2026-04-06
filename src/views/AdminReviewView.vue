@@ -24,6 +24,8 @@ async function fetchArticles() {
     articles.value = result.records
     totalPages.value = result.pages
     totalCount.value = result.total
+  } catch {
+    showToast('載入待審核文章失敗，請稍後再試', 'error')
   } finally {
     isLoading.value = false
   }

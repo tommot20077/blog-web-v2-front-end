@@ -62,6 +62,14 @@ describe('AdminReviewView', () => {
       await flushPromises()
       expect(mockGetPendingArticles).toHaveBeenCalledWith(1, 10)
     })
+
+    it('getPendingArticles 失敗時顯示 toast error 並離開 loading 狀態', async () => {
+      mockGetPendingArticles.mockRejectedValue(new Error('network error'))
+      renderWithRouter(AdminReviewView)
+      await flushPromises()
+      expect(mockShowToast).toHaveBeenCalledWith(expect.any(String), 'error')
+      expect(screen.queryByTestId('loading')).not.toBeInTheDocument()
+    })
   })
 
   // ── 文章列表 ───────────────────────────────────────────────────────────────
