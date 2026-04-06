@@ -12,7 +12,7 @@ describe('quotaService', () => {
 
     it('getQuota 委派 mock 並回傳配額資訊', async () => {
       const result = await quotaService.getQuota()
-      expect(result.totalBytes).toBe(104_857_600)
+      expect(result.limitBytes).toBe(104_857_600)
       expect(result.usedBytes).toBeGreaterThan(0)
     })
   })
@@ -22,7 +22,7 @@ describe('quotaService', () => {
     afterEach(() => { vi.restoreAllMocks(); vi.unstubAllEnvs() })
 
     it('getQuota 呼叫 GET /api/v1/users/me/quota', async () => {
-      const mockQuota = { usedBytes: 1000, totalBytes: 100_000 }
+      const mockQuota = { usedBytes: 1000, limitBytes: 100_000, remainingBytes: 99_000 }
       vi.mocked(apiClient.get).mockResolvedValue(mockQuota)
 
       const result = await quotaService.getQuota()
@@ -35,7 +35,7 @@ describe('quotaService', () => {
       vi.spyOn(console, 'error').mockImplementation(() => {})
       const result = await quotaService.getQuota()
       expect(result.usedBytes).toBe(0)
-      expect(result.totalBytes).toBeGreaterThan(0)
+      expect(result.limitBytes).toBeGreaterThan(0)
     })
   })
 })

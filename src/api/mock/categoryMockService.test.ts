@@ -7,10 +7,10 @@ describe('categoryMockService', () => {
     expect(result.length).toBeGreaterThan(0)
   })
 
-  it('每個分類都有 id、name、slug', async () => {
+  it('每個分類都有 uuid、name、slug', async () => {
     const result = await getCategoriesMock()
     result.forEach(cat => {
-      expect(cat.id).toBeTruthy()
+      expect(cat.uuid).toBeTruthy()
       expect(cat.name).toBeTruthy()
       expect(cat.slug).toBeTruthy()
     })

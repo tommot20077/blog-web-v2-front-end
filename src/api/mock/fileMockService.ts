@@ -1,14 +1,16 @@
 import type { FileUploadResponse, FileUsageType } from '../../types/editor'
 
-export function uploadFileMock(file: File, _usageType: FileUsageType): Promise<FileUploadResponse> {
+export function uploadFileMock(file: File, usageType: FileUsageType): Promise<FileUploadResponse> {
   return new Promise((resolve) => {
     setTimeout(() => {
-      const fileId = `file-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+      const id = `file-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
       resolve({
-        url: `https://mock-cdn.example.com/uploads/${fileId}/${file.name}`,
-        fileId,
-        fileName: file.name,
-        fileSize: file.size,
+        id,
+        url: `https://mock-cdn.example.com/uploads/${id}/${file.name}`,
+        width: 800,
+        height: 600,
+        size: file.size || 102_400,
+        usageType,
       })
     }, 500)
   })

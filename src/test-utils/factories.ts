@@ -89,7 +89,7 @@ export function createMockMyArticle(overrides: Partial<MyArticle> = {}): MyArtic
 
 export function createMockCategoryOption(overrides: Partial<CategoryOption> = {}): CategoryOption {
   return {
-    id: 'cat-test-1',
+    uuid: 'cat-test-1',
     name: 'Vue',
     slug: 'vue',
     ...overrides,
@@ -99,7 +99,8 @@ export function createMockCategoryOption(overrides: Partial<CategoryOption> = {}
 export function createMockQuota(overrides: Partial<QuotaInfo> = {}): QuotaInfo {
   return {
     usedBytes: 52_428_800,
-    totalBytes: 104_857_600,
+    limitBytes: 104_857_600,
+    remainingBytes: 52_428_800,
     ...overrides,
   }
 }

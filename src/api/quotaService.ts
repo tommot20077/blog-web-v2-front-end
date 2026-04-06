@@ -1,7 +1,7 @@
 import apiClient from './apiClient'
 import type { QuotaInfo } from '../types/editor'
 
-const DEFAULT_QUOTA: QuotaInfo = { usedBytes: 0, totalBytes: 104_857_600 }
+const DEFAULT_QUOTA: QuotaInfo = { usedBytes: 0, limitBytes: 104_857_600, remainingBytes: 104_857_600 }
 
 export const quotaService = {
   async getQuota(): Promise<QuotaInfo> {

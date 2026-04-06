@@ -116,8 +116,9 @@ export interface PageResult<T> {
 }
 
 // ── 標籤詳情 ──────────────────────────────────────────────────────────────────
+// Note: backend returns `id` for this entity; frontend maps it to `uuid` for consistency.
 export interface TagDetail {
-  id: string;
+  uuid: string;
   name: string;
   slug: string;
   color: string;

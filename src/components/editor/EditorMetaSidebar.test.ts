@@ -14,8 +14,8 @@ const defaultProps = {
   categoryIds: [] as string[],
   tagNames: [] as string[],
   categories: [
-    createMockCategoryOption({ id: 'cat-1', name: 'Vue', slug: 'vue' }),
-    createMockCategoryOption({ id: 'cat-2', name: 'TypeScript', slug: 'typescript' }),
+    createMockCategoryOption({ uuid: 'cat-1', name: 'Vue', slug: 'vue' }),
+    createMockCategoryOption({ uuid: 'cat-2', name: 'TypeScript', slug: 'typescript' }),
   ],
 }
 
@@ -162,10 +162,12 @@ describe('EditorMetaSidebar', () => {
     it('上傳檔案後呼叫 fileService.uploadFile 並 emit update:coverImageUrl', async () => {
       const mockUrl = 'https://mock-cdn.example.com/cover.jpg'
       vi.mocked(fileService.uploadFile).mockResolvedValue({
+        id: 'file-1',
         url: mockUrl,
-        fileId: 'file-1',
-        fileName: 'cover.jpg',
-        fileSize: 1024,
+        width: 800,
+        height: 600,
+        size: 1024,
+        usageType: 'ARTICLE_COVER',
       })
 
       const user = userEvent.setup()

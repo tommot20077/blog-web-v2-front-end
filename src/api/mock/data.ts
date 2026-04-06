@@ -160,8 +160,9 @@ export const mockTagPool: TagSuggestion[] = [
 ];
 
 export const mockQuota: QuotaInfo = {
-  usedBytes: 52_428_800,   // 50 MB
-  totalBytes: 104_857_600, // 100 MB
+  usedBytes: 52_428_800,      // 50 MB
+  limitBytes: 104_857_600,    // 100 MB
+  remainingBytes: 52_428_800, // 50 MB remaining
 };
 
 // 各狀態文章的種子資料（用於「我的文章」和 Admin）
@@ -173,7 +174,7 @@ export const mockEditorArticles: EditorArticle[] = [
     content: '# Vue 3 Composition API\n\n這是一篇草稿文章...',
     coverImageUrl: null,
     status: 'DRAFT',
-    categories: [{ id: 'cat-1', name: 'Vue', slug: 'vue' }],
+    categories: [{ uuid: 'cat-1', name: 'Vue', slug: 'vue' }],
     tags: ['Vue', 'TypeScript'],
     rejectReason: null,
     createdAt: '2026-03-01T10:00:00Z',
@@ -186,7 +187,7 @@ export const mockEditorArticles: EditorArticle[] = [
     content: '# Pinia 狀態管理\n\n這篇文章正在審核中...',
     coverImageUrl: 'https://picsum.photos/seed/pending-1/800/400',
     status: 'PENDING_REVIEW',
-    categories: [{ id: 'cat-1', name: 'Vue', slug: 'vue' }],
+    categories: [{ uuid: 'cat-1', name: 'Vue', slug: 'vue' }],
     tags: ['Vue', 'Pinia'],
     rejectReason: null,
     createdAt: '2026-03-10T10:00:00Z',
@@ -199,7 +200,7 @@ export const mockEditorArticles: EditorArticle[] = [
     content: '# TypeScript 進階技巧\n\n第二篇待審文章...',
     coverImageUrl: null,
     status: 'PENDING_REVIEW',
-    categories: [{ id: 'cat-3', name: 'TypeScript', slug: 'typescript' }],
+    categories: [{ uuid: 'cat-3', name: 'TypeScript', slug: 'typescript' }],
     tags: ['TypeScript'],
     rejectReason: null,
     createdAt: '2026-03-12T10:00:00Z',
@@ -212,7 +213,7 @@ export const mockEditorArticles: EditorArticle[] = [
     content: '# Vite 完全指南\n\n已發布文章...',
     coverImageUrl: 'https://picsum.photos/seed/published-1/800/400',
     status: 'PUBLISHED',
-    categories: [{ id: 'cat-1', name: 'Vue', slug: 'vue' }],
+    categories: [{ uuid: 'cat-1', name: 'Vue', slug: 'vue' }],
     tags: ['Vite', 'Vue'],
     rejectReason: null,
     createdAt: '2026-02-01T10:00:00Z',
@@ -225,7 +226,7 @@ export const mockEditorArticles: EditorArticle[] = [
     content: '# Docker 入門\n\n被退回的文章...',
     coverImageUrl: null,
     status: 'REJECTED',
-    categories: [{ id: 'cat-4', name: 'DevOps', slug: 'devops' }],
+    categories: [{ uuid: 'cat-4', name: 'DevOps', slug: 'devops' }],
     tags: ['Docker', 'DevOps'],
     rejectReason: '文章內容過於簡略，請補充更多實際案例與程式碼範例，確保讀者能從中獲得實際幫助。',
     createdAt: '2026-01-15T10:00:00Z',
@@ -238,7 +239,7 @@ export const mockEditorArticles: EditorArticle[] = [
     content: '# Vue CLI 指南\n\n已封存的舊文章...',
     coverImageUrl: null,
     status: 'ARCHIVED',
-    categories: [{ id: 'cat-1', name: 'Vue', slug: 'vue' }],
+    categories: [{ uuid: 'cat-1', name: 'Vue', slug: 'vue' }],
     tags: ['Vue'],
     rejectReason: null,
     createdAt: '2025-06-01T10:00:00Z',
