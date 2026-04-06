@@ -10,6 +10,20 @@ describe('adminService', () => {
     beforeEach(() => vi.stubEnv('VITE_USE_MOCK', 'true'))
     afterEach(() => vi.unstubAllEnvs())
 
+    it('getPendingArticles 委派 mock 並回傳 PageResult', async () => {
+      const result = await adminService.getPendingArticles(1, 10)
+      expect(result).toHaveProperty('records')
+      expect(result).toHaveProperty('total')
+      expect(result).toHaveProperty('pages')
+    })
+
+    it('getPendingArticles 回傳的文章全為 PENDING_REVIEW 狀態', async () => {
+      const result = await adminService.getPendingArticles(1, 10)
+      result.records.forEach(article => {
+        expect(article.status).toBe('PENDING_REVIEW')
+      })
+    })
+
     it('getPendingCount 委派 mock 並回傳數字', async () => {
       const count = await adminService.getPendingCount()
       expect(typeof count).toBe('number')
@@ -31,6 +45,17 @@ describe('adminService', () => {
   describe('API 模式 (VITE_USE_MOCK=false)', () => {
     beforeEach(() => vi.stubEnv('VITE_USE_MOCK', 'false'))
     afterEach(() => { vi.restoreAllMocks(); vi.unstubAllEnvs() })
+
+    it('getPendingArticles 呼叫 GET /api/v1/admin/articles/pending 並帶 params', async () => {
+      const mockResult = { records: [], total: 0, size: 10, current: 1, pages: 1 }
+      vi.mocked(apiClient.get).mockResolvedValue(mockResult)
+      const result = await adminService.getPendingArticles(1, 10)
+      expect(result).toEqual(mockResult)
+      expect(apiClient.get).toHaveBeenCalledWith(
+        '/api/v1/admin/articles/pending',
+        { params: { page: 1, size: 10 } }
+      )
+    })
 
     it('getPendingCount 呼叫 GET /api/v1/admin/articles/pending', async () => {
       vi.mocked(apiClient.get).mockResolvedValue(3)
