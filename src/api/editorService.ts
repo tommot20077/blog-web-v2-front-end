@@ -24,7 +24,7 @@ export const editorService = {
       return getArticleForEditMock(uuid)
     }
     try {
-      return await apiClient.get<unknown, EditorArticle>(`/api/v1/articles/${uuid}/edit`)
+      return await apiClient.get<unknown, EditorArticle>(`/api/v1/articles/${uuid}`)
     } catch (error) {
       console.error('Failed to fetch article for edit:', error)
       return null
