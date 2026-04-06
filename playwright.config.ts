@@ -9,7 +9,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: [['html', { open: 'never' }], ['list']],
   use: {
-    baseURL: 'http://127.0.0.1:5500',
+    baseURL: 'http://127.0.0.1:5501',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     locale: 'zh-TW',
@@ -18,8 +18,8 @@ export default defineConfig({
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
   ],
   webServer: {
-    command: 'npx vite --host 127.0.0.1 --port 5500',
-    url: 'http://127.0.0.1:5500',
+    command: 'npx vite --host 127.0.0.1 --port 5501',
+    url: 'http://127.0.0.1:5501',
     reuseExistingServer: !process.env.CI,
     env: { VITE_USE_MOCK: 'true' },
   },
