@@ -2,26 +2,11 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import {
   publishArticleMock,
   rejectArticleMock,
-  getPendingCountMock,
 } from './adminMockService'
 import { resetEditorArticleStore } from './data'
 
 beforeEach(() => {
   resetEditorArticleStore()
-})
-
-describe('getPendingCountMock', () => {
-  it('回傳待審核文章數量（大於 0）', async () => {
-    const count = await getPendingCountMock()
-    expect(count).toBeGreaterThanOrEqual(2) // 種子資料有 2 篇 PENDING_REVIEW
-  })
-
-  it('發布後數量減少', async () => {
-    const before = await getPendingCountMock()
-    await publishArticleMock('editor-pending-1')
-    const after = await getPendingCountMock()
-    expect(after).toBe(before - 1)
-  })
 })
 
 describe('publishArticleMock', () => {

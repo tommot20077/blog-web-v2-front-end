@@ -4,6 +4,7 @@ import type { BackendPageResult } from './utils'
 import type {
   EditorArticle,
   MyArticle,
+  PendingArticle,
   PageResult,
   ArticleStatus,
   CreateCategoryRequest,
@@ -28,7 +29,7 @@ interface BackendPendingArticle {
   authorNickname: string
 }
 
-function mapPendingArticle(raw: BackendPendingArticle): MyArticle {
+function mapPendingArticle(raw: BackendPendingArticle): PendingArticle {
   return {
     uuid: raw.uuid,
     title: raw.title,
@@ -42,20 +43,26 @@ function mapPendingArticle(raw: BackendPendingArticle): MyArticle {
     viewCount: raw.viewCount,
     likeCount: raw.likeCount,
     commentCount: raw.commentCount,
+    authorNickname: raw.authorNickname,
   }
 }
 
 export const adminService = {
-  async getPendingArticles(page: number, size: number): Promise<PageResult<MyArticle>> {
+  async getPendingArticles(page: number, size: number): Promise<PageResult<PendingArticle>> {
     if (import.meta.env.VITE_USE_MOCK === 'true') {
       const { getPendingArticlesMock } = await import('./mock/adminMockService')
       return getPendingArticlesMock(page, size)
     }
-    const data = await apiClient.get<unknown, BackendPageResult<BackendPendingArticle>>(
-      '/api/v1/admin/articles/pending',
-      { params: { page, size } }
-    )
-    return mapPageResult(data, mapPendingArticle)
+    try {
+      const data = await apiClient.get<unknown, BackendPageResult<BackendPendingArticle>>(
+        '/api/v1/admin/articles/pending',
+        { params: { page, size } }
+      )
+      return mapPageResult(data, mapPendingArticle)
+    } catch (error) {
+      console.error('Failed to fetch pending articles:', error)
+      return { records: [], total: 0, current: page, size, pages: 0 }
+    }
   },
 
   async publishArticle(uuid: string): Promise<EditorArticle> {

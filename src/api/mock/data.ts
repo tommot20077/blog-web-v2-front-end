@@ -2,7 +2,7 @@ import type { ArticleItem, ArticleDetailItem } from '../articleService';
 import type { RecommendArticleResponse } from '../recommendService';
 import type { TagDetailResponse } from '../tagService';
 import { mockMarkdownContent } from './mockArticleContent';
-import type { CategoryOption, TagSuggestion, QuotaInfo, EditorArticle, MyArticle } from '../../types/editor';
+import type { CategoryOption, TagSuggestion, QuotaInfo, EditorArticle, MyArticle, PendingArticle } from '../../types/editor';
 
 // 模擬作者名稱池
 const MOCK_AUTHORS = ['Yuan', '小明', 'TechLead', '旅行者', 'DevGuru'] as const;
@@ -21,7 +21,6 @@ const baseMockArticles: ArticleItem[] = Array.from({ length: 50 }).map((_, i) =>
     commentCount: Math.floor(Math.random() * 50),
     publishedAt: `2026-03-${String((i % 30) + 1).padStart(2, '0')}`,
     tags: isFrontend ? ['Vue', 'Frontend'] : ['Backend', 'Microservices', 'DevOps'],
-    categories: isFrontend ? ['Frontend'] : ['Backend'],
     slug: `article-slug-${i + 1}`,
   };
 });
@@ -269,5 +268,13 @@ export function toMyArticle(a: EditorArticle): MyArticle {
     viewCount: 0,
     likeCount: 0,
     commentCount: 0,
+  };
+}
+
+// 將 EditorArticle 轉換為 PendingArticle 格式（管理員待審列表用）
+export function toPendingArticle(a: EditorArticle): PendingArticle {
+  return {
+    ...toMyArticle(a),
+    authorNickname: 'Mock Author',
   };
 }

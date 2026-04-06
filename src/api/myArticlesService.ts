@@ -34,8 +34,13 @@ export const myArticlesService = {
     }
     const params: Record<string, unknown> = { page, size }
     if (status !== 'ALL') params.status = status
-    const data = await apiClient.get<unknown, BackendPageResult<BackendMyArticle>>('/api/v1/articles/me', { params })
-    return mapPageResult(data, mapMyArticle)
+    try {
+      const data = await apiClient.get<unknown, BackendPageResult<BackendMyArticle>>('/api/v1/articles/me', { params })
+      return mapPageResult(data, mapMyArticle)
+    } catch (error) {
+      console.error('Failed to fetch my articles:', error)
+      return { records: [], total: 0, current: page, size, pages: 0 }
+    }
   },
 
   async deleteArticle(uuid: string): Promise<void> {

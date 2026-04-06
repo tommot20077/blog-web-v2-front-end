@@ -65,6 +65,11 @@ export interface MyArticle {
   commentCount: number;
 }
 
+// 管理員待審文章（含作者名稱）
+export interface PendingArticle extends MyArticle {
+  authorNickname: string;
+}
+
 // ── 編輯器表單資料（送 API 用） ─────────────────────────────────────────────
 export interface ArticleFormData {
   title: string;

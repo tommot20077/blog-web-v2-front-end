@@ -1,5 +1,6 @@
 import { articleService } from './articleService';
-import type { PageResult, ArticleItem } from '../types/editor';
+import type { ArticleItem } from './articleService';
+import type { PageResult } from '../types/editor';
 import apiClient from './apiClient';
 import { allMockArticles } from './mock/data';
 

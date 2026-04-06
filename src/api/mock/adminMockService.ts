@@ -1,32 +1,23 @@
 import type {
   EditorArticle,
-  MyArticle,
+  PendingArticle,
   PageResult,
   CreateCategoryRequest,
   UpdateCategoryRequest,
   CategoryResponse,
   UpdateTagRequest,
 } from '../../types/editor'
-import { editorArticleStore, toMyArticle, mockCategories } from './data'
+import { editorArticleStore, toPendingArticle, mockCategories } from './data'
 
-export function getPendingArticlesMock(page: number, size: number): Promise<PageResult<MyArticle>> {
+export function getPendingArticlesMock(page: number, size: number): Promise<PageResult<PendingArticle>> {
   return new Promise((resolve) => {
     setTimeout(() => {
       const filtered = editorArticleStore.filter(a => a.status === 'PENDING_REVIEW')
       const total = filtered.length
       const pages = Math.max(1, Math.ceil(total / size))
       const start = (page - 1) * size
-      const records = filtered.slice(start, start + size).map(toMyArticle)
+      const records = filtered.slice(start, start + size).map(toPendingArticle)
       resolve({ records, total, size, current: page, pages })
-    }, 200)
-  })
-}
-
-export function getPendingCountMock(): Promise<number> {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const count = editorArticleStore.filter(a => a.status === 'PENDING_REVIEW').length
-      resolve(count)
     }, 200)
   })
 }
