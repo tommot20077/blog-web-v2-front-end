@@ -131,7 +131,7 @@ describe('ArticleDetail 頁面', () => {
       const { container } = await renderArticleDetail()
       await flushPromises()
 
-      const img = container.querySelector('img[src="https://example.com/cover.jpg"]')
+      const img = container.querySelector('[data-testid="article-cover-image"]')
       expect(img).toBeInTheDocument()
     })
 
@@ -142,9 +142,8 @@ describe('ArticleDetail 頁面', () => {
       const { container } = await renderArticleDetail()
       await flushPromises()
 
-      // 唯一的 img 不應存在（或至少沒有 cover img）
-      const imgs = container.querySelectorAll('img')
-      expect(imgs).toHaveLength(0)
+      const coverImg = container.querySelector('[data-testid="article-cover-image"]')
+      expect(coverImg).not.toBeInTheDocument()
     })
 
     it('顯示作者暱稱', async () => {

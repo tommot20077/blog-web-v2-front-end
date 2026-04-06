@@ -128,6 +128,21 @@ describe('useWordCount', () => {
       const { wordCount } = useWordCount(ref('before ![alt](https://img.url) after'))
       expect(wordCount.value).toBe(2) // "before", "after"
     })
+
+    it('snake_case 底線不被剝除（characterCount 正確）', () => {
+      const { characterCount } = useWordCount(ref('snake_case'))
+      expect(characterCount.value).toBe(10) // "snake_case" = 10 字元（含底線）
+    })
+
+    it('路徑中的波浪線 ~/ 不被剝除（characterCount 正確）', () => {
+      const { characterCount } = useWordCount(ref('~/.zshrc'))
+      expect(characterCount.value).toBe(8) // "~/.zshrc" = 8 字元（含波浪線）
+    })
+
+    it('成對的 **bold** 記號被剝除後文字仍正確計算', () => {
+      const { wordCount } = useWordCount(ref('**粗體** text'))
+      expect(wordCount.value).toBe(3) // 粗(1) + 體(1) CJK 字元 + "text"(1) 英文詞
+    })
   })
 
   describe('響應式更新', () => {

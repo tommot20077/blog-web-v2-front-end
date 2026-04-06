@@ -18,8 +18,13 @@ function stripMarkdown(raw: string): string {
     .replace(/<[^>]*>/g, '')
     // 6. 剝除標題記號（# ## ### ...）
     .replace(/^#{1,6}\s+/gm, '')
-    // 7. 剝除強調記號（*** ** * _ __ ~~）
-    .replace(/[*_~]+/g, '')
+    // 7. 只移除成對的 Markdown 強調標記，保留一般字元中的 _、~、*
+    .replace(/\*\*\*([^*]+)\*\*\*/g, '$1')   // ***bold italic***
+    .replace(/\*\*([^*]+)\*\*/g, '$1')        // **bold**
+    .replace(/__([^_]+)__/g, '$1')            // __bold__
+    .replace(/~~([^~]+)~~/g, '$1')            // ~~strike~~
+    .replace(/\*([^*\s][^*]*?)\*/g, '$1')    // *italic*
+    .replace(/_([^_\s][^_]*?)_/g, '$1')      // _italic_
     // 8. 剝除引用記號（> ...）
     .replace(/^>\s*/gm, '')
     // 9. 剝除水平線（--- *** ___）

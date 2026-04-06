@@ -72,6 +72,7 @@ const goBack = () => {
       <!-- 封面圖 -->
       <img
         v-if="article.coverImageUrl"
+        data-testid="article-cover-image"
         :src="article.coverImageUrl"
         :alt="article.title"
         class="w-full aspect-video object-cover rounded-none md:rounded-3xl shadow-lg mb-10"
