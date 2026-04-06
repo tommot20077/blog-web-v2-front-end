@@ -23,9 +23,10 @@ describe('NavigationBar', () => {
   })
 
   it('ThemeSwitcher 存在 — the theme toggle button is rendered', () => {
-    const { getByRole } = renderWithRouter(NavigationBar)
-    const button = getByRole('button', { name: '切換深淺色模式' })
-    expect(button).toBeInTheDocument()
+    const { getAllByRole } = renderWithRouter(NavigationBar)
+    // NavigationBar 渲染兩個 ThemeSwitcher（手機版 + 桌機版），故使用 getAllByRole
+    const buttons = getAllByRole('button', { name: '切換深淺色模式' })
+    expect(buttons.length).toBeGreaterThanOrEqual(1)
   })
 
   it('WeatherWidget 存在 — weather info area is rendered', () => {
