@@ -9,7 +9,7 @@ export function uploadFileMock(file: File, usageType: FileUsageType): Promise<Fi
         url: `https://mock-cdn.example.com/uploads/${id}/${file.name}`,
         width: 800,
         height: 600,
-        size: file.size || 102_400,
+        size: file.size > 0 ? file.size : 102_400,
         usageType,
       })
     }, 500)

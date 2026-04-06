@@ -11,6 +11,7 @@ describe('fileMockService', () => {
     expect(result.width).toBe(800)
     expect(result.height).toBe(600)
     expect(result.usageType).toBe('ARTICLE_CONTENT')
+    expect(typeof result.size).toBe('number')
   })
 
   it('不同 usageType 皆可上傳且 usageType 對應正確', async () => {
