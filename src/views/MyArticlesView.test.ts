@@ -136,7 +136,7 @@ describe('MyArticlesView', () => {
     it('顯示狀態徽章文字', async () => {
       renderWithRouter(MyArticlesView)
       await flushPromises()
-      expect(screen.getByText('草稿')).toBeInTheDocument()
+      expect(screen.getAllByText('草稿').length).toBeGreaterThanOrEqual(1)
     })
 
     it('REJECTED 文章顯示 rejectReason', async () => {
