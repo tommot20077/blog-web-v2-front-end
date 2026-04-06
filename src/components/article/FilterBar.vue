@@ -43,7 +43,7 @@ const emitFilter = () => {
         :key="cat"
         @click="selectCategory(cat)"
         class="px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 whitespace-nowrap"
-        :class="activeCategory === cat ? 'bg-[var(--text-main)] text-[var(--bg-color)] shadow-md' : 'opacity-60 hover:opacity-100'"
+        :class="activeCategory === cat ? 'bg-[var(--text-main)] text-[var(--bg-color)] shadow-md' : 'text-neutral-500 dark:text-neutral-400 hover:text-[var(--text-main)]'"
       >
         {{ cat }}
       </button>
@@ -57,7 +57,7 @@ const emitFilter = () => {
         <!-- Grid Icon -->
         <button 
           class="w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300" 
-          :class="viewMode === 'grid' ? 'bg-[var(--text-main)] text-[var(--bg-color)] shadow-md' : 'opacity-50 hover:opacity-100'"
+          :class="viewMode === 'grid' ? 'bg-[var(--text-main)] text-[var(--bg-color)] shadow-md' : 'text-neutral-500 dark:text-neutral-400 hover:text-[var(--text-main)]'"
           @click="toggleMode('grid')"
           title="網格與分頁模式"
         >
@@ -68,7 +68,7 @@ const emitFilter = () => {
         <!-- List Icon -->
         <button 
           class="w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300"
-          :class="viewMode === 'list' ? 'bg-[var(--text-main)] text-[var(--bg-color)] shadow-md' : 'opacity-50 hover:opacity-100'"
+          :class="viewMode === 'list' ? 'bg-[var(--text-main)] text-[var(--bg-color)] shadow-md' : 'text-neutral-500 dark:text-neutral-400 hover:text-[var(--text-main)]'"
           @click="toggleMode('list')"
           title="無限捲動清單模式"
         >
