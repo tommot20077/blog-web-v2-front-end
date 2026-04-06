@@ -1,4 +1,6 @@
 import apiClient from './apiClient';
+import type { TagDetail } from '../types/editor';
+import { useAuthStore } from '../stores/auth';
 
 // 標籤詳情回應型別（對齊後端 TagDetailResponse）
 export interface TagDetailResponse {
@@ -21,8 +23,31 @@ interface BackendTag {
   createdAt?: string;
 }
 
+// 後端 TagDetailResponse（單一標籤詳情）
+interface BackendTagDetail {
+  id: string;
+  name: string;
+  slug: string;
+  color: string;
+  icon: string;
+  description: string;
+  usageCount: number;
+}
+
 function mapBackendTag(raw: BackendTag): TagDetailResponse {
   return { uuid: raw.id, name: raw.name, slug: raw.slug, articleCount: raw.usageCount };
+}
+
+function mapBackendTagDetail(raw: BackendTagDetail): TagDetail {
+  return {
+    uuid: raw.id,
+    name: raw.name,
+    slug: raw.slug,
+    color: raw.color ?? '',
+    icon: raw.icon ?? '',
+    description: raw.description ?? '',
+    usageCount: raw.usageCount,
+  };
 }
 
 export const tagService = {
@@ -44,5 +69,57 @@ export const tagService = {
       console.error('Fetch hot tags failed:', error);
       return [];
     }
+  },
+
+  /**
+   * 根據 slug 取得標籤詳情
+   */
+  async getTagBySlug(slug: string): Promise<TagDetail | null> {
+    if (import.meta.env.VITE_USE_MOCK === 'true') {
+      const { getTagBySlugMock } = await import('./mock/tagMockService');
+      return getTagBySlugMock(slug);
+    }
+
+    try {
+      const data = await apiClient.get<unknown, BackendTagDetail>(`/api/v1/tags/${slug}`);
+      return mapBackendTagDetail(data);
+    } catch (error) {
+      console.error('Fetch tag by slug failed:', error);
+      return null;
+    }
+  },
+
+  /**
+   * 追蹤標籤（需要登入）
+   */
+  async followTag(id: string): Promise<void> {
+    const authStore = useAuthStore();
+    if (!authStore.isAuthenticated) {
+      throw new Error('未登入');
+    }
+
+    if (import.meta.env.VITE_USE_MOCK === 'true') {
+      const { followTagMock } = await import('./mock/tagMockService');
+      return followTagMock(id);
+    }
+
+    await apiClient.post<unknown, void>(`/api/v1/tags/${id}/follow`);
+  },
+
+  /**
+   * 取消追蹤標籤（需要登入）
+   */
+  async unfollowTag(id: string): Promise<void> {
+    const authStore = useAuthStore();
+    if (!authStore.isAuthenticated) {
+      throw new Error('未登入');
+    }
+
+    if (import.meta.env.VITE_USE_MOCK === 'true') {
+      const { unfollowTagMock } = await import('./mock/tagMockService');
+      return unfollowTagMock(id);
+    }
+
+    await apiClient.delete<unknown, void>(`/api/v1/tags/${id}/follow`);
   },
 };

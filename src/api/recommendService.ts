@@ -60,4 +60,22 @@ export const recommendService = {
       return [];
     }
   },
+
+  /**
+   * 取得相關文章推薦
+   */
+  async getRelatedArticles(articleUuid: string): Promise<RecommendArticleResponse[]> {
+    if (import.meta.env.VITE_USE_MOCK === 'true') {
+      const { getRelatedArticlesMock } = await import('./mock/recommendMockService');
+      return getRelatedArticlesMock(articleUuid);
+    }
+
+    try {
+      const data = await apiClient.get<unknown, BackendRecommend[]>(`/api/v1/recommend/related/${articleUuid}`);
+      return data.map(mapBackendRecommend);
+    } catch (error) {
+      console.error('Fetch related articles failed:', error);
+      return [];
+    }
+  },
 };

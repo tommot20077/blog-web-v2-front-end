@@ -109,3 +109,89 @@ describe('recommendService', () => {
 
   });
 });
+
+describe('recommendService — getRelatedArticles', () => {
+  describe('Mock 路由 (VITE_USE_MOCK=true)', () => {
+    beforeEach(() => {
+      vi.stubEnv('VITE_USE_MOCK', 'true');
+    });
+
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it('getRelatedArticles 回傳陣列', async () => {
+      const result = await recommendService.getRelatedArticles('article-1');
+
+      expect(Array.isArray(result)).toBe(true);
+    });
+
+    it('getRelatedArticles 回傳 2-3 筆推薦文章', async () => {
+      const result = await recommendService.getRelatedArticles('article-1');
+
+      expect(result.length).toBeGreaterThanOrEqual(2);
+      expect(result.length).toBeLessThanOrEqual(3);
+    });
+
+    it('getRelatedArticles 結果包含必要欄位', async () => {
+      const result = await recommendService.getRelatedArticles('article-1');
+
+      for (const item of result) {
+        expect(item).toHaveProperty('uuid');
+        expect(item).toHaveProperty('title');
+        expect(item).toHaveProperty('slug');
+        expect(item).toHaveProperty('summary');
+        expect(item).toHaveProperty('authorNickname');
+        expect(item).toHaveProperty('viewCount');
+        expect(item).toHaveProperty('likeCount');
+        expect(item).toHaveProperty('publishedAt');
+        expect(item).toHaveProperty('tags');
+      }
+    });
+  });
+
+  describe('API 模式 (VITE_USE_MOCK=false)', () => {
+    beforeEach(() => {
+      vi.stubEnv('VITE_USE_MOCK', 'false');
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+      vi.unstubAllEnvs();
+    });
+
+    it('getRelatedArticles 成功時回傳映射後的陣列', async () => {
+      const backendRaw = [
+        {
+          uuid: 'rel-1',
+          title: '相關文章',
+          slug: 'related-article',
+          summary: '摘要',
+          authorNickname: 'Author',
+          tagNames: ['Vue'],
+          viewCount: 50,
+          likeCount: 5,
+          publishedAt: '2026-03-01',
+        },
+      ];
+      vi.mocked(apiClient.get).mockResolvedValue(backendRaw);
+
+      const result = await recommendService.getRelatedArticles('article-uuid-1');
+
+      expect(result).toHaveLength(1);
+      expect(result[0].uuid).toBe('rel-1');
+      expect(result[0].tags).toEqual(['Vue']);
+      expect(apiClient.get).toHaveBeenCalledWith('/api/v1/recommend/related/article-uuid-1');
+    });
+
+    it('getRelatedArticles 網路錯誤時回傳空陣列', async () => {
+      vi.mocked(apiClient.get).mockRejectedValue(new Error('Network failure'));
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      const result = await recommendService.getRelatedArticles('article-uuid-1');
+
+      expect(result).toEqual([]);
+      expect(consoleSpy).toHaveBeenCalledWith('Fetch related articles failed:', expect.any(Error));
+    });
+  });
+});
