@@ -1,9 +1,11 @@
 import { fireEvent, waitFor } from '@testing-library/vue'
 import { flushPromises } from '@vue/test-utils'
+import { setActivePinia } from 'pinia'
 import LoginView from './LoginView.vue'
 import { renderWithRouter } from '../test-utils'
 import { authService } from '../api/authService'
 import { useToast } from '../composables/useToast'
+import { useAuthStore } from '../stores/auth'
 
 vi.mock('../api/authService', () => ({
   authService: {
@@ -114,6 +116,31 @@ describe('LoginView', () => {
 
     const link = getByText('還沒有帳號？註冊')
     expect(link.closest('a')).toHaveAttribute('href', '/register')
+  })
+
+  it('登入成功後 returnUrl 存在時重導至 returnUrl', async () => {
+    mockLogin.mockResolvedValue({ accessToken: 'token', expiresIn: 3600 })
+    mockGetMe.mockResolvedValue({
+      uuid: 'u1', email: 'test@test.com', nickname: 'Test',
+      avatarUrl: null, role: 'USER', emailVerified: true, createdAt: '2026-01-01',
+    })
+
+    const { getByLabelText, getByRole, router, pinia } = renderWithRouter(LoginView, {}, '/login')
+
+    // 在元件渲染後設置 returnUrl（元件已連結至此 pinia）
+    setActivePinia(pinia)
+    const authStore = useAuthStore()
+    authStore.setReturnUrl('/editor')
+
+    await fireEvent.update(getByLabelText('Email'), 'test@test.com')
+    await fireEvent.update(getByLabelText('密碼'), 'password123')
+    await fireEvent.click(getByRole('button', { name: '登入' }))
+
+    await flushPromises()
+
+    await waitFor(() => {
+      expect(router.currentRoute.value.path).toBe('/editor')
+    })
   })
 
   it('提交中按鈕 disabled 且顯示「登入中...」', async () => {
