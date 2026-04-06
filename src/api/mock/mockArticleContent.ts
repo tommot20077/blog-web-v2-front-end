@@ -132,7 +132,7 @@ ${codeJson}
 
 圖片目前使用 placeholder（未來串接 MinIO）：
 
-![這是一張示意圖的 alt 文字](https://via.placeholder.com/800x400/2D264B/FFFFFF?text=Blog+Cover+Image)
+![這是一張示意圖的 alt 文字](data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMkQyNjRCIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZpbGw9IiNGRkYiIGZvbnQtc2l6ZT0iMjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5CbG9nIENvdmVyIEltYWdlPC90ZXh0Pjwvc3ZnPg==)
 
 ---
 
