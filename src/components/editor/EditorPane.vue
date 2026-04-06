@@ -7,7 +7,7 @@ const props = defineProps<{
 }>()
 
 const containerRef = shallowRef<HTMLElement | null>(null)
-const { editorView, markdownContent, wrapSelection, insertText, prefixLines, setContent } =
+const { editorView, markdownContent, wrapSelection, insertText, prefixLines, setContent, undo, redo } =
   useMarkdownEditor(containerRef)
 
 onMounted(() => {
@@ -25,7 +25,7 @@ watch(
   },
 )
 
-defineExpose({ wrapSelection, insertText, prefixLines, setContent, markdownContent })
+defineExpose({ wrapSelection, insertText, prefixLines, setContent, markdownContent, undo, redo })
 </script>
 
 <template>

@@ -10,6 +10,8 @@ vi.mock('../../composables/useMarkdownEditor', () => ({
     insertText: vi.fn(),
     prefixLines: vi.fn(),
     setContent: vi.fn(),
+    undo: vi.fn(),
+    redo: vi.fn(),
   })),
 }))
 
@@ -24,6 +26,8 @@ describe('EditorPane', () => {
       insertText: vi.fn(),
       prefixLines: vi.fn(),
       setContent: vi.fn(),
+      undo: vi.fn(),
+      redo: vi.fn(),
     })
   })
 
@@ -58,5 +62,15 @@ describe('EditorPane', () => {
   it('expose markdownContent ref', () => {
     render(EditorPane)
     expect(vi.mocked(useMarkdownEditor).mock.results[0].value.markdownContent).toBeDefined()
+  })
+
+  it('expose undo 方法', () => {
+    render(EditorPane)
+    expect(vi.mocked(useMarkdownEditor).mock.results[0].value.undo).toBeDefined()
+  })
+
+  it('expose redo 方法', () => {
+    render(EditorPane)
+    expect(vi.mocked(useMarkdownEditor).mock.results[0].value.redo).toBeDefined()
   })
 })

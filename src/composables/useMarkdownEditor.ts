@@ -1,7 +1,7 @@
 import { ref, shallowRef, watchEffect, onUnmounted, type ShallowRef } from 'vue'
 import { EditorView, lineNumbers, highlightActiveLine, keymap as cmKeymap } from '@codemirror/view'
 import { EditorState, type Extension } from '@codemirror/state'
-import { history, defaultKeymap, historyKeymap, indentWithTab } from '@codemirror/commands'
+import { history, defaultKeymap, historyKeymap, indentWithTab, undo as cmUndo, redo as cmRedo } from '@codemirror/commands'
 import { markdown } from '@codemirror/lang-markdown'
 import { syntaxHighlighting, indentOnInput } from '@codemirror/language'
 import { languages } from '@codemirror/language-data'
@@ -99,6 +99,18 @@ export function useMarkdownEditor(containerRef: ShallowRef<HTMLElement | null>) 
     markdownContent.value = content
   }
 
+  function undo(): void {
+    const view = editorView.value
+    if (!view) return
+    cmUndo(view)
+  }
+
+  function redo(): void {
+    const view = editorView.value
+    if (!view) return
+    cmRedo(view)
+  }
+
   return {
     editorView,
     markdownContent,
@@ -106,5 +118,7 @@ export function useMarkdownEditor(containerRef: ShallowRef<HTMLElement | null>) 
     insertText,
     prefixLines,
     setContent,
+    undo,
+    redo,
   }
 }

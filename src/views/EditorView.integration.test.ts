@@ -197,5 +197,37 @@ describe('EditorView Integration', () => {
         expect(myArticlesService.submitForReview).toHaveBeenCalledWith('new-uuid')
       })
     })
+
+    it('saveDraft 失敗時不呼叫 submitForReview', async () => {
+      vi.mocked(editorService.createArticle).mockRejectedValue(new Error('網路錯誤'))
+      vi.mocked(myArticlesService.submitForReview).mockResolvedValue(undefined)
+
+      const user = userEvent.setup()
+      renderEditor()
+      await user.click(screen.getByText(/送出審核/))
+
+      await waitFor(() => {
+        expect(mockShowToast).toHaveBeenCalledWith('儲存失敗', 'error')
+      })
+      expect(myArticlesService.submitForReview).not.toHaveBeenCalled()
+    })
+
+    it('成功時只顯示一次成功 toast（已送出審核）', async () => {
+      const mockArticle = createMockEditorArticle({ uuid: 'new-uuid' })
+      vi.mocked(editorService.createArticle).mockResolvedValue(mockArticle)
+      vi.mocked(myArticlesService.submitForReview).mockResolvedValue(undefined)
+
+      const user = userEvent.setup()
+      renderEditor()
+      await user.click(screen.getByText(/送出審核/))
+
+      await waitFor(() => {
+        expect(myArticlesService.submitForReview).toHaveBeenCalled()
+      })
+
+      const successCalls = mockShowToast.mock.calls.filter(([, type]) => type === 'success')
+      expect(successCalls).toHaveLength(1)
+      expect(successCalls[0][0]).toBe('已送出審核')
+    })
   })
 })

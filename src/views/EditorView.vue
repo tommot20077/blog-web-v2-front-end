@@ -19,13 +19,13 @@ const props = defineProps<{
 const editorPane = ref<InstanceType<typeof EditorPane> | null>(null)
 const markdownContent = ref('')
 
-// 等 EditorPane 掛載後追蹤其 markdownContent
-watch(editorPane, (pane) => {
+// 等 EditorPane 掛載後追蹤其 markdownContent；使用 onCleanup 確保舊 watcher 被停止
+watch(editorPane, (pane, _prev, onCleanup) => {
   if (!pane) return
   const exposed = (pane as unknown as { markdownContent: Ref<string> }).markdownContent
-  if (exposed) {
-    watch(exposed, (val) => { markdownContent.value = val }, { immediate: true })
-  }
+  if (!exposed) return
+  const stop = watch(exposed, (val) => { markdownContent.value = val }, { immediate: true })
+  onCleanup(stop)
 })
 
 // ── 分類 ──────────────────────────────────────────────────────────────────
@@ -58,15 +58,22 @@ async function onSaveDraft() {
   try {
     await saveDraft(markdownContent.value)
     showToast('草稿已儲存', 'success')
-  } catch {
+  } catch (error) {
     showToast('儲存失敗', 'error')
+    throw error
   }
 }
 
 // ── 送出審核 ──────────────────────────────────────────────────────────────
+// 直接呼叫 saveDraft()，失敗時顯示錯誤並中止；不透過 onSaveDraft() 以避免雙重 toast
 async function onSubmitForReview() {
   try {
-    await onSaveDraft()
+    await saveDraft(markdownContent.value)
+  } catch {
+    showToast('儲存失敗', 'error')
+    return
+  }
+  try {
     await submitForReview()
     showToast('已送出審核', 'success')
   } catch {
@@ -108,8 +115,8 @@ function onPrefixLines(prefix: string) {
           @wrap-selection="onWrapSelection"
           @insert-text="onInsertText"
           @prefix-lines="onPrefixLines"
-          @undo="editorPane?.wrapSelection('', '')"
-          @redo="editorPane?.wrapSelection('', '')"
+          @undo="editorPane?.undo?.()"
+          @redo="editorPane?.redo?.()"
         />
 
         <Splitpanes class="flex-1 min-h-0">
@@ -124,13 +131,11 @@ function onPrefixLines(prefix: string) {
 
       <!-- 右側 Meta 側欄 -->
       <EditorMetaSidebar
-        :title="title"
         :summary="summary"
         :cover-image-url="coverImageUrl"
         :category-ids="categoryIds"
         :tag-names="tagNames"
         :categories="categories"
-        @update:title="title = $event"
         @update:summary="summary = $event"
         @update:cover-image-url="coverImageUrl = $event"
         @update:category-ids="categoryIds = $event"

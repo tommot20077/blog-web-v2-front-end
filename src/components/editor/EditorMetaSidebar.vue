@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onUnmounted } from 'vue'
 import { fileService } from '../../api/fileService'
 import { tagSuggestService } from '../../api/tagSuggestService'
 import type { CategoryOption } from '../../types/editor'
 
 const props = defineProps<{
-  title: string
   summary: string
   coverImageUrl: string | null
   categoryIds: string[]
@@ -14,7 +13,6 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  'update:title': [value: string]
   'update:summary': [value: string]
   'update:coverImageUrl': [value: string | null]
   'update:categoryIds': [value: string[]]
@@ -36,6 +34,10 @@ function onTagInput() {
     }
   }, 300)
 }
+
+onUnmounted(() => {
+  if (suggestTimer) clearTimeout(suggestTimer)
+})
 
 function addTag(name: string) {
   const trimmed = name.trim()
@@ -70,15 +72,19 @@ function toggleCategory(id: string) {
 
 // ── 封面圖 ────────────────────────────────────────────────────────────────
 const isUploading = ref(false)
+const uploadError = ref('')
 
 async function onFileChange(e: Event) {
   const input = e.target as HTMLInputElement
   const file = input.files?.[0]
   if (!file) return
   isUploading.value = true
+  uploadError.value = ''
   try {
     const result = await fileService.uploadFile(file, 'ARTICLE_COVER')
     emit('update:coverImageUrl', result.url)
+  } catch {
+    uploadError.value = '上傳失敗，請稍後再試'
   } finally {
     isUploading.value = false
     input.value = ''
@@ -118,6 +124,7 @@ async function onFileChange(e: Event) {
           @change="onFileChange"
         />
       </label>
+      <p v-if="uploadError" class="text-xs text-red-500 mt-1">{{ uploadError }}</p>
     </section>
 
     <!-- 分類 -->

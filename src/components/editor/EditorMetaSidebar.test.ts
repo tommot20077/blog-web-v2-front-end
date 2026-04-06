@@ -9,7 +9,6 @@ vi.mock('../../api/fileService')
 vi.mock('../../api/tagSuggestService')
 
 const defaultProps = {
-  title: '',
   summary: '',
   coverImageUrl: null,
   categoryIds: [] as string[],
@@ -120,8 +119,46 @@ describe('EditorMetaSidebar', () => {
     })
   })
 
+  // ── onUnmounted 清除 ─────────────────────────────────────────────────────
+  describe('onUnmounted', () => {
+    it('元件卸載時呼叫 clearTimeout 以清除 debounce timer', async () => {
+      const clearTimeoutSpy = vi.spyOn(globalThis, 'clearTimeout')
+      vi.mocked(tagSuggestService.suggestTags).mockResolvedValue([])
+
+      const user = userEvent.setup()
+      const { unmount } = render(EditorMetaSidebar, { props: defaultProps })
+      const input = screen.getByPlaceholderText(/標籤/)
+
+      // 輸入觸發 debounce，設定 suggestTimer
+      await user.type(input, 'V')
+
+      clearTimeoutSpy.mockClear()
+
+      // 卸載元件，預期 clearTimeout 被呼叫
+      unmount()
+
+      expect(clearTimeoutSpy).toHaveBeenCalled()
+
+      clearTimeoutSpy.mockRestore()
+    })
+  })
+
   // ── 封面圖上傳 ───────────────────────────────────────────────────────────
   describe('封面圖上傳', () => {
+    it('上傳失敗時顯示錯誤訊息', async () => {
+      vi.mocked(fileService.uploadFile).mockRejectedValue(new Error('網路錯誤'))
+
+      const user = userEvent.setup()
+      render(EditorMetaSidebar, { props: defaultProps })
+      const file = new File(['img'], 'cover.jpg', { type: 'image/jpeg' })
+      const input = document.querySelector('input[type="file"]') as HTMLInputElement
+      await user.upload(input, file)
+
+      await waitFor(() => {
+        expect(screen.getByText(/上傳失敗/)).toBeInTheDocument()
+      })
+    })
+
     it('上傳檔案後呼叫 fileService.uploadFile 並 emit update:coverImageUrl', async () => {
       const mockUrl = 'https://mock-cdn.example.com/cover.jpg'
       vi.mocked(fileService.uploadFile).mockResolvedValue({

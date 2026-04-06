@@ -120,6 +120,42 @@ describe('useMarkdownEditor', () => {
     expect(typeof setContent).toBe('function')
   })
 
+  it('提供 undo 方法', () => {
+    const containerRef = shallowRef<HTMLElement | null>(null)
+    const { undo } = useMarkdownEditor(containerRef)
+    expect(typeof undo).toBe('function')
+  })
+
+  it('提供 redo 方法', () => {
+    const containerRef = shallowRef<HTMLElement | null>(null)
+    const { redo } = useMarkdownEditor(containerRef)
+    expect(typeof redo).toBe('function')
+  })
+
+  describe('undo — EditorView 存在時', () => {
+    it('呼叫 CodeMirror undo command', async () => {
+      const { undo: cmUndo } = await import('@codemirror/commands')
+      const container = document.createElement('div')
+      const containerRef = shallowRef<HTMLElement | null>(container)
+      const { undo } = useMarkdownEditor(containerRef)
+      containerRef.value = container
+      undo()
+      expect(cmUndo).toHaveBeenCalled()
+    })
+  })
+
+  describe('redo — EditorView 存在時', () => {
+    it('呼叫 CodeMirror redo command', async () => {
+      const { redo: cmRedo } = await import('@codemirror/commands')
+      const container = document.createElement('div')
+      const containerRef = shallowRef<HTMLElement | null>(container)
+      const { redo } = useMarkdownEditor(containerRef)
+      containerRef.value = container
+      redo()
+      expect(cmRedo).toHaveBeenCalled()
+    })
+  })
+
   describe('wrapSelection — EditorView 存在時', () => {
     it('呼叫 editorView.dispatch', () => {
       const container = document.createElement('div')
