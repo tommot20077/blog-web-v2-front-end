@@ -14,7 +14,6 @@ export function createMockArticle(overrides: Partial<ArticleItem> = {}): Article
     commentCount: 5,
     publishedAt: '2026-03-20',
     tags: ['Vue', 'Frontend'],
-    categories: ['Frontend'],
     slug: 'test-article',
     ...overrides,
   }
