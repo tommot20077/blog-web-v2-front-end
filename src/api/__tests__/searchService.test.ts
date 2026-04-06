@@ -1,14 +1,27 @@
+import { setActivePinia, createPinia } from 'pinia'
 import { searchService } from '../searchService'
 import apiClient from '../apiClient'
+import { useAuthStore } from '../../stores/auth'
 
 vi.mock('../apiClient', () => ({
   default: { get: vi.fn(), post: vi.fn(), put: vi.fn(), patch: vi.fn(), delete: vi.fn() },
 }))
 
+vi.mock('../../stores/auth', () => ({
+  useAuthStore: vi.fn(),
+}))
+
 describe('searchService', () => {
   describe('Mock 路由 (VITE_USE_MOCK=true)', () => {
-    beforeEach(() => vi.stubEnv('VITE_USE_MOCK', 'true'))
-    afterEach(() => vi.unstubAllEnvs())
+    beforeEach(() => {
+      setActivePinia(createPinia())
+      vi.stubEnv('VITE_USE_MOCK', 'true')
+      vi.mocked(useAuthStore).mockReturnValue({ isAuthenticated: true } as any)
+    })
+    afterEach(() => {
+      vi.unstubAllEnvs()
+      vi.restoreAllMocks()
+    })
 
     it('search 委派 mock 並回傳含 records 的 PageResult', async () => {
       const result = await searchService.search({ q: 'Vue' })
@@ -47,8 +60,15 @@ describe('searchService', () => {
   })
 
   describe('API 模式 (VITE_USE_MOCK=false)', () => {
-    beforeEach(() => vi.stubEnv('VITE_USE_MOCK', 'false'))
-    afterEach(() => { vi.restoreAllMocks(); vi.unstubAllEnvs() })
+    beforeEach(() => {
+      setActivePinia(createPinia())
+      vi.stubEnv('VITE_USE_MOCK', 'false')
+      vi.mocked(useAuthStore).mockReturnValue({ isAuthenticated: true } as any)
+    })
+    afterEach(() => {
+      vi.restoreAllMocks()
+      vi.unstubAllEnvs()
+    })
 
     it('search 呼叫 GET /api/v1/search 並回傳 PageResult', async () => {
       const backendResponse = {
@@ -110,10 +130,23 @@ describe('searchService', () => {
       expect(result).toEqual([])
     })
 
+    it('getHistory 使用者未登入時回傳空陣列', async () => {
+      vi.mocked(useAuthStore).mockReturnValue({ isAuthenticated: false } as any)
+      const result = await searchService.getHistory()
+      expect(result).toEqual([])
+      expect(apiClient.get).not.toHaveBeenCalled()
+    })
+
     it('clearHistory 呼叫 DELETE /api/v1/search/history', async () => {
       vi.mocked(apiClient.delete).mockResolvedValue(undefined)
       await searchService.clearHistory()
       expect(apiClient.delete).toHaveBeenCalledWith('/api/v1/search/history')
+    })
+
+    it('clearHistory API 錯誤時不拋出異常', async () => {
+      vi.mocked(apiClient.delete).mockRejectedValue(new Error('fail'))
+      vi.spyOn(console, 'error').mockImplementation(() => {})
+      await expect(searchService.clearHistory()).resolves.toBeUndefined()
     })
   })
 })

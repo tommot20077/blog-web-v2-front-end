@@ -1,4 +1,5 @@
 import apiClient from './apiClient'
+import { useAuthStore } from '../stores/auth'
 import type { SearchParams, SearchResult } from '../types/search'
 import type { PageResult } from '../types/editor'
 import { mapPageResult } from './utils'
@@ -40,6 +41,8 @@ export const searchService = {
       const { getSearchHistoryMock } = await import('./mock/searchMockService')
       return getSearchHistoryMock()
     }
+    const authStore = useAuthStore()
+    if (!authStore.isAuthenticated) return []
     try {
       return await apiClient.get<unknown, string[]>('/api/v1/search/history')
     } catch (error) {
@@ -53,6 +56,10 @@ export const searchService = {
       const { clearSearchHistoryMock } = await import('./mock/searchMockService')
       return clearSearchHistoryMock()
     }
-    return apiClient.delete<unknown, void>('/api/v1/search/history')
+    try {
+      return await apiClient.delete<unknown, void>('/api/v1/search/history')
+    } catch (error) {
+      console.error('Failed to clear search history:', error)
+    }
   },
 }
