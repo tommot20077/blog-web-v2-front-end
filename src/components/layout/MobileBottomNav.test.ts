@@ -51,6 +51,12 @@ describe('MobileBottomNav', () => {
     expect(wrapper.classes()).toContain('md:hidden');
   });
 
+  it('包含主題切換按鈕（ThemeSwitcher）', () => {
+    const { wrapper } = mountWithPlugins();
+    const themeBtn = wrapper.find('[aria-label="切換深淺色模式"]');
+    expect(themeBtn.exists()).toBe(true);
+  });
+
   describe('我的 tab Auth-Aware', () => {
     it('未登入時點擊「我的」導航至 /login', async () => {
       const { wrapper, router } = mountWithPlugins();
@@ -62,7 +68,7 @@ describe('MobileBottomNav', () => {
       expect(router.currentRoute.value.path).toBe('/login');
     });
 
-    it('已登入時點擊「我的」導航至 /', async () => {
+    it('已登入時點擊「我的」導航至 /my-articles', async () => {
       const { wrapper, router } = mountWithPlugins('/articles');
       await router.isReady();
       const authStore = useAuthStore();
@@ -71,7 +77,7 @@ describe('MobileBottomNav', () => {
       const profileTab = tabs[3];
       await profileTab.trigger('click');
       await flushPromises();
-      expect(router.currentRoute.value.path).toBe('/');
+      expect(router.currentRoute.value.path).toBe('/my-articles');
     });
   });
 });

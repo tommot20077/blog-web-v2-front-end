@@ -2,6 +2,7 @@
 import { useRoute, useRouter } from 'vue-router';
 import { useToast } from '../../composables/useToast';
 import { useAuthStore } from '../../stores/auth';
+import ThemeSwitcher from './ThemeSwitcher.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -24,7 +25,7 @@ function isActive(tab: typeof tabs[number]): boolean {
 function handleTabClick(tab: typeof tabs[number]) {
   if (tab.key === 'profile') {
     if (authStore.isAuthenticated) {
-      router.push('/');
+      router.push('/my-articles');
     } else {
       router.push('/login');
     }
@@ -44,6 +45,9 @@ function handleTabClick(tab: typeof tabs[number]) {
     class="fixed bottom-0 left-0 right-0 z-50 md:hidden border-t"
     style="background: var(--glass-panel); border-color: var(--glass-border); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);"
   >
+    <div class="absolute top-1 right-2">
+      <ThemeSwitcher />
+    </div>
     <div class="flex items-center justify-around py-2">
       <button
         v-for="tab in tabs"
