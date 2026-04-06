@@ -1,6 +1,7 @@
 import { articleService } from './articleService';
 import type { PageResult, ArticleItem } from './articleService';
 import apiClient from './apiClient';
+import { allMockArticles } from './mock/data';
 
 vi.mock('./apiClient', () => ({
   default: {
@@ -31,7 +32,7 @@ describe('articleService', () => {
 
       expect(result.records).toHaveLength(6);
       expect(result.current).toBe(1);
-      expect(result.total).toBe(50);
+      expect(result.total).toBe(allMockArticles.length);
     });
 
     it('getArticleByUuid 委派給 mock module 並回傳正確結果', async () => {

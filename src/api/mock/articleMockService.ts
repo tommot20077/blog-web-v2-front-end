@@ -7,14 +7,21 @@ export function getArticlesMock(page: number, size: number, category: string, ke
     setTimeout(() => {
       let filtered: ArticleItem[] = allMockArticles;
 
-      // 1. 關鍵字過濾
+      // 1. 關鍵字過濾（大小寫不分，查 title / summary / tags）
       if (keyword && keyword.trim() !== '') {
-        filtered = filtered.filter(a => a.title.includes(keyword) || a.summary.includes(keyword));
+        const kw = keyword.toLowerCase()
+        filtered = filtered.filter(a =>
+          a.title.toLowerCase().includes(kw) ||
+          a.summary.toLowerCase().includes(kw) ||
+          a.tags.some(t => t.toLowerCase().includes(kw))
+        )
       }
 
-      // 2. 分類過濾（用 tag 模擬 category 行為）
+      // 2. 分類過濾（依 categories 欄位比對）
       if (category && category !== '全部') {
-        filtered = filtered.filter(a => a.tags.some(t => t.toLowerCase() === category.toLowerCase()));
+        filtered = filtered.filter(a =>
+          a.categories.some(c => c.toLowerCase() === category.toLowerCase())
+        )
       }
 
       const total = filtered.length;

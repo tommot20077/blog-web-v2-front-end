@@ -1,4 +1,5 @@
 import { getTrendingMock } from './recommendMockService';
+import { allMockArticles } from './data';
 
 describe('recommendMockService', () => {
   beforeEach(() => {
@@ -51,6 +52,6 @@ describe('recommendMockService', () => {
     vi.advanceTimersByTime(400);
     const result = await promise;
 
-    expect(result).toHaveLength(50);
+    expect(result).toHaveLength(allMockArticles.length);
   });
 });
