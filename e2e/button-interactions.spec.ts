@@ -90,6 +90,8 @@ test.describe('按鈕互動 — 返回頂部（BUG-001）', () => {
     articleListPage,
     articleDetailPage,
   }) => {
+    // Shiki 初始化（載入 19 種語言）在 CI 慢速環境需要較長時間，給予充裕預算
+    test.setTimeout(60000)
     await articleListPage.goto()
     await articleListPage.waitForArticlesLoaded()
     await articleListPage.articleCards.first().click()
