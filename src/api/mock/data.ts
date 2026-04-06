@@ -102,6 +102,7 @@ export const mockCategories: CategoryOption[] = [
   { id: 'cat-3', name: 'TypeScript', slug: 'typescript' },
   { id: 'cat-4', name: 'DevOps', slug: 'devops' },
   { id: 'cat-5', name: 'Backend', slug: 'backend' },
+  { id: 'cat-6', name: 'Frontend', slug: 'frontend' },
 ];
 
 export const mockTagPool: TagSuggestion[] = [
