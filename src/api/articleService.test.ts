@@ -1,5 +1,5 @@
 import { articleService } from './articleService';
-import type { PageResult, ArticleItem } from './articleService';
+import type { PageResult, ArticleItem } from '../types/editor';
 import apiClient from './apiClient';
 import { allMockArticles } from './mock/data';
 
@@ -42,6 +42,19 @@ describe('articleService', () => {
       expect(result!.uuid).toBe('article-1');
       expect(result!.content).toBeDefined();
     });
+
+    it('getArticleBySlug 委派給 mock module 並回傳正確結果', async () => {
+      const result = await articleService.getArticleBySlug('article-slug-1');
+
+      expect(result).not.toBeNull();
+      expect(result!.slug).toBe('article-slug-1');
+      expect(result!.content).toBeDefined();
+    });
+
+    it('getArticleBySlug 找不到 slug 時回傳 null', async () => {
+      const result = await articleService.getArticleBySlug('non-existent-slug');
+      expect(result).toBeNull();
+    });
   });
 
   // ============================================================
@@ -60,7 +73,7 @@ describe('articleService', () => {
     describe('getArticles', () => {
       it('成功回應 → tags 由物件陣列映射為字串陣列', async () => {
         const backendData = {
-          records: [
+          list: [
             {
               uuid: 'api-1',
               title: '測試文章',
@@ -71,9 +84,9 @@ describe('articleService', () => {
             },
           ],
           total: 1,
-          size: 6,
-          current: 1,
-          pages: 1,
+          pageSize: 6,
+          pageNum: 1,
+          totalPage: 1,
         };
 
         vi.mocked(apiClient.get).mockResolvedValue(backendData);
@@ -104,11 +117,11 @@ describe('articleService', () => {
 
       it('URL 路徑與參數組裝正確（含 category + keyword）', async () => {
         vi.mocked(apiClient.get).mockResolvedValue({
-          records: [],
+          list: [],
           total: 0,
-          size: 10,
-          current: 2,
-          pages: 0,
+          pageSize: 10,
+          pageNum: 2,
+          totalPage: 0,
         });
 
         await articleService.getArticles(2, 10, 'Backend', '微服務');
@@ -126,11 +139,11 @@ describe('articleService', () => {
 
       it('category 為「全部」時不帶 categorySlug 參數', async () => {
         vi.mocked(apiClient.get).mockResolvedValue({
-          records: [],
+          list: [],
           total: 0,
-          size: 6,
-          current: 1,
-          pages: 0,
+          pageSize: 6,
+          pageNum: 1,
+          totalPage: 0,
         });
 
         await articleService.getArticles(1, 6, '全部', '');
@@ -186,6 +199,40 @@ describe('articleService', () => {
         expect(result).toBeNull();
         expect(consoleSpy).toHaveBeenCalledWith(
           'Fetch article detail failed:',
+          expect.any(Error),
+        );
+      });
+    });
+
+    describe('getArticleBySlug', () => {
+      it('成功回應 → tags 由物件陣列映射為字串陣列', async () => {
+        const backendDetail = {
+          uuid: 'slug-1',
+          title: 'Slug 文章',
+          slug: 'my-article',
+          content: '# Content',
+          tags: [{ id: 't-1', name: 'Vue', slug: 'vue' }],
+        };
+        vi.mocked(apiClient.get).mockResolvedValue(backendDetail);
+
+        const result = await articleService.getArticleBySlug('my-article');
+
+        expect(result).not.toBeNull();
+        expect(result!.tags).toEqual(['Vue']);
+        expect(apiClient.get).toHaveBeenCalledWith('/api/v1/articles/slug/my-article');
+      });
+
+      it('網路錯誤 → 回傳 null 並呼叫 console.error', async () => {
+        vi.mocked(apiClient.get).mockRejectedValue(new Error('Not found'));
+        const consoleSpy = vi
+          .spyOn(console, 'error')
+          .mockImplementation(() => {});
+
+        const result = await articleService.getArticleBySlug('bad-slug');
+
+        expect(result).toBeNull();
+        expect(consoleSpy).toHaveBeenCalledWith(
+          'Fetch article by slug failed:',
           expect.any(Error),
         );
       });
