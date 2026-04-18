@@ -65,29 +65,27 @@ async function handleSubmit() {
     titleTestId="auth-login-title"
   >
     <form @submit.prevent="handleSubmit" class="flex flex-col gap-4">
-      <div data-testid="auth-login-field-email">
-        <FormField
-          label="Email"
-          type="email"
-          :model-value="email"
-          :error="errors.email"
-          placeholder="請輸入 Email"
-          :disabled="isSubmitting"
-          @update:model-value="email = $event"
-        />
-      </div>
+      <FormField
+        data-testid="auth-login-field-email"
+        label="Email"
+        type="email"
+        :model-value="email"
+        :error="errors.email"
+        placeholder="請輸入 Email"
+        :disabled="isSubmitting"
+        @update:model-value="email = $event"
+      />
 
-      <div data-testid="auth-login-field-password">
-        <FormField
-          label="密碼"
-          type="password"
-          :model-value="password"
-          :error="errors.password"
-          placeholder="請輸入密碼"
-          :disabled="isSubmitting"
-          @update:model-value="password = $event"
-        />
-      </div>
+      <FormField
+        data-testid="auth-login-field-password"
+        label="密碼"
+        type="password"
+        :model-value="password"
+        :error="errors.password"
+        placeholder="請輸入密碼"
+        :disabled="isSubmitting"
+        @update:model-value="password = $event"
+      />
 
       <button
         data-testid="auth-login-submit"

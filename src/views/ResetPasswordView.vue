@@ -83,27 +83,25 @@ const handleSubmit = async () => {
       @submit.prevent="handleSubmit"
     >
       <div class="flex flex-col gap-4">
-        <div data-testid="auth-reset-field-password">
-          <FormField
-            v-model="form.password"
-            label="新密碼"
-            type="password"
-            placeholder="請輸入新密碼"
-            :error="errors.password"
-            :disabled="isSubmitting"
-          />
-        </div>
+        <FormField
+          data-testid="auth-reset-field-password"
+          v-model="form.password"
+          label="新密碼"
+          type="password"
+          placeholder="請輸入新密碼"
+          :error="errors.password"
+          :disabled="isSubmitting"
+        />
 
-        <div data-testid="auth-reset-field-confirm">
-          <FormField
-            v-model="form.confirmPassword"
-            label="確認密碼"
-            type="password"
-            placeholder="請再次輸入新密碼"
-            :error="errors.confirmPassword"
-            :disabled="isSubmitting"
-          />
-        </div>
+        <FormField
+          data-testid="auth-reset-field-confirm"
+          v-model="form.confirmPassword"
+          label="確認密碼"
+          type="password"
+          placeholder="請再次輸入新密碼"
+          :error="errors.confirmPassword"
+          :disabled="isSubmitting"
+        />
 
         <button
           data-testid="auth-reset-submit"

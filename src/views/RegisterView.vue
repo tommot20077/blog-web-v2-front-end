@@ -89,27 +89,25 @@ async function handleSubmit() {
       class="flex flex-col gap-4"
       @submit.prevent="handleSubmit"
     >
-      <div data-testid="auth-register-field-email">
-        <FormField
-          v-model="email"
-          label="Email"
-          type="email"
-          placeholder="請輸入 Email"
-          :error="errors.email"
-          :disabled="isLoading"
-        />
-      </div>
+      <FormField
+        data-testid="auth-register-field-email"
+        v-model="email"
+        label="Email"
+        type="email"
+        placeholder="請輸入 Email"
+        :error="errors.email"
+        :disabled="isLoading"
+      />
 
-      <div data-testid="auth-register-field-username">
-        <FormField
-          v-model="username"
-          label="使用者名稱"
-          type="text"
-          placeholder="請輸入使用者名稱（英文、數字）"
-          :error="errors.username"
-          :disabled="isLoading"
-        />
-      </div>
+      <FormField
+        data-testid="auth-register-field-username"
+        v-model="username"
+        label="使用者名稱"
+        type="text"
+        placeholder="請輸入使用者名稱（英文、數字）"
+        :error="errors.username"
+        :disabled="isLoading"
+      />
 
       <FormField
         v-model="nickname"
@@ -120,16 +118,15 @@ async function handleSubmit() {
         :disabled="isLoading"
       />
 
-      <div data-testid="auth-register-field-password">
-        <FormField
-          v-model="password"
-          label="密碼"
-          type="password"
-          placeholder="請輸入密碼"
-          :error="errors.password"
-          :disabled="isLoading"
-        />
-      </div>
+      <FormField
+        data-testid="auth-register-field-password"
+        v-model="password"
+        label="密碼"
+        type="password"
+        placeholder="請輸入密碼"
+        :error="errors.password"
+        :disabled="isLoading"
+      />
 
       <PasswordStrengthMeter :strength="passwordStrength" />
 

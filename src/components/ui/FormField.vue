@@ -25,6 +25,8 @@ defineEmits<{
   'update:modelValue': [value: string];
 }>();
 
+defineOptions({ inheritAttrs: false });
+
 /** 密碼可見狀態 */
 const passwordVisible = ref(false);
 
@@ -52,6 +54,7 @@ const isPassword = computed(() => props.type === 'password');
 
     <div class="relative">
       <input
+        v-bind="$attrs"
         :id="inputId"
         :type="inputType"
         :value="modelValue"

@@ -69,16 +69,15 @@ const handleSubmit = async () => {
       @submit.prevent="handleSubmit"
     >
       <div class="flex flex-col gap-4">
-        <div data-testid="auth-forgot-field-email">
-          <FormField
-            v-model="form.email"
-            label="Email"
-            type="email"
-            placeholder="請輸入您的 Email"
-            :error="errors.email"
-            :disabled="isSubmitting"
-          />
-        </div>
+        <FormField
+          data-testid="auth-forgot-field-email"
+          v-model="form.email"
+          label="Email"
+          type="email"
+          placeholder="請輸入您的 Email"
+          :error="errors.email"
+          :disabled="isSubmitting"
+        />
 
         <button
           data-testid="auth-forgot-submit"
