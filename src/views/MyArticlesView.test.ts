@@ -49,7 +49,7 @@ describe('MyArticlesView', () => {
     it('顯示 loading 指示器（getMyArticles 尚未 resolve 時）', () => {
       mockGetMyArticles.mockReturnValue(new Promise(() => {}))
       renderWithRouter(MyArticlesView)
-      expect(document.querySelector('[data-testid="loading"]')).toBeInTheDocument()
+      expect(screen.getByTestId('loading')).toBeInTheDocument()
     })
 
     it('載入後顯示文章列表', async () => {
@@ -136,7 +136,9 @@ describe('MyArticlesView', () => {
     it('顯示狀態徽章文字', async () => {
       renderWithRouter(MyArticlesView)
       await flushPromises()
-      expect(screen.getAllByText('草稿').length).toBeGreaterThanOrEqual(1)
+      // 用 within 縮小到文章列表，避免和 tab 按鈕衝突
+      const list = screen.getByRole('list')
+      expect(within(list).getByText('草稿')).toBeInTheDocument()
     })
 
     it('REJECTED 文章顯示 rejectReason', async () => {

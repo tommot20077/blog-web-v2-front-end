@@ -40,6 +40,8 @@ async function handleLogout() {
         to="/login"
         class="font-medium text-[16px] pl-4 border-l border-[var(--text-main)]/30 hover:opacity-70 transition-opacity hidden md:inline"
       >登入 / 註冊</router-link>
+      <!-- 手機版 ThemeSwitcher（桌機版由右側面板負責） -->
+      <ThemeSwitcher class="md:hidden" />
     </div>
 
     <!-- 右側的控制區：天氣模組、深淺色切換器（手機版隱藏，桌機版顯示） -->

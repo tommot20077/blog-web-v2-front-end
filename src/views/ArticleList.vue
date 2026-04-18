@@ -165,7 +165,7 @@ onUnmounted(() => {
             :class="[
               gridPage === page 
                 ? 'bg-[var(--text-main)] text-[var(--bg-color)] shadow-md border-transparent' 
-                : 'hover:bg-black/5 dark:hover:bg-white/10 text-neutral-500 dark:text-neutral-400 hover:text-[var(--text-main)]'
+                : 'hover:bg-black/5 dark:hover:bg-white/10 text-neutral-600 dark:text-neutral-400 hover:text-[var(--text-main)]'
             ]"
             :style="gridPage !== page ? 'border-color: var(--glass-border);' : ''"
           >

@@ -14,9 +14,11 @@ watchEffect(() => {
   if (typeof document !== 'undefined') {
     if (isDark.value) {
       document.documentElement.setAttribute('data-theme', 'dark');
+      document.documentElement.classList.add('dark');
       localStorage.setItem('theme', 'dark');
     } else {
       document.documentElement.setAttribute('data-theme', 'light');
+      document.documentElement.classList.remove('dark');
       localStorage.setItem('theme', 'light');
     }
   }

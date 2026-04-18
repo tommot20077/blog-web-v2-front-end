@@ -88,7 +88,7 @@ export function createMockMyArticle(overrides: Partial<MyArticle> = {}): MyArtic
 
 export function createMockCategoryOption(overrides: Partial<CategoryOption> = {}): CategoryOption {
   return {
-    uuid: 'cat-test-1',
+    id: 'cat-test-1',
     name: 'Vue',
     slug: 'vue',
     ...overrides,
