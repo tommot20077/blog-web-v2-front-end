@@ -13,7 +13,7 @@ describe('categoryService', () => {
     it('getCategories 委派 mock 並回傳分類列表', async () => {
       const result = await categoryService.getCategories()
       expect(result.length).toBeGreaterThan(0)
-      expect(result[0]).toHaveProperty('uuid')
+      expect(result[0]).toHaveProperty('id')
       expect(result[0]).toHaveProperty('name')
     })
 
