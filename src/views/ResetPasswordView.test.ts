@@ -63,13 +63,13 @@ describe('ResetPasswordView', () => {
   })
 
   it('無 token 顯示錯誤訊息', async () => {
-    const { getByText } = await renderWithRouterAsync(
+    const { getByTestId } = await renderWithRouterAsync(
       ResetPasswordView,
       {},
       '/reset-password',
     )
 
-    expect(getByText('無效的重設連結')).toBeInTheDocument()
+    expect(getByTestId('auth-reset-invalid-token')).toBeInTheDocument()
   })
 
   // data-testid assertions

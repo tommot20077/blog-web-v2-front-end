@@ -101,6 +101,7 @@ async function handleSubmit() {
     <template #footer>
       <div class="flex flex-col gap-2">
         <RouterLink
+          data-testid="auth-login-forgot-link"
           to="/forgot-password"
           class="opacity-70 hover:opacity-100 transition-opacity"
           style="color: var(--accent)"

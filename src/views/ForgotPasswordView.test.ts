@@ -35,21 +35,21 @@ describe('ForgotPasswordView', () => {
   it('提交成功顯示「重設連結已寄出」', async () => {
     vi.mocked(authService.forgotPassword).mockResolvedValue(undefined)
 
-    const { getByLabelText, getByRole, getByText } = renderWithRouter(ForgotPasswordView)
+    const { getByLabelText, getByRole, getByTestId } = renderWithRouter(ForgotPasswordView)
 
     await fireEvent.update(getByLabelText('Email'), 'test@example.com')
     await fireEvent.click(getByRole('button', { name: '發送重設連結' }))
 
     await waitFor(() => {
-      expect(getByText('重設密碼連結已寄出，請查看信箱')).toBeInTheDocument()
+      expect(getByTestId('auth-forgot-success')).toBeInTheDocument()
     })
     expect(authService.forgotPassword).toHaveBeenCalledWith('test@example.com')
   })
 
   it('回到登入連結指向 /login', () => {
-    const { getByText } = renderWithRouter(ForgotPasswordView)
+    const { getByTestId } = renderWithRouter(ForgotPasswordView)
 
-    const link = getByText('回到登入')
+    const link = getByTestId('auth-forgot-alt-link')
     expect(link.closest('a')).toHaveAttribute('href', '/login')
   })
 

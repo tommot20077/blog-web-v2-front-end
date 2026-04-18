@@ -48,6 +48,7 @@ onMounted(() => {
     <!-- 無 token -->
     <div
       v-if="!token"
+      data-testid="auth-verify-no-token"
       class="rounded-xl p-4 text-center text-sm text-red-500"
       style="background: rgba(239, 68, 68, 0.1)"
     >
@@ -66,6 +67,7 @@ onMounted(() => {
     <!-- 成功 -->
     <div
       v-else-if="isSuccess"
+      data-testid="auth-verify-success"
       class="flex flex-col items-center gap-4"
     >
       <div
@@ -86,6 +88,7 @@ onMounted(() => {
     <!-- 失敗 -->
     <div
       v-else-if="errorMessage"
+      data-testid="auth-verify-failure"
       class="flex flex-col items-center gap-4"
     >
       <div
