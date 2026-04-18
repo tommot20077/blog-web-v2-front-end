@@ -55,33 +55,23 @@ describe('Home 頁面', () => {
     expect(getByText('最新發布')).toBeInTheDocument()
   })
 
-  it('顯示「熱門文章」標題', () => {
-    const { getByText } = renderWithRouter(Home)
-    expect(getByText('熱門文章')).toBeInTheDocument()
+  it('renders trending section (data-testid="trending-root")', () => {
+    const { container } = renderWithRouter(Home)
+    expect(container.querySelector('[data-testid="trending-root"]')).toBeInTheDocument()
   })
 
-  it('顯示「主題專區」標題', () => {
-    const { getByText } = renderWithRouter(Home)
-    expect(getByText('主題專區')).toBeInTheDocument()
+  it('renders latest articles section (data-testid="latest-root")', () => {
+    const { container } = renderWithRouter(Home)
+    expect(container.querySelector('[data-testid="latest-root"]')).toBeInTheDocument()
   })
 
-  it('顯示「熱門標籤」標題', () => {
-    const { getByText } = renderWithRouter(Home)
-    expect(getByText('熱門標籤')).toBeInTheDocument()
+  it('renders hot tags section (data-testid="hot-tags-root")', () => {
+    const { container } = renderWithRouter(Home)
+    expect(container.querySelector('[data-testid="hot-tags-root"]')).toBeInTheDocument()
   })
 
-  it('「查看全部文章 →」連結指向 /articles', () => {
-    const { getByText } = renderWithRouter(Home)
-    const link = getByText('查看全部文章 →')
-    expect(link.closest('a')).toHaveAttribute('href', '/articles')
-  })
-
-  it('顯示 3 個主題專區卡片', async () => {
-    const { getByText } = renderWithRouter(Home)
-    await waitFor(() => {
-      expect(getByText('技術')).toBeInTheDocument()
-    })
-    expect(getByText('旅遊')).toBeInTheDocument()
-    expect(getByText('攝影')).toBeInTheDocument()
+  it('does not render zone entry section', () => {
+    const { container } = renderWithRouter(Home)
+    expect(container.querySelector('[data-testid="zone-entry-root"]')).not.toBeInTheDocument()
   })
 })

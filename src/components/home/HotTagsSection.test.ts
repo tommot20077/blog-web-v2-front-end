@@ -1,5 +1,11 @@
 import { mount } from '@vue/test-utils';
+import { createRouter, createWebHistory } from 'vue-router';
 import HotTagsSection from './HotTagsSection.vue';
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes: [{ path: '/:pathMatch(.*)*', component: { template: '<div />' } }],
+});
 
 const mockTags = [
   { uuid: 't-1', name: 'Vue', slug: 'vue', articleCount: 18 },
@@ -8,26 +14,58 @@ const mockTags = [
 ];
 
 describe('HotTagsSection', () => {
-  it('顯示標題「熱門標籤」', () => {
+  it('renders root with data-testid="hot-tags-root"', () => {
     const wrapper = mount(HotTagsSection, {
       props: { tags: mockTags, isLoading: false },
+      global: { plugins: [router] },
     });
-    expect(wrapper.text()).toContain('熱門標籤');
+    expect(wrapper.find('[data-testid="hot-tags-root"]').exists()).toBe(true);
   });
 
-  it('渲染標籤名稱', () => {
+  it('renders heading with data-testid="hot-tags-heading"', () => {
     const wrapper = mount(HotTagsSection, {
       props: { tags: mockTags, isLoading: false },
+      global: { plugins: [router] },
     });
-    expect(wrapper.text()).toContain('Vue');
-    expect(wrapper.text()).toContain('React');
-    expect(wrapper.text()).toContain('TypeScript');
+    expect(wrapper.find('[data-testid="hot-tags-heading"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="hot-tags-heading"]').text()).toBe('Hot Tags');
   });
 
-  it('isLoading 時顯示骨架屏', () => {
+  it('renders each tag with data-testid="hot-tag-{index}"', () => {
     const wrapper = mount(HotTagsSection, {
-      props: { tags: [], isLoading: true },
+      props: { tags: mockTags, isLoading: false },
+      global: { plugins: [router] },
     });
-    expect(wrapper.findAll('.animate-pulse').length).toBeGreaterThan(0);
+    expect(wrapper.find('[data-testid="hot-tag-0"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="hot-tag-1"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="hot-tag-2"]').exists()).toBe(true);
+  });
+
+  it('each tag pill displays the tag name', () => {
+    const wrapper = mount(HotTagsSection, {
+      props: { tags: mockTags, isLoading: false },
+      global: { plugins: [router] },
+    });
+    expect(wrapper.find('[data-testid="hot-tag-0"]').text()).toContain('Vue');
+    expect(wrapper.find('[data-testid="hot-tag-1"]').text()).toContain('React');
+    expect(wrapper.find('[data-testid="hot-tag-2"]').text()).toContain('TypeScript');
+  });
+
+  it('each tag pill displays the article count', () => {
+    const wrapper = mount(HotTagsSection, {
+      props: { tags: mockTags, isLoading: false },
+      global: { plugins: [router] },
+    });
+    expect(wrapper.find('[data-testid="hot-tag-0"]').text()).toContain('18');
+    expect(wrapper.find('[data-testid="hot-tag-1"]').text()).toContain('12');
+  });
+
+  it('each tag pill links to /articles?tag={name}', () => {
+    const wrapper = mount(HotTagsSection, {
+      props: { tags: mockTags, isLoading: false },
+      global: { plugins: [router] },
+    });
+    const firstLink = wrapper.find('[data-testid="hot-tag-0"]').element.closest('a');
+    expect(firstLink?.getAttribute('href')).toContain('Vue');
   });
 });
