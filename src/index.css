@@ -22,7 +22,7 @@ body {
   --border-strong: rgba(10,10,11,0.18);
   --divider: rgba(10,10,11,0.08);
   --glass: rgba(255,255,255,0.62);
-  --glass-border: rgba(255,255,255,0.9);
+  --glass-border: rgba(255,255,255,0.9); /* intentionally updated from 0.8 (light) / 0.15 (dark) in v1 */
   --accent: #5B8DEF;
   --accent-ink: #0a0a0b;
   --shadow-sm: 0 1px 0 rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.04);
