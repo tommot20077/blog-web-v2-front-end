@@ -2,19 +2,29 @@ import { mount } from '@vue/test-utils';
 import HeroMarquee from './HeroMarquee.vue';
 
 describe('HeroMarquee', () => {
-  it('跑馬燈區塊不包含語義 h1 標籤', () => {
+  it('renders the hero root section with correct testid', () => {
     const wrapper = mount(HeroMarquee);
-    expect(wrapper.find('h1').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="hero-root"]').exists()).toBe(true);
   });
 
-  it('裝飾性跑馬燈文字仍然存在', () => {
+  it('renders the hero title with correct testid', () => {
     const wrapper = mount(HeroMarquee);
-    expect(wrapper.text()).toContain('Animated Text Effects');
+    expect(wrapper.find('[data-testid="hero-title"]').exists()).toBe(true);
   });
 
-  it('跑馬燈容器帶有 aria-hidden 屬性以排除無障礙樹', () => {
+  it('renders the marquee track with correct testid', () => {
     const wrapper = mount(HeroMarquee);
-    const decorative = wrapper.find('[aria-hidden="true"]');
-    expect(decorative.exists()).toBe(true);
+    expect(wrapper.find('[data-testid="hero-marquee-track"]').exists()).toBe(true);
+  });
+
+  it('hero title is an h1 element', () => {
+    const wrapper = mount(HeroMarquee);
+    expect(wrapper.find('[data-testid="hero-title"]').element.tagName).toBe('H1');
+  });
+
+  it('marquee track is excluded from accessibility tree', () => {
+    const wrapper = mount(HeroMarquee);
+    const marquee = wrapper.find('[data-testid="hero-marquee-track"]');
+    expect(marquee.attributes('aria-hidden')).toBe('true');
   });
 });
