@@ -673,7 +673,7 @@ onUnmounted(() => {
   border-radius: 8px;
   border: 1px solid var(--border);
   background: transparent;
-  color: var(--muted);
+  color: var(--ink-2);
   font-size: 13px;
   cursor: pointer;
   transition: all 0.15s;
