@@ -8,12 +8,17 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: '#E7E7E7',
-        primary: '#2D264B',
-        accent: '#FF8D28',
+        bg: 'var(--bg)',
+        ink: 'var(--ink)',
+        accent: 'var(--accent)',
+        muted: 'var(--muted)',
+        border: 'var(--border)',
+        surface: 'var(--surface)',
       },
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
+        sans: ['var(--f-body)'],
+        display: ['var(--f-display)'],
+        mono: ['var(--f-mono)'],
       },
     },
   },

@@ -8,30 +8,70 @@ body {
   overflow-x: hidden;
 }
 
+/* ============ TOKENS ============ */
 :root {
-  /* Design Tokens - Light Mode */
-  --bg-color: #E7E7E7;
-  --text-main: #141414;
-  --glass-panel: rgba(255, 255, 255, 0.6);
-  --glass-border: rgba(255, 255, 255, 0.8);
-  --accent-color: #FF8D28;
+  /* Light */
+  --bg: #f4f4f4;
+  --bg-sub: #ededed;
+  --surface: #fbfbfb;
+  --ink: #0a0a0b;
+  --ink-2: #2a2a2c;
+  --muted: #6b6b70;
+  --muted-2: #9a9aa0;
+  --border: rgba(10,10,11,0.10);
+  --border-strong: rgba(10,10,11,0.18);
+  --divider: rgba(10,10,11,0.08);
+  --glass: rgba(255,255,255,0.62);
+  --glass-border: rgba(255,255,255,0.9);
+  --accent: #5B8DEF;
+  --accent-ink: #0a0a0b;
+  --shadow-sm: 0 1px 0 rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.04);
+  --shadow-md: 0 1px 0 rgba(0,0,0,0.04), 0 20px 40px -22px rgba(0,0,0,0.18);
+
+  --f-display: "Space Grotesk", "Noto Sans TC", system-ui, sans-serif;
+  --f-body: "Space Grotesk", "Noto Sans TC", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --radius: 14px;
+  --radius-sm: 10px;
+
+  --ease: cubic-bezier(.22,1,.36,1);
+
   --skeleton-base: rgba(0, 0, 0, 0.06);
   --skeleton-shine: rgba(0, 0, 0, 0.02);
+
+  /* Backward-compat aliases for old tokens */
+  --bg-color: var(--bg);
+  --text-main: var(--ink);
+  --glass-panel: var(--glass);
+  --accent-color: var(--accent);
 }
 
-[data-theme="dark"] {
-  /* Design Tokens - Dark Mode */
-  --bg-color: #1A1A1A;
-  --text-main: #E7E7E7;
-  --glass-panel: rgba(255, 255, 255, 0.08); /* 深色模式下的玻璃背景通常要更透一點 */
-  --glass-border: rgba(255, 255, 255, 0.15);
-  --accent-color: #FF8D28;
+[data-theme="dark"],
+.dark {
+  --bg: #0d0d0f;
+  --bg-sub: #111113;
+  --surface: #141416;
+  --ink: #ededef;
+  --ink-2: #c9c9cd;
+  --muted: #a6a6ac;
+  --muted-2: #7b7b82;
+  --border: rgba(255,255,255,0.10);
+  --border-strong: rgba(255,255,255,0.18);
+  --divider: rgba(255,255,255,0.08);
+  --glass: rgba(22,22,24,0.62);
+  --glass-border: rgba(255,255,255,0.08);
+  --accent: #7BA8F5;
+  --accent-ink: #0a0a0b;
+  --shadow-sm: 0 1px 0 rgba(0,0,0,0.4), 0 1px 3px rgba(0,0,0,0.4);
+  --shadow-md: 0 1px 0 rgba(0,0,0,0.5), 0 20px 60px -22px rgba(0,0,0,0.7);
   --skeleton-base: rgba(255, 255, 255, 0.06);
   --skeleton-shine: rgba(255, 255, 255, 0.03);
 }
 
 body {
-  background-color: var(--bg-color);
-  color: var(--text-main);
+  background-color: var(--bg);
+  color: var(--ink);
+  font-family: var(--f-body);
   transition: background-color 0.3s ease, color 0.3s ease;
 }
