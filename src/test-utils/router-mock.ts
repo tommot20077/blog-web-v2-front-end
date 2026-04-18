@@ -17,6 +17,7 @@ export function createTestRouter(initialRoute = '/') {
       { path: '/editor', name: 'editor-new', component: StubComponent },
       { path: '/editor/:uuid', name: 'editor-edit', component: StubComponent, props: true },
       { path: '/my-articles', name: 'my-articles', component: StubComponent },
+      { path: '/admin/review', name: 'admin-review', component: StubComponent },
     ],
   })
   router.push(initialRoute)

@@ -65,6 +65,11 @@ export interface MyArticle {
   commentCount: number;
 }
 
+// 管理員待審文章（含作者名稱）
+export interface PendingArticle extends MyArticle {
+  authorNickname: string;
+}
+
 // ── 編輯器表單資料（送 API 用） ─────────────────────────────────────────────
 export interface ArticleFormData {
   title: string;
@@ -79,21 +84,24 @@ export interface ArticleFormData {
 export type FileUsageType = 'ARTICLE_CONTENT' | 'ARTICLE_COVER' | 'AVATAR';
 
 export interface FileUploadResponse {
+  id: string;
   url: string;
-  fileId: string;
-  fileName: string;
-  fileSize: number;
+  width: number;
+  height: number;
+  size: number;
+  usageType: FileUsageType;
 }
 
 // ── 配額 ─────────────────────────────────────────────────────────────────────
 export interface QuotaInfo {
   usedBytes: number;
-  totalBytes: number;
+  limitBytes: number;
+  remainingBytes: number;
 }
 
 // ── 分類 / 標籤 ───────────────────────────────────────────────────────────────
 export interface CategoryOption {
-  id: string;
+  uuid: string;
   name: string;
   slug: string;
 }
@@ -110,4 +118,44 @@ export interface PageResult<T> {
   size: number;
   current: number;
   pages: number;
+}
+
+// ── 標籤詳情 ──────────────────────────────────────────────────────────────────
+export interface TagDetail {
+  uuid: string;
+  name: string;
+  slug: string;
+  color: string;
+  icon: string;
+  description: string;
+  usageCount: number;
+}
+
+// ── 管理員操作 requests ────────────────────────────────────────────────────────
+export interface UpdateTagRequest {
+  color?: string;
+  icon?: string;
+  description?: string;
+}
+
+export interface CreateCategoryRequest {
+  name: string;
+  slug: string;
+  description?: string;
+  sortOrder?: number;
+}
+
+export interface UpdateCategoryRequest {
+  name?: string;
+  slug?: string;
+  description?: string;
+  sortOrder?: number;
+}
+
+export interface CategoryResponse {
+  uuid: string;
+  name: string;
+  slug: string;
+  description?: string;
+  sortOrder?: number;
 }

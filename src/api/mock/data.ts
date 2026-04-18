@@ -2,7 +2,7 @@ import type { ArticleItem, ArticleDetailItem } from '../articleService';
 import type { RecommendArticleResponse } from '../recommendService';
 import type { TagDetailResponse } from '../tagService';
 import { mockMarkdownContent } from './mockArticleContent';
-import type { CategoryOption, TagSuggestion, QuotaInfo, EditorArticle, MyArticle } from '../../types/editor';
+import type { CategoryOption, TagSuggestion, QuotaInfo, EditorArticle, MyArticle, PendingArticle } from '../../types/editor';
 
 // 模擬作者名稱池
 const MOCK_AUTHORS = ['Yuan', '小明', 'TechLead', '旅行者', 'DevGuru'] as const;
@@ -160,8 +160,9 @@ export const mockTagPool: TagSuggestion[] = [
 ];
 
 export const mockQuota: QuotaInfo = {
-  usedBytes: 52_428_800,   // 50 MB
-  totalBytes: 104_857_600, // 100 MB
+  usedBytes: 52_428_800,      // 50 MB
+  limitBytes: 104_857_600,    // 100 MB
+  remainingBytes: 52_428_800, // 50 MB remaining
 };
 
 // 各狀態文章的種子資料（用於「我的文章」和 Admin）
@@ -268,5 +269,13 @@ export function toMyArticle(a: EditorArticle): MyArticle {
     viewCount: 0,
     likeCount: 0,
     commentCount: 0,
+  };
+}
+
+// 將 EditorArticle 轉換為 PendingArticle 格式（管理員待審列表用）
+export function toPendingArticle(a: EditorArticle): PendingArticle {
+  return {
+    ...toMyArticle(a),
+    authorNickname: 'Mock Author',
   };
 }

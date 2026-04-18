@@ -16,7 +16,7 @@ export function createArticleMock(data: ArticleFormData): Promise<EditorArticle>
         content: data.content,
         coverImageUrl: data.coverImageUrl,
         status: 'DRAFT',
-        categories: mockCategories.filter(c => data.categoryIds.includes(c.id)),
+        categories: mockCategories.filter(c => data.categoryIds.includes(c.uuid)),
         tags: data.tagNames,
         rejectReason: null,
         createdAt: now,
@@ -43,7 +43,7 @@ export function updateArticleMock(uuid: string, data: ArticleFormData): Promise<
         summary: data.summary,
         content: data.content,
         coverImageUrl: data.coverImageUrl,
-        categories: mockCategories.filter(c => data.categoryIds.includes(c.id)),
+        categories: mockCategories.filter(c => data.categoryIds.includes(c.uuid)),
         tags: data.tagNames,
         updatedAt: new Date().toISOString(),
       }

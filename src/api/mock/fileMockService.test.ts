@@ -7,21 +7,24 @@ describe('fileMockService', () => {
     const result = await uploadFileMock(file, 'ARTICLE_CONTENT')
     expect(result.url).toBeTruthy()
     expect(result.url).toMatch(/^https?:\/\//)
-    expect(result.fileName).toBe('test.png')
-    expect(result.fileSize).toBe(file.size)
-    expect(result.fileId).toBeTruthy()
+    expect(result.id).toBeTruthy()
+    expect(result.width).toBe(800)
+    expect(result.height).toBe(600)
+    expect(result.usageType).toBe('ARTICLE_CONTENT')
+    expect(typeof result.size).toBe('number')
   })
 
-  it('不同 usageType 皆可上傳', async () => {
+  it('不同 usageType 皆可上傳且 usageType 對應正確', async () => {
     const file = new File(['img'], 'cover.jpg', { type: 'image/jpeg' })
     const result = await uploadFileMock(file, 'ARTICLE_COVER')
     expect(result.url).toBeTruthy()
+    expect(result.usageType).toBe('ARTICLE_COVER')
   })
 
-  it('回傳的 fileId 唯一不重複', async () => {
+  it('回傳的 id 唯一不重複', async () => {
     const file = new File(['x'], 'x.png', { type: 'image/png' })
     const r1 = await uploadFileMock(file, 'ARTICLE_CONTENT')
     const r2 = await uploadFileMock(file, 'ARTICLE_CONTENT')
-    expect(r1.fileId).not.toBe(r2.fileId)
+    expect(r1.id).not.toBe(r2.id)
   })
 })

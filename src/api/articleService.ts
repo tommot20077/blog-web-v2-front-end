@@ -1,4 +1,7 @@
 import apiClient from './apiClient';
+import { mapPageResult } from './utils';
+import type { BackendPageResult } from './utils';
+import type { PageResult } from '../types/editor';
 
 interface TagSummaryResponse {
   id: string;
@@ -64,14 +67,6 @@ function mapArticleDetail(raw: BackendArticleDetail): ArticleDetailItem {
   return { ...mapArticle(raw), content: raw.content };
 }
 
-export interface PageResult<T> {
-  records: T[];
-  total: number;
-  size: number;
-  current: number;
-  pages: number;
-}
-
 export const articleService = {
   /**
    * 取得文章列表（根據 env 決定要打 API 還是委派給 Mock）
@@ -97,8 +92,8 @@ export const articleService = {
         params.keyword = keyword;
       }
 
-      const data = await apiClient.get<unknown, PageResult<BackendArticleBase>>('/api/v1/articles', { params });
-      return { ...data, records: data.records.map(mapArticle) };
+      const data = await apiClient.get<unknown, BackendPageResult<BackendArticleBase>>('/api/v1/articles', { params });
+      return mapPageResult(data, mapArticle);
     } catch (error) {
       console.error('Fetch articles failed:', error);
       return { records: [], total: 0, size, current: page, pages: 0 };
@@ -121,5 +116,22 @@ export const articleService = {
       console.error('Fetch article detail failed:', error);
       return null;
     }
-  }
+  },
+
+  /**
+   * 根據 Slug 取得單篇文章詳細內容
+   */
+  async getArticleBySlug(slug: string): Promise<ArticleDetailItem | null> {
+    if (import.meta.env.VITE_USE_MOCK === 'true') {
+      const { getArticleBySlugMock } = await import('./mock/articleMockService');
+      return getArticleBySlugMock(slug);
+    }
+    try {
+      const data = await apiClient.get<unknown, BackendArticleDetail>(`/api/v1/articles/slug/${slug}`);
+      return mapArticleDetail(data);
+    } catch (error) {
+      console.error('Fetch article by slug failed:', error);
+      return null;
+    }
+  },
 };

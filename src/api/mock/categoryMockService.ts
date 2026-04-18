@@ -8,3 +8,12 @@ export function getCategoriesMock(): Promise<CategoryOption[]> {
     }, 200)
   })
 }
+
+export function getCategoryBySlugMock(slug: string): Promise<CategoryOption | null> {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const found = mockCategories.find(c => c.slug === slug) ?? null
+      resolve(found)
+    }, 200)
+  })
+}

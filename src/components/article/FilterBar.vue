@@ -32,14 +32,14 @@ const emitFilter = () => {
 
 <template>
   <div class="w-full flex justify-between items-center mb-12 flex-wrap gap-4">
-    
+
     <!-- 分類切換 (Glassmorphism Pill) -->
-    <div 
+    <div
       class="flex overflow-x-auto no-scrollbar gap-2 p-1.5 rounded-full border w-full lg:w-auto"
       style="background: var(--glass-panel); border-color: var(--glass-border); backdrop-filter: blur(12px);"
     >
-      <button 
-        v-for="cat in categories" 
+      <button
+        v-for="cat in categories"
         :key="cat"
         @click="selectCategory(cat)"
         class="px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 whitespace-nowrap"
@@ -51,12 +51,12 @@ const emitFilter = () => {
 
     <!-- 右側：佈局切換 & 搜尋框 -->
     <div class="flex items-center gap-4 w-full lg:w-auto justify-end">
-      
+
       <!-- 佈局切換 -->
       <div class="flex items-center p-1 rounded-full border" style="background: var(--glass-panel); border-color: var(--glass-border); backdrop-filter: blur(12px);">
         <!-- Grid Icon -->
-        <button 
-          class="w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300" 
+        <button
+          class="w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300"
           :class="viewMode === 'grid' ? 'bg-[var(--text-main)] text-[var(--bg-color)] shadow-md' : 'text-neutral-500 dark:text-neutral-400 hover:text-[var(--text-main)]'"
           @click="toggleMode('grid')"
           title="網格與分頁模式"
@@ -66,7 +66,7 @@ const emitFilter = () => {
           </svg>
         </button>
         <!-- List Icon -->
-        <button 
+        <button
           class="w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300"
           :class="viewMode === 'list' ? 'bg-[var(--text-main)] text-[var(--bg-color)] shadow-md' : 'text-neutral-500 dark:text-neutral-400 hover:text-[var(--text-main)]'"
           @click="toggleMode('list')"
@@ -79,18 +79,18 @@ const emitFilter = () => {
       </div>
 
       <!-- 搜尋框 (Glassmorphism Input) -->
-      <div 
+      <div
         class="relative flex-1 lg:w-64 rounded-full border flex items-center px-4 py-2 transition-colors focus-within:border-accent"
         style="background: var(--glass-panel); border-color: var(--glass-border); backdrop-filter: blur(12px);"
       >
         <svg class="w-4 h-4 opacity-50 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
         </svg>
-        <input 
+        <input
           v-model="keyword"
           @keyup.enter="onSearch"
-          type="text" 
-          placeholder="搜尋文章..." 
+          type="text"
+          placeholder="搜尋文章..."
           class="bg-transparent border-none outline-none w-full text-sm placeholder-gray-400 font-medium"
           style="color: var(--text-main);"
         />

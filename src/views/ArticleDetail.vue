@@ -85,9 +85,9 @@ const goBack = () => {
       <!-- 開頭 Hero 資訊 -->
       <header class="mb-16 border-b pb-12" style="border-color: var(--glass-border)">
         <!-- 分類 pills（與 tags 視覺區分，使用 accent-color） -->
-        <div v-if="article.categories.length > 0" class="flex flex-wrap gap-2 mb-4">
+        <div v-if="article.categories?.length > 0" class="flex flex-wrap gap-2 mb-4">
           <span
-            v-for="cat in article.categories"
+            v-for="cat in article.categories ?? []"
             :key="cat"
             class="px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-widest text-white"
             style="background: var(--accent-color);"

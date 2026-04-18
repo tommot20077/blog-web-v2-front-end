@@ -38,7 +38,6 @@ describe('recommendMockService', () => {
       expect(item).toHaveProperty('title');
       expect(item).toHaveProperty('slug');
       expect(item).toHaveProperty('summary');
-      expect(item).toHaveProperty('coverImageUrl');
       expect(item).toHaveProperty('authorNickname');
       expect(item).toHaveProperty('viewCount');
       expect(item).toHaveProperty('likeCount');

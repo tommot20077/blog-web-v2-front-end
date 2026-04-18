@@ -1,4 +1,5 @@
-import type { PageResult, ArticleItem, ArticleDetailItem } from '../articleService';
+import type { ArticleItem, ArticleDetailItem } from '../articleService';
+import type { PageResult } from '../../types/editor';
 import { allMockArticles, getMockArticleDetail } from './data';
 
 // 模擬後端分頁與過濾邏輯
@@ -45,6 +46,20 @@ export function getArticleByUuidMock(uuid: string): Promise<ArticleDetailItem | 
   return new Promise((resolve) => {
     setTimeout(() => {
       resolve(getMockArticleDetail(uuid));
+    }, 500);
+  });
+}
+
+// 根據 Slug 取得單篇文章詳細內容（Mock 版本）
+export function getArticleBySlugMock(slug: string): Promise<ArticleDetailItem | null> {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const base = allMockArticles.find(a => a.slug === slug);
+      if (!base) {
+        resolve(null);
+        return;
+      }
+      resolve(getMockArticleDetail(base.uuid));
     }, 500);
   });
 }
