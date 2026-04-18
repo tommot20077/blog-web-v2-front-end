@@ -8,7 +8,7 @@ export class FilterBarPO {
 
   constructor(page: Page) {
     this.page = page
-    this.searchInput = page.getByPlaceholder('搜尋文章...')
+    this.searchInput = page.getByTestId('articles-search-input')
     this.gridToggle = page.getByTitle('網格與分頁模式')
     this.listToggle = page.getByTitle('無限捲動清單模式')
   }

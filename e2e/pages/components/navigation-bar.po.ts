@@ -9,10 +9,10 @@ export class NavigationBarPO {
 
   constructor(page: Page) {
     this.page = page
-    this.nav = page.locator('nav')
-    this.homeLink = page.getByRole('link', { name: '首頁', exact: true })
-    this.articlesLink = page.getByRole('link', { name: '文章', exact: true })
-    this.logoLink = page.getByRole('link', { name: 'MY BLOG WEB.' })
+    this.nav = page.getByTestId('navbar-root')
+    this.homeLink = page.getByTestId('navbar-link-home')
+    this.articlesLink = page.getByTestId('navbar-link-articles')
+    this.logoLink = page.getByTestId('navbar-logo')
   }
 
   async navigateToHome() {

@@ -14,7 +14,7 @@ export class ArticleListPage {
     this.page = page
     this.articleCards = page.locator('article')
     this.loadingDots = page.locator('.animate-bounce').first()
-    this.emptyMessage = page.getByText('沒有找到符合條件的文章。')
+    this.emptyMessage = page.getByTestId('articles-empty-state')
     this.paginationPrev = page.getByRole('button', { name: '←' })
     this.paginationNext = page.getByRole('button', { name: '→' })
     this.noMoreDataMessage = page.getByText('已經到底囉！')

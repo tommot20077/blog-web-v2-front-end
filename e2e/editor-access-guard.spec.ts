@@ -27,9 +27,9 @@ test.describe('編輯器路由守衛', () => {
     await expect(page).toHaveURL(/\/login/)
 
     // 在 /login 頁登入
-    await page.getByPlaceholder('請輸入 Email').fill('user@test.com')
-    await page.getByPlaceholder('請輸入密碼').fill('Password1')
-    await page.getByRole('button', { name: /^登入$/ }).click()
+    await page.getByTestId('auth-login-field-email').fill('user@test.com')
+    await page.getByTestId('auth-login-field-password').fill('Password1')
+    await page.getByTestId('auth-login-submit').click()
 
     // 登入後路由器應重導回 /editor（returnUrl = '/editor'）
     await expect(page).toHaveURL('/editor', { timeout: 8000 })
