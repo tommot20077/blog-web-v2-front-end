@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { useRouter, useRoute } from 'vue-router';
+import { useRouter } from 'vue-router';
 import { useAuthStore } from '../../stores/auth';
 import { useTheme } from '../../composables/useTheme';
 
 const router = useRouter();
-const route = useRoute();
 const authStore = useAuthStore();
 const { isDark, toggleTheme } = useTheme();
 
@@ -30,7 +29,8 @@ async function handleLogout() {
     <RouterLink
       to="/"
       class="nav-link"
-      :class="{ active: route.name === 'home' }"
+      active-class=""
+      exact-active-class="active"
       data-testid="navbar-link-home"
     >
       首頁
@@ -38,7 +38,8 @@ async function handleLogout() {
     <RouterLink
       to="/articles"
       class="nav-link"
-      :class="{ active: route.name === 'articles' }"
+      active-class="active"
+      exact-active-class="active"
       data-testid="navbar-link-articles"
     >
       文章
@@ -66,7 +67,7 @@ async function handleLogout() {
     <!-- User menu (logged in) -->
     <div v-if="authStore.isAuthenticated" class="nav-user" data-testid="navbar-user-menu">
       <span class="nav-user__name">{{ authStore.user?.nickname }}</span>
-      <button class="nav-link" @click="handleLogout">登出</button>
+      <button class="nav-link" data-testid="navbar-logout-btn" @click="handleLogout">登出</button>
     </div>
 
     <!-- Login button (guest) -->

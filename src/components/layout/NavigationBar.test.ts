@@ -71,7 +71,7 @@ describe('NavigationBar', () => {
       authStore.logout = vi.fn().mockResolvedValue(undefined)
       await nextTick()
 
-      const logoutButton = getByTestId('navbar-user-menu').querySelector('button')!
+      const logoutButton = getByTestId('navbar-logout-btn')
       await logoutButton.click()
       await nextTick()
 
