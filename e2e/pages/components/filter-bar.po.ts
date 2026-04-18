@@ -15,7 +15,7 @@ export class FilterBarPO {
 
   /** 點擊分類按鈕 */
   async selectCategory(name: string) {
-    await this.page.getByRole('button', { name, exact: true }).click()
+    await this.page.getByTestId('articles-filter-bar').getByRole('button', { name, exact: true }).click()
   }
 
   /** 輸入關鍵字並按 Enter 搜尋 */

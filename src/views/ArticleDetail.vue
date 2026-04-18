@@ -85,7 +85,7 @@ const goBack = () => {
       <!-- Hero 區塊 -->
       <div class="article-hero">
         <!-- 分類 pills（category pill above title） -->
-        <div v-if="article.categories?.length > 0" class="flex flex-wrap gap-2 mb-4">
+        <div v-if="article.categories?.length > 0" class="flex flex-wrap gap-2 mb-4" data-testid="article-categories">
           <span
             v-for="cat in article.categories ?? []"
             :key="cat"
