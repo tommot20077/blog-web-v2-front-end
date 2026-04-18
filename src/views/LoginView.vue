@@ -57,29 +57,40 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <AuthFormLayout title="登入" subtitle="歡迎回來">
+  <AuthFormLayout
+    title="登入"
+    subtitle="歡迎回來"
+    heroTitle="Sign in to<br>your account."
+    heroTagline="MY BLOG WEB. — EST 2023"
+    titleTestId="auth-login-title"
+  >
     <form @submit.prevent="handleSubmit" class="flex flex-col gap-4">
-      <FormField
-        label="Email"
-        type="email"
-        :model-value="email"
-        :error="errors.email"
-        placeholder="請輸入 Email"
-        :disabled="isSubmitting"
-        @update:model-value="email = $event"
-      />
+      <div data-testid="auth-login-field-email">
+        <FormField
+          label="Email"
+          type="email"
+          :model-value="email"
+          :error="errors.email"
+          placeholder="請輸入 Email"
+          :disabled="isSubmitting"
+          @update:model-value="email = $event"
+        />
+      </div>
 
-      <FormField
-        label="密碼"
-        type="password"
-        :model-value="password"
-        :error="errors.password"
-        placeholder="請輸入密碼"
-        :disabled="isSubmitting"
-        @update:model-value="password = $event"
-      />
+      <div data-testid="auth-login-field-password">
+        <FormField
+          label="密碼"
+          type="password"
+          :model-value="password"
+          :error="errors.password"
+          placeholder="請輸入密碼"
+          :disabled="isSubmitting"
+          @update:model-value="password = $event"
+        />
+      </div>
 
       <button
+        data-testid="auth-login-submit"
         type="submit"
         :disabled="isSubmitting"
         class="mt-2 w-full rounded-full py-2.5 text-sm font-semibold text-white transition-opacity disabled:opacity-50"
@@ -99,6 +110,7 @@ async function handleSubmit() {
           忘記密碼？
         </RouterLink>
         <RouterLink
+          data-testid="auth-login-alt-link"
           to="/register"
           class="opacity-70 hover:opacity-100 transition-opacity"
           style="color: var(--accent)"

@@ -52,4 +52,25 @@ describe('ForgotPasswordView', () => {
     const link = getByText('回到登入')
     expect(link.closest('a')).toHaveAttribute('href', '/login')
   })
+
+  // data-testid assertions
+  it('data-testid: auth-forgot-title 存在', () => {
+    const { getByTestId } = renderWithRouter(ForgotPasswordView)
+    expect(getByTestId('auth-forgot-title')).toBeInTheDocument()
+  })
+
+  it('data-testid: auth-forgot-submit 存在', () => {
+    const { getByTestId } = renderWithRouter(ForgotPasswordView)
+    expect(getByTestId('auth-forgot-submit')).toBeInTheDocument()
+  })
+
+  it('data-testid: auth-forgot-field-email 存在', () => {
+    const { getByTestId } = renderWithRouter(ForgotPasswordView)
+    expect(getByTestId('auth-forgot-field-email')).toBeInTheDocument()
+  })
+
+  it('data-testid: auth-forgot-alt-link 存在', () => {
+    const { getByTestId } = renderWithRouter(ForgotPasswordView)
+    expect(getByTestId('auth-forgot-alt-link')).toBeInTheDocument()
+  })
 })

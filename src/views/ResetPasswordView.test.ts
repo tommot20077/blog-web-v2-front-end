@@ -71,4 +71,41 @@ describe('ResetPasswordView', () => {
 
     expect(getByText('無效的重設連結')).toBeInTheDocument()
   })
+
+  // data-testid assertions
+  it('data-testid: auth-reset-title 存在', async () => {
+    const { getByTestId } = await renderWithRouterAsync(
+      ResetPasswordView,
+      {},
+      '/reset-password?token=valid-token',
+    )
+    expect(getByTestId('auth-reset-title')).toBeInTheDocument()
+  })
+
+  it('data-testid: auth-reset-submit 存在', async () => {
+    const { getByTestId } = await renderWithRouterAsync(
+      ResetPasswordView,
+      {},
+      '/reset-password?token=valid-token',
+    )
+    expect(getByTestId('auth-reset-submit')).toBeInTheDocument()
+  })
+
+  it('data-testid: auth-reset-field-password 存在', async () => {
+    const { getByTestId } = await renderWithRouterAsync(
+      ResetPasswordView,
+      {},
+      '/reset-password?token=valid-token',
+    )
+    expect(getByTestId('auth-reset-field-password')).toBeInTheDocument()
+  })
+
+  it('data-testid: auth-reset-field-confirm 存在', async () => {
+    const { getByTestId } = await renderWithRouterAsync(
+      ResetPasswordView,
+      {},
+      '/reset-password?token=valid-token',
+    )
+    expect(getByTestId('auth-reset-field-confirm')).toBeInTheDocument()
+  })
 })

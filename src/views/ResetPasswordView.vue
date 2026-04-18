@@ -64,6 +64,9 @@ const handleSubmit = async () => {
   <AuthFormLayout
     title="重設密碼"
     subtitle="請設定您的新密碼"
+    heroTitle="Set a new<br>password."
+    heroTagline="MY BLOG WEB. — EST 2023"
+    titleTestId="auth-reset-title"
   >
     <!-- 無 token 錯誤 -->
     <div
@@ -80,25 +83,30 @@ const handleSubmit = async () => {
       @submit.prevent="handleSubmit"
     >
       <div class="flex flex-col gap-4">
-        <FormField
-          v-model="form.password"
-          label="新密碼"
-          type="password"
-          placeholder="請輸入新密碼"
-          :error="errors.password"
-          :disabled="isSubmitting"
-        />
+        <div data-testid="auth-reset-field-password">
+          <FormField
+            v-model="form.password"
+            label="新密碼"
+            type="password"
+            placeholder="請輸入新密碼"
+            :error="errors.password"
+            :disabled="isSubmitting"
+          />
+        </div>
 
-        <FormField
-          v-model="form.confirmPassword"
-          label="確認密碼"
-          type="password"
-          placeholder="請再次輸入新密碼"
-          :error="errors.confirmPassword"
-          :disabled="isSubmitting"
-        />
+        <div data-testid="auth-reset-field-confirm">
+          <FormField
+            v-model="form.confirmPassword"
+            label="確認密碼"
+            type="password"
+            placeholder="請再次輸入新密碼"
+            :error="errors.confirmPassword"
+            :disabled="isSubmitting"
+          />
+        </div>
 
         <button
+          data-testid="auth-reset-submit"
           type="submit"
           class="w-full rounded-full py-2.5 text-sm font-medium text-white transition-opacity"
           style="background: var(--accent-color)"

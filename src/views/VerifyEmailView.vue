@@ -39,7 +39,12 @@ onMounted(() => {
 </script>
 
 <template>
-  <AuthFormLayout title="信箱驗證">
+  <AuthFormLayout
+    title="信箱驗證"
+    heroTitle="Verify your<br>email."
+    heroTagline="MY BLOG WEB. — EST 2023"
+    titleTestId="auth-verify-title"
+  >
     <!-- 無 token -->
     <div
       v-if="!token"
@@ -91,6 +96,7 @@ onMounted(() => {
         <p class="mt-1 opacity-70">{{ errorMessage }}</p>
       </div>
       <button
+        data-testid="auth-verify-resend-btn"
         class="text-sm opacity-70 hover:opacity-100 transition-opacity"
         style="color: var(--accent-color)"
         @click="verify"

@@ -81,28 +81,35 @@ async function handleSubmit() {
   <AuthFormLayout
     title="註冊"
     subtitle="建立您的帳號"
+    heroTitle="Start writing<br>your story."
+    heroTagline="MY BLOG WEB. — EST 2023"
+    titleTestId="auth-register-title"
   >
     <form
       class="flex flex-col gap-4"
       @submit.prevent="handleSubmit"
     >
-      <FormField
-        v-model="email"
-        label="Email"
-        type="email"
-        placeholder="請輸入 Email"
-        :error="errors.email"
-        :disabled="isLoading"
-      />
+      <div data-testid="auth-register-field-email">
+        <FormField
+          v-model="email"
+          label="Email"
+          type="email"
+          placeholder="請輸入 Email"
+          :error="errors.email"
+          :disabled="isLoading"
+        />
+      </div>
 
-      <FormField
-        v-model="username"
-        label="使用者名稱"
-        type="text"
-        placeholder="請輸入使用者名稱（英文、數字）"
-        :error="errors.username"
-        :disabled="isLoading"
-      />
+      <div data-testid="auth-register-field-username">
+        <FormField
+          v-model="username"
+          label="使用者名稱"
+          type="text"
+          placeholder="請輸入使用者名稱（英文、數字）"
+          :error="errors.username"
+          :disabled="isLoading"
+        />
+      </div>
 
       <FormField
         v-model="nickname"
@@ -113,18 +120,21 @@ async function handleSubmit() {
         :disabled="isLoading"
       />
 
-      <FormField
-        v-model="password"
-        label="密碼"
-        type="password"
-        placeholder="請輸入密碼"
-        :error="errors.password"
-        :disabled="isLoading"
-      />
+      <div data-testid="auth-register-field-password">
+        <FormField
+          v-model="password"
+          label="密碼"
+          type="password"
+          placeholder="請輸入密碼"
+          :error="errors.password"
+          :disabled="isLoading"
+        />
+      </div>
 
       <PasswordStrengthMeter :strength="passwordStrength" />
 
       <button
+        data-testid="auth-register-submit"
         type="submit"
         :disabled="isLoading"
         class="w-full rounded-xl py-2.5 text-sm font-semibold text-white transition-opacity"
@@ -138,6 +148,7 @@ async function handleSubmit() {
     <template #footer>
       <span style="color: var(--text-main)">已有帳號？</span>
       <RouterLink
+        data-testid="auth-register-alt-link"
         to="/login"
         class="ml-1 font-medium"
         style="color: var(--accent-primary)"
