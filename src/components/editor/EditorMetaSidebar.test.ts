@@ -14,8 +14,8 @@ const defaultProps = {
   categoryIds: [] as string[],
   tagNames: [] as string[],
   categories: [
-    createMockCategoryOption({ uuid: 'cat-1', name: 'Vue', slug: 'vue' }),
-    createMockCategoryOption({ uuid: 'cat-2', name: 'TypeScript', slug: 'typescript' }),
+    createMockCategoryOption({ id: 'cat-1', name: 'Vue', slug: 'vue' }),
+    createMockCategoryOption({ id: 'cat-2', name: 'TypeScript', slug: 'typescript' }),
   ],
 }
 

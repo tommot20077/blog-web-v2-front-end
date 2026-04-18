@@ -75,11 +75,6 @@ describe('EditorView', () => {
       expect(screen.getByTestId('editor-title-input')).toBeInTheDocument()
     })
 
-    it('renders editor-tags-input', () => {
-      renderEditor()
-      expect(screen.getByTestId('editor-tags-input')).toBeInTheDocument()
-    })
-
     it('renders editor-save-btn', () => {
       renderEditor()
       expect(screen.getByTestId('editor-save-btn')).toBeInTheDocument()

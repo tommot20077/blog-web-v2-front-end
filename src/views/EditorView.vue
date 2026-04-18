@@ -92,14 +92,6 @@ async function onSubmitForReview() {
         type="text"
         placeholder="文章標題..."
       />
-      <input
-        :value="tagNames.join(', ')"
-        class="editor-tags-input"
-        data-testid="editor-tags-input"
-        type="text"
-        placeholder="標籤（逗號分隔）..."
-        @change="tagNames = ($event.target as HTMLInputElement).value.split(',').map(t => t.trim()).filter(Boolean)"
-      />
       <span class="editor-word-count">{{ wordCount }} 字</span>
       <button
         type="button"
@@ -167,9 +159,8 @@ async function onSubmitForReview() {
 .editor-shell { height: 100vh; display: flex; flex-direction: column; }
 .editor-meta { display: flex; gap: 1rem; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid var(--divider); }
 .editor-title-input { flex: 1; font-family: var(--f-display); font-size: 1.5rem; background: none; border: none; color: var(--ink); outline: none; }
-.editor-tags-input { font-family: var(--f-body); background: none; border: none; color: var(--ink); outline: none; }
 .editor-word-count { font-size: 0.875rem; color: var(--ink-muted, #888); white-space: nowrap; }
 .editor-body { flex: 1; display: flex; overflow: hidden; }
-.editor-pane { flex: 1; overflow-y: auto; border-right: 1px solid var(--divider); }
-.editor-preview { flex: 1; overflow-y: auto; padding: 2rem; font-family: var(--f-body); }
+.editor-pane { flex: 1; min-width: 0; overflow-y: auto; border-right: 1px solid var(--divider); }
+.editor-preview { flex: 1; min-width: 0; overflow-y: auto; padding: 2rem; font-family: var(--f-body); }
 </style>

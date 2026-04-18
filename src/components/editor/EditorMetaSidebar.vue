@@ -133,16 +133,16 @@ async function onFileChange(e: Event) {
       <div class="flex flex-col gap-1 max-h-40 overflow-y-auto">
         <label
           v-for="cat in categories"
-          :key="cat.uuid"
+          :key="cat.id"
           class="flex items-center gap-2 cursor-pointer text-sm hover:text-[var(--accent)] transition-colors"
         >
           <input
             type="checkbox"
             :name="cat.name"
             :aria-label="cat.name"
-            :checked="categoryIds.includes(cat.uuid)"
+            :checked="categoryIds.includes(cat.id)"
             class="rounded"
-            @change="toggleCategory(cat.uuid)"
+            @change="toggleCategory(cat.id)"
           />
           {{ cat.name }}
         </label>
