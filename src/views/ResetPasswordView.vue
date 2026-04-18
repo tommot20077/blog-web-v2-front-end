@@ -109,7 +109,7 @@ const handleSubmit = async () => {
           data-testid="auth-reset-submit"
           type="submit"
           class="w-full rounded-full py-2.5 text-sm font-medium text-white transition-opacity"
-          style="background: var(--accent-color)"
+          style="background: var(--accent)"
           :disabled="isSubmitting"
         >
           {{ isSubmitting ? '重設中...' : '重設密碼' }}
@@ -121,7 +121,7 @@ const handleSubmit = async () => {
       <RouterLink
         to="/login"
         class="opacity-70 hover:opacity-100 transition-opacity"
-        style="color: var(--text-main)"
+        style="color: var(--ink)"
       >
         回到登入
       </RouterLink>

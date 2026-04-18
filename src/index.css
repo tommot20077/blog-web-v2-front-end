@@ -40,11 +40,6 @@ body {
   --skeleton-base: rgba(0, 0, 0, 0.06);
   --skeleton-shine: rgba(0, 0, 0, 0.02);
 
-  /* Backward-compat aliases for old tokens */
-  --bg-color: var(--bg);
-  --text-main: var(--ink);
-  --glass-panel: var(--glass);
-  --accent-color: var(--accent);
 }
 
 [data-theme="dark"],

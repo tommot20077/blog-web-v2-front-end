@@ -43,9 +43,9 @@ const goBack = () => {
     <!-- 全局加載中動畫 -->
     <div v-if="isLoading" class="flex flex-col items-center justify-center pt-32 pb-64 min-h-[60vh]">
       <div class="flex gap-3 items-center opacity-80">
-        <div class="w-4 h-4 rounded-full bg-[var(--text-main)] animate-bounce"></div>
-        <div class="w-4 h-4 rounded-full bg-[var(--text-main)] animate-bounce" style="animation-delay: 0.15s"></div>
-        <div class="w-4 h-4 rounded-full bg-[var(--text-main)] animate-bounce" style="animation-delay: 0.3s"></div>
+        <div class="w-4 h-4 rounded-full bg-[var(--ink)] animate-bounce"></div>
+        <div class="w-4 h-4 rounded-full bg-[var(--ink)] animate-bounce" style="animation-delay: 0.15s"></div>
+        <div class="w-4 h-4 rounded-full bg-[var(--ink)] animate-bounce" style="animation-delay: 0.3s"></div>
       </div>
       <p class="mt-8 font-bold tracking-widest opacity-60">萃取文章細節中...</p>
     </div>
@@ -54,7 +54,7 @@ const goBack = () => {
     <div v-else-if="!article" class="flex flex-col items-center justify-center pt-32 pb-64 min-h-[60vh]">
       <div class="text-6xl mb-6">🏜️</div>
       <p class="font-bold tracking-widest opacity-60 text-xl text-center leading-relaxed">這是一片荒蕪之地<br>找不到該篇文章（404）</p>
-      <button @click="router.push('/articles')" class="mt-8 px-8 py-3 rounded-full border border-[var(--glass-border)] bg-[var(--glass-panel)] backdrop-blur-md opacity-80 hover:opacity-100 transition-all font-bold tracking-widest text-sm hover:scale-105 shadow-sm">
+      <button @click="router.push('/articles')" class="mt-8 px-8 py-3 rounded-full border border-[var(--glass-border)] bg-[var(--glass)] backdrop-blur-md opacity-80 hover:opacity-100 transition-all font-bold tracking-widest text-sm hover:scale-105 shadow-sm">
         返回列表頁面
       </button>
     </div>
@@ -90,7 +90,7 @@ const goBack = () => {
             v-for="cat in article.categories ?? []"
             :key="cat"
             class="px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-widest text-white"
-            style="background: var(--accent-color);"
+            style="background: var(--accent);"
           >
             {{ cat }}
           </span>
@@ -98,7 +98,7 @@ const goBack = () => {
 
         <!-- Tags -->
         <div class="article-tags flex flex-wrap gap-2 mb-8" data-testid="article-tags">
-          <span v-for="tag in article.tags" :key="tag" class="px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-widest bg-[var(--text-main)] text-[var(--bg-color)] shadow-md">
+          <span v-for="tag in article.tags" :key="tag" class="px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-widest bg-[var(--ink)] text-[var(--bg)] shadow-md">
             # {{ tag }}
           </span>
         </div>
@@ -159,7 +159,7 @@ const goBack = () => {
         <p class="font-bold text-xs opacity-40 tracking-widest uppercase">END OF ARTICLE.</p>
         <button
           @click="scrollToTop"
-          class="flex items-center justify-center w-12 h-12 rounded-full border bg-[var(--glass-panel)] backdrop-blur-md opacity-70 hover:opacity-100 hover:-translate-y-2 transition-all shadow-sm group"
+          class="flex items-center justify-center w-12 h-12 rounded-full border bg-[var(--glass)] backdrop-blur-md opacity-70 hover:opacity-100 hover:-translate-y-2 transition-all shadow-sm group"
           style="border-color: var(--glass-border);"
         >
           <svg class="w-5 h-5 group-hover:animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>
@@ -227,7 +227,7 @@ const goBack = () => {
 
 .article-body :deep(blockquote) {
   border-left: 3px solid var(--accent);
-  background: var(--glass-panel);
+  background: var(--glass);
   padding: 0.75em 1.5em;
   border-radius: 0 0.75rem 0.75rem 0;
   opacity: 0.85;
@@ -287,7 +287,7 @@ html.dark .article-body :deep(.shiki span) {
 
 /* 行內程式碼樣式（非 pre 區塊），讓其更明顯 */
 .article-body :deep(:not(pre) > code) {
-  background-color: var(--glass-panel);
+  background-color: var(--glass);
   border: 1px solid var(--glass-border);
   padding: 0.15em 0.4em;
   border-radius: 0.375rem;
@@ -313,7 +313,7 @@ html.dark .article-body :deep(:not(pre) > code) {
   padding: 0.75em 1em;
 }
 .article-body :deep(th) {
-  background-color: var(--glass-panel);
+  background-color: var(--glass);
   font-weight: 700;
   text-align: left;
 }
@@ -336,7 +336,7 @@ html.dark .article-body :deep(tr:nth-child(even)) {
   top: 0.35rem;
   width: 1.1rem;
   height: 1.1rem;
-  accent-color: var(--text-main);
+  accent-color: var(--ink);
   cursor: pointer;
 }
 </style>

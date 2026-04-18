@@ -10,8 +10,8 @@ describe('PillButton', () => {
         slots: { default: '全部' },
       })
       const btn = getByRole('button')
-      expect(btn.className).toContain('bg-[var(--text-main)]')
-      expect(btn.className).toContain('text-[var(--bg-color)]')
+      expect(btn.className).toContain('bg-[var(--ink)]')
+      expect(btn.className).toContain('text-[var(--bg)]')
     })
 
     it('isActive=false 不套用背景色，套用 hover class', () => {
@@ -20,8 +20,8 @@ describe('PillButton', () => {
         slots: { default: 'Frontend' },
       })
       const btn = getByRole('button')
-      expect(btn.className).not.toContain('bg-[var(--text-main)]')
-      expect(btn.className).toContain('text-[var(--text-main)]')
+      expect(btn.className).not.toContain('bg-[var(--ink)]')
+      expect(btn.className).toContain('text-[var(--ink)]')
       expect(btn.className).toContain('hover:bg-black/5')
     })
 
@@ -65,7 +65,7 @@ describe('PillButton', () => {
         slots: { default: '首頁' },
       })
       const btn = getByRole('button')
-      expect(btn.className).toContain('text-[var(--accent-color)]')
+      expect(btn.className).toContain('text-[var(--accent)]')
     })
 
     it('isActive=false 套用 text-main + opacity-80', () => {
@@ -74,7 +74,7 @@ describe('PillButton', () => {
         slots: { default: '文章' },
       })
       const btn = getByRole('button')
-      expect(btn.className).toContain('text-[var(--text-main)]')
+      expect(btn.className).toContain('text-[var(--ink)]')
       expect(btn.className).toContain('opacity-80')
       expect(btn.className).not.toContain('opacity-50')
     })

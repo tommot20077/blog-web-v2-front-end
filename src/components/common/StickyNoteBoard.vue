@@ -33,7 +33,7 @@ const notes = ref(generateMockNotes());
 <template>
   <div class="w-full relative py-12 flex flex-col items-center">
     <div class="text-center mb-10 w-full max-w-7xl px-8 flex justify-between items-end border-b pb-4" style="border-color: var(--glass-border)">
-      <h2 class="text-2xl font-bold tracking-wider" style="color: var(--text-main)">留言板 (Guestbook)</h2>
+      <h2 class="text-2xl font-bold tracking-wider" style="color: var(--ink)">留言板 (Guestbook)</h2>
       <button class="px-4 py-2 rounded-full text-sm font-medium transition-colors hover:bg-black/5 dark:hover:bg-white/10 border border-current">
         我要留言
       </button>

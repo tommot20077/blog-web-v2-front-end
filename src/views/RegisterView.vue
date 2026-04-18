@@ -146,7 +146,7 @@ async function handleSubmit() {
     </form>
 
     <template #footer>
-      <span style="color: var(--text-main)">已有帳號？</span>
+      <span style="color: var(--ink)">已有帳號？</span>
       <RouterLink
         data-testid="auth-register-alt-link"
         to="/login"

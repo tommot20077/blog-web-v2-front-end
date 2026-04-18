@@ -111,7 +111,7 @@ async function onFileChange(e: Event) {
       </div>
       <label class="flex items-center gap-2 cursor-pointer">
         <span
-          class="px-3 py-1.5 rounded-full text-sm bg-[var(--accent-color)] text-white hover:opacity-90 transition-opacity"
+          class="px-3 py-1.5 rounded-full text-sm bg-[var(--accent)] text-white hover:opacity-90 transition-opacity"
           :class="{ 'opacity-60 cursor-not-allowed': isUploading }"
         >
           {{ isUploading ? '上傳中...' : '上傳封面' }}
@@ -134,7 +134,7 @@ async function onFileChange(e: Event) {
         <label
           v-for="cat in categories"
           :key="cat.uuid"
-          class="flex items-center gap-2 cursor-pointer text-sm hover:text-[var(--accent-color)] transition-colors"
+          class="flex items-center gap-2 cursor-pointer text-sm hover:text-[var(--accent)] transition-colors"
         >
           <input
             type="checkbox"
@@ -174,7 +174,7 @@ async function onFileChange(e: Event) {
           v-model="tagInput"
           type="text"
           placeholder="輸入標籤後按 Enter"
-          class="w-full px-3 py-1.5 rounded-xl bg-white/60 dark:bg-white/10 border border-white/80 dark:border-white/15 text-sm outline-none focus:ring-2 focus:ring-[var(--accent-color)]/40"
+          class="w-full px-3 py-1.5 rounded-xl bg-white/60 dark:bg-white/10 border border-white/80 dark:border-white/15 text-sm outline-none focus:ring-2 focus:ring-[var(--accent)]/40"
           @input="onTagInput"
           @keydown="onTagKeydown"
         />
@@ -203,7 +203,7 @@ async function onFileChange(e: Event) {
         :value="summary"
         placeholder="文章摘要..."
         rows="4"
-        class="w-full px-3 py-2 rounded-xl bg-white/60 dark:bg-white/10 border border-white/80 dark:border-white/15 text-sm resize-none outline-none focus:ring-2 focus:ring-[var(--accent-color)]/40"
+        class="w-full px-3 py-2 rounded-xl bg-white/60 dark:bg-white/10 border border-white/80 dark:border-white/15 text-sm resize-none outline-none focus:ring-2 focus:ring-[var(--accent)]/40"
         @input="emit('update:summary', ($event.target as HTMLTextAreaElement).value)"
       />
     </section>

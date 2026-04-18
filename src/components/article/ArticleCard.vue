@@ -16,7 +16,7 @@ const goToDetail = () => {
   <article
     @click="goToDetail"
     class="flex flex-col rounded-[24px] border cursor-pointer group hover:scale-[1.02] transition-transform duration-300 w-full overflow-hidden"
-    style="background: var(--glass-panel); border-color: var(--glass-border); backdrop-filter: blur(12px);"
+    style="background: var(--glass); border-color: var(--glass-border); backdrop-filter: blur(12px);"
   >
     <!-- 封面圖 -->
     <img
@@ -29,7 +29,7 @@ const goToDetail = () => {
 
     <div class="flex flex-col p-6 flex-grow">
       <!-- 標題 -->
-      <h3 class="text-xl font-bold mb-2 group-hover:opacity-80 transition-opacity" style="color: var(--text-main)">
+      <h3 class="text-xl font-bold mb-2 group-hover:opacity-80 transition-opacity" style="color: var(--ink)">
         {{ article.title }}
       </h3>
 

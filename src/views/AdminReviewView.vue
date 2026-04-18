@@ -140,7 +140,7 @@ onMounted(fetchArticles)
             v-model="rejectReason"
             placeholder="請輸入退回理由"
             rows="3"
-            class="w-full px-3 py-2 rounded-lg border border-white/80 dark:border-white/15 bg-white/60 dark:bg-white/8 text-sm resize-none outline-none focus:ring-2 focus:ring-[var(--accent-color)]"
+            class="w-full px-3 py-2 rounded-lg border border-white/80 dark:border-white/15 bg-white/60 dark:bg-white/8 text-sm resize-none outline-none focus:ring-2 focus:ring-[var(--accent)]"
           />
           <div class="flex gap-2 justify-end">
             <button

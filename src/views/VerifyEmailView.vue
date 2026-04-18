@@ -58,7 +58,7 @@ onMounted(() => {
     <div
       v-else-if="isLoading"
       class="text-center text-sm"
-      style="color: var(--text-main)"
+      style="color: var(--ink)"
     >
       驗證中...
     </div>
@@ -77,7 +77,7 @@ onMounted(() => {
       <RouterLink
         to="/login"
         class="text-sm opacity-70 hover:opacity-100 transition-opacity"
-        style="color: var(--accent-color)"
+        style="color: var(--accent)"
       >
         前往登入
       </RouterLink>
@@ -98,7 +98,7 @@ onMounted(() => {
       <button
         data-testid="auth-verify-resend-btn"
         class="text-sm opacity-70 hover:opacity-100 transition-opacity"
-        style="color: var(--accent-color)"
+        style="color: var(--accent)"
         @click="verify"
       >
         重新發送驗證信
