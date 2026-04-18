@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted } from 'vue';
-import ArticleCard from '../components/article/ArticleCard.vue';
-import FilterBar from '../components/article/FilterBar.vue';
+import { ref, onMounted, onUnmounted } from 'vue';
+import { RouterLink } from 'vue-router';
 import { articleService, type ArticleItem } from '../api/articleService';
 
+// ── article data ──────────────────────────────────────────────────────────────
 const articles = ref<ArticleItem[]>([]);
 const viewMode = ref<'grid' | 'list'>('grid');
 
@@ -14,13 +14,19 @@ const maxGridPages = ref(1);
 const listPage = ref(1);
 const itemsPerPageList = 5;
 
-const isLoading = ref(false);     // 首次或切換過濾時的加載
-const isLoadingMore = ref(false); // 無限滾動的加載
+const isLoading = ref(false);
+const isLoadingMore = ref(false);
 const noMoreData = ref(false);
+
+// ── filter bar state (inlined from FilterBar component) ───────────────────────
+const categories = ['全部', 'Frontend', 'Backend', 'DevOps', 'UI/UX', 'Life'];
+const activeCategory = ref('全部');
+const keyword = ref('');
+const sortOrder = ref<'latest' | 'popular' | 'commented'>('latest');
 
 const filterParams = ref({ category: '全部', keyword: '' });
 
-// 取資料的核心邏輯 (串接 API Service)
+// ── core fetch logic ──────────────────────────────────────────────────────────
 const fetchArticles = async (isLoadMore = false) => {
   const currentMode = viewMode.value;
   const page = currentMode === 'grid' ? gridPage.value : listPage.value;
@@ -34,12 +40,11 @@ const fetchArticles = async (isLoadMore = false) => {
 
   try {
     const result = await articleService.getArticles(page, size, filterParams.value.category, filterParams.value.keyword);
-    
+
     if (currentMode === 'grid') {
       articles.value = result.records;
       maxGridPages.value = result.pages;
     } else {
-      // List Mode (Append)
       if (isLoadMore) {
         articles.value.push(...result.records);
       } else {
@@ -53,16 +58,33 @@ const fetchArticles = async (isLoadMore = false) => {
   }
 };
 
-const handleFilter = (category: string, keyword: string, mode: 'grid' | 'list') => {
+// ── filter bar handlers (previously emitted from FilterBar) ───────────────────
+const selectCategory = (cat: string) => {
+  activeCategory.value = cat;
+  applyFilter();
+};
+
+const toggleMode = (mode: 'grid' | 'list') => {
   viewMode.value = mode;
-  filterParams.value = { category, keyword };
   gridPage.value = 1;
   listPage.value = 1;
   noMoreData.value = false;
-  
-  fetchArticles(); // 切換時觸發新的 Fetch
+  fetchArticles();
 };
 
+const onSearch = () => {
+  applyFilter();
+};
+
+const applyFilter = () => {
+  filterParams.value = { category: activeCategory.value, keyword: keyword.value };
+  gridPage.value = 1;
+  listPage.value = 1;
+  noMoreData.value = false;
+  fetchArticles();
+};
+
+// ── pagination (grid mode) ────────────────────────────────────────────────────
 const goToPage = (pageNumber: number) => {
   if (pageNumber < 1 || pageNumber > maxGridPages.value) return;
   gridPage.value = pageNumber;
@@ -70,6 +92,7 @@ const goToPage = (pageNumber: number) => {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
+// ── infinite scroll (list mode) ───────────────────────────────────────────────
 const loadNextPage = () => {
   if (isLoadingMore.value || noMoreData.value || viewMode.value === 'grid') return;
   listPage.value += 1;
@@ -80,14 +103,14 @@ const observerTarget = ref<HTMLElement | null>(null);
 let observer: IntersectionObserver | null = null;
 
 onMounted(() => {
-  fetchArticles(); // 初始加載
+  fetchArticles();
 
   observer = new IntersectionObserver((entries) => {
     if (entries[0].isIntersecting && !isLoading.value && !isLoadingMore.value) {
       loadNextPage();
     }
   }, { rootMargin: '150px' });
-  
+
   if (observerTarget.value) {
     observer.observe(observerTarget.value);
   }
@@ -99,102 +122,626 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="w-full flex flex-col items-center flex-1">
-    <!-- 最外層移除 pt，因為頂部空間交由 sticky 背板提供 -->
-    <div class="w-full max-w-7xl mx-auto mb-32 flex flex-col items-center">
-      
-      <!-- Sticky 背景牆與 FilterBar -->
-      <!-- 讓這塊容器貼住 top-0，並用超厚的 pt 擔任導航欄的防護遮罩 -->
-      <div 
-        class="sticky top-0 z-40 w-full pt-[100px] pb-4 transition-all duration-300 px-4 md:px-8 border-b"
-        style="background: var(--bg-color); border-color: var(--glass-border);"
-      >
-        <FilterBar @filter="handleFilter" class="w-full max-w-7xl mx-auto !mb-0" />
-      </div>
+  <main class="articles-page" data-testid="articles-root">
 
-      <!-- 內容區增加左右 padding -->
-      <div class="w-full px-4 md:px-8">
-        
-        <!-- Loading 狀態 -->
-        <div v-if="isLoading" class="w-full py-20 flex justify-center">
-          <div class="flex gap-2 items-center opacity-60">
-            <div class="w-3 h-3 rounded-full bg-[var(--text-main)] animate-bounce"></div>
-            <div class="w-3 h-3 rounded-full bg-[var(--text-main)] animate-bounce" style="animation-delay: 0.15s"></div>
-            <div class="w-3 h-3 rounded-full bg-[var(--text-main)] animate-bounce" style="animation-delay: 0.3s"></div>
-          </div>
-        </div>
+    <!-- Sticky filter bar -->
+    <div class="filter-bar-sticky">
+      <div class="filter-bar" data-testid="articles-filter-bar">
 
-        <!-- 文章呈現區塊：網格(Grid) or 清單(List) -->
-        <div 
-          v-else-if="articles.length > 0"
-          class="w-full transition-all duration-500 pt-8"
-          :class="[
-            viewMode === 'grid' 
-              ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch' 
-              : 'grid grid-cols-1 gap-6'
-          ]"
-        >
-          <ArticleCard 
-            v-for="item in articles" 
-            :key="item.uuid" 
-            :article="item" 
-            class="h-full w-full"
+        <!-- Search input -->
+        <div class="search-wrap">
+          <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            v-model="keyword"
+            @keyup.enter="onSearch"
+            type="text"
+            placeholder="搜尋文章..."
+            class="search-input"
+            data-testid="articles-search-input"
           />
         </div>
 
-        <!-- 找不到文章 -->
-        <div v-else class="w-full py-24 text-center opacity-50 font-medium tracking-widest">
-          沒有找到符合條件的文章。
-        </div>
-
-        <!-- 分頁器 (僅在 Grid 模式下顯示) -->
-        <div v-if="viewMode === 'grid' && maxGridPages > 1 && !isLoading" class="mt-20 flex gap-2 justify-center">
-          <button 
-            @click="goToPage(gridPage - 1)" 
-            :disabled="gridPage === 1"
-            class="w-10 h-10 rounded-xl flex items-center justify-center border transition-colors hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed" style="border-color: var(--glass-border);"
+        <!-- Tag / category chips -->
+        <div class="tag-chips">
+          <button
+            v-for="cat in categories"
+            :key="cat"
+            class="tag-chip"
+            :class="{ active: activeCategory === cat }"
+            @click="selectCategory(cat)"
           >
-            <span>←</span>
-          </button>
-          
-          <button 
-            v-for="page in maxGridPages"
-            :key="page"
-            @click="goToPage(page)"
-            class="w-10 h-10 rounded-xl flex items-center justify-center border transition-all duration-200 font-bold"
-            :class="[
-              gridPage === page 
-                ? 'bg-[var(--text-main)] text-[var(--bg-color)] shadow-md border-transparent' 
-                : 'hover:bg-black/5 dark:hover:bg-white/10 text-neutral-600 dark:text-neutral-400 hover:text-[var(--text-main)]'
-            ]"
-            :style="gridPage !== page ? 'border-color: var(--glass-border);' : ''"
-          >
-            {{ page }}
-          </button>
-
-          <button 
-            @click="goToPage(gridPage + 1)"
-            :disabled="gridPage === maxGridPages" 
-            class="w-10 h-10 rounded-xl flex items-center justify-center border transition-colors hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed" style="border-color: var(--glass-border);"
-          >
-            <span>→</span>
+            {{ cat }}
           </button>
         </div>
 
-        <!-- 無限載入偵測點 (僅在 List 模式下顯示) -->
-        <div v-show="viewMode === 'list' && articles.length > 0" ref="observerTarget" class="mt-16 w-full flex justify-center items-center h-24">
-          <div v-if="isLoadingMore" class="flex gap-3 items-center opacity-80 bg-[var(--glass-panel)] px-6 py-3 rounded-full border border-[var(--glass-border)] shadow-sm backdrop-blur-md">
-            <div class="w-2.5 h-2.5 rounded-full bg-current animate-bounce"></div>
-            <div class="w-2.5 h-2.5 rounded-full bg-current animate-bounce" style="animation-delay: 0.15s"></div>
-            <div class="w-2.5 h-2.5 rounded-full bg-current animate-bounce" style="animation-delay: 0.3s"></div>
-            <span class="ml-2 font-bold text-sm tracking-widest">載入下一頁中...</span>
+        <!-- Right controls: sort + view mode -->
+        <div class="filter-bar-right">
+          <!-- Sort select -->
+          <select
+            v-model="sortOrder"
+            class="sort-select"
+            data-testid="articles-sort-select"
+          >
+            <option value="latest">Latest</option>
+            <option value="popular">Popular</option>
+            <option value="commented">Most commented</option>
+          </select>
+
+          <!-- View mode toggle -->
+          <div class="view-toggle">
+            <button
+              class="view-btn"
+              :class="{ active: viewMode === 'grid' }"
+              @click="toggleMode('grid')"
+              title="網格與分頁模式"
+            >
+              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+              </svg>
+            </button>
+            <button
+              class="view-btn"
+              :class="{ active: viewMode === 'list' }"
+              @click="toggleMode('list')"
+              title="無限捲動清單模式"
+            >
+              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
           </div>
-          <div v-else-if="noMoreData" class="opacity-50 text-sm tracking-widest font-bold bg-[var(--glass-panel)] px-6 py-3 rounded-full border border-[var(--glass-border)] shadow-sm backdrop-blur-md">
-            🎉 已經到底囉！
-          </div>
         </div>
-
       </div>
     </div>
-  </div>
+
+    <!-- Content area -->
+    <div class="articles-content">
+
+      <!-- Loading skeleton -->
+      <div v-if="isLoading" class="loading-state">
+        <div class="loading-dots">
+          <div class="dot animate-bounce"></div>
+          <div class="dot animate-bounce" style="animation-delay: 0.15s"></div>
+          <div class="dot animate-bounce" style="animation-delay: 0.3s"></div>
+        </div>
+      </div>
+
+      <!-- Article grid -->
+      <div
+        v-else-if="articles.length > 0"
+        class="article-grid"
+        :class="viewMode === 'list' ? 'article-grid--list' : ''"
+      >
+        <RouterLink
+          v-for="(article, i) in articles"
+          :key="article.uuid"
+          :to="`/articles/${article.uuid}`"
+          class="article-card-link"
+        >
+          <article
+            class="article-card"
+            :data-testid="'articles-card-' + i"
+          >
+            <!-- Cover image / fallback -->
+            <div class="article-card-cover">
+              <img
+                v-if="article.coverImageUrl"
+                :src="article.coverImageUrl"
+                :alt="article.title"
+                loading="lazy"
+                class="cover-img"
+              />
+              <div v-else class="cover-fallback"></div>
+            </div>
+
+            <!-- Card body -->
+            <div class="article-card-body">
+              <!-- Category / tag pill -->
+              <div class="article-card-meta">
+                <span class="article-tag-pill">{{ article.tags?.[0] ?? 'Article' }}</span>
+                <span class="meta-sep">·</span>
+                <span class="meta-date">{{ article.publishedAt }}</span>
+              </div>
+
+              <!-- Title -->
+              <h3 class="article-card-title">{{ article.title }}</h3>
+
+              <!-- Excerpt / summary -->
+              <p class="article-card-excerpt">{{ article.summary }}</p>
+
+              <!-- Author + date meta -->
+              <div class="article-card-footer">
+                <span class="article-author">{{ article.authorNickname }}</span>
+                <span class="meta-sep">·</span>
+                <span class="article-views">{{ article.viewCount }} views</span>
+              </div>
+            </div>
+          </article>
+        </RouterLink>
+      </div>
+
+      <!-- Empty state -->
+      <div
+        v-else-if="!isLoading"
+        class="empty-state"
+        data-testid="articles-empty-state"
+      >
+        <div class="empty-state-mark">∅</div>
+        <h3 class="empty-state-title">沒有找到符合條件的文章。</h3>
+        <p class="empty-state-hint">試著放寬條件，或清除目前的篩選。</p>
+      </div>
+
+      <!-- Pagination (grid mode) -->
+      <div v-if="viewMode === 'grid' && maxGridPages > 1 && !isLoading" class="pagination">
+        <button
+          @click="goToPage(gridPage - 1)"
+          :disabled="gridPage === 1"
+          class="page-btn page-btn--arrow"
+        >←</button>
+
+        <button
+          v-for="page in maxGridPages"
+          :key="page"
+          @click="goToPage(page)"
+          class="page-btn"
+          :class="{ active: gridPage === page }"
+        >{{ page }}</button>
+
+        <button
+          @click="goToPage(gridPage + 1)"
+          :disabled="gridPage === maxGridPages"
+          class="page-btn page-btn--arrow"
+        >→</button>
+      </div>
+
+      <!-- Infinite scroll sentinel (list mode) -->
+      <div
+        v-show="viewMode === 'list' && articles.length > 0"
+        ref="observerTarget"
+        class="scroll-sentinel"
+      >
+        <div v-if="isLoadingMore" class="loading-dots">
+          <div class="dot animate-bounce"></div>
+          <div class="dot animate-bounce" style="animation-delay: 0.15s"></div>
+          <div class="dot animate-bounce" style="animation-delay: 0.3s"></div>
+          <span class="loading-label">載入下一頁中...</span>
+        </div>
+        <div v-else-if="noMoreData" class="sentinel-end">
+          已經到底囉！
+        </div>
+      </div>
+
+    </div>
+  </main>
 </template>
+
+<style scoped>
+/* ── Page shell ─────────────────────────────────────────────── */
+.articles-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+/* ── Sticky filter bar ──────────────────────────────────────── */
+.filter-bar-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  padding: 100px 2rem 1rem;
+}
+
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  max-width: 80rem;
+  margin: 0 auto;
+}
+
+/* ── Search input ───────────────────────────────────────────── */
+.search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  min-width: 220px;
+}
+
+.search-icon {
+  width: 14px;
+  height: 14px;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.search-input {
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  width: 100%;
+}
+
+.search-input::placeholder {
+  color: var(--muted);
+}
+
+/* ── Tag chips ──────────────────────────────────────────────── */
+.tag-chips {
+  display: flex;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+}
+
+.tag-chip {
+  padding: 5px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--ink-2);
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+
+.tag-chip:hover {
+  border-color: var(--border-strong);
+  color: var(--ink);
+}
+
+.tag-chip.active {
+  background: var(--ink);
+  color: var(--bg);
+  border-color: var(--ink);
+}
+
+/* ── Right controls ─────────────────────────────────────────── */
+.filter-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+/* ── Sort select ────────────────────────────────────────────── */
+.sort-select {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.18s;
+}
+
+.sort-select:hover {
+  border-color: var(--border-strong);
+}
+
+/* ── View toggle ────────────────────────────────────────────── */
+.view-toggle {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-sub);
+}
+
+.view-btn {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 28px;
+  border-radius: 6px;
+  color: var(--muted);
+  transition: all 0.15s;
+}
+
+.view-btn:hover {
+  color: var(--ink);
+}
+
+.view-btn.active {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* ── Content area ───────────────────────────────────────────── */
+.articles-content {
+  flex: 1;
+  max-width: 80rem;
+  margin: 0 auto;
+  width: 100%;
+  padding: 2rem 2rem 5rem;
+}
+
+/* ── Loading state ──────────────────────────────────────────── */
+.loading-state {
+  display: flex;
+  justify-content: center;
+  padding: 5rem 0;
+}
+
+.loading-dots {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  opacity: 0.6;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--ink);
+}
+
+/* ── Article grid ───────────────────────────────────────────── */
+.article-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 2rem 1.5rem;
+  padding-top: 2rem;
+}
+
+.article-grid--list {
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+/* ── Article card link wrapper ──────────────────────────────── */
+.article-card-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+/* ── Article card ───────────────────────────────────────────── */
+.article-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface);
+  transition: all 0.25s;
+  height: 100%;
+}
+
+.article-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  border-color: var(--border-strong);
+}
+
+/* Cover */
+.article-card-cover {
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: var(--bg-sub);
+}
+
+.cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cover-fallback {
+  width: 100%;
+  height: 100%;
+  background:
+    repeating-linear-gradient(135deg, rgba(10, 10, 11, 0.06) 0 2px, transparent 2px 14px),
+    linear-gradient(180deg, var(--bg-sub), var(--surface));
+}
+
+/* Card body */
+.article-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1.25rem;
+  flex: 1;
+}
+
+.article-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted-2);
+}
+
+.article-tag-pill {
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--divider);
+  background: transparent;
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+}
+
+.meta-sep {
+  color: var(--muted-2);
+}
+
+.meta-date {
+  color: var(--muted-2);
+}
+
+.article-card-title {
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 1.35;
+  letter-spacing: -0.005em;
+  color: var(--ink);
+  margin: 0;
+}
+
+.article-card-excerpt {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  flex: 1;
+  margin: 0;
+}
+
+.article-card-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: auto;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--divider);
+}
+
+.article-author {
+  color: var(--ink-2);
+  font-weight: 500;
+}
+
+.article-views {
+  color: var(--muted-2);
+}
+
+/* ── Empty state ────────────────────────────────────────────── */
+.empty-state {
+  padding: 5rem 0;
+  text-align: center;
+}
+
+.empty-state-mark {
+  font-size: 80px;
+  color: var(--muted-2);
+  opacity: 0.3;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+
+.empty-state-title {
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--ink);
+  margin: 0 0 0.5rem;
+}
+
+.empty-state-hint {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* ── Pagination ─────────────────────────────────────────────── */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  margin-top: 3rem;
+}
+
+.page-btn {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: grid;
+  place-items: center;
+}
+
+.page-btn:hover:not(:disabled) {
+  background: var(--bg-sub);
+  color: var(--ink);
+}
+
+.page-btn.active {
+  background: var(--ink);
+  color: var(--bg);
+  border-color: var(--ink);
+}
+
+.page-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* ── Infinite scroll sentinel ───────────────────────────────── */
+.scroll-sentinel {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 6rem;
+  margin-top: 2rem;
+}
+
+.loading-label {
+  margin-left: 0.5rem;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+
+.sentinel-end {
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted-2);
+  padding: 0.75rem 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .filter-bar-sticky {
+    padding-top: 80px;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .articles-content {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .article-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-bar-right {
+    margin-left: 0;
+  }
+}
+</style>

@@ -55,16 +55,16 @@ describe('ArticleList 頁面', () => {
     expect(cards).toHaveLength(6)
   })
 
-  it('空結果顯示「沒有找到符合條件的文章。」', async () => {
+  it('空結果顯示空狀態', async () => {
     mockGetArticles.mockResolvedValue(
       createMockPageResult([], { total: 0, pages: 0 }),
     )
 
-    const { getByText } = renderWithRouter(ArticleList)
+    const { getByTestId } = renderWithRouter(ArticleList)
 
     await flushPromises()
 
-    expect(getByText('沒有找到符合條件的文章。')).toBeInTheDocument()
+    expect(getByTestId('articles-empty-state')).toBeInTheDocument()
   })
 
   it('Grid 模式多頁時顯示分頁器按鈕', async () => {
@@ -140,11 +140,11 @@ describe('ArticleList 頁面', () => {
     const articles = buildArticles(3)
     mockGetArticles.mockResolvedValue(createMockPageResult(articles))
 
-    const { getByPlaceholderText } = renderWithRouter(ArticleList)
+    const { getByTestId } = renderWithRouter(ArticleList)
 
     await flushPromises()
 
-    const searchInput = getByPlaceholderText('搜尋文章...')
+    const searchInput = getByTestId('articles-search-input')
     await fireEvent.update(searchInput, '前端開發')
     await fireEvent.keyUp(searchInput, { key: 'Enter', code: 'Enter' })
 
