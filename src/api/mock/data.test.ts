@@ -2,8 +2,15 @@ import { allMockArticles, getMockArticleDetail, allMockTags, mockZoneEntries } f
 
 describe('Mock 種子資料', () => {
   describe('allMockArticles', () => {
-    it('應有 50 筆文章', () => {
-      expect(allMockArticles).toHaveLength(50);
+    it('應有文章（總數 = baseMockArticles + lifeMockArticles）', () => {
+      // 確保 base(50) + life(2) 文章都在，防止種子遺漏時測試仍通過
+      expect(allMockArticles.length).toBeGreaterThanOrEqual(52);
+      expect(
+        allMockArticles.some(
+          (article) =>
+            Array.isArray(article.categories) && article.categories.includes('Life'),
+        ),
+      ).toBe(true);
     });
 
     it('每筆文章包含所有必要欄位', () => {

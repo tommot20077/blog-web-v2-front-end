@@ -154,7 +154,7 @@ onUnmounted(() => {
             :disabled="gridPage === 1"
             class="w-10 h-10 rounded-xl flex items-center justify-center border transition-colors hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed" style="border-color: var(--glass-border);"
           >
-            <span class="opacity-60">←</span>
+            <span>←</span>
           </button>
           
           <button 
@@ -165,7 +165,7 @@ onUnmounted(() => {
             :class="[
               gridPage === page 
                 ? 'bg-[var(--text-main)] text-[var(--bg-color)] shadow-md border-transparent' 
-                : 'hover:bg-black/5 dark:hover:bg-white/10 opacity-60 hover:opacity-100'
+                : 'hover:bg-black/5 dark:hover:bg-white/10 text-neutral-500 dark:text-neutral-400 hover:text-[var(--text-main)]'
             ]"
             :style="gridPage !== page ? 'border-color: var(--glass-border);' : ''"
           >
@@ -177,7 +177,7 @@ onUnmounted(() => {
             :disabled="gridPage === maxGridPages" 
             class="w-10 h-10 rounded-xl flex items-center justify-center border transition-colors hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed" style="border-color: var(--glass-border);"
           >
-            <span class="opacity-60">→</span>
+            <span>→</span>
           </button>
         </div>
 

@@ -24,6 +24,10 @@ onMounted(() => {
   window.scrollTo({ top: 0, behavior: 'auto' });
 });
 
+const scrollToTop = () => {
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
 const goBack = () => {
   if (window.history.length > 1) {
     router.back();
@@ -153,7 +157,7 @@ const goBack = () => {
       <footer class="mt-24 pt-12 border-t flex flex-col md:flex-row items-center justify-between gap-6" style="border-color: var(--glass-border)">
         <p class="font-bold text-xs opacity-40 tracking-widest uppercase">END OF ARTICLE.</p>
         <button 
-          @click="() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }" 
+          @click="scrollToTop"
           class="flex items-center justify-center w-12 h-12 rounded-full border bg-[var(--glass-panel)] backdrop-blur-md opacity-70 hover:opacity-100 hover:-translate-y-2 transition-all shadow-sm group"
           style="border-color: var(--glass-border);"
         >
@@ -180,11 +184,18 @@ const goBack = () => {
   animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* BUG-003：防止寬內容（table / pre）在 320px 時造成水平溢出 */
+.article-content {
+  overflow-x: hidden;
+}
+
 /* Shiki 程式碼區塊：覆寫 Typography 的預設樣式，讓 Shiki 全權處理 */
 .article-content :deep(pre) {
   background: transparent !important;
   padding: 0 !important;
   margin: 1.5em 0 !important;
+  max-width: 100%;
+  overflow-x: auto;
 }
 .article-content :deep(pre code) {
   display: block;
@@ -254,6 +265,8 @@ html.dark .article-content :deep(:not(pre) > code) {
 
 /* 表格樣式優化 */
 .article-content :deep(table) {
+  display: block;
+  overflow-x: auto;
   width: 100%;
   border-collapse: collapse;
   margin: 2em 0;

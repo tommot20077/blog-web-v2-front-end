@@ -136,6 +136,23 @@ describe('ArticleList 頁面', () => {
     })
   })
 
+  it('輸入關鍵字並按 Enter 後以正確 keyword 呼叫 getArticles', async () => {
+    const articles = buildArticles(3)
+    mockGetArticles.mockResolvedValue(createMockPageResult(articles))
+
+    const { getByPlaceholderText } = renderWithRouter(ArticleList)
+
+    await flushPromises()
+
+    const searchInput = getByPlaceholderText('搜尋文章...')
+    await fireEvent.update(searchInput, '前端開發')
+    await fireEvent.keyUp(searchInput, { key: 'Enter', code: 'Enter' })
+
+    await waitFor(() => {
+      expect(mockGetArticles).toHaveBeenLastCalledWith(1, 6, '全部', '前端開發')
+    })
+  })
+
   it('切換 List 模式後分頁器消失', async () => {
     const articles = buildArticles(6)
     mockGetArticles.mockResolvedValue(

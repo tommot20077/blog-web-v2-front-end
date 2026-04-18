@@ -8,6 +8,13 @@ import { categoryService } from '../api/categoryService'
 import { myArticlesService } from '../api/myArticlesService'
 import { createMockEditorArticle, createMockCategoryOption } from '../test-utils/factories'
 
+// ── Mock vue-router ──────────────────────────────────────────────────────────
+const mockRouterReplace = vi.fn()
+vi.mock('vue-router', () => ({
+  useRouter: () => ({ replace: mockRouterReplace }),
+  useRoute: () => ({ params: {} }),
+}))
+
 // ── Mock 相依模組 ────────────────────────────────────────────────────────────
 vi.mock('../api/editorService')
 vi.mock('../api/categoryService')
@@ -67,6 +74,7 @@ function renderEditor(props: Record<string, unknown> = {}) {
 describe('EditorView Integration', () => {
   beforeEach(() => {
     vi.mocked(categoryService.getCategories).mockResolvedValue(mockCategories)
+    mockRouterReplace.mockReset()
   })
 
   // ── 新建模式 ──────────────────────────────────────────────────────────────
@@ -169,6 +177,39 @@ describe('EditorView Integration', () => {
         expect(editorService.updateArticle).toHaveBeenCalledWith('edit-uuid', expect.any(Object))
         expect(editorService.createArticle).not.toHaveBeenCalled()
       })
+    })
+  })
+
+  // ── 儲存後路由更新 ────────────────────────────────────────────────────────
+  describe('儲存後路由更新', () => {
+    it('新建模式儲存草稿後 router.replace 呼叫帶 /editor/{uuid}', async () => {
+      const mockArticle = createMockEditorArticle({ uuid: 'new-uuid-123' })
+      vi.mocked(editorService.createArticle).mockResolvedValue(mockArticle)
+
+      const user = userEvent.setup()
+      renderEditor()
+      await user.click(screen.getByText(/儲存草稿/))
+
+      await waitFor(() => {
+        expect(mockRouterReplace).toHaveBeenCalledWith('/editor/new-uuid-123')
+      })
+    })
+
+    it('有 uuid prop 時儲存草稿不呼叫 router.replace', async () => {
+      const mockArticle = createMockEditorArticle({ uuid: 'edit-uuid' })
+      vi.mocked(editorService.getArticleForEdit).mockResolvedValue(mockArticle)
+      vi.mocked(editorService.updateArticle).mockResolvedValue(mockArticle)
+
+      const user = userEvent.setup()
+      renderEditor({ uuid: 'edit-uuid' })
+
+      await waitFor(() => screen.getByPlaceholderText(/標題/))
+      await user.click(screen.getByText(/儲存草稿/))
+
+      await waitFor(() => {
+        expect(editorService.updateArticle).toHaveBeenCalled()
+      })
+      expect(mockRouterReplace).not.toHaveBeenCalled()
     })
   })
 

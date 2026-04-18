@@ -7,8 +7,8 @@ import type { CategoryOption, TagSuggestion, QuotaInfo, EditorArticle, MyArticle
 // 模擬作者名稱池
 const MOCK_AUTHORS = ['Yuan', '小明', 'TechLead', '旅行者', 'DevGuru'] as const;
 
-// 產生完整的模擬資料做為母體
-export const allMockArticles: ArticleItem[] = Array.from({ length: 50 }).map((_, i) => {
+// 產生 50 篇 Frontend / Backend 交替的模擬文章
+const baseMockArticles: ArticleItem[] = Array.from({ length: 50 }).map((_, i) => {
   const isFrontend = i % 2 === 0;
   return {
     uuid: `article-${i + 1}`,
@@ -25,6 +25,44 @@ export const allMockArticles: ArticleItem[] = Array.from({ length: 50 }).map((_,
     slug: `article-slug-${i + 1}`,
   };
 });
+
+// Life 分類補充文章
+const lifeMockArticles: ArticleItem[] = [
+  {
+    uuid: 'life-article-1',
+    title: '工程師的旅行日記 — 峇里島遠端工作體驗',
+    summary: '分享在峇里島一邊寫程式一邊享受海景的生活日記，以及如何在異鄉保持工作效率。',
+    coverImageUrl: 'https://picsum.photos/seed/life-1/800/400',
+    authorNickname: '旅行者',
+    viewCount: 3200,
+    likeCount: 156,
+    commentCount: 28,
+    publishedAt: '2026-04-01',
+    tags: ['Life', 'Remote Work', 'Travel'],
+    categories: ['Life'],
+    slug: 'life-bali-remote-work',
+  },
+  {
+    uuid: 'life-article-2',
+    title: '技術人讀書筆記 — 原子習慣改變了我的開發習慣',
+    summary: '用《原子習慣》的框架重新設計每日 coding 例行公事，養成穩定輸出的寫作習慣。',
+    coverImageUrl: 'https://picsum.photos/seed/life-2/800/400',
+    authorNickname: 'Yuan',
+    viewCount: 1800,
+    likeCount: 92,
+    commentCount: 15,
+    publishedAt: '2026-04-03',
+    tags: ['Life', 'Productivity', 'Books'],
+    categories: ['Life'],
+    slug: 'life-atomic-habits',
+  },
+];
+
+// 完整母體 = 50 篇基礎文章 + Life 分類文章
+export const allMockArticles: ArticleItem[] = [
+  ...baseMockArticles,
+  ...lifeMockArticles,
+];
 
 // 根據 uuid 取得含 content 的文章詳情
 export function getMockArticleDetail(uuid: string): ArticleDetailItem | null {
@@ -103,6 +141,7 @@ export const mockCategories: CategoryOption[] = [
   { id: 'cat-4', name: 'DevOps', slug: 'devops' },
   { id: 'cat-5', name: 'Backend', slug: 'backend' },
   { id: 'cat-6', name: 'Frontend', slug: 'frontend' },
+  { id: 'cat-7', name: 'Life', slug: 'life' },
 ];
 
 export const mockTagPool: TagSuggestion[] = [

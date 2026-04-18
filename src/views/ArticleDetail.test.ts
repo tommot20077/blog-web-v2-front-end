@@ -201,4 +201,25 @@ describe('ArticleDetail 頁面', () => {
       expect(screen.getByText('Vue')).toBeInTheDocument()
     })
   })
+
+  describe('返回頂部按鈕', () => {
+    it('點擊返回頂部按鈕呼叫 window.scrollTo({ top: 0 })', async () => {
+      const scrollToSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+      const mockArticle = createMockArticleDetail({ title: '測試文章' })
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+      await renderArticleDetail()
+      await flushPromises()
+
+      // 找到 article footer 內的返回頂部按鈕（與 E2E 的 'article footer button' 相同定位）
+      const endText = screen.getByText('END OF ARTICLE.')
+      const footer = endText.closest('footer')!
+      const scrollBtn = footer.querySelector('button')!
+      expect(scrollBtn).toBeTruthy()
+
+      await fireEvent.click(scrollBtn)
+
+      expect(scrollToSpy).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' })
+    })
+  })
 })

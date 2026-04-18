@@ -1,4 +1,5 @@
 import { getArticlesMock, getArticleByUuidMock } from './articleMockService';
+import { allMockArticles } from './data';
 
 describe('articleMockService', () => {
   beforeEach(() => {
@@ -12,25 +13,29 @@ describe('articleMockService', () => {
   // --- getArticlesMock ---
   describe('getArticlesMock', () => {
     it('取第 1 頁 6 筆 → records.length === 6, current === 1', async () => {
+      const total = allMockArticles.length;
       const promise = getArticlesMock(1, 6, '全部', '');
       await vi.advanceTimersByTimeAsync(600);
       const result = await promise;
 
       expect(result.records).toHaveLength(6);
       expect(result.current).toBe(1);
-      expect(result.total).toBe(50);
+      expect(result.total).toBe(total);
       expect(result.size).toBe(6);
-      expect(result.pages).toBe(Math.ceil(50 / 6));
+      expect(result.pages).toBe(Math.ceil(total / 6));
     });
 
-    it('取最後一頁（第 9 頁，50/6=8.33→ceil=9）→ records.length === 2', async () => {
-      const promise = getArticlesMock(9, 6, '全部', '');
+    it('取最後一頁 → 只剩下不滿一頁的筆數', async () => {
+      const total = allMockArticles.length;
+      const lastPage = Math.ceil(total / 6);
+      const expectedLastPageCount = total - (lastPage - 1) * 6;
+      const promise = getArticlesMock(lastPage, 6, '全部', '');
       await vi.advanceTimersByTimeAsync(600);
       const result = await promise;
 
-      expect(result.records).toHaveLength(2);
-      expect(result.current).toBe(9);
-      expect(result.pages).toBe(9);
+      expect(result.records).toHaveLength(expectedLastPageCount);
+      expect(result.current).toBe(lastPage);
+      expect(result.pages).toBe(lastPage);
     });
 
     it('超出頁數（第 100 頁）→ records.length === 0', async () => {
@@ -55,26 +60,52 @@ describe('articleMockService', () => {
       }
     });
 
-    it("category 過濾 'Frontend' → 只含 Frontend tagged 文章", async () => {
+    it("category 過濾 'Frontend' → 只含 Frontend 分類文章", async () => {
       const promise = getArticlesMock(1, 100, 'Frontend', '');
       await vi.advanceTimersByTimeAsync(600);
       const result = await promise;
 
       expect(result.records.length).toBeGreaterThan(0);
       for (const article of result.records) {
-        expect(
-          article.tags.some((t) => t.toLowerCase() === 'frontend'),
-        ).toBe(true);
+        expect(article.categories).toContain('Frontend');
       }
     });
 
-    it("category '全部' → 不過濾，回傳全部 50 筆", async () => {
-      const promise = getArticlesMock(1, 100, '全部', '');
+    it("keyword 搜尋 'vue'（小寫）大小寫不分回傳 Vue 相關文章", async () => {
+      const promise = getArticlesMock(1, 100, '全部', 'vue');
       await vi.advanceTimersByTimeAsync(600);
       const result = await promise;
 
-      expect(result.total).toBe(50);
-      expect(result.records).toHaveLength(50);
+      expect(result.records.length).toBeGreaterThan(0);
+      for (const article of result.records) {
+        const kw = 'vue'
+        const matchesKeyword =
+          article.title.toLowerCase().includes(kw) ||
+          article.summary.toLowerCase().includes(kw) ||
+          article.tags.some(t => t.toLowerCase().includes(kw))
+        expect(matchesKeyword).toBe(true);
+      }
+    });
+
+    it("category 過濾 'Life' → 回傳 Life 分類文章", async () => {
+      const promise = getArticlesMock(1, 100, 'Life', '');
+      await vi.advanceTimersByTimeAsync(600);
+      const result = await promise;
+
+      expect(result.records.length).toBeGreaterThan(0);
+      for (const article of result.records) {
+        expect(article.categories).toContain('Life');
+      }
+    });
+
+    it("category '全部' → 不過濾，回傳全部文章", async () => {
+      const total = allMockArticles.length;
+      const promise = getArticlesMock(1, total, '全部', '');
+      await vi.advanceTimersByTimeAsync(600);
+      const result = await promise;
+
+      expect(result.total).toBe(total);
+      expect(result.records).toHaveLength(total);
     });
   });
 

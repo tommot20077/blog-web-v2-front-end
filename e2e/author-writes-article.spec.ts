@@ -44,4 +44,33 @@ test.describe('作者撰寫文章', () => {
     await editorPage.summaryTextarea.fill('這是測試摘要')
     await expect(editorPage.summaryTextarea).toHaveValue('這是測試摘要')
   })
+
+  test('新文章儲存草稿後 URL 更新至 /editor/{uuid}', async ({ page, editorPage }) => {
+    // 確認初始在 /editor（無 uuid）
+    await expect(page).toHaveURL('/editor')
+
+    await editorPage.fillTitle('E2E UUID 接力測試')
+    await editorPage.saveDraft()
+    await editorPage.waitForSaveSuccess()
+
+    // 儲存後 URL 應更新為 /editor/{uuid}（非 /editor）
+    await expect(page).toHaveURL(/\/editor\/.+/, { timeout: 5000 })
+  })
+
+  test('再次儲存草稿 UUID 不變，URL 不再更改', async ({ page, editorPage }) => {
+    await editorPage.fillTitle('E2E UUID 接力測試 - 重複儲存')
+    await editorPage.saveDraft()
+    await editorPage.waitForSaveSuccess()
+
+    // 取得第一次儲存後的 URL
+    await page.waitForURL(/\/editor\/.+/, { timeout: 5000 })
+    const urlAfterFirstSave = page.url()
+
+    // 再次儲存
+    await editorPage.saveDraft()
+    await editorPage.waitForSaveSuccess()
+
+    // URL 應與第一次相同（uuid 未改變）
+    expect(page.url()).toBe(urlAfterFirstSave)
+  })
 })
