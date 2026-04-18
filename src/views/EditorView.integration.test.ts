@@ -39,6 +39,8 @@ vi.mock('../composables/useMarkdownEditor', () => ({
     insertText: vi.fn(),
     prefixLines: vi.fn(),
     setContent: vi.fn(),
+    undo: vi.fn(),
+    redo: vi.fn(),
   })),
 }))
 
@@ -73,17 +75,17 @@ describe('EditorView Integration', () => {
       expect(screen.getByTestId('editor-title-input')).toBeInTheDocument()
     })
 
-    it('渲染「Save Draft」按鈕', () => {
+    it('渲染「儲存草稿」按鈕', () => {
       renderEditor()
       expect(screen.getByTestId('editor-save-btn')).toBeInTheDocument()
     })
 
-    it('渲染「Publish」按鈕', () => {
+    it('渲染「送出審核」按鈕', () => {
       renderEditor()
       expect(screen.getByTestId('editor-publish-btn')).toBeInTheDocument()
     })
 
-    it('點擊「Save Draft」後呼叫 editorService.createArticle', async () => {
+    it('點擊「儲存草稿」後呼叫 editorService.createArticle', async () => {
       const mockArticle = createMockEditorArticle()
       vi.mocked(editorService.createArticle).mockResolvedValue(mockArticle)
 
@@ -133,7 +135,7 @@ describe('EditorView Integration', () => {
       })
     })
 
-    it('點擊「Save Draft」後呼叫 updateArticle 而非 createArticle', async () => {
+    it('點擊「儲存草稿」後呼叫 updateArticle 而非 createArticle', async () => {
       const mockArticle = createMockEditorArticle({ uuid: 'edit-uuid', title: '舊標題' })
       vi.mocked(editorService.getArticleForEdit).mockResolvedValue(mockArticle)
       vi.mocked(editorService.updateArticle).mockResolvedValue({

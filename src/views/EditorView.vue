@@ -1,10 +1,15 @@
 <script setup lang="ts">
-import { shallowRef, onMounted } from 'vue'
+import { shallowRef, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useEditorForm } from '../composables/useEditorForm'
 import { useMarkdownEditor } from '../composables/useMarkdownEditor'
 import { useMarkdownRenderer } from '../composables/useMarkdownRenderer'
+import { useWordCount } from '../composables/useWordCount'
 import { useToast } from '../composables/useToast'
+import { categoryService } from '../api/categoryService'
+import EditorToolbar from '../components/editor/EditorToolbar.vue'
+import EditorMetaSidebar from '../components/editor/EditorMetaSidebar.vue'
+import type { CategoryOption } from '../types/editor'
 
 const props = defineProps<{
   uuid?: string
@@ -13,23 +18,30 @@ const props = defineProps<{
 // ── CodeMirror mount target ────────────────────────────────────────────────
 const editorContainer = shallowRef<HTMLElement | null>(null)
 
-// ── CodeMirror editor (PRESERVE: composable + ref name) ───────────────────
-const { markdownContent, setContent } = useMarkdownEditor(editorContainer)
+// ── CodeMirror editor ─────────────────────────────────────────────────────
+const { markdownContent, wrapSelection, insertText, prefixLines, setContent, undo, redo } = useMarkdownEditor(editorContainer)
 
 // ── Markdown preview ───────────────────────────────────────────────────────
 const { renderedHtml } = useMarkdownRenderer(markdownContent)
 
+// ── Word count ─────────────────────────────────────────────────────────────
+const { wordCount } = useWordCount(markdownContent)
+
 // ── Form state ─────────────────────────────────────────────────────────────
 const {
-  title, tagNames,
+  title, summary, coverImageUrl, categoryIds, tagNames,
   isNew, isSaving, article, loadArticle, saveDraft, submitForReview,
 } = useEditorForm(props.uuid)
+
+// ── Categories ─────────────────────────────────────────────────────────────
+const categories = ref<CategoryOption[]>([])
 
 const router = useRouter()
 const { showToast } = useToast()
 
-// ── Mount: load article in edit mode ──────────────────────────────────────
+// ── Mount: load article in edit mode + load categories ────────────────────
 onMounted(async () => {
+  categories.value = await categoryService.getCategories()
   if (!isNew.value) {
     await loadArticle()
     if (article.value?.content) {
@@ -88,6 +100,7 @@ async function onSubmitForReview() {
         placeholder="標籤（逗號分隔）..."
         @change="tagNames = ($event.target as HTMLInputElement).value.split(',').map(t => t.trim()).filter(Boolean)"
       />
+      <span class="editor-word-count">{{ wordCount }} 字</span>
       <button
         type="button"
         class="btn btn--ghost"
@@ -95,7 +108,7 @@ async function onSubmitForReview() {
         :disabled="isSaving"
         @click="onSaveDraft"
       >
-        {{ isSaving ? '儲存中...' : 'Save Draft' }}
+        {{ isSaving ? '儲存中...' : '儲存草稿' }}
       </button>
       <button
         type="button"
@@ -104,9 +117,18 @@ async function onSubmitForReview() {
         :disabled="isSaving"
         @click="onSubmitForReview"
       >
-        Publish
+        送出審核
       </button>
     </div>
+
+    <!-- Toolbar -->
+    <EditorToolbar
+      @wrap-selection="wrapSelection"
+      @insert-text="insertText"
+      @prefix-lines="prefixLines"
+      @undo="undo"
+      @redo="redo"
+    />
 
     <!-- Split pane body -->
     <div class="editor-body">
@@ -117,11 +139,24 @@ async function onSubmitForReview() {
         data-testid="editor-textarea"
       />
 
-      <!-- Right: Markdown preview -->
+      <!-- Center: Markdown preview -->
       <div
         class="editor-preview prose"
         data-testid="editor-preview"
         v-html="renderedHtml"
+      />
+
+      <!-- Right: Meta sidebar -->
+      <EditorMetaSidebar
+        :summary="summary"
+        :cover-image-url="coverImageUrl"
+        :category-ids="categoryIds"
+        :tag-names="tagNames"
+        :categories="categories"
+        @update:summary="summary = $event"
+        @update:cover-image-url="coverImageUrl = $event"
+        @update:category-ids="categoryIds = $event"
+        @update:tag-names="tagNames = $event"
       />
     </div>
 
@@ -132,6 +167,8 @@ async function onSubmitForReview() {
 .editor-shell { height: 100vh; display: flex; flex-direction: column; }
 .editor-meta { display: flex; gap: 1rem; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid var(--divider); }
 .editor-title-input { flex: 1; font-family: var(--f-display); font-size: 1.5rem; background: none; border: none; color: var(--ink); outline: none; }
+.editor-tags-input { font-family: var(--f-body); background: none; border: none; color: var(--ink); outline: none; }
+.editor-word-count { font-size: 0.875rem; color: var(--ink-muted, #888); white-space: nowrap; }
 .editor-body { flex: 1; display: flex; overflow: hidden; }
 .editor-pane { flex: 1; overflow-y: auto; border-right: 1px solid var(--divider); }
 .editor-preview { flex: 1; overflow-y: auto; padding: 2rem; font-family: var(--f-body); }
