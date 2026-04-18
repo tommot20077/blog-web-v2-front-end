@@ -43,7 +43,7 @@ const emitFilter = () => {
         :key="cat"
         @click="selectCategory(cat)"
         class="px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 whitespace-nowrap"
-        :class="activeCategory === cat ? 'bg-[var(--text-main)] text-[var(--bg-color)] shadow-md' : 'text-neutral-500 dark:text-neutral-400 hover:text-[var(--text-main)]'"
+        :class="activeCategory === cat ? 'bg-[var(--text-main)] text-[var(--bg-color)] shadow-md' : 'text-neutral-600 dark:text-neutral-400 hover:text-[var(--text-main)]'"
       >
         {{ cat }}
       </button>

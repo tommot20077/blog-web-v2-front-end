@@ -143,7 +143,8 @@ test.describe('按鈕互動 — 手機底部導覽', { tag: '@mobile' }, () => {
     await page.waitForLoadState('networkidle')
 
     // BUG-005：修復前此測試失敗（ThemeSwitcher 被 hidden md:flex 隱藏）
-    await expect(page.getByRole('button', { name: '切換深淺色模式' })).toBeVisible()
+    // DOM 中有兩個 ThemeSwitcher（mobile/desktop），取第一個（mobile）確認可見
+    await expect(page.getByRole('button', { name: '切換深淺色模式' }).first()).toBeVisible()
   })
 })
 
