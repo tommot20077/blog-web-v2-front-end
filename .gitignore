@@ -35,6 +35,12 @@ dist-ssr
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+/.playwright-cli/
+/.playwright/
+
+# Design & docs
+/blog-v2-design/
+/docs/
 
 # Git worktrees
 /.worktrees/
