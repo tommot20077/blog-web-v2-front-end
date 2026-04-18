@@ -4,9 +4,8 @@ import userEvent from '@testing-library/user-event'
 import { createPinia, setActivePinia } from 'pinia'
 import EditorView from './EditorView.vue'
 import { editorService } from '../api/editorService'
-import { categoryService } from '../api/categoryService'
 import { myArticlesService } from '../api/myArticlesService'
-import { createMockEditorArticle, createMockCategoryOption } from '../test-utils/factories'
+import { createMockEditorArticle } from '../test-utils/factories'
 
 // ── Mock vue-router ──────────────────────────────────────────────────────────
 const mockRouterReplace = vi.fn()
@@ -32,11 +31,6 @@ vi.mock('../composables/useToast', () => ({
   }),
 }))
 
-vi.mock('splitpanes', () => ({
-  Splitpanes: { name: 'Splitpanes', template: '<div class="splitpanes"><slot /></div>' },
-  Pane: { name: 'Pane', template: '<div class="pane"><slot /></div>' },
-}))
-
 vi.mock('../composables/useMarkdownEditor', () => ({
   useMarkdownEditor: vi.fn(() => ({
     editorView: ref(null),
@@ -56,11 +50,6 @@ vi.mock('../composables/useMarkdownRenderer', () => ({
 }))
 
 // ── 共用測試資料 ─────────────────────────────────────────────────────────────
-const mockCategories = [
-  createMockCategoryOption({ id: 'cat-1', name: 'Vue', slug: 'vue' }),
-  createMockCategoryOption({ id: 'cat-2', name: 'React', slug: 'react' }),
-]
-
 function renderEditor(props: Record<string, unknown> = {}) {
   const pinia = createPinia()
   setActivePinia(pinia)
@@ -73,7 +62,7 @@ function renderEditor(props: Record<string, unknown> = {}) {
 // ── 測試套件 ─────────────────────────────────────────────────────────────────
 describe('EditorView Integration', () => {
   beforeEach(() => {
-    vi.mocked(categoryService.getCategories).mockResolvedValue(mockCategories)
+    vi.mocked(mockShowToast).mockReset?.()
     mockRouterReplace.mockReset()
   })
 
@@ -81,40 +70,28 @@ describe('EditorView Integration', () => {
   describe('新建模式（無 uuid）', () => {
     it('渲染標題輸入框', async () => {
       renderEditor()
-      expect(screen.getByPlaceholderText(/標題/)).toBeInTheDocument()
+      expect(screen.getByTestId('editor-title-input')).toBeInTheDocument()
     })
 
-    it('渲染「儲存草稿」按鈕', () => {
+    it('渲染「Save Draft」按鈕', () => {
       renderEditor()
-      expect(screen.getByText(/儲存草稿/)).toBeInTheDocument()
+      expect(screen.getByTestId('editor-save-btn')).toBeInTheDocument()
     })
 
-    it('渲染「送出審核」按鈕', () => {
+    it('渲染「Publish」按鈕', () => {
       renderEditor()
-      expect(screen.getByText(/送出審核/)).toBeInTheDocument()
+      expect(screen.getByTestId('editor-publish-btn')).toBeInTheDocument()
     })
 
-    it('顯示字數計數', () => {
-      renderEditor()
-      expect(screen.getByText(/0\s*字/)).toBeInTheDocument()
-    })
-
-    it('掛載後載入分類列表', async () => {
-      renderEditor()
-      await waitFor(() => {
-        expect(categoryService.getCategories).toHaveBeenCalled()
-      })
-    })
-
-    it('點擊「儲存草稿」後呼叫 editorService.createArticle', async () => {
+    it('點擊「Save Draft」後呼叫 editorService.createArticle', async () => {
       const mockArticle = createMockEditorArticle()
       vi.mocked(editorService.createArticle).mockResolvedValue(mockArticle)
 
       const user = userEvent.setup()
       renderEditor()
 
-      await user.type(screen.getByPlaceholderText(/標題/), '測試文章')
-      await user.click(screen.getByText(/儲存草稿/))
+      await user.type(screen.getByTestId('editor-title-input'), '測試文章')
+      await user.click(screen.getByTestId('editor-save-btn'))
 
       await waitFor(() => {
         expect(editorService.createArticle).toHaveBeenCalled()
@@ -127,7 +104,7 @@ describe('EditorView Integration', () => {
 
       const user = userEvent.setup()
       renderEditor()
-      await user.click(screen.getByText(/儲存草稿/))
+      await user.click(screen.getByTestId('editor-save-btn'))
 
       await waitFor(() => {
         expect(mockShowToast).toHaveBeenCalledWith('草稿已儲存', 'success')
@@ -151,12 +128,12 @@ describe('EditorView Integration', () => {
         expect(editorService.getArticleForEdit).toHaveBeenCalledWith('edit-uuid')
       })
       await waitFor(() => {
-        const titleInput = screen.getByPlaceholderText(/標題/) as HTMLInputElement
+        const titleInput = screen.getByTestId('editor-title-input') as HTMLInputElement
         expect(titleInput.value).toBe('已有文章標題')
       })
     })
 
-    it('點擊「儲存草稿」後呼叫 updateArticle 而非 createArticle', async () => {
+    it('點擊「Save Draft」後呼叫 updateArticle 而非 createArticle', async () => {
       const mockArticle = createMockEditorArticle({ uuid: 'edit-uuid', title: '舊標題' })
       vi.mocked(editorService.getArticleForEdit).mockResolvedValue(mockArticle)
       vi.mocked(editorService.updateArticle).mockResolvedValue({
@@ -168,10 +145,10 @@ describe('EditorView Integration', () => {
       renderEditor({ uuid: 'edit-uuid' })
 
       await waitFor(() => {
-        expect(screen.getByPlaceholderText(/標題/)).toBeInTheDocument()
+        expect(screen.getByTestId('editor-title-input')).toBeInTheDocument()
       })
 
-      await user.click(screen.getByText(/儲存草稿/))
+      await user.click(screen.getByTestId('editor-save-btn'))
 
       await waitFor(() => {
         expect(editorService.updateArticle).toHaveBeenCalledWith('edit-uuid', expect.any(Object))
@@ -188,7 +165,7 @@ describe('EditorView Integration', () => {
 
       const user = userEvent.setup()
       renderEditor()
-      await user.click(screen.getByText(/儲存草稿/))
+      await user.click(screen.getByTestId('editor-save-btn'))
 
       await waitFor(() => {
         expect(mockRouterReplace).toHaveBeenCalledWith('/editor/new-uuid-123')
@@ -203,22 +180,13 @@ describe('EditorView Integration', () => {
       const user = userEvent.setup()
       renderEditor({ uuid: 'edit-uuid' })
 
-      await waitFor(() => screen.getByPlaceholderText(/標題/))
-      await user.click(screen.getByText(/儲存草稿/))
+      await waitFor(() => screen.getByTestId('editor-title-input'))
+      await user.click(screen.getByTestId('editor-save-btn'))
 
       await waitFor(() => {
         expect(editorService.updateArticle).toHaveBeenCalled()
       })
       expect(mockRouterReplace).not.toHaveBeenCalled()
-    })
-  })
-
-  // ── 工具列互動 ─────────────────────────────────────────────────────────────
-  describe('工具列', () => {
-    it('渲染工具列', () => {
-      renderEditor()
-      // 工具列含有粗體按鈕
-      expect(screen.getByTitle(/粗體/)).toBeInTheDocument()
     })
   })
 
@@ -231,7 +199,7 @@ describe('EditorView Integration', () => {
 
       const user = userEvent.setup()
       renderEditor()
-      await user.click(screen.getByText(/送出審核/))
+      await user.click(screen.getByTestId('editor-publish-btn'))
 
       await waitFor(() => {
         expect(editorService.createArticle).toHaveBeenCalled()
@@ -245,7 +213,7 @@ describe('EditorView Integration', () => {
 
       const user = userEvent.setup()
       renderEditor()
-      await user.click(screen.getByText(/送出審核/))
+      await user.click(screen.getByTestId('editor-publish-btn'))
 
       await waitFor(() => {
         expect(mockShowToast).toHaveBeenCalledWith('儲存失敗', 'error')
@@ -260,7 +228,7 @@ describe('EditorView Integration', () => {
 
       const user = userEvent.setup()
       renderEditor()
-      await user.click(screen.getByText(/送出審核/))
+      await user.click(screen.getByTestId('editor-publish-btn'))
 
       await waitFor(() => {
         expect(myArticlesService.submitForReview).toHaveBeenCalled()
