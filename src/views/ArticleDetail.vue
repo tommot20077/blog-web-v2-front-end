@@ -267,7 +267,7 @@ html.dark .article-body :deep(.shiki span) {
 
 /* 連結顏色 */
 .article-body :deep(a) {
-  color: #3b82f6;
+  color: var(--accent);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -292,10 +292,10 @@ html.dark .article-body :deep(.shiki span) {
   padding: 0.15em 0.4em;
   border-radius: 0.375rem;
   font-size: 0.85em;
-  color: #d23669;
+  color: var(--code-ink, #d23669);
 }
 html.dark .article-body :deep(:not(pre) > code) {
-  color: #ff7b72;
+  color: var(--code-ink-dark, #ff7b72);
 }
 
 /* 表格樣式優化 */
