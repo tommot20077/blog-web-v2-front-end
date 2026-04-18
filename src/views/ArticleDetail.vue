@@ -39,7 +39,7 @@ const goBack = () => {
 
 <template>
   <div class="w-full flex-1 pt-8 md:pt-16 pb-32">
-    
+
     <!-- 全局加載中動畫 -->
     <div v-if="isLoading" class="flex flex-col items-center justify-center pt-32 pb-64 min-h-[60vh]">
       <div class="flex gap-3 items-center opacity-80">
@@ -60,8 +60,8 @@ const goBack = () => {
     </div>
 
     <!-- 實際文章渲染層 -->
-    <article v-else class="max-w-4xl mx-auto px-6 w-full animate-fade-in-up">
-      
+    <article v-else class="article animate-fade-in-up" data-testid="article-root">
+
       <!-- 返回按鈕列 -->
       <div class="mb-10 w-full flex items-center">
         <button
@@ -82,9 +82,9 @@ const goBack = () => {
         class="w-full aspect-video object-cover rounded-none md:rounded-3xl shadow-lg mb-10"
       />
 
-      <!-- 開頭 Hero 資訊 -->
-      <header class="mb-16 border-b pb-12" style="border-color: var(--glass-border)">
-        <!-- 分類 pills（與 tags 視覺區分，使用 accent-color） -->
+      <!-- Hero 區塊 -->
+      <div class="article-hero">
+        <!-- 分類 pills（category pill above title） -->
         <div v-if="article.categories?.length > 0" class="flex flex-wrap gap-2 mb-4">
           <span
             v-for="cat in article.categories ?? []"
@@ -97,28 +97,28 @@ const goBack = () => {
         </div>
 
         <!-- Tags -->
-        <div class="flex flex-wrap gap-2 mb-8">
+        <div class="article-tags flex flex-wrap gap-2 mb-8" data-testid="article-tags">
           <span v-for="tag in article.tags" :key="tag" class="px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-widest bg-[var(--text-main)] text-[var(--bg-color)] shadow-md">
             # {{ tag }}
           </span>
         </div>
 
-        <h1 class="text-4xl md:text-5xl lg:text-6xl font-black mb-8 leading-tight tracking-tight" style="color: var(--text-main)">
+        <h1 class="article-title" data-testid="article-title">
           {{ article.title }}
         </h1>
 
         <!-- metadata 行 -->
-        <div class="flex flex-wrap items-center gap-4 text-sm font-bold opacity-50 tracking-wide uppercase">
+        <div class="article-meta flex flex-wrap items-center gap-4 text-sm font-bold opacity-50 tracking-wide uppercase">
           <!-- 作者 -->
           <div class="flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-            <span>{{ article.authorNickname }}</span>
+            <span data-testid="article-author">{{ article.authorNickname }}</span>
           </div>
           <span class="opacity-30">|</span>
           <!-- 發布日期 -->
           <div class="flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-            <span>{{ article.publishedAt }}</span>
+            <time data-testid="article-date">{{ article.publishedAt }}</time>
           </div>
           <span class="opacity-30">|</span>
           <!-- 觀看數 -->
@@ -144,19 +144,20 @@ const goBack = () => {
             <span>{{ article.commentCount }}</span>
           </div>
         </div>
-      </header>
+      </div>
 
       <!-- 文章本文 -->
       <!-- markdown-it + Shiki 渲染 → DOMPurify 消毒 → Typography .prose 排版 -->
-      <section 
-        class="article-content prose prose-lg dark:prose-invert max-w-none leading-relaxed tracking-wide"
+      <div
+        class="article-body prose prose-lg dark:prose-invert"
+        data-testid="article-body"
         v-html="renderedHtml">
-      </section>
-      
+      </div>
+
       <!-- 結尾操作區塊 -->
       <footer class="mt-24 pt-12 border-t flex flex-col md:flex-row items-center justify-between gap-6" style="border-color: var(--glass-border)">
         <p class="font-bold text-xs opacity-40 tracking-widest uppercase">END OF ARTICLE.</p>
-        <button 
+        <button
           @click="scrollToTop"
           class="flex items-center justify-center w-12 h-12 rounded-full border bg-[var(--glass-panel)] backdrop-blur-md opacity-70 hover:opacity-100 hover:-translate-y-2 transition-all shadow-sm group"
           style="border-color: var(--glass-border);"
@@ -164,7 +165,7 @@ const goBack = () => {
           <svg class="w-5 h-5 group-hover:animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>
         </button>
       </footer>
-      
+
     </article>
   </div>
 </template>
@@ -184,20 +185,63 @@ const goBack = () => {
   animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* BUG-003：防止寬內容（table / pre）在 320px 時造成水平溢出 */
-.article-content {
+.article {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.article-hero {
+  margin-bottom: 3rem;
+  border-bottom: 1px solid var(--glass-border);
+  padding-bottom: 3rem;
+}
+
+.article-title {
+  font-family: var(--f-display);
+  font-size: clamp(2rem, 6vw, 4rem);
+  line-height: 1.1;
+  color: var(--ink);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  margin-bottom: 2rem;
+}
+
+.article-meta {
+  margin-top: 1.5rem;
+}
+
+.article-body {
+  max-width: 68ch;
+  margin: 0 auto;
+  font-family: var(--f-body);
+  color: var(--ink-2);
+  /* BUG-003：防止寬內容（table / pre）在 320px 時造成水平溢出 */
   overflow-x: hidden;
 }
 
+.article-body :deep(code) {
+  font-family: var(--f-mono);
+  background: var(--bg-sub);
+}
+
+.article-body :deep(blockquote) {
+  border-left: 3px solid var(--accent);
+  background: var(--glass-panel);
+  padding: 0.75em 1.5em;
+  border-radius: 0 0.75rem 0.75rem 0;
+  opacity: 0.85;
+}
+
 /* Shiki 程式碼區塊：覆寫 Typography 的預設樣式，讓 Shiki 全權處理 */
-.article-content :deep(pre) {
+.article-body :deep(pre) {
   background: transparent !important;
   padding: 0 !important;
   margin: 1.5em 0 !important;
   max-width: 100%;
   overflow-x: auto;
 }
-.article-content :deep(pre code) {
+.article-body :deep(pre code) {
   display: block;
   padding: 1.25em 1.5em;
   border-radius: 1rem;
@@ -208,50 +252,41 @@ const goBack = () => {
 }
 
 /* Shiki 雙主題 CSS Variables 切換 */
-.article-content :deep(.shiki) {
+.article-body :deep(.shiki) {
   background-color: var(--shiki-light-bg, #f6f8fa) !important;
 }
-.article-content :deep(.shiki span) {
+.article-body :deep(.shiki span) {
   color: var(--shiki-light, inherit);
 }
-html.dark .article-content :deep(.shiki) {
+html.dark .article-body :deep(.shiki) {
   background-color: var(--shiki-dark-bg, #24292e) !important;
 }
-html.dark .article-content :deep(.shiki span) {
+html.dark .article-body :deep(.shiki span) {
   color: var(--shiki-dark, inherit);
 }
 
-/* blockquote 客製化，與整體設計語言保持一致 */
-.article-content :deep(blockquote) {
-  border-left-color: var(--text-main);
-  background: var(--glass-panel);
-  padding: 0.75em 1.5em;
-  border-radius: 0 0.75rem 0.75rem 0;
-  opacity: 0.85;
-}
-
 /* 連結顏色 */
-.article-content :deep(a) {
+.article-body :deep(a) {
   color: #3b82f6;
   text-decoration: underline;
   text-underline-offset: 3px;
 }
 
 /* 圖片圓角 + 陰影 */
-.article-content :deep(img) {
+.article-body :deep(img) {
   border-radius: 1.5rem;
   box-shadow: 0 4px 24px rgba(0,0,0,0.08);
 }
 
 /* 確保刪除線顯示正確 */
-.article-content :deep(del),
-.article-content :deep(s),
-.article-content :deep(strike) {
+.article-body :deep(del),
+.article-body :deep(s),
+.article-body :deep(strike) {
   text-decoration: line-through;
 }
 
 /* 行內程式碼樣式（非 pre 區塊），讓其更明顯 */
-.article-content :deep(:not(pre) > code) {
+.article-body :deep(:not(pre) > code) {
   background-color: var(--glass-panel);
   border: 1px solid var(--glass-border);
   padding: 0.15em 0.4em;
@@ -259,12 +294,12 @@ html.dark .article-content :deep(.shiki span) {
   font-size: 0.85em;
   color: #d23669;
 }
-html.dark .article-content :deep(:not(pre) > code) {
+html.dark .article-body :deep(:not(pre) > code) {
   color: #ff7b72;
 }
 
 /* 表格樣式優化 */
-.article-content :deep(table) {
+.article-body :deep(table) {
   display: block;
   overflow-x: auto;
   width: 100%;
@@ -272,30 +307,30 @@ html.dark .article-content :deep(:not(pre) > code) {
   margin: 2em 0;
   font-size: 0.9em;
 }
-.article-content :deep(th),
-.article-content :deep(td) {
+.article-body :deep(th),
+.article-body :deep(td) {
   border: 1px solid var(--glass-border);
   padding: 0.75em 1em;
 }
-.article-content :deep(th) {
+.article-body :deep(th) {
   background-color: var(--glass-panel);
   font-weight: 700;
   text-align: left;
 }
-.article-content :deep(tr:nth-child(even)) {
+.article-body :deep(tr:nth-child(even)) {
   background-color: rgba(0, 0, 0, 0.02);
 }
-html.dark .article-content :deep(tr:nth-child(even)) {
+html.dark .article-body :deep(tr:nth-child(even)) {
   background-color: rgba(255, 255, 255, 0.02);
 }
 
 /* 任務清單樣式（markdown-it-task-lists） */
-.article-content :deep(.task-list-item) {
+.article-body :deep(.task-list-item) {
   list-style-type: none;
   position: relative;
-  margin-left: -1.5rem; /* 微調縮進與一般列表對齊 */
+  margin-left: -1.5rem;
 }
-.article-content :deep(.task-list-item input[type="checkbox"]) {
+.article-body :deep(.task-list-item input[type="checkbox"]) {
   position: absolute;
   left: -1.5rem;
   top: 0.35rem;
