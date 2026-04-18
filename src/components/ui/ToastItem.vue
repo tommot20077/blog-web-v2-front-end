@@ -20,7 +20,7 @@ const indicatorColorMap: Record<ToastType, string> = {
 <template>
   <div
     class="flex items-stretch gap-3 rounded-2xl border px-4 py-3 shadow-lg min-w-[280px] max-w-[400px] transition-all duration-300"
-    style="background: var(--glass-panel); border-color: var(--glass-border); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);"
+    style="background: var(--glass); border-color: var(--glass-border); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);"
   >
     <!-- 左側色條指示器 -->
     <div
@@ -30,7 +30,7 @@ const indicatorColorMap: Record<ToastType, string> = {
     />
 
     <!-- 訊息內容 -->
-    <p class="flex-1 text-sm font-medium py-0.5" style="color: var(--text-main);">
+    <p class="flex-1 text-sm font-medium py-0.5" style="color: var(--ink);">
       {{ toast.message }}
     </p>
 
@@ -38,7 +38,7 @@ const indicatorColorMap: Record<ToastType, string> = {
     <button
       data-testid="toast-close"
       class="shrink-0 opacity-40 hover:opacity-100 transition-opacity text-sm leading-none self-start pt-0.5"
-      style="color: var(--text-main);"
+      style="color: var(--ink);"
       @click="$emit('close', toast.id)"
     >
       ✕

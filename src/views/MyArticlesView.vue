@@ -63,136 +63,324 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' })
 }
 
+// Map status filter keys to their testid suffix
+const TAB_TESTIDS: Partial<Record<ArticleStatusFilter, string>> = {
+  DRAFT: 'my-tab-draft',
+  PUBLISHED: 'my-tab-published',
+  ARCHIVED: 'my-tab-archived',
+}
+
 onMounted(fetchArticles)
 </script>
 
 <template>
-  <div class="max-w-4xl mx-auto px-4 py-8">
-    <!-- 標題 -->
-    <h1 class="text-2xl font-bold mb-6">我的文章</h1>
+  <main class="my-articles" data-testid="my-root">
+    <!-- Header -->
+    <div class="my-header">
+      <h1 class="my-title" data-testid="my-header-title">My Articles</h1>
+      <RouterLink to="/editor" class="btn btn--primary" data-testid="my-new-btn">New Article</RouterLink>
+    </div>
 
     <!-- 狀態過濾 Tabs -->
-    <nav role="tablist" class="flex gap-2 mb-6 flex-wrap">
+    <div class="my-tabs" role="tablist">
       <button
         v-for="(label, status) in ARTICLE_STATUS_LABELS"
         :key="status"
         role="tab"
         :aria-selected="currentFilter === status"
-        class="px-3 py-1.5 rounded-full text-sm border transition-colors"
-        :class="currentFilter === status
-          ? 'bg-[var(--accent-color)] text-white border-[var(--accent-color)]'
-          : 'bg-white/60 border-white/80 hover:bg-white/80 dark:bg-white/8 dark:border-white/15'"
+        :data-testid="TAB_TESTIDS[status as ArticleStatusFilter]"
+        :class="{ active: currentFilter === status }"
         @click="handleFilterChange(status as ArticleStatusFilter)"
       >
         {{ label }}
       </button>
-    </nav>
+    </div>
 
     <!-- Loading -->
-    <div v-if="isLoading" data-testid="loading" class="flex justify-center py-12">
-      <div class="flex gap-2">
-        <span class="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style="animation-delay: 0ms" />
-        <span class="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style="animation-delay: 150ms" />
-        <span class="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style="animation-delay: 300ms" />
+    <div v-if="isLoading" data-testid="loading" class="loading-wrap">
+      <div class="loading-dots">
+        <span />
+        <span />
+        <span />
       </div>
     </div>
 
     <!-- 空狀態 -->
-    <div v-else-if="articles.length === 0" class="text-center py-12 text-gray-500">
+    <div v-else-if="articles.length === 0" class="empty-state">
       目前沒有文章
     </div>
 
-    <!-- 文章列表 -->
-    <ul v-else class="space-y-4">
-      <li
-        v-for="article in articles"
-        :key="article.uuid"
-        class="p-4 rounded-xl border border-white/80 dark:border-white/15 bg-white/60 dark:bg-white/8 backdrop-blur-md"
-      >
-        <div class="flex items-start justify-between gap-4">
-          <div class="flex-1 min-w-0">
-            <!-- 標題 + 狀態 -->
-            <div class="flex items-center gap-2 flex-wrap mb-1">
-              <h2 class="font-semibold truncate">{{ article.title }}</h2>
+    <!-- 文章表格 -->
+    <table v-else class="my-table">
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Status</th>
+          <th>Updated</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <template v-for="article in articles" :key="article.uuid">
+          <tr :data-testid="'my-row-' + article.uuid">
+            <td>{{ article.title }}</td>
+            <td>
               <span
-                class="shrink-0 px-2 py-0.5 rounded-full text-xs font-medium"
-                :class="{
-                  'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300': ARTICLE_STATUS_COLORS[article.status] === 'gray',
-                  'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400': ARTICLE_STATUS_COLORS[article.status] === 'yellow',
-                  'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400': ARTICLE_STATUS_COLORS[article.status] === 'green',
-                  'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400': ARTICLE_STATUS_COLORS[article.status] === 'red',
-                  'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400': ARTICLE_STATUS_COLORS[article.status] === 'blue',
-                }"
+                class="status-badge"
+                :class="'status-badge--' + ARTICLE_STATUS_COLORS[article.status]"
               >
                 {{ ARTICLE_STATUS_LABELS[article.status] }}
               </span>
-            </div>
+            </td>
+            <td>
+              <time>{{ formatDate(article.updatedAt) }}</time>
+            </td>
+            <td class="actions-cell">
+              <RouterLink
+                v-if="article.status === 'DRAFT' || article.status === 'REJECTED'"
+                :to="`/editor/${article.uuid}`"
+                class="btn btn--ghost"
+                :data-testid="'my-row-action-edit-' + article.uuid"
+              >
+                編輯
+              </RouterLink>
 
-            <!-- 更新日期 -->
-            <time class="text-xs text-gray-500">
-              最後更新：{{ formatDate(article.updatedAt) }}
-            </time>
+              <button
+                v-if="article.status === 'DRAFT'"
+                type="button"
+                class="btn btn--primary"
+                @click="handleSubmit(article.uuid)"
+              >
+                送出審核
+              </button>
 
-            <!-- 退回原因 -->
-            <p
-              v-if="article.status === 'REJECTED' && article.rejectReason"
-              class="mt-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg px-3 py-2"
-            >
+              <button
+                v-if="article.status === 'DRAFT'"
+                type="button"
+                class="btn btn--danger"
+                :data-testid="'my-row-action-delete-' + article.uuid"
+                @click="handleDelete(article.uuid)"
+              >
+                刪除
+              </button>
+            </td>
+          </tr>
+          <!-- 退回原因 -->
+          <tr
+            v-if="article.status === 'REJECTED' && article.rejectReason"
+            :data-testid="'my-row-reject-' + article.uuid"
+          >
+            <td colspan="4" class="reject-reason">
               {{ article.rejectReason }}
-            </p>
-          </div>
-
-          <!-- 操作按鈕 -->
-          <div class="shrink-0 flex gap-2 flex-wrap justify-end">
-            <RouterLink
-              v-if="article.status === 'DRAFT' || article.status === 'REJECTED'"
-              :to="`/editor/${article.uuid}`"
-              class="px-3 py-1.5 rounded-full text-sm bg-white/60 border border-white/80 hover:bg-white/80 dark:bg-white/8 dark:border-white/15 transition-colors"
-            >
-              編輯
-            </RouterLink>
-
-            <button
-              v-if="article.status === 'DRAFT'"
-              type="button"
-              class="px-3 py-1.5 rounded-full text-sm bg-[var(--accent-color)] text-white hover:opacity-90 transition-opacity"
-              @click="handleSubmit(article.uuid)"
-            >
-              送出審核
-            </button>
-
-            <button
-              v-if="article.status === 'DRAFT'"
-              type="button"
-              class="px-3 py-1.5 rounded-full text-sm bg-red-500 text-white hover:opacity-90 transition-opacity"
-              @click="handleDelete(article.uuid)"
-            >
-              刪除
-            </button>
-          </div>
-        </div>
-      </li>
-    </ul>
+            </td>
+          </tr>
+        </template>
+      </tbody>
+    </table>
 
     <!-- 分頁 -->
-    <div v-if="totalPages > 1" class="flex items-center justify-center gap-4 mt-8">
+    <div v-if="totalPages > 1" class="pagination">
       <button
         type="button"
-        class="px-4 py-2 rounded-full text-sm bg-white/60 border border-white/80 hover:bg-white/80 disabled:opacity-40 disabled:cursor-not-allowed dark:bg-white/8 dark:border-white/15 transition-colors"
+        class="btn btn--ghost"
         :disabled="currentPage === 1"
         @click="goToPage(currentPage - 1)"
       >
         上一頁
       </button>
-      <span class="text-sm text-gray-500">第 {{ currentPage }} / {{ totalPages }} 頁</span>
+      <span class="pagination-info">第 {{ currentPage }} / {{ totalPages }} 頁</span>
       <button
         type="button"
-        class="px-4 py-2 rounded-full text-sm bg-white/60 border border-white/80 hover:bg-white/80 disabled:opacity-40 disabled:cursor-not-allowed dark:bg-white/8 dark:border-white/15 transition-colors"
+        class="btn btn--ghost"
         :disabled="currentPage === totalPages"
         @click="goToPage(currentPage + 1)"
       >
         下一頁
       </button>
     </div>
-  </div>
+  </main>
 </template>
+
+<style scoped>
+.my-articles {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.my-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.my-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.my-tabs {
+  display: flex;
+  gap: 0.25rem;
+  border-bottom: 2px solid var(--border);
+  margin-bottom: 1.5rem;
+}
+
+.my-tabs button {
+  padding: 0.5rem 1rem;
+  border: none;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.my-tabs button.active {
+  color: var(--ink);
+  border-bottom: 2px solid var(--accent);
+}
+
+.my-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.my-table th,
+.my-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--divider);
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.status-badge--gray {
+  background: var(--badge-gray-bg, #f3f4f6);
+  color: var(--badge-gray-text, #4b5563);
+}
+
+.status-badge--yellow {
+  background: var(--badge-yellow-bg, #fef9c3);
+  color: var(--badge-yellow-text, #a16207);
+}
+
+.status-badge--green {
+  background: var(--badge-green-bg, #dcfce7);
+  color: var(--badge-green-text, #15803d);
+}
+
+.status-badge--red {
+  background: var(--badge-red-bg, #fee2e2);
+  color: var(--badge-red-text, #b91c1c);
+}
+
+.status-badge--blue {
+  background: var(--badge-blue-bg, #dbeafe);
+  color: var(--badge-blue-text, #1d4ed8);
+}
+
+.actions-cell {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.reject-reason {
+  color: var(--danger, #dc2626);
+  font-size: 0.875rem;
+  background: var(--danger-bg, #fff1f2);
+}
+
+.loading-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 3rem 0;
+}
+
+.loading-dots {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.loading-dots span {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: var(--muted);
+  animation: bounce 1s infinite;
+}
+
+.loading-dots span:nth-child(2) {
+  animation-delay: 150ms;
+}
+
+.loading-dots span:nth-child(3) {
+  animation-delay: 300ms;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-0.375rem); }
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem 0;
+  color: var(--muted);
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.pagination-info {
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.375rem 0.875rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+  transition: opacity 0.15s;
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn--primary {
+  background: var(--accent);
+  color: var(--on-accent, #fff);
+}
+
+.btn--ghost {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--ink);
+}
+
+.btn--danger {
+  background: var(--danger, #ef4444);
+  color: #fff;
+}
+</style>

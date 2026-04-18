@@ -40,7 +40,7 @@ describe('useHomePage', () => {
   });
 
   it('fetchAll 成功載入所有資料', async () => {
-    const { trendingArticles, latestArticles, hotTags, zoneEntries, fetchAll } = useHomePage();
+    const { trendingArticles, latestArticles, hotTags, fetchAll } = useHomePage();
 
     await fetchAll();
     await flushPromises();
@@ -48,7 +48,6 @@ describe('useHomePage', () => {
     expect(trendingArticles.value).toHaveLength(1);
     expect(latestArticles.value).toHaveLength(1);
     expect(hotTags.value).toHaveLength(1);
-    expect(zoneEntries.value).toHaveLength(3);
   });
 
   it('載入過程中 isLoading 狀態正確', async () => {
@@ -64,16 +63,6 @@ describe('useHomePage', () => {
     expect(isLoadingTrending.value).toBe(false);
     expect(isLoadingLatest.value).toBe(false);
     expect(isLoadingTags.value).toBe(false);
-  });
-
-  it('zoneEntries 含三個主題專區', async () => {
-    const { zoneEntries, fetchAll } = useHomePage();
-    await fetchAll();
-
-    const slugs = zoneEntries.value.map(z => z.slug);
-    expect(slugs).toContain('tech');
-    expect(slugs).toContain('travel');
-    expect(slugs).toContain('photography');
   });
 
   it('某個 service 失敗不影響其他資料', async () => {

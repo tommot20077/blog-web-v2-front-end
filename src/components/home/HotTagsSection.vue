@@ -5,45 +5,93 @@ defineProps<{
   tags: TagDetailResponse[];
   isLoading: boolean;
 }>();
-
-// 根據 articleCount 計算標籤的相對大小
-function getTagSize(count: number, maxCount: number): string {
-  const ratio = count / maxCount;
-  if (ratio > 0.7) return 'text-base px-4 py-1.5';
-  if (ratio > 0.4) return 'text-sm px-3 py-1';
-  return 'text-xs px-2.5 py-0.5';
-}
 </script>
 
 <template>
-  <section>
-    <h2 class="text-2xl font-bold tracking-wider mb-6" style="color: var(--text-main);">熱門標籤</h2>
-
-    <!-- 載入中 -->
-    <div v-if="isLoading" class="flex flex-wrap gap-3">
-      <div
-        v-for="i in 10"
-        :key="i"
-        class="animate-pulse rounded-full"
-        :style="{
-          width: `${50 + Math.random() * 40}px`,
-          height: '28px',
-          backgroundColor: 'var(--skeleton-base)',
-        }"
-      />
+  <section class="hot-tags" data-testid="hot-tags-root">
+    <div class="section-head">
+      <span class="swiss-label">§ 03</span>
+      <h2 data-testid="hot-tags-heading">Hot Tags</h2>
     </div>
 
-    <!-- 標籤雲 -->
-    <div v-else class="flex flex-wrap gap-3">
-      <span
-        v-for="tag in tags"
-        :key="tag.uuid"
-        class="rounded-full border font-medium opacity-70 hover:opacity-100 transition-all cursor-pointer hover:scale-105"
-        :class="getTagSize(tag.articleCount, Math.max(...tags.map(t => t.articleCount)))"
-        style="border-color: var(--glass-border);"
-      >
-        {{ tag.name }}
-      </span>
-    </div>
+    <ul class="tag-list">
+      <li v-for="(tag, i) in tags" :key="tag.uuid">
+        <RouterLink :to="'/articles?tag=' + tag.name">
+          <span class="tag-pill outlined" :data-testid="'hot-tag-' + i">
+            {{ tag.name }}
+            <span class="tag-count">{{ tag.articleCount }}</span>
+          </span>
+        </RouterLink>
+      </li>
+    </ul>
   </section>
 </template>
+
+<style scoped>
+.hot-tags {
+  padding: 2rem 0;
+}
+
+.section-head {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.swiss-label {
+  font-family: var(--f-mono);
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.section-head h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tag-list a {
+  text-decoration: none;
+}
+
+.tag-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 9999px;
+  padding: 0.5rem 1.25rem;
+  font-family: var(--f-mono);
+  font-size: 0.875rem;
+  color: var(--ink);
+  transition: background 0.15s ease, color 0.15s ease;
+  cursor: pointer;
+}
+
+.tag-pill:hover {
+  background: var(--ink);
+  color: var(--bg);
+}
+
+.tag-pill:hover .tag-count {
+  color: inherit;
+}
+
+.tag-count {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+</style>

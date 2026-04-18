@@ -43,7 +43,7 @@ function handleTabClick(tab: typeof tabs[number]) {
 <template>
   <nav
     class="fixed bottom-0 left-0 right-0 z-50 md:hidden border-t"
-    style="background: var(--glass-panel); border-color: var(--glass-border); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);"
+    style="background: var(--glass); border-color: var(--glass-border); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);"
   >
     <div class="absolute top-1 right-2">
       <ThemeSwitcher />
@@ -54,7 +54,7 @@ function handleTabClick(tab: typeof tabs[number]) {
         :key="tab.key"
         data-testid="nav-tab"
         class="flex flex-col items-center gap-0.5 px-4 py-1 transition-colors duration-200"
-        :class="isActive(tab) ? 'text-[var(--accent-color)]' : 'opacity-50'"
+        :class="isActive(tab) ? 'text-[var(--accent)]' : 'opacity-50'"
         @click="handleTabClick(tab)"
       >
         <!-- 首頁 icon -->

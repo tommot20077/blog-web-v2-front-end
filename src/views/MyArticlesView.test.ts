@@ -44,6 +44,27 @@ describe('MyArticlesView', () => {
     mockGetMyArticles.mockResolvedValue(createMockPageResult([buildDraftArticle()]))
   })
 
+  // ── 結構 ───────────────────────────────────────────────────────────────────
+  describe('結構', () => {
+    it('渲染外層 my-root', async () => {
+      renderWithRouter(MyArticlesView)
+      await flushPromises()
+      expect(screen.getByTestId('my-root')).toBeInTheDocument()
+    })
+
+    it('渲染頁面標題', async () => {
+      renderWithRouter(MyArticlesView)
+      await flushPromises()
+      expect(screen.getByTestId('my-header-title')).toBeInTheDocument()
+    })
+
+    it('渲染 New Article 按鈕', async () => {
+      renderWithRouter(MyArticlesView)
+      await flushPromises()
+      expect(screen.getByTestId('my-new-btn')).toBeInTheDocument()
+    })
+  })
+
   // ── 初始載入 ───────────────────────────────────────────────────────────────
   describe('初始載入', () => {
     it('顯示 loading 指示器（getMyArticles 尚未 resolve 時）', () => {
@@ -88,12 +109,30 @@ describe('MyArticlesView', () => {
       expect(allTab).toHaveAttribute('aria-selected', 'true')
     })
 
+    it('my-tab-draft 存在', async () => {
+      renderWithRouter(MyArticlesView)
+      await flushPromises()
+      expect(screen.getByTestId('my-tab-draft')).toBeInTheDocument()
+    })
+
+    it('my-tab-published 存在', async () => {
+      renderWithRouter(MyArticlesView)
+      await flushPromises()
+      expect(screen.getByTestId('my-tab-published')).toBeInTheDocument()
+    })
+
+    it('my-tab-archived 存在', async () => {
+      renderWithRouter(MyArticlesView)
+      await flushPromises()
+      expect(screen.getByTestId('my-tab-archived')).toBeInTheDocument()
+    })
+
     it('點擊「草稿」tab → 以 status=DRAFT 重新呼叫 getMyArticles', async () => {
       const user = userEvent.setup()
       renderWithRouter(MyArticlesView)
       await flushPromises()
 
-      await user.click(screen.getByRole('tab', { name: /草稿/ }))
+      await user.click(screen.getByTestId('my-tab-draft'))
       await flushPromises()
 
       expect(mockGetMyArticles).toHaveBeenCalledWith('DRAFT', 1, 10)
@@ -125,20 +164,19 @@ describe('MyArticlesView', () => {
     })
   })
 
-  // ── 文章項目 ───────────────────────────────────────────────────────────────
-  describe('文章項目', () => {
+  // ── 文章列表 ───────────────────────────────────────────────────────────────
+  describe('文章列表', () => {
     it('顯示文章標題', async () => {
       renderWithRouter(MyArticlesView)
       await flushPromises()
       expect(screen.getByText('草稿文章')).toBeInTheDocument()
     })
 
-    it('顯示狀態徽章文字', async () => {
+    it('顯示狀態文字', async () => {
       renderWithRouter(MyArticlesView)
       await flushPromises()
-      // 用 within 縮小到文章列表，避免和 tab 按鈕衝突
-      const list = screen.getByRole('list')
-      expect(within(list).getByText('草稿')).toBeInTheDocument()
+      const table = screen.getByRole('table')
+      expect(within(table).getByText('草稿')).toBeInTheDocument()
     })
 
     it('REJECTED 文章顯示 rejectReason', async () => {
@@ -156,34 +194,44 @@ describe('MyArticlesView', () => {
       await flushPromises()
       expect(screen.queryByText('不應顯示')).not.toBeInTheDocument()
     })
+
+    it('渲染文章 row 並帶正確 testid', async () => {
+      const draft = buildDraftArticle({ uuid: 'draft-uuid' })
+      mockGetMyArticles.mockResolvedValue(createMockPageResult([draft]))
+      renderWithRouter(MyArticlesView)
+      await flushPromises()
+      expect(screen.getByTestId('my-row-draft-uuid')).toBeInTheDocument()
+    })
   })
 
   // ── 操作按鈕 ───────────────────────────────────────────────────────────────
   describe('操作按鈕', () => {
     it('DRAFT 文章：顯示「編輯」「送出審核」「刪除」', async () => {
+      const draft = buildDraftArticle({ uuid: 'draft-uuid' })
+      mockGetMyArticles.mockResolvedValue(createMockPageResult([draft]))
       renderWithRouter(MyArticlesView)
       await flushPromises()
-      expect(screen.getByText('編輯')).toBeInTheDocument()
+      expect(screen.getByTestId('my-row-action-edit-draft-uuid')).toBeInTheDocument()
       expect(screen.getByText('送出審核')).toBeInTheDocument()
-      expect(screen.getByText('刪除')).toBeInTheDocument()
+      expect(screen.getByTestId('my-row-action-delete-draft-uuid')).toBeInTheDocument()
     })
 
     it('REJECTED 文章：僅顯示「編輯」按鈕', async () => {
       mockGetMyArticles.mockResolvedValue(createMockPageResult([buildRejectedArticle()]))
       renderWithRouter(MyArticlesView)
       await flushPromises()
-      expect(screen.getByText('編輯')).toBeInTheDocument()
+      expect(screen.getByTestId('my-row-action-edit-rejected-uuid')).toBeInTheDocument()
       expect(screen.queryByText('送出審核')).not.toBeInTheDocument()
-      expect(screen.queryByText('刪除')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('my-row-action-delete-rejected-uuid')).not.toBeInTheDocument()
     })
 
     it('PUBLISHED 文章：不顯示任何操作按鈕', async () => {
       mockGetMyArticles.mockResolvedValue(createMockPageResult([buildPublishedArticle()]))
       renderWithRouter(MyArticlesView)
       await flushPromises()
-      expect(screen.queryByText('編輯')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('my-row-action-edit-pub-uuid')).not.toBeInTheDocument()
       expect(screen.queryByText('送出審核')).not.toBeInTheDocument()
-      expect(screen.queryByText('刪除')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('my-row-action-delete-pub-uuid')).not.toBeInTheDocument()
     })
 
     it('點擊「送出審核」呼叫 submitForReview(uuid)', async () => {
@@ -226,35 +274,37 @@ describe('MyArticlesView', () => {
       renderWithRouter(MyArticlesView)
       await flushPromises()
 
-      await user.click(screen.getByText('刪除'))
+      await user.click(screen.getByTestId('my-row-action-delete-draft-uuid'))
       await flushPromises()
 
       expect(mockDeleteArticle).toHaveBeenCalledWith('draft-uuid')
     })
 
     it('deleteArticle 成功後重載列表', async () => {
-      mockGetMyArticles.mockResolvedValue(createMockPageResult([buildDraftArticle()]))
+      const draft = buildDraftArticle({ uuid: 'draft-uuid' })
+      mockGetMyArticles.mockResolvedValue(createMockPageResult([draft]))
       mockDeleteArticle.mockResolvedValue(undefined)
 
       const user = userEvent.setup()
       renderWithRouter(MyArticlesView)
       await flushPromises()
 
-      await user.click(screen.getByText('刪除'))
+      await user.click(screen.getByTestId('my-row-action-delete-draft-uuid'))
       await flushPromises()
 
       expect(mockGetMyArticles).toHaveBeenCalledTimes(2)
     })
 
     it('deleteArticle 失敗後顯示 toast error', async () => {
-      mockGetMyArticles.mockResolvedValue(createMockPageResult([buildDraftArticle()]))
+      const draft = buildDraftArticle({ uuid: 'draft-uuid' })
+      mockGetMyArticles.mockResolvedValue(createMockPageResult([draft]))
       mockDeleteArticle.mockRejectedValue(new Error('刪除失敗'))
 
       const user = userEvent.setup()
       renderWithRouter(MyArticlesView)
       await flushPromises()
 
-      await user.click(screen.getByText('刪除'))
+      await user.click(screen.getByTestId('my-row-action-delete-draft-uuid'))
       await flushPromises()
 
       expect(mockShowToast).toHaveBeenCalledWith('刪除失敗', 'error')

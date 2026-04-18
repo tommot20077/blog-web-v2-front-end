@@ -33,7 +33,7 @@ describe('MobileBottomNav', () => {
     await router.push('/');
     await router.isReady();
     const tabs = wrapper.findAll('[data-testid="nav-tab"]');
-    expect(tabs[0].classes()).toContain('text-[var(--accent-color)]');
+    expect(tabs[0].classes()).toContain('text-[var(--accent)]');
   });
 
   it('文章列表路由時文章 tab 為 active 狀態', async () => {
@@ -41,7 +41,7 @@ describe('MobileBottomNav', () => {
     await router.push('/articles');
     await router.isReady();
     const tabs = wrapper.findAll('[data-testid="nav-tab"]');
-    expect(tabs[1].classes()).toContain('text-[var(--accent-color)]');
+    expect(tabs[1].classes()).toContain('text-[var(--accent)]');
   });
 
   it('具備 fixed bottom-0 定位與 md:hidden', () => {

@@ -155,4 +155,35 @@ describe('RegisterView', () => {
     const link = screen.getByText('登入');
     expect(link.closest('a')?.getAttribute('href')).toBe('/login');
   });
+
+  // data-testid assertions
+  it('data-testid: auth-register-title 存在', () => {
+    renderRegisterView();
+    expect(screen.getByTestId('auth-register-title')).toBeTruthy();
+  });
+
+  it('data-testid: auth-register-submit 存在', () => {
+    renderRegisterView();
+    expect(screen.getByTestId('auth-register-submit')).toBeTruthy();
+  });
+
+  it('data-testid: auth-register-field-email 存在', () => {
+    renderRegisterView();
+    expect(screen.getByTestId('auth-register-field-email')).toBeTruthy();
+  });
+
+  it('data-testid: auth-register-field-username 存在', () => {
+    renderRegisterView();
+    expect(screen.getByTestId('auth-register-field-username')).toBeTruthy();
+  });
+
+  it('data-testid: auth-register-field-password 存在', () => {
+    renderRegisterView();
+    expect(screen.getByTestId('auth-register-field-password')).toBeTruthy();
+  });
+
+  it('data-testid: auth-register-alt-link 存在', () => {
+    renderRegisterView();
+    expect(screen.getByTestId('auth-register-alt-link')).toBeTruthy();
+  });
 });

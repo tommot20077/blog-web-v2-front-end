@@ -57,9 +57,16 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <AuthFormLayout title="登入" subtitle="歡迎回來">
+  <AuthFormLayout
+    title="登入"
+    subtitle="歡迎回來"
+    heroTitle="Sign in to<br>your account."
+    heroTagline="MY BLOG WEB. — EST 2023"
+    titleTestId="auth-login-title"
+  >
     <form @submit.prevent="handleSubmit" class="flex flex-col gap-4">
       <FormField
+        data-testid="auth-login-field-email"
         label="Email"
         type="email"
         :model-value="email"
@@ -70,6 +77,7 @@ async function handleSubmit() {
       />
 
       <FormField
+        data-testid="auth-login-field-password"
         label="密碼"
         type="password"
         :model-value="password"
@@ -80,6 +88,7 @@ async function handleSubmit() {
       />
 
       <button
+        data-testid="auth-login-submit"
         type="submit"
         :disabled="isSubmitting"
         class="mt-2 w-full rounded-full py-2.5 text-sm font-semibold text-white transition-opacity disabled:opacity-50"
@@ -99,6 +108,7 @@ async function handleSubmit() {
           忘記密碼？
         </RouterLink>
         <RouterLink
+          data-testid="auth-login-alt-link"
           to="/register"
           class="opacity-70 hover:opacity-100 transition-opacity"
           style="color: var(--accent)"

@@ -60,4 +60,15 @@ describe('FormField', () => {
     expect(wrapper.emitted('update:modelValue')).toBeTruthy();
     expect(wrapper.emitted('update:modelValue')![0]).toEqual(['new-value']);
   });
+
+  it('data-testid 透過 $attrs 轉發到 <input>，而非外層 <div>', () => {
+    const wrapper = mount(FormField, {
+      props: { label: '帳號', modelValue: '' },
+      attrs: { 'data-testid': 'test-field-email' },
+    });
+    // The input must carry the data-testid
+    expect(wrapper.find('input').attributes('data-testid')).toBe('test-field-email');
+    // The root div must NOT carry it
+    expect(wrapper.find('div').attributes('data-testid')).toBeUndefined();
+  });
 });

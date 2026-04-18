@@ -32,9 +32,9 @@ export const test = base.extend<AuthFixtures>({
       await page.waitForURL(/\/login/, { timeout: 5000 })
 
       // 2. 填入 AUTHOR 帳號並登入
-      await page.getByPlaceholder('請輸入 Email').fill(AUTHOR_CREDENTIALS.email)
-      await page.getByPlaceholder('請輸入密碼').fill(AUTHOR_CREDENTIALS.password)
-      await page.getByRole('button', { name: /^登入$/ }).click()
+      await page.getByTestId('auth-login-field-email').fill(AUTHOR_CREDENTIALS.email)
+      await page.getByTestId('auth-login-field-password').fill(AUTHOR_CREDENTIALS.password)
+      await page.getByTestId('auth-login-submit').click()
 
       // 3. 等待離開 /login（登入成功後重導至首頁）
       await page.waitForURL((url) => !url.pathname.startsWith('/login'), { timeout: 5000 })

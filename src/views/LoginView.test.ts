@@ -160,4 +160,30 @@ describe('LoginView', () => {
       expect(button).toBeDisabled()
     })
   })
+
+  // data-testid assertions
+  it('data-testid: auth-login-title 存在', () => {
+    const { getByTestId } = renderWithRouter(LoginView, {}, '/login')
+    expect(getByTestId('auth-login-title')).toBeInTheDocument()
+  })
+
+  it('data-testid: auth-login-submit 存在', () => {
+    const { getByTestId } = renderWithRouter(LoginView, {}, '/login')
+    expect(getByTestId('auth-login-submit')).toBeInTheDocument()
+  })
+
+  it('data-testid: auth-login-field-email 存在', () => {
+    const { getByTestId } = renderWithRouter(LoginView, {}, '/login')
+    expect(getByTestId('auth-login-field-email')).toBeInTheDocument()
+  })
+
+  it('data-testid: auth-login-field-password 存在', () => {
+    const { getByTestId } = renderWithRouter(LoginView, {}, '/login')
+    expect(getByTestId('auth-login-field-password')).toBeInTheDocument()
+  })
+
+  it('data-testid: auth-login-alt-link 존在', () => {
+    const { getByTestId } = renderWithRouter(LoginView, {}, '/login')
+    expect(getByTestId('auth-login-alt-link')).toBeInTheDocument()
+  })
 })

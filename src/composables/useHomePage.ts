@@ -5,13 +5,11 @@ import type { RecommendArticleResponse } from '../api/recommendService';
 import { recommendService } from '../api/recommendService';
 import type { TagDetailResponse } from '../api/tagService';
 import { tagService } from '../api/tagService';
-import { mockZoneEntries, type ZoneEntry } from '../api/mock/data';
 
 export function useHomePage() {
   const trendingArticles = ref<RecommendArticleResponse[]>([]);
   const latestArticles = ref<ArticleItem[]>([]);
   const hotTags = ref<TagDetailResponse[]>([]);
-  const zoneEntries = ref<ZoneEntry[]>([]);
 
   const isLoadingTrending = ref(false);
   const isLoadingLatest = ref(false);
@@ -45,13 +43,7 @@ export function useHomePage() {
     }
   }
 
-  function fetchZoneEntries() {
-    // Zone 目前使用靜態 mock 資料
-    zoneEntries.value = mockZoneEntries;
-  }
-
   async function fetchAll() {
-    fetchZoneEntries();
     await Promise.allSettled([
       fetchTrending(),
       fetchLatest(),
@@ -67,7 +59,6 @@ export function useHomePage() {
     trendingArticles,
     latestArticles,
     hotTags,
-    zoneEntries,
     isLoadingTrending,
     isLoadingLatest,
     isLoadingTags,

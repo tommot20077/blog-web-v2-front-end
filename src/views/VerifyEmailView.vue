@@ -39,7 +39,12 @@ onMounted(() => {
 </script>
 
 <template>
-  <AuthFormLayout title="信箱驗證">
+  <AuthFormLayout
+    title="信箱驗證"
+    heroTitle="Verify your<br>email."
+    heroTagline="MY BLOG WEB. — EST 2023"
+    titleTestId="auth-verify-title"
+  >
     <!-- 無 token -->
     <div
       v-if="!token"
@@ -53,7 +58,7 @@ onMounted(() => {
     <div
       v-else-if="isLoading"
       class="text-center text-sm"
-      style="color: var(--text-main)"
+      style="color: var(--ink)"
     >
       驗證中...
     </div>
@@ -72,7 +77,7 @@ onMounted(() => {
       <RouterLink
         to="/login"
         class="text-sm opacity-70 hover:opacity-100 transition-opacity"
-        style="color: var(--accent-color)"
+        style="color: var(--accent)"
       >
         前往登入
       </RouterLink>
@@ -91,8 +96,9 @@ onMounted(() => {
         <p class="mt-1 opacity-70">{{ errorMessage }}</p>
       </div>
       <button
+        data-testid="auth-verify-resend-btn"
         class="text-sm opacity-70 hover:opacity-100 transition-opacity"
-        style="color: var(--accent-color)"
+        style="color: var(--accent)"
         @click="verify"
       >
         重新發送驗證信

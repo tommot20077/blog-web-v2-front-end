@@ -53,7 +53,7 @@ const strengthLabel = computed(() => (props.strength ? labelMap[props.strength] 
     <span
       data-testid="strength-label"
       class="text-xs"
-      style="color: var(--text-main)"
+      style="color: var(--ink)"
     >
       {{ strengthLabel }}
     </span>

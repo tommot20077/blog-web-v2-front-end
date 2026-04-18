@@ -14,7 +14,7 @@ defineProps<{
 
 // 改用更低調、更適應毛玻璃冷調風格的配色，避免太突兀的粉彩
 const noteColors = [
-  'var(--glass-panel)', // 預設毛玻璃背景
+  'var(--glass)', // 預設毛玻璃背景
   'rgba(255, 141, 40, 0.15)', // 帶有一點網站主輔色 (Accent) 的微光
   'rgba(20, 20, 20, 0.05)',   // 較深的玻璃灰
   'rgba(255, 255, 255, 0.2)', // 較亮的白透
@@ -35,7 +35,7 @@ const getNoteStyle = (note: Note) => {
 <template>
   <div 
     class="relative w-48 h-48 md:w-56 md:h-56 p-4 rounded-xl shadow-sm cursor-pointer transition-all duration-300 ease-out hover:!rotate-0 hover:scale-[1.08] hover:shadow-2xl hover:-translate-y-2 hover:z-50 select-none group flex flex-col"
-    style="color: var(--text-main);"  
+    style="color: var(--ink);"  
     :style="getNoteStyle(note)"
   >
     <!-- 圖釘/膠帶裝飾 -->

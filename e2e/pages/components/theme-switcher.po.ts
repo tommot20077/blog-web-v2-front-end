@@ -6,7 +6,7 @@ export class ThemeSwitcherPO {
 
   constructor(page: Page) {
     this.page = page
-    this.toggleButton = page.getByRole('button', { name: '切換深淺色模式' })
+    this.toggleButton = page.getByTestId('navbar-theme-toggle')
   }
 
   async toggle() {

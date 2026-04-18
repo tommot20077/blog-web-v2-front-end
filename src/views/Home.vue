@@ -2,7 +2,6 @@
 import HeroMarquee from '../components/home/HeroMarquee.vue';
 import TrendingSection from '../components/home/TrendingSection.vue';
 import LatestArticlesSection from '../components/home/LatestArticlesSection.vue';
-import ZoneEntrySection from '../components/home/ZoneEntrySection.vue';
 import HotTagsSection from '../components/home/HotTagsSection.vue';
 import { useHomePage } from '../composables/useHomePage';
 import { useHeadSetup } from '../composables/useHeadSetup';
@@ -14,7 +13,6 @@ const {
   trendingArticles,
   latestArticles,
   hotTags,
-  zoneEntries,
   isLoadingTrending,
   isLoadingLatest,
   isLoadingTags,
@@ -40,8 +38,6 @@ const {
         :articles="latestArticles"
         :is-loading="isLoadingLatest"
       />
-
-      <ZoneEntrySection :zones="zoneEntries" />
 
       <HotTagsSection
         :tags="hotTags"

@@ -58,14 +58,16 @@ describe('ArticleDetail 頁面', () => {
     })
     vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
 
-    await renderArticleDetail()
+    const { container } = await renderArticleDetail()
     await flushPromises()
 
-    expect(screen.getByText('我的測試文章')).toBeInTheDocument()
-    expect(screen.getByText('2026-03-21')).toBeInTheDocument()
+    expect(container.querySelector('[data-testid="article-title"]')).toHaveTextContent('我的測試文章')
+    expect(container.querySelector('[data-testid="article-date"]')).toHaveTextContent('2026-03-21')
     expect(screen.getByText('42 觀看次數')).toBeInTheDocument()
-    expect(screen.getByText('# Vue')).toBeInTheDocument()
-    expect(screen.getByText('# TypeScript')).toBeInTheDocument()
+    const tagsEl = container.querySelector('[data-testid="article-tags"]')
+    expect(tagsEl).toBeInTheDocument()
+    expect(tagsEl?.textContent).toContain('Vue')
+    expect(tagsEl?.textContent).toContain('TypeScript')
   })
 
   it('找不到文章時顯示 404 畫面', async () => {
@@ -150,10 +152,12 @@ describe('ArticleDetail 頁面', () => {
       const mockArticle = createMockArticleDetail({ authorNickname: 'Yuan' })
       vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
 
-      await renderArticleDetail()
+      const { container } = await renderArticleDetail()
       await flushPromises()
 
-      expect(screen.getByText('Yuan')).toBeInTheDocument()
+      const authorEl = container.querySelector('[data-testid="article-author"]')
+      expect(authorEl).toBeInTheDocument()
+      expect(authorEl?.textContent).toContain('Yuan')
     })
 
     it('動態閱讀時間使用 useWordCount 回傳值（mock 回傳 3 分鐘）', async () => {
@@ -199,6 +203,28 @@ describe('ArticleDetail 頁面', () => {
 
       expect(screen.getByText('Frontend')).toBeInTheDocument()
       expect(screen.getByText('Vue')).toBeInTheDocument()
+    })
+
+    it('article-root data-testid 存在', async () => {
+      const mockArticle = createMockArticleDetail()
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+      const { container } = await renderArticleDetail()
+      await flushPromises()
+
+      expect(container.querySelector('[data-testid="article-root"]')).toBeInTheDocument()
+    })
+
+    it('article-body data-testid 存在且含有渲染內容', async () => {
+      const mockArticle = createMockArticleDetail({ content: 'hello world' })
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+      const { container } = await renderArticleDetail()
+      await flushPromises()
+
+      const bodyEl = container.querySelector('[data-testid="article-body"]')
+      expect(bodyEl).toBeInTheDocument()
+      expect(bodyEl?.innerHTML).toContain('hello world')
     })
   })
 

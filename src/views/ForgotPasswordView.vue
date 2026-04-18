@@ -50,6 +50,9 @@ const handleSubmit = async () => {
   <AuthFormLayout
     title="忘記密碼"
     subtitle="請輸入您的 Email，我們將寄送重設連結"
+    heroTitle="Reset your<br>password."
+    heroTagline="MY BLOG WEB. — EST 2023"
+    titleTestId="auth-forgot-title"
   >
     <!-- 成功訊息 -->
     <div
@@ -67,6 +70,7 @@ const handleSubmit = async () => {
     >
       <div class="flex flex-col gap-4">
         <FormField
+          data-testid="auth-forgot-field-email"
           v-model="form.email"
           label="Email"
           type="email"
@@ -76,9 +80,10 @@ const handleSubmit = async () => {
         />
 
         <button
+          data-testid="auth-forgot-submit"
           type="submit"
           class="w-full rounded-full py-2.5 text-sm font-medium text-white transition-opacity"
-          style="background: var(--accent-color)"
+          style="background: var(--accent)"
           :disabled="isSubmitting"
         >
           {{ isSubmitting ? '發送中...' : '發送重設連結' }}
@@ -88,9 +93,10 @@ const handleSubmit = async () => {
 
     <template #footer>
       <RouterLink
+        data-testid="auth-forgot-alt-link"
         to="/login"
         class="opacity-70 hover:opacity-100 transition-opacity"
-        style="color: var(--text-main)"
+        style="color: var(--ink)"
       >
         回到登入
       </RouterLink>

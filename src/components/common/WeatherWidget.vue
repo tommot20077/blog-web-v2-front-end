@@ -7,7 +7,7 @@ const { temperature, condition, isLoading } = useWeather();
 <template>
   <div 
     class="flex items-center gap-3 px-4 py-2 rounded-full border transition-all hover:scale-105 cursor-pointer"
-    style="background: var(--glass-panel); border-color: var(--glass-border); backdrop-filter: blur(12px); color: var(--text-main);"
+    style="background: var(--glass); border-color: var(--glass-border); backdrop-filter: blur(12px); color: var(--ink);"
     title="今日天氣"
   >
     <!-- 若為 Loading 狀態 -->

@@ -23,12 +23,12 @@ export class EditorPage {
 
   constructor(page: Page) {
     this.page = page
-    this.titleInput = page.getByPlaceholder('文章標題...')
+    this.titleInput = page.getByTestId('editor-title-input')
     this.boldButton = page.getByTitle(/粗體/)
     this.h1Button = page.getByTitle(/H1/)
-    this.editorContainer = page.locator('[data-testid="editor-container"]')
-    this.saveDraftButton = page.getByRole('button', { name: /儲存草稿/ })
-    this.submitReviewButton = page.getByRole('button', { name: /送出審核/ })
+    this.editorContainer = page.getByTestId('editor-root')
+    this.saveDraftButton = page.getByTestId('editor-save-btn')
+    this.submitReviewButton = page.getByTestId('editor-publish-btn')
     this.wordCount = page.locator('text=/\\d+ 字/')
     this.summaryTextarea = page.getByPlaceholder(/文章摘要/)
   }

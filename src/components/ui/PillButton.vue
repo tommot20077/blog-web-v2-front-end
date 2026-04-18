@@ -32,11 +32,11 @@ defineEmits<{
       // variant × active state
       variant === 'tab'
         ? (isActive
-            ? 'text-[var(--accent-color)]'
-            : 'text-[var(--text-main)] opacity-80 hover:opacity-100')
+            ? 'text-[var(--accent)]'
+            : 'text-[var(--ink)] opacity-80 hover:opacity-100')
         : (isActive
-            ? 'bg-[var(--text-main)] text-[var(--bg-color)] shadow-md'
-            : 'text-[var(--text-main)] hover:bg-black/5 dark:hover:bg-white/10'),
+            ? 'bg-[var(--ink)] text-[var(--bg)] shadow-md'
+            : 'text-[var(--ink)] hover:bg-black/5 dark:hover:bg-white/10'),
       // disabled
       disabled ? 'cursor-not-allowed opacity-30' : 'cursor-pointer',
     ]"

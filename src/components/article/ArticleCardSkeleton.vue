@@ -1,7 +1,7 @@
 <template>
   <div
     class="flex flex-col rounded-[24px] border overflow-hidden w-full"
-    style="background: var(--glass-panel); border-color: var(--glass-border); backdrop-filter: blur(12px);"
+    style="background: var(--glass); border-color: var(--glass-border); backdrop-filter: blur(12px);"
   >
     <div class="animate-pulse">
       <!-- 封面圖骨架 -->

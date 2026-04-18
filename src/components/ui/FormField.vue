@@ -25,6 +25,8 @@ defineEmits<{
   'update:modelValue': [value: string];
 }>();
 
+defineOptions({ inheritAttrs: false });
+
 /** 密碼可見狀態 */
 const passwordVisible = ref(false);
 
@@ -45,13 +47,14 @@ const isPassword = computed(() => props.type === 'password');
     <label
       :for="inputId"
       class="text-sm font-medium"
-      style="color: var(--text-main)"
+      style="color: var(--ink)"
     >
       {{ label }}
     </label>
 
     <div class="relative">
       <input
+        v-bind="$attrs"
         :id="inputId"
         :type="inputType"
         :value="modelValue"
@@ -60,9 +63,9 @@ const isPassword = computed(() => props.type === 'password');
         class="w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition-colors"
         :class="error ? 'border-red-500' : ''"
         :style="{
-          background: 'var(--glass-panel)',
+          background: 'var(--glass)',
           borderColor: error ? undefined : 'var(--glass-border)',
-          color: 'var(--text-main)',
+          color: 'var(--ink)',
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
         }"
@@ -74,7 +77,7 @@ const isPassword = computed(() => props.type === 'password');
         data-testid="password-toggle"
         type="button"
         class="absolute right-3 top-1/2 -translate-y-1/2 opacity-50 hover:opacity-100 transition-opacity"
-        style="color: var(--text-main)"
+        style="color: var(--ink)"
         @click="passwordVisible = !passwordVisible"
       >
         <!-- 眼睛圖示：顯示 / 隱藏 -->

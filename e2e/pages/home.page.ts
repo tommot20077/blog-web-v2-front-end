@@ -11,7 +11,7 @@ export class HomePage {
     this.page = page
     this.heroMarquee = page.locator('h1')
     this.recentTitle = page.getByText('近期發布')
-    this.viewAllLink = page.getByText('查看全部文章 →')
+    this.viewAllLink = page.getByTestId('navbar-link-articles')
     this.articleCards = page.locator('article')
   }
 

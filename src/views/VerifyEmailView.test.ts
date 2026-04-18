@@ -61,4 +61,27 @@ describe('VerifyEmailView', () => {
     expect(getByText('無效的驗證連結')).toBeInTheDocument()
     expect(authService.verifyEmail).not.toHaveBeenCalled()
   })
+
+  // data-testid assertions
+  it('data-testid: auth-verify-title 存在', async () => {
+    vi.mocked(authService.verifyEmail).mockResolvedValue(undefined)
+    const { getByTestId } = await renderWithRouterAsync(
+      VerifyEmailView,
+      {},
+      '/verify-email?token=valid-token',
+    )
+    expect(getByTestId('auth-verify-title')).toBeInTheDocument()
+  })
+
+  it('data-testid: auth-verify-resend-btn 存在（驗證失敗時）', async () => {
+    vi.mocked(authService.verifyEmail).mockRejectedValue(new Error('Token 已過期'))
+    const { getByTestId } = await renderWithRouterAsync(
+      VerifyEmailView,
+      {},
+      '/verify-email?token=expired-token',
+    )
+    await waitFor(() => {
+      expect(getByTestId('auth-verify-resend-btn')).toBeInTheDocument()
+    })
+  })
 })

@@ -64,6 +64,9 @@ const handleSubmit = async () => {
   <AuthFormLayout
     title="重設密碼"
     subtitle="請設定您的新密碼"
+    heroTitle="Set a new<br>password."
+    heroTagline="MY BLOG WEB. — EST 2023"
+    titleTestId="auth-reset-title"
   >
     <!-- 無 token 錯誤 -->
     <div
@@ -81,6 +84,7 @@ const handleSubmit = async () => {
     >
       <div class="flex flex-col gap-4">
         <FormField
+          data-testid="auth-reset-field-password"
           v-model="form.password"
           label="新密碼"
           type="password"
@@ -90,6 +94,7 @@ const handleSubmit = async () => {
         />
 
         <FormField
+          data-testid="auth-reset-field-confirm"
           v-model="form.confirmPassword"
           label="確認密碼"
           type="password"
@@ -99,9 +104,10 @@ const handleSubmit = async () => {
         />
 
         <button
+          data-testid="auth-reset-submit"
           type="submit"
           class="w-full rounded-full py-2.5 text-sm font-medium text-white transition-opacity"
-          style="background: var(--accent-color)"
+          style="background: var(--accent)"
           :disabled="isSubmitting"
         >
           {{ isSubmitting ? '重設中...' : '重設密碼' }}
@@ -113,7 +119,7 @@ const handleSubmit = async () => {
       <RouterLink
         to="/login"
         class="opacity-70 hover:opacity-100 transition-opacity"
-        style="color: var(--text-main)"
+        style="color: var(--ink)"
       >
         回到登入
       </RouterLink>

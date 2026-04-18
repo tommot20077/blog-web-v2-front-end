@@ -81,12 +81,16 @@ async function handleSubmit() {
   <AuthFormLayout
     title="註冊"
     subtitle="建立您的帳號"
+    heroTitle="Start writing<br>your story."
+    heroTagline="MY BLOG WEB. — EST 2023"
+    titleTestId="auth-register-title"
   >
     <form
       class="flex flex-col gap-4"
       @submit.prevent="handleSubmit"
     >
       <FormField
+        data-testid="auth-register-field-email"
         v-model="email"
         label="Email"
         type="email"
@@ -96,6 +100,7 @@ async function handleSubmit() {
       />
 
       <FormField
+        data-testid="auth-register-field-username"
         v-model="username"
         label="使用者名稱"
         type="text"
@@ -114,6 +119,7 @@ async function handleSubmit() {
       />
 
       <FormField
+        data-testid="auth-register-field-password"
         v-model="password"
         label="密碼"
         type="password"
@@ -125,6 +131,7 @@ async function handleSubmit() {
       <PasswordStrengthMeter :strength="passwordStrength" />
 
       <button
+        data-testid="auth-register-submit"
         type="submit"
         :disabled="isLoading"
         class="w-full rounded-xl py-2.5 text-sm font-semibold text-white transition-opacity"
@@ -136,8 +143,9 @@ async function handleSubmit() {
     </form>
 
     <template #footer>
-      <span style="color: var(--text-main)">已有帳號？</span>
+      <span style="color: var(--ink)">已有帳號？</span>
       <RouterLink
+        data-testid="auth-register-alt-link"
         to="/login"
         class="ml-1 font-medium"
         style="color: var(--accent-primary)"
