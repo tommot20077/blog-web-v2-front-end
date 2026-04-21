@@ -12,7 +12,7 @@ export class AuthResetPasswordPage {
     this.passwordField = page.getByTestId('auth-reset-field-password')
     this.confirmField = page.getByTestId('auth-reset-field-confirm')
     this.submitBtn = page.getByTestId('auth-reset-submit')
-    this.invalidTokenMessage = page.getByText('無效的重設連結')
+    this.invalidTokenMessage = page.getByTestId('auth-reset-invalid-token')
   }
 
   async goto(token?: string) {

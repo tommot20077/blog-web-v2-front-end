@@ -10,9 +10,9 @@ export class AuthVerifyEmailPage {
 
   constructor(page: Page) {
     this.page = page
-    this.successMessage = page.getByText('信箱驗證成功！')
-    this.failureMessage = page.getByText('驗證失敗')
-    this.noTokenMessage = page.getByText('無效的驗證連結')
+    this.successMessage = page.getByTestId('auth-verify-success')
+    this.failureMessage = page.getByTestId('auth-verify-failure')
+    this.noTokenMessage = page.getByTestId('auth-verify-no-token')
     this.resendBtn = page.getByTestId('auth-verify-resend-btn')
     this.loadingState = page.getByText('驗證中...')
   }

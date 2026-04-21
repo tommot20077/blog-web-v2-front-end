@@ -11,7 +11,7 @@ export class AuthForgotPasswordPage {
     this.page = page
     this.emailField = page.getByTestId('auth-forgot-field-email')
     this.submitBtn = page.getByTestId('auth-forgot-submit')
-    this.successMessage = page.getByText('重設密碼連結已寄出，請查看信箱')
+    this.successMessage = page.getByTestId('auth-forgot-success')
     this.loginLink = page.getByTestId('auth-forgot-alt-link')
   }
 
