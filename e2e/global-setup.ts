@@ -153,7 +153,7 @@ async function seedArticle(authorToken: string, adminToken: string, title: strin
   }
 
   // Admin publishes
-  const publishRes = await fetch(`${BACKEND}/api/v1/admin/articles/${uuid}/publish`, {
+  const publishRes = await fetch(`${BACKEND}/api/v1/articles/${uuid}/publish`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${adminToken}` },
   })
