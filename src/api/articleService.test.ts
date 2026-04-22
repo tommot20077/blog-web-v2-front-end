@@ -130,7 +130,7 @@ describe('articleService', () => {
           params: {
             page: '2',
             size: '10',
-            categorySlug: 'Backend',
+            categorySlug: 'backend',
           },
         });
       });
@@ -172,7 +172,7 @@ describe('articleService', () => {
         expect(apiClient.get).toHaveBeenCalledWith('/api/v1/articles/detail-1');
       });
 
-      it('ArticleItem 不含 categories 欄位', async () => {
+      it('ArticleItem 含空 categories 陣列（後端未回傳分類時）', async () => {
         vi.mocked(apiClient.get).mockResolvedValue({
           uuid: 'detail-2',
           title: '測試',
@@ -183,7 +183,7 @@ describe('articleService', () => {
         const result = await articleService.getArticleByUuid('detail-2');
 
         expect(result).not.toBeNull();
-        expect(result).not.toHaveProperty('categories');
+        expect(result!.categories).toEqual([]);
       });
 
       it('網路錯誤 → 回傳 null 並呼叫 console.error', async () => {
