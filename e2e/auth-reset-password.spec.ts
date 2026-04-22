@@ -1,8 +1,11 @@
 import { test, expect } from '@playwright/test'
 import { AuthResetPasswordPage } from './pages/auth-reset-password.page'
 
+const USE_MOCK = process.env.E2E_MOCK === '1'
+
 test.describe('重設密碼流程', () => {
   test('合法 token — 重設成功後重導至登入頁', async ({ page }) => {
+    test.skip(!USE_MOCK, 'token-based test requires mock mode (real mode needs DB-seeded token)')
     const resetPage = new AuthResetPasswordPage(page)
     await resetPage.goto('mock-reset-token')
 

@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures/auth'
+import { test, expect, AUTHOR_CREDENTIALS } from './fixtures/auth'
 
 test.describe('編輯器路由守衛', () => {
   test('未登入直接訪問 /editor 應重導至 /login', async ({ page }) => {
@@ -27,8 +27,8 @@ test.describe('編輯器路由守衛', () => {
     await expect(page).toHaveURL(/\/login/)
 
     // 在 /login 頁登入
-    await page.getByTestId('auth-login-field-email').fill('user@test.com')
-    await page.getByTestId('auth-login-field-password').fill('Password1')
+    await page.getByTestId('auth-login-field-email').fill(AUTHOR_CREDENTIALS.email)
+    await page.getByTestId('auth-login-field-password').fill(AUTHOR_CREDENTIALS.password)
     await page.getByTestId('auth-login-submit').click()
 
     // 登入後路由器應重導回 /editor（returnUrl = '/editor'）

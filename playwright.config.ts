@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
 
+const USE_MOCK = process.env.E2E_MOCK === '1'
+
 export default defineConfig({
   testDir: './e2e',
   testMatch: '**/*.spec.ts',
@@ -17,10 +19,11 @@ export default defineConfig({
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
   ],
+  globalSetup: USE_MOCK ? undefined : './e2e/global-setup.ts',
   webServer: {
     command: 'npx vite --host 127.0.0.1 --port 5501',
     url: 'http://127.0.0.1:5501',
     reuseExistingServer: !process.env.CI,
-    env: { VITE_USE_MOCK: 'true' },
+    env: { VITE_USE_MOCK: USE_MOCK ? 'true' : 'false' },
   },
 })

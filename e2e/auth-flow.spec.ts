@@ -20,41 +20,37 @@ test.describe('認證流程', () => {
 
     await page.waitForURL((url) => !url.pathname.startsWith('/login'), { timeout: 5000 })
 
-    await expect(page.getByText('你好, Yuan!')).toBeVisible({ timeout: 5000 })
+    // Use testid + partial match to be tolerant of different nicknames across environments
+    await expect(page.getByTestId('navbar-user-greeting')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByTestId('navbar-user-greeting')).toContainText('你好')
   })
 
   test('已登入後訪問 /login（guestOnly 路由）→ 重導至首頁', async ({ page }) => {
-    // 先完成登入
     await page.goto('/login')
     await page.getByTestId('auth-login-field-email').fill(AUTHOR_CREDENTIALS.email)
     await page.getByTestId('auth-login-field-password').fill(AUTHOR_CREDENTIALS.password)
     await page.getByTestId('auth-login-submit').click()
     await page.waitForURL((url) => !url.pathname.startsWith('/login'), { timeout: 5000 })
 
-    // 嘗試透過 SPA 路由導航至 /login（保留 Pinia 狀態）
     await page.evaluate(() => {
       const router = (window as unknown as Record<string, { push: (p: string) => Promise<void> }>).__router
       return router.push('/login')
     })
 
-    // guestOnly guard 應將已登入用戶重導至 /
     await expect(page).toHaveURL('/', { timeout: 5000 })
   })
 
   test('登出後 navbar 顯示「登入 / 註冊」連結', async ({ page }) => {
-    // 先登入
     await page.goto('/login')
     await page.getByTestId('auth-login-field-email').fill(AUTHOR_CREDENTIALS.email)
     await page.getByTestId('auth-login-field-password').fill(AUTHOR_CREDENTIALS.password)
     await page.getByTestId('auth-login-submit').click()
     await page.waitForURL((url) => !url.pathname.startsWith('/login'), { timeout: 5000 })
-    await expect(page.getByText('你好, Yuan!')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByTestId('navbar-user-greeting')).toBeVisible({ timeout: 5000 })
 
-    // 點擊登出按鈕
     await page.getByTestId('navbar-logout-btn').click()
 
-    // navbar 應回到「登入 / 註冊」
     await expect(page.getByTestId('navbar-login-btn')).toBeVisible({ timeout: 5000 })
-    await expect(page.getByText('你好, Yuan!')).not.toBeVisible()
+    await expect(page.getByTestId('navbar-user-greeting')).not.toBeVisible()
   })
 })
