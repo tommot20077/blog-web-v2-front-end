@@ -1,6 +1,13 @@
 import { execSync } from 'child_process'
+import path from 'path'
+import { fileURLToPath } from 'url'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+const COMPOSE_FILE = path.join(__dirname, '..', 'docker-compose.e2e.yml')
 
 const BACKEND = process.env.VITE_API_BASE_URL || 'http://localhost:9010'
+const IS_CI = process.env.E2E_CI === '1'
 
 interface SeedUser {
   email: string
@@ -49,19 +56,20 @@ async function registerUser(user: SeedUser) {
 
 function activateUser(email: string, role: string) {
   // Must set status='ACTIVE' alongside email_verified — backend checks both
+  const sql = `UPDATE users SET email_verified=true, status='ACTIVE', role='${role}' WHERE email='${email}'`
+  const cmd = IS_CI
+    ? `docker compose -f "${COMPOSE_FILE}" exec -T postgres psql -U e2e_user -d blog_e2e -c "${sql}"`
+    : `kubectl exec -n infra-dev deploy/postgres -- psql -U luca -d blog_v2_db -c "${sql}"`
   try {
-    execSync(
-      `kubectl exec -n infra-dev deploy/postgres -- ` +
-      `psql -U luca -d blog_v2_db -c ` +
-      `"UPDATE users SET email_verified=true, status='ACTIVE', role='${role}' WHERE email='${email}'"`,
-      { stdio: 'pipe' },
-    )
+    execSync(cmd, { stdio: 'pipe' })
   } catch {
-    console.warn(`Could not activate ${email} via kubectl — skipping`)
+    console.warn(`Could not activate ${email} — skipping`)
   }
 }
 
 function ensureMinIOBucket() {
+  // In CI mode the backend's ApplicationRunner auto-creates the bucket on startup
+  if (IS_CI) return
   try {
     execSync(
       `kubectl exec -n infra-dev deploy/minio -- sh -c ` +

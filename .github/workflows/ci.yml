@@ -55,3 +55,77 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 14
+
+  e2e-integration:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout frontend
+        uses: actions/checkout@v4
+
+      - name: Checkout backend
+        uses: actions/checkout@v4
+        with:
+          repository: tommot20077/blog-web-v2
+          path: backend
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: temurin
+          cache: maven
+
+      - name: Build backend JAR
+        working-directory: backend
+        run: ./mvnw -B clean package -DskipTests --no-transfer-progress
+
+      - name: Build backend Docker image
+        working-directory: backend
+        run: docker build -t blog-backend:e2e .
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Install Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Start E2E stack
+        run: docker compose -f docker-compose.e2e.yml up -d
+
+      - name: Wait for backend healthy
+        run: |
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:9010/actuator/health > /dev/null; then
+              echo "Backend is healthy"
+              exit 0
+            fi
+            echo "Waiting for backend... ($i/60)"
+            sleep 5
+          done
+          echo "Backend failed to become healthy"
+          docker compose -f docker-compose.e2e.yml logs backend
+          exit 1
+
+      - name: Run E2E tests (real backend)
+        run: npm run test:e2e:ci
+        env:
+          CI: true
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-integration
+          path: playwright-report/
+          retention-days: 14
+
+      - name: Tear down E2E stack
+        if: always()
+        run: docker compose -f docker-compose.e2e.yml down -v

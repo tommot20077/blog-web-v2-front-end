@@ -25,7 +25,10 @@ export interface User {
   uuid: string;
   email: string;
   nickname: string;
+  bio?: string;
   avatarUrl: string | null;
+  website?: string;
+  socialLinks?: string;
   role: UserRole;
   emailVerified: boolean;
   createdAt: string;

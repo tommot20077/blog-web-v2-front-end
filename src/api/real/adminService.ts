@@ -4,15 +4,14 @@ import type { EditorArticle, MyArticle, PageResult } from '../../types/editor'
 export const adminService = {
   async getPendingArticles(page: number, size: number): Promise<PageResult<MyArticle>> {
     return apiClient.get<unknown, PageResult<MyArticle>>(
-      '/api/admin/articles/pending',
+      '/api/v1/admin/articles/pending',
       { params: { page, size } }
     )
   },
 
   async getPendingCount(): Promise<number> {
     try {
-      const result = await adminService.getPendingArticles(1, 1)
-      return result.total
+      return await apiClient.get<unknown, number>('/api/v1/admin/articles/pending/count')
     } catch (error) {
       console.error('Failed to get pending count:', error)
       return 0
