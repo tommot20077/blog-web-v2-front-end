@@ -101,7 +101,7 @@ async function ensureCategory(token: string, name: string, slug: string): Promis
   const exists = (listJson.data ?? []).some((c: { slug: string }) => c.slug === slug)
   if (exists) return
 
-  const res = await fetch(`${BACKEND}/api/admin/categories`, {
+  const res = await fetch(`${BACKEND}/api/v1/admin/categories`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify({ name, slug, description: `${name} articles`, sortOrder: 0 }),
@@ -149,7 +149,7 @@ async function seedArticle(authorToken: string, adminToken: string, title: strin
   })
 
   // Admin publishes
-  const publishRes = await fetch(`${BACKEND}/api/v1/articles/${uuid}/publish`, {
+  const publishRes = await fetch(`${BACKEND}/api/v1/admin/articles/${uuid}/publish`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${adminToken}` },
   })
