@@ -9,6 +9,12 @@ interface TagSummaryResponse {
   slug: string
 }
 
+interface CategorySummaryResponse {
+  uuid: string
+  name: string
+  slug: string
+}
+
 interface BackendArticleBase {
   uuid: string
   title: string
@@ -25,6 +31,13 @@ interface BackendArticleBase {
 
 interface BackendArticleDetail extends BackendArticleBase {
   content: string
+  categories: CategorySummaryResponse[]
+}
+
+export interface ArticleCategory {
+  uuid: string
+  name: string
+  slug: string
 }
 
 export interface ArticleItem {
@@ -43,6 +56,7 @@ export interface ArticleItem {
 
 export interface ArticleDetailItem extends ArticleItem {
   content: string
+  categories: ArticleCategory[]
 }
 
 function mapArticle(raw: BackendArticleBase): ArticleItem {
@@ -62,7 +76,11 @@ function mapArticle(raw: BackendArticleBase): ArticleItem {
 }
 
 function mapArticleDetail(raw: BackendArticleDetail): ArticleDetailItem {
-  return { ...mapArticle(raw), content: raw.content }
+  return {
+    ...mapArticle(raw),
+    content: raw.content,
+    categories: (raw.categories ?? []).map((c) => ({ uuid: c.uuid, name: c.name, slug: c.slug })),
+  }
 }
 
 export const articleService = {
@@ -73,7 +91,7 @@ export const articleService = {
         size: size.toString(),
       }
       if (category && category !== '全部') {
-        params.categorySlug = category
+        params.categorySlug = category.toLowerCase()
       }
       const data = await apiClient.get<unknown, BackendPageResult<BackendArticleBase>>('/api/v1/articles', { params })
       return mapPageResult(data, mapArticle)

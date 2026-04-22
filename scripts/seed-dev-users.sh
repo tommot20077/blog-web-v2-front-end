@@ -25,7 +25,7 @@ promote() {
   local email="$1" role="$2"
   kubectl exec -n infra-dev deploy/postgres -- \
     psql -U luca -d blog_v2_db -c \
-    "UPDATE users SET email_verified=true, role='${role}' WHERE email='${email}'" \
+    "UPDATE users SET email_verified=true, status='ACTIVE', role='${role}' WHERE email='${email}'" \
     2>/dev/null && echo "  promoted ${email} → ${role}" \
     || echo "  (kubectl unavailable — promote ${email} manually)" >&2
 }

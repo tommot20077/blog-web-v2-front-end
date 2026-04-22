@@ -45,6 +45,12 @@ export class EditorPage {
     await this.titleInput.fill(title)
   }
 
+  async fillContent(text: string) {
+    const cmContent = this.page.locator('.cm-content')
+    await cmContent.click()
+    await cmContent.pressSequentially(text)
+  }
+
   async saveDraft() {
     await this.saveDraftButton.click()
   }

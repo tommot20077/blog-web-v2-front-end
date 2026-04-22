@@ -1,5 +1,9 @@
 import path from 'path'
+import { fileURLToPath } from 'url'
 import { test, expect } from './fixtures/auth'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 test.describe('作者上傳封面圖', () => {
   test.beforeEach(async ({ loginAsAuthorAndGoToEditor }) => {

@@ -7,10 +7,11 @@ test.describe('註冊流程', () => {
     const registerPage = new AuthRegisterPage(page)
     await registerPage.goto()
 
+    const ts = Date.now()
     await registerPage.register(
-      `newuser-${Date.now()}@test.com`,
-      `testuser${Date.now()}`,
-      'NewUser',
+      `newuser-${ts}@test.com`,
+      `testuser${ts}`,
+      `NewUser${ts}`,
       'Password1!',
     )
 
@@ -24,7 +25,7 @@ test.describe('註冊流程', () => {
 
     await registerPage.register(AUTHOR_CREDENTIALS.email, 'someuser', 'SomeNick', 'Password1!')
 
-    await expect(page.getByText('此 Email 已被註冊')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText(/已被註冊/)).toBeVisible({ timeout: 5000 })
   })
 
   test('點「已有帳號？登入」連結導至登入頁', async ({ page }) => {

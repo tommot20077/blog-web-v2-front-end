@@ -14,8 +14,7 @@ test.describe('讀者閱讀文章', () => {
     await articleListPage.articleCards.first().click()
     await expect(page).toHaveURL(/\/articles\/.+/)
 
-    // --- 載入動畫出現後消失 ---
-    await expect(articleDetailPage.loadingText).toBeVisible()
+    // --- 等載入完成（loading text may vanish too fast in real-backend mode）---
     await articleDetailPage.waitForArticleLoaded()
     await expect(articleDetailPage.loadingText).not.toBeVisible()
 

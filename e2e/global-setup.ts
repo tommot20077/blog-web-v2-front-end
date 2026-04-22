@@ -7,14 +7,16 @@ interface SeedUser {
   username: string
   nickname: string
   password: string
-  role?: 'AUTHOR' | 'ADMIN'
+  role: 'USER' | 'AUTHOR' | 'ADMIN'
 }
 
 const SEED_USERS: SeedUser[] = [
-  { email: 'reader@test.local', username: 'reader_e2e', nickname: 'Reader', password: 'Test1234!' },
+  { email: 'reader@test.local', username: 'reader_e2e', nickname: 'Reader', password: 'Test1234!', role: 'USER' },
   { email: 'author@test.local', username: 'author_e2e', nickname: 'Author', password: 'Test1234!', role: 'AUTHOR' },
   { email: 'admin@test.local', username: 'admin_e2e', nickname: 'Admin', password: 'Test1234!', role: 'ADMIN' },
 ]
+
+// ── helpers ──────────────────────────────────────────────────────────────────
 
 async function healthCheck() {
   const res = await fetch(`${BACKEND}/actuator/health`).catch(() => null)
@@ -38,50 +40,147 @@ async function registerUser(user: SeedUser) {
       password: user.password,
     }),
   })
-  if (!res.ok && res.status !== 409) {
+  // 400/409 = email already taken; acceptable for idempotent seeding
+  if (!res.ok && res.status !== 409 && res.status !== 400) {
     const body = await res.text().catch(() => '')
     console.warn(`Register ${user.email} → ${res.status}: ${body}`)
   }
 }
 
-function promoteUser(email: string, role: 'AUTHOR' | 'ADMIN') {
+function activateUser(email: string, role: string) {
+  // Must set status='ACTIVE' alongside email_verified — backend checks both
   try {
     execSync(
       `kubectl exec -n infra-dev deploy/postgres -- ` +
       `psql -U luca -d blog_v2_db -c ` +
-      `"UPDATE users SET email_verified=true, role='${role}' WHERE email='${email}'"`,
+      `"UPDATE users SET email_verified=true, status='ACTIVE', role='${role}' WHERE email='${email}'"`,
       { stdio: 'pipe' },
     )
   } catch {
-    console.warn(`Could not promote ${email} to ${role} via kubectl — skipping (user may already be correct role)`)
+    console.warn(`Could not activate ${email} via kubectl — skipping`)
   }
 }
 
-async function verifyEmail(email: string) {
+function ensureMinIOBucket() {
   try {
     execSync(
-      `kubectl exec -n infra-dev deploy/postgres -- ` +
-      `psql -U luca -d blog_v2_db -c ` +
-      `"UPDATE users SET email_verified=true WHERE email='${email}'"`,
+      `kubectl exec -n infra-dev deploy/minio -- sh -c ` +
+      `"mc alias set local http://localhost:9000 luca tommot40 2>/dev/null; ` +
+      `mc mb --ignore-existing local/blog-files 2>/dev/null; ` +
+      `mc anonymous set public local/blog-files 2>/dev/null"`,
       { stdio: 'pipe' },
     )
   } catch {
-    console.warn(`Could not verify email for ${email} via kubectl — skipping`)
+    console.warn('Could not ensure MinIO bucket — skipping (file upload tests may fail)')
   }
 }
+
+async function apiLogin(email: string, password: string): Promise<string> {
+  const res = await fetch(`${BACKEND}/api/v1/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ identifier: email, password }),
+  })
+  const json = await res.json()
+  if (!json.data?.accessToken) throw new Error(`Login failed for ${email}: ${JSON.stringify(json)}`)
+  return json.data.accessToken
+}
+
+async function ensureCategory(token: string, name: string, slug: string): Promise<void> {
+  // Check existing categories first (idempotent)
+  const listRes = await fetch(`${BACKEND}/api/v1/categories`)
+  const listJson = await listRes.json()
+  const exists = (listJson.data ?? []).some((c: { slug: string }) => c.slug === slug)
+  if (exists) return
+
+  const res = await fetch(`${BACKEND}/api/admin/categories`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ name, slug, description: `${name} articles`, sortOrder: 0 }),
+  })
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    console.warn(`Create category ${name} → ${res.status}: ${body}`)
+  }
+}
+
+async function seedArticle(authorToken: string, adminToken: string, title: string, categorySlug: string) {
+  // Check if already exists to keep seeding idempotent
+  const listRes = await fetch(`${BACKEND}/api/v1/articles?page=1&size=50`)
+  const listJson = await listRes.json()
+  const exists = (listJson.data?.records ?? []).some((a: { title: string }) => a.title === title)
+  if (exists) return
+
+  // Get category uuid for the slug
+  const catRes = await fetch(`${BACKEND}/api/v1/categories`)
+  const catJson = await catRes.json()
+  const category = (catJson.data ?? []).find((c: { slug: string; uuid: string }) => c.slug === categorySlug)
+
+  const createRes = await fetch(`${BACKEND}/api/v1/articles`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authorToken}` },
+    body: JSON.stringify({
+      title,
+      content: `# ${title}\n\nThis is a seeded E2E test article.\n\n\`\`\`js\nconsole.log('hello')\n\`\`\``,
+      summary: `Summary for ${title}`,
+      categoryIds: category ? [category.uuid] : [],
+      tagNames: [categorySlug],
+    }),
+  })
+  const createJson = await createRes.json()
+  const uuid = createJson.data?.uuid
+  if (!uuid) {
+    console.warn(`Create article "${title}" failed: ${JSON.stringify(createJson)}`)
+    return
+  }
+
+  // Submit for review
+  await fetch(`${BACKEND}/api/v1/articles/${uuid}/submit`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${authorToken}` },
+  })
+
+  // Admin publishes
+  const publishRes = await fetch(`${BACKEND}/api/v1/articles/${uuid}/publish`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${adminToken}` },
+  })
+  if (!publishRes.ok) {
+    const body = await publishRes.text().catch(() => '')
+    console.warn(`Publish "${title}" → ${publishRes.status}: ${body}`)
+  }
+}
+
+// ── main ─────────────────────────────────────────────────────────────────────
 
 export default async function globalSetup() {
   console.log('\n[E2E global-setup] Checking backend health...')
   await healthCheck()
   console.log('[E2E global-setup] Backend is healthy.')
 
+  console.log('[E2E global-setup] Ensuring MinIO bucket...')
+  ensureMinIOBucket()
+
   console.log('[E2E global-setup] Seeding test users...')
   for (const user of SEED_USERS) {
     await registerUser(user)
-    verifyEmail(user.email)
-    if (user.role) {
-      promoteUser(user.email, user.role)
-    }
+    activateUser(user.email, user.role)
   }
-  console.log('[E2E global-setup] Seed complete.')
+
+  console.log('[E2E global-setup] Seeding categories and articles...')
+  const adminToken = await apiLogin('admin@test.local', 'Test1234!')
+  const authorToken = await apiLogin('author@test.local', 'Test1234!')
+
+  await ensureCategory(adminToken, 'Frontend', 'frontend')
+  await ensureCategory(adminToken, 'Backend', 'backend')
+
+  await seedArticle(authorToken, adminToken, 'E2E Test Article — Vue 3 Guide', 'frontend')
+  await seedArticle(authorToken, adminToken, 'E2E Test Article — Spring Boot Setup', 'backend')
+  await seedArticle(authorToken, adminToken, 'E2E Test Article — TypeScript Tips', 'frontend')
+  await seedArticle(authorToken, adminToken, 'E2E Test Article — Docker Basics', 'backend')
+  await seedArticle(authorToken, adminToken, 'E2E Test Article — CSS Grid Layout', 'frontend')
+  await seedArticle(authorToken, adminToken, 'E2E Test Article — REST API Design', 'backend')
+  await seedArticle(authorToken, adminToken, 'E2E Test Article — Vue Router Guide', 'frontend')
+
+  console.log('[E2E global-setup] Done.')
 }

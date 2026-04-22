@@ -11,7 +11,7 @@ test.describe('搜尋流程', () => {
     expect(initialCount).toBeGreaterThan(0)
 
     await filterBar.search('Vue')
-    await articleListPage.waitForArticlesLoaded()
+    await articleListPage.waitForLoadingComplete()
     const searchCount = await articleListPage.articleCards.count()
     expect(searchCount).toBeGreaterThanOrEqual(0)
 
@@ -40,10 +40,10 @@ test.describe('搜尋流程', () => {
     await articleListPage.waitForArticlesLoaded()
 
     await filterBar.search('Vue')
-    await articleListPage.waitForArticlesLoaded()
+    await articleListPage.waitForLoadingComplete()
 
     await filterBar.selectCategory('全部')
-    await articleListPage.waitForArticlesLoaded()
+    await articleListPage.waitForLoadingComplete()
     const allCount = await articleListPage.articleCards.count()
     expect(allCount).toBeGreaterThanOrEqual(0)
   })
