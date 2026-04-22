@@ -1,47 +1,40 @@
-import apiClient from './apiClient'
 import type { FileUploadResponse, FileUsageType } from '../types/editor'
 import type { FileMetadata } from '../types/user'
 
 export const fileService = {
   async uploadFile(file: File, usageType: FileUsageType): Promise<FileUploadResponse> {
     if (import.meta.env.VITE_USE_MOCK === 'true') {
-      const { uploadFileMock } = await import('./mock/fileMockService')
-      return uploadFileMock(file, usageType)
+      const { fileService: svc } = await import('./mock/fileService')
+      return svc.uploadFile(file, usageType)
     }
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('usageType', usageType)
-    return apiClient.post<unknown, FileUploadResponse>('/api/v1/files/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
+    const { fileService: svc } = await import('./real/fileService')
+    return svc.uploadFile(file, usageType)
   },
 
   async getFileMetadata(id: string): Promise<FileMetadata> {
     if (import.meta.env.VITE_USE_MOCK === 'true') {
-      const { getFileMetadataMock } = await import('./mock/fileMockService')
-      return getFileMetadataMock(id)
+      const { fileService: svc } = await import('./mock/fileService')
+      return svc.getFileMetadata(id)
     }
-    return apiClient.get<unknown, FileMetadata>(`/api/v1/files/${id}`)
+    const { fileService: svc } = await import('./real/fileService')
+    return svc.getFileMetadata(id)
   },
 
   async deleteFile(id: string): Promise<void> {
     if (import.meta.env.VITE_USE_MOCK === 'true') {
-      const { deleteFileMock } = await import('./mock/fileMockService')
-      return deleteFileMock(id)
+      const { fileService: svc } = await import('./mock/fileService')
+      return svc.deleteFile(id)
     }
-    return apiClient.delete<unknown, void>(`/api/v1/files/${id}`)
+    const { fileService: svc } = await import('./real/fileService')
+    return svc.deleteFile(id)
   },
 
   async getUserFiles(): Promise<FileMetadata[]> {
     if (import.meta.env.VITE_USE_MOCK === 'true') {
-      const { getUserFilesMock } = await import('./mock/fileMockService')
-      return getUserFilesMock()
+      const { fileService: svc } = await import('./mock/fileService')
+      return svc.getUserFiles()
     }
-    try {
-      return await apiClient.get<unknown, FileMetadata[]>('/api/v1/users/me/files')
-    } catch (error) {
-      console.error('Failed to fetch user files:', error)
-      return []
-    }
+    const { fileService: svc } = await import('./real/fileService')
+    return svc.getUserFiles()
   },
 }

@@ -1,45 +1,39 @@
-import apiClient from './apiClient'
 import type { EditorArticle, MyArticle, PageResult } from '../types/editor'
 
 export const adminService = {
   async getPendingArticles(page: number, size: number): Promise<PageResult<MyArticle>> {
     if (import.meta.env.VITE_USE_MOCK === 'true') {
-      const { getPendingArticlesMock } = await import('./mock/adminMockService')
-      return getPendingArticlesMock(page, size)
+      const { adminService: svc } = await import('./mock/adminService')
+      return svc.getPendingArticles(page, size)
     }
-    return apiClient.get<unknown, PageResult<MyArticle>>(
-      '/api/v1/admin/articles/pending',
-      { params: { page, size } }
-    )
+    const { adminService: svc } = await import('./real/adminService')
+    return svc.getPendingArticles(page, size)
   },
 
   async getPendingCount(): Promise<number> {
     if (import.meta.env.VITE_USE_MOCK === 'true') {
-      const { getPendingCountMock } = await import('./mock/adminMockService')
-      return getPendingCountMock()
+      const { adminService: svc } = await import('./mock/adminService')
+      return svc.getPendingCount()
     }
-    try {
-      const result = await this.getPendingArticles(1, 1)
-      return result.total
-    } catch (error) {
-      console.error('Failed to get pending count:', error)
-      return 0
-    }
+    const { adminService: svc } = await import('./real/adminService')
+    return svc.getPendingCount()
   },
 
   async publishArticle(uuid: string): Promise<EditorArticle> {
     if (import.meta.env.VITE_USE_MOCK === 'true') {
-      const { publishArticleMock } = await import('./mock/adminMockService')
-      return publishArticleMock(uuid)
+      const { adminService: svc } = await import('./mock/adminService')
+      return svc.publishArticle(uuid)
     }
-    return apiClient.post<unknown, EditorArticle>(`/api/v1/articles/${uuid}/publish`)
+    const { adminService: svc } = await import('./real/adminService')
+    return svc.publishArticle(uuid)
   },
 
   async rejectArticle(uuid: string, reason: string): Promise<EditorArticle> {
     if (import.meta.env.VITE_USE_MOCK === 'true') {
-      const { rejectArticleMock } = await import('./mock/adminMockService')
-      return rejectArticleMock(uuid, reason)
+      const { adminService: svc } = await import('./mock/adminService')
+      return svc.rejectArticle(uuid, reason)
     }
-    return apiClient.post<unknown, EditorArticle>(`/api/v1/articles/${uuid}/reject`, { reason })
+    const { adminService: svc } = await import('./real/adminService')
+    return svc.rejectArticle(uuid, reason)
   },
 }
