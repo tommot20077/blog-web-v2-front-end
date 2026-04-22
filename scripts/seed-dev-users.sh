@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-BACKEND="${VITE_API_BASE_URL:-http://localhost:8080}"
+BACKEND="${VITE_API_BASE_URL:-http://localhost:9010}"
 PASSWORD="Test1234!"
 
 register() {

@@ -10,26 +10,19 @@ Step-by-step guide to run the full frontend + real backend stack locally.
 
 ```bash
 # From the blog-web-v2 backend repo
-./mvnw -pl blog-start spring-boot:run \
-  -Dspring-boot.run.arguments="
-    --spring.datasource.url=jdbc:postgresql://localhost:30120/blog_v2_db
-    --spring.datasource.username=luca
-    --spring.datasource.password=<DB_PASSWORD>
-    --spring.data.redis.host=localhost
-    --spring.data.redis.port=30121
-    --minio.endpoint=http://localhost:30122
-    --minio.access-key=<MINIO_KEY>
-    --minio.secret-key=<MINIO_SECRET>
-  "
+./mvnw -pl blog-start spring-boot:run -Dspring-boot.run.profiles=dev
 ```
+
+Uses `application-dev.yaml` — all infra endpoints and credentials are pre-configured.
+Backend listens on **port 9010**.
 
 ## 2. Verify the backend is up
 
 ```bash
-curl http://localhost:8080/actuator/health
+curl http://localhost:9010/actuator/health
 # Expected: {"status":"UP"}
 
-curl http://localhost:8080/v3/api-docs | jq '.info'
+curl http://localhost:9010/v3/api-docs | jq '.info'
 # Expected: title "Blog V2 API", 48 operations
 ```
 

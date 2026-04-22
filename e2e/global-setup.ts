@@ -1,6 +1,6 @@
 import { execSync } from 'child_process'
 
-const BACKEND = process.env.VITE_API_BASE_URL || 'http://localhost:8080'
+const BACKEND = process.env.VITE_API_BASE_URL || 'http://localhost:9010'
 
 interface SeedUser {
   email: string
