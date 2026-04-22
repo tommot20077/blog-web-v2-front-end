@@ -58,7 +58,7 @@ Verify in the browser DevTools Network tab:
 
 ```bash
 npm run test:e2e
-# Starts Vite on port 5501 with VITE_USE_MOCK=false
+# Starts Vite on port 5500 with VITE_USE_MOCK=false
 # Runs global-setup.ts (health-check + re-seed users)
 # Then runs all Playwright specs
 ```
