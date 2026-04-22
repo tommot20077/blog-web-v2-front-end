@@ -18,8 +18,6 @@ describe('articleService', () => {
   // Mock 路由測試 — 驗證 VITE_USE_MOCK=true 時 delegate 到 mock module
   // ============================================================
   describe('Mock 路由 (VITE_USE_MOCK=true)', () => {
-    // 不使用 fake timers — dynamic import + setTimeout 在 fake timers 下會死鎖
-    // 延遲行為已在 mock/articleMockService.test.ts 中測試
     beforeEach(() => {
       vi.stubEnv('VITE_USE_MOCK', 'true');
     });
@@ -74,7 +72,7 @@ describe('articleService', () => {
     describe('getArticles', () => {
       it('成功回應 → tags 由物件陣列映射為字串陣列', async () => {
         const backendData = {
-          list: [
+          records: [
             {
               uuid: 'api-1',
               title: '測試文章',
@@ -85,9 +83,9 @@ describe('articleService', () => {
             },
           ],
           total: 1,
-          pageSize: 6,
-          pageNum: 1,
-          totalPage: 1,
+          size: 6,
+          current: 1,
+          pages: 1,
         };
 
         vi.mocked(apiClient.get).mockResolvedValue(backendData);
@@ -116,13 +114,13 @@ describe('articleService', () => {
         );
       });
 
-      it('URL 路徑與參數組裝正確（含 category + keyword）', async () => {
+      it('URL 路徑與參數組裝正確（含 category，keyword 不送往後端）', async () => {
         vi.mocked(apiClient.get).mockResolvedValue({
-          list: [],
+          records: [],
           total: 0,
-          pageSize: 10,
-          pageNum: 2,
-          totalPage: 0,
+          size: 10,
+          current: 2,
+          pages: 0,
         });
 
         await articleService.getArticles(2, 10, 'Backend', '微服務');
@@ -133,18 +131,17 @@ describe('articleService', () => {
             page: '2',
             size: '10',
             categorySlug: 'Backend',
-            keyword: '微服務',
           },
         });
       });
 
       it('category 為「全部」時不帶 categorySlug 參數', async () => {
         vi.mocked(apiClient.get).mockResolvedValue({
-          list: [],
+          records: [],
           total: 0,
-          pageSize: 6,
-          pageNum: 1,
-          totalPage: 0,
+          size: 6,
+          current: 1,
+          pages: 0,
         });
 
         await articleService.getArticles(1, 6, '全部', '');

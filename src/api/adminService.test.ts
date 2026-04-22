@@ -46,13 +46,13 @@ describe('adminService', () => {
     beforeEach(() => vi.stubEnv('VITE_USE_MOCK', 'false'))
     afterEach(() => { vi.restoreAllMocks(); vi.unstubAllEnvs() })
 
-    it('getPendingArticles 呼叫 GET /api/v1/admin/articles/pending 並帶 params', async () => {
+    it('getPendingArticles 呼叫 GET /api/admin/articles/pending 並帶 params', async () => {
       const mockResult = { records: [], total: 0, size: 10, current: 1, pages: 1 }
       vi.mocked(apiClient.get).mockResolvedValue(mockResult)
       const result = await adminService.getPendingArticles(1, 10)
       expect(result).toEqual(mockResult)
       expect(apiClient.get).toHaveBeenCalledWith(
-        '/api/v1/admin/articles/pending',
+        '/api/admin/articles/pending',
         { params: { page: 1, size: 10 } }
       )
     })
@@ -63,7 +63,7 @@ describe('adminService', () => {
       const result = await adminService.getPendingCount()
       expect(result).toBe(5)
       expect(apiClient.get).toHaveBeenCalledWith(
-        '/api/v1/admin/articles/pending',
+        '/api/admin/articles/pending',
         { params: { page: 1, size: 1 } }
       )
     })

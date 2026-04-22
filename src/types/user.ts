@@ -5,8 +5,6 @@ import type { FileUsageType } from './editor'
 export interface UpdateProfileRequest {
   nickname: string;
   bio?: string;
-  website?: string;
-  socialLinks?: string;
 }
 
 export interface ChangePasswordRequest {

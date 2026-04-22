@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { RouterLink } from 'vue-router';
 import { articleService, type ArticleItem } from '../api/articleService';
+import { searchService } from '../api/searchService';
 
 // ── article data ──────────────────────────────────────────────────────────────
 const articles = ref<ArticleItem[]>([]);
@@ -39,7 +40,29 @@ const fetchArticles = async (isLoadMore = false) => {
   }
 
   try {
-    const result = await articleService.getArticles(page, size, filterParams.value.category, filterParams.value.keyword);
+    let result: Awaited<ReturnType<typeof articleService.getArticles>>;
+    const kw = filterParams.value.keyword;
+    if (kw) {
+      const raw = await searchService.search({ q: kw, page, size });
+      result = {
+        ...raw,
+        records: raw.records.map((r) => ({
+          uuid: r.articleUuid,
+          title: r.title,
+          summary: r.summary,
+          slug: r.slug,
+          authorNickname: r.authorNickname,
+          tags: r.tagNames,
+          publishedAt: r.publishedAt,
+          viewCount: r.viewCount,
+          likeCount: r.likeCount,
+          coverImageUrl: null,
+          commentCount: 0,
+        } as ArticleItem)),
+      };
+    } else {
+      result = await articleService.getArticles(page, size, filterParams.value.category, '');
+    }
 
     if (currentMode === 'grid') {
       articles.value = result.records;

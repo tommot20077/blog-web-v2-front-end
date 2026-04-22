@@ -72,12 +72,12 @@ describe('searchService', () => {
 
     it('search 呼叫 GET /api/v1/search 並回傳 PageResult', async () => {
       const backendResponse = {
-        list: [
+        records: [
           { articleUuid: 'u1', title: 'Vue', summary: '...', slug: 'vue', authorNickname: 'A', tagNames: [], publishedAt: '2024-01-01T00:00:00Z', viewCount: 1, likeCount: 0 },
         ],
-        pageNum: 1,
-        pageSize: 10,
-        totalPage: 1,
+        current: 1,
+        size: 10,
+        pages: 1,
         total: 1,
       }
       vi.mocked(apiClient.get).mockResolvedValue(backendResponse)

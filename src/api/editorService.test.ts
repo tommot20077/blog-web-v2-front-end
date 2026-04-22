@@ -63,10 +63,10 @@ describe('editorService', () => {
       expect(apiClient.put).toHaveBeenCalledWith('/api/v1/articles/edit-1', mockFormData)
     })
 
-    it('getArticleForEdit 呼叫 GET /api/v1/articles/:uuid/edit', async () => {
+    it('getArticleForEdit 呼叫 GET /api/v1/articles/:uuid（不帶 /edit）', async () => {
       vi.mocked(apiClient.get).mockResolvedValue({ uuid: 'e1', content: '# Hi' })
       await editorService.getArticleForEdit('e1')
-      expect(apiClient.get).toHaveBeenCalledWith('/api/v1/articles/e1/edit')
+      expect(apiClient.get).toHaveBeenCalledWith('/api/v1/articles/e1')
     })
 
     it('getArticleForEdit API 錯誤時回傳 null', async () => {
