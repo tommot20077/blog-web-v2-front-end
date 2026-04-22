@@ -143,10 +143,14 @@ async function seedArticle(authorToken: string, adminToken: string, title: strin
   }
 
   // Submit for review
-  await fetch(`${BACKEND}/api/v1/articles/${uuid}/submit`, {
+  const submitRes = await fetch(`${BACKEND}/api/v1/articles/${uuid}/submit`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${authorToken}` },
   })
+  if (!submitRes.ok) {
+    const body = await submitRes.text().catch(() => '')
+    console.warn(`Submit "${title}" → ${submitRes.status}: ${body}`)
+  }
 
   // Admin publishes
   const publishRes = await fetch(`${BACKEND}/api/v1/admin/articles/${uuid}/publish`, {
