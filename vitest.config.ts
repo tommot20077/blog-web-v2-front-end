@@ -9,5 +9,22 @@ export default mergeConfig(viteConfig, defineConfig({
     include: ['src/**/*.test.ts'],
     css: false,
     mockReset: true,
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'lcov'],
+      exclude: [
+        '**/*.test.ts',
+        '**/*.mock.ts',
+        'src/main.ts',
+        'src/test-setup.ts',
+        'src/api/mock/**',
+      ],
+      thresholds: {
+        lines: 75,
+        functions: 75,
+        branches: 70,
+        statements: 75,
+      },
+    },
   },
 }))

@@ -105,16 +105,16 @@ describe('LoginView', () => {
   })
 
   it('忘記密碼連結指向 /forgot-password', () => {
-    const { getByText } = renderWithRouter(LoginView, {}, '/login')
+    const { getByTestId } = renderWithRouter(LoginView, {}, '/login')
 
-    const link = getByText('忘記密碼？')
+    const link = getByTestId('auth-login-forgot-link')
     expect(link.closest('a')).toHaveAttribute('href', '/forgot-password')
   })
 
   it('註冊連結指向 /register', () => {
-    const { getByText } = renderWithRouter(LoginView, {}, '/login')
+    const { getByTestId } = renderWithRouter(LoginView, {}, '/login')
 
-    const link = getByText('還沒有帳號？註冊')
+    const link = getByTestId('auth-login-alt-link')
     expect(link.closest('a')).toHaveAttribute('href', '/register')
   })
 

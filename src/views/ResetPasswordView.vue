@@ -71,6 +71,7 @@ const handleSubmit = async () => {
     <!-- 無 token 錯誤 -->
     <div
       v-if="!token"
+      data-testid="auth-reset-invalid-token"
       class="rounded-xl p-4 text-center text-sm text-red-500"
       style="background: rgba(239, 68, 68, 0.1)"
     >

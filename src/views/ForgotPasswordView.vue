@@ -57,6 +57,7 @@ const handleSubmit = async () => {
     <!-- 成功訊息 -->
     <div
       v-if="isSuccess"
+      data-testid="auth-forgot-success"
       class="rounded-xl p-4 text-center text-sm"
       style="background: rgba(34, 197, 94, 0.1); color: rgb(34, 197, 94)"
     >

@@ -110,6 +110,7 @@ async function handleSubmit() {
       />
 
       <FormField
+        data-testid="auth-register-field-nickname"
         v-model="nickname"
         label="暱稱"
         type="text"
