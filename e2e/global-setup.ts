@@ -189,6 +189,11 @@ export default async function globalSetup() {
   await seedArticle(authorToken, adminToken, 'E2E Test Article — CSS Grid Layout', 'frontend')
   await seedArticle(authorToken, adminToken, 'E2E Test Article — REST API Design', 'backend')
   await seedArticle(authorToken, adminToken, 'E2E Test Article — Vue Router Guide', 'frontend')
+  await seedArticle(authorToken, adminToken, 'E2E Test Article — Vite Build Tool', 'frontend')
+  await seedArticle(authorToken, adminToken, 'E2E Test Article — PostgreSQL Basics', 'backend')
+  await seedArticle(authorToken, adminToken, 'E2E Test Article — Pinia State Management', 'frontend')
+  await seedArticle(authorToken, adminToken, 'E2E Test Article — Redis Caching', 'backend')
+  await seedArticle(authorToken, adminToken, 'E2E Test Article — TailwindCSS Tips', 'frontend')
 
   console.log('[E2E global-setup] Done.')
 }

@@ -42,8 +42,6 @@ test.describe('讀者瀏覽文章', () => {
 
     // --- 翻到第 2 頁：仍能看到文章 ---
     await articleListPage.goToPage(2)
-    // 等待 loading 動畫出現再消失（確認新頁面資料載入完成）
-    await articleListPage.loadingDots.waitFor({ state: 'visible' })
     await articleListPage.waitForArticlesLoaded()
     expect(await articleListPage.articleCards.count()).toBeGreaterThan(0)
 
