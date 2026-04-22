@@ -26,8 +26,8 @@ export class ArticleListPage {
   }
 
   /** 等待首次載入完成（loading 消失 + 文章出現） */
-  async waitForArticlesLoaded(timeout = 10000) {
-    await this.articleCards.first().waitFor({ state: 'visible', timeout })
+  async waitForArticlesLoaded() {
+    await this.articleCards.first().waitFor({ state: 'visible' })
   }
 
   /** 等待載入完成，接受文章或空狀態（搜尋可能返回 0 結果） */
