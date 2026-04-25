@@ -30,17 +30,14 @@ describe('ArticleList 頁面', () => {
     })
   })
 
-  it('初始載入顯示 loading 動畫', async () => {
-    // 讓 getArticles 永遠不 resolve，保持 loading 狀態
+  it('初始載入顯示 loading 骨架', async () => {
     mockGetArticles.mockReturnValue(new Promise(() => {}))
 
     const { container } = renderWithRouter(ArticleList)
 
     await flushPromises()
 
-    // loading 狀態顯示 animate-bounce 的圓點 div
-    const bounceDots = container.querySelectorAll('[class*="animate-bounce"]')
-    expect(bounceDots.length).toBeGreaterThanOrEqual(3)
+    expect(container.querySelector('[data-testid="articles-loading"]')).toBeInTheDocument()
   })
 
   it('載入完成顯示文章卡片', async () => {

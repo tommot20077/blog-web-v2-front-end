@@ -1,340 +1,194 @@
 <script setup lang="ts">
-import { computed, onMounted, watchEffect } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { useArticleDetail } from '../composables/useArticleDetail';
-import { useMarkdownRenderer } from '../composables/useMarkdownRenderer';
-import { useWordCount } from '../composables/useWordCount';
+import { computed, onMounted, watchEffect } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useArticleDetail } from '../composables/useArticleDetail'
+import { useMarkdownRenderer } from '../composables/useMarkdownRenderer'
+import { useWordCount } from '../composables/useWordCount'
 
-const route = useRoute();
-const router = useRouter();
-const uuid = route.params.uuid as string;
+const route = useRoute()
+const router = useRouter()
+const uuid = route.params.uuid as string
 
-const { article, isLoading } = useArticleDetail(uuid);
+const { article, isLoading } = useArticleDetail(uuid)
+const markdownSource = computed(() => article.value?.content ?? '')
+const { renderedHtml } = useMarkdownRenderer(markdownSource)
+const { readingTimeMinutes } = useWordCount(markdownSource)
 
-// Markdown 原始字串的 computed ref，供 useMarkdownRenderer 與 useWordCount 消費
-const markdownSource = computed(() => article.value?.content ?? '');
-
-// 使用 composable 將 Markdown 渲染為安全 HTML
-const { renderedHtml, isReady: isShikiReady } = useMarkdownRenderer(markdownSource);
-
-// 動態閱讀時間
-const { readingTimeMinutes } = useWordCount(markdownSource);
-
-// Guard: isLoading starts true in useArticleDetail, so this only fires after fetch settles.
 watchEffect(() => {
-  if (!isLoading.value && !article.value) {
-    router.replace({ name: 'not-found' })
-  }
+  if (!isLoading.value && !article.value) router.replace({ name: 'not-found' })
 })
 
-onMounted(() => {
-  window.scrollTo({ top: 0, behavior: 'auto' });
-});
+onMounted(() => window.scrollTo({ top: 0, behavior: 'auto' }))
 
-const scrollToTop = () => {
-  window.scrollTo({ top: 0, behavior: 'smooth' })
-}
-
-const goBack = () => {
-  if (window.history.length > 1) {
-    router.back();
-  } else {
-    router.push('/articles');
-  }
-};
+const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' })
+const goBack = () => window.history.length > 1 ? router.back() : router.push('/articles')
 </script>
 
 <template>
-  <div class="w-full flex-1 pt-8 md:pt-16 pb-32">
+  <!-- Loading -->
+  <div v-if="isLoading" class="art-loading">
+    <div class="sk-pulse" style="height:4px;width:120px;border-radius:2px;" />
+    <p class="mono">萃取文章細節中...</p>
+  </div>
 
-    <!-- 全局加載中動畫 -->
-    <div v-if="isLoading" class="flex flex-col items-center justify-center pt-32 pb-64 min-h-[60vh]">
-      <div class="flex gap-3 items-center opacity-80">
-        <div class="w-4 h-4 rounded-full bg-[var(--ink)] animate-bounce"></div>
-        <div class="w-4 h-4 rounded-full bg-[var(--ink)] animate-bounce" style="animation-delay: 0.15s"></div>
-        <div class="w-4 h-4 rounded-full bg-[var(--ink)] animate-bounce" style="animation-delay: 0.3s"></div>
-      </div>
-      <p class="mt-8 font-bold tracking-widest opacity-60">萃取文章細節中...</p>
-    </div>
+  <!-- Article -->
+  <article v-if="article" class="art-detail" data-testid="article-root">
 
-    <!-- 實際文章渲染層 -->
-    <article v-if="article" class="article animate-fade-in-up" data-testid="article-root">
+    <!-- Reading progress bar -->
+    <div class="art-progress" />
 
-      <!-- 返回按鈕列 -->
-      <div class="mb-10 w-full flex items-center">
-        <button
-          @click="goBack"
-          class="flex items-center gap-3 opacity-50 hover:opacity-100 transition-opacity font-bold text-xs tracking-widest px-4 py-2 -ml-4 rounded-xl hover:bg-black/5 dark:hover:bg-white/10"
-        >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-          回列表
-        </button>
-      </div>
+    <!-- Hero -->
+    <div class="art-hero">
+      <div class="wrap">
+        <!-- Breadcrumb -->
+        <div class="art-hero-back">
+          <button class="back-btn" @click="goBack">回列表</button>
+        </div>
 
-      <!-- 封面圖 -->
-      <img
-        v-if="article.coverImageUrl"
-        data-testid="article-cover-image"
-        :src="article.coverImageUrl"
-        :alt="article.title"
-        class="w-full aspect-video object-cover rounded-none md:rounded-3xl shadow-lg mb-10"
-      />
-
-      <!-- Hero 區塊 -->
-      <div class="article-hero">
-        <!-- 分類 pills（category pill above title） -->
-        <div v-if="article.categories?.length > 0" class="flex flex-wrap gap-2 mb-4" data-testid="article-categories">
+        <!-- Meta -->
+        <div class="art-hero-meta">
           <span
             v-for="cat in article.categories ?? []"
             :key="cat"
-            class="px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-widest text-white"
-            style="background: var(--accent);"
-          >
-            {{ cat }}
+            class="mono"
+            style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent)"
+          >{{ cat }}</span>
+          <span class="mono" style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)">
+            {{ readingTimeMinutes }} MIN READ
           </span>
+          <span class="mono" style="font-size:11px;color:var(--muted)">約 {{ readingTimeMinutes }} 分鐘閱讀時間</span>
         </div>
+
+        <!-- Title -->
+        <h1 class="art-hero-title" data-testid="article-title">{{ article.title }}</h1>
 
         <!-- Tags -->
-        <div class="article-tags flex flex-wrap gap-2 mb-8" data-testid="article-tags">
-          <span v-for="tag in article.tags" :key="tag" class="px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-widest bg-[var(--ink)] text-[var(--bg)] shadow-md">
-            # {{ tag }}
-          </span>
+        <div class="art-hero-tags" data-testid="article-tags">
+          <span
+            v-for="tag in article.tags"
+            :key="tag"
+            class="art-tag"
+          ># {{ tag }}</span>
         </div>
 
-        <h1 class="article-title" data-testid="article-title">
-          {{ article.title }}
-        </h1>
-
-        <!-- metadata 行 -->
-        <div class="article-meta flex flex-wrap items-center gap-4 text-sm font-bold opacity-50 tracking-wide uppercase">
-          <!-- 作者 -->
-          <div class="flex items-center gap-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-            <span data-testid="article-author">{{ article.authorNickname }}</span>
+        <!-- Author / stats row -->
+        <div class="art-hero-foot">
+          <div class="meta-line">
+            <div class="avatar" />
+            <div class="who">
+              <b data-testid="article-author">{{ article.authorNickname }}</b>
+              <div class="mono" style="font-size:11px;color:var(--muted)">
+                <time data-testid="article-date">{{ article.publishedAt }}</time>
+              </div>
+            </div>
           </div>
-          <span class="opacity-30">|</span>
-          <!-- 發布日期 -->
-          <div class="flex items-center gap-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-            <time data-testid="article-date">{{ article.publishedAt }}</time>
-          </div>
-          <span class="opacity-30">|</span>
-          <!-- 觀看數 -->
-          <div class="flex items-center gap-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+          <div class="art-hero-stats">
             <span>{{ article.viewCount }} 觀看次數</span>
-          </div>
-          <span class="opacity-30">|</span>
-          <!-- 閱讀時間（動態） -->
-          <div class="flex items-center gap-2">
-            <span>約 {{ readingTimeMinutes }} 分鐘閱讀時間</span>
-          </div>
-          <span class="opacity-30">|</span>
-          <!-- 讚數 -->
-          <div class="flex items-center gap-2" data-testid="like-count">
-            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-            <span>{{ article.likeCount }}</span>
-          </div>
-          <span class="opacity-30">|</span>
-          <!-- 留言數 -->
-          <div class="flex items-center gap-2" data-testid="comment-count">
-            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z"/></svg>
-            <span>{{ article.commentCount }}</span>
+            <span data-testid="like-count">{{ article.likeCount }} ♡</span>
+            <span data-testid="comment-count">{{ article.commentCount }} 留言</span>
           </div>
         </div>
       </div>
+    </div>
 
-      <!-- 文章本文 -->
-      <!-- markdown-it + Shiki 渲染 → DOMPurify 消毒 → Typography .prose 排版 -->
+    <!-- Cover image -->
+    <div v-if="article.coverImageUrl" class="art-cover wrap">
+      <img
+        :src="article.coverImageUrl"
+        :alt="article.title"
+        data-testid="article-cover-image"
+      />
+    </div>
+
+    <!-- Article body -->
+    <div class="wrap">
       <div
-        class="article-body prose prose-lg dark:prose-invert"
+        class="art-body prose"
         data-testid="article-body"
-        v-html="renderedHtml">
-      </div>
+        v-html="renderedHtml"
+      />
 
-      <!-- 結尾操作區塊 -->
-      <footer class="mt-24 pt-12 border-t flex flex-col md:flex-row items-center justify-between gap-6" style="border-color: var(--glass-border)">
-        <p class="font-bold text-xs opacity-40 tracking-widest uppercase">END OF ARTICLE.</p>
-        <button
-          @click="scrollToTop"
-          class="flex items-center justify-center w-12 h-12 rounded-full border bg-[var(--glass)] backdrop-blur-md opacity-70 hover:opacity-100 hover:-translate-y-2 transition-all shadow-sm group"
-          style="border-color: var(--glass-border);"
-        >
-          <svg class="w-5 h-5 group-hover:animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>
-        </button>
+      <!-- Article end -->
+      <footer class="art-end">
+        <p class="mono" style="font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted-2)">END OF ARTICLE.</p>
+        <button @click="scrollToTop" class="back-top-btn">↑</button>
       </footer>
+    </div>
 
-    </article>
-  </div>
+    <!-- Side navigation dots -->
+    <div class="art-nav">
+      <div class="art-nav-dot active" />
+      <div class="art-nav-dot" />
+      <div class="art-nav-dot" />
+    </div>
+  </article>
 </template>
 
 <style scoped>
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.art-loading {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 60vh; gap: 24px; color: var(--muted);
 }
-.animate-fade-in-up {
-  animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+.art-detail { position: relative; }
+.art-hero { padding: 96px 0 64px; border-bottom: 1px solid var(--divider); }
+.art-hero-back { margin-bottom: 32px; }
+.back-btn {
+  font-family: var(--f-mono); font-size: 11px; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--muted); background: none; border: none; cursor: pointer;
+  transition: color .2s; padding: 0;
 }
-
-.article {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem;
+.back-btn:hover { color: var(--ink); }
+.art-hero-meta { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; }
+.art-hero-title {
+  font-family: var(--f-display); font-size: clamp(36px, 5vw, 80px);
+  font-weight: 500; line-height: 1.05; letter-spacing: -.04em;
+  color: var(--ink); margin: 0 0 28px; max-width: 22ch;
 }
-
-.article-hero {
-  margin-bottom: 3rem;
-  border-bottom: 1px solid var(--glass-border);
-  padding-bottom: 3rem;
+.art-hero-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 36px; }
+.art-tag {
+  padding: 5px 12px; border-radius: 6px; font-family: var(--f-mono); font-size: 11px;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--muted);
+  border: 1px solid var(--border); background: transparent;
 }
-
-.article-title {
-  font-family: var(--f-display);
-  font-size: clamp(2rem, 6vw, 4rem);
-  line-height: 1.1;
-  color: var(--ink);
-  font-weight: 500;
-  letter-spacing: -0.03em;
-  margin-bottom: 2rem;
+.art-hero-foot { display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+.meta-line { display: flex; align-items: center; gap: 14px; }
+.avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--bg-sub); }
+.who b { font-family: var(--f-body); font-size: 14px; color: var(--ink); }
+.art-hero-stats { display: flex; gap: 20px; font-family: var(--f-mono); font-size: 11px; letter-spacing: .12em; color: var(--muted-2); text-transform: uppercase; }
+.art-cover { padding: 48px 0 0; }
+.art-cover img { width: 100%; border-radius: 8px; display: block; }
+.art-body {
+  max-width: 68ch; margin: 48px auto 0; font-family: var(--f-body);
+  color: var(--ink-2); overflow-x: hidden;
 }
-
-.article-meta {
-  margin-top: 1.5rem;
+.art-body :deep(code) { font-family: var(--f-mono); background: var(--bg-sub); }
+.art-body :deep(blockquote) {
+  border-left: 3px solid var(--accent); background: var(--glass);
+  padding: .75em 1.5em; border-radius: 0 .75rem .75rem 0; opacity: .85;
 }
-
-.article-body {
-  max-width: 68ch;
-  margin: 0 auto;
-  font-family: var(--f-body);
-  color: var(--ink-2);
-  /* BUG-003：防止寬內容（table / pre）在 320px 時造成水平溢出 */
-  overflow-x: hidden;
+.art-body :deep(pre) { background: transparent !important; padding: 0 !important; margin: 1.5em 0 !important; max-width: 100%; overflow-x: auto; }
+.art-body :deep(pre code) { display: block; padding: 1.25em 1.5em; border-radius: 1rem; font-size: .875em; line-height: 1.7; overflow-x: auto; border: 1px solid var(--glass-border); }
+.art-body :deep(.shiki) { background-color: var(--shiki-light-bg, #f6f8fa) !important; }
+.art-body :deep(.shiki span) { color: var(--shiki-light, inherit); }
+html.dark .art-body :deep(.shiki) { background-color: var(--shiki-dark-bg, #24292e) !important; }
+html.dark .art-body :deep(.shiki span) { color: var(--shiki-dark, inherit); }
+.art-body :deep(a) { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+.art-body :deep(img) { border-radius: 1.5rem; box-shadow: 0 4px 24px rgba(0,0,0,.08); }
+.art-body :deep(:not(pre) > code) { background-color: var(--glass); border: 1px solid var(--glass-border); padding: .15em .4em; border-radius: .375rem; font-size: .85em; color: var(--code-ink, #d23669); }
+html.dark .art-body :deep(:not(pre) > code) { color: var(--code-ink-dark, #ff7b72); }
+.art-body :deep(table) { display: block; overflow-x: auto; width: 100%; border-collapse: collapse; margin: 2em 0; font-size: .9em; }
+.art-body :deep(th), .art-body :deep(td) { border: 1px solid var(--glass-border); padding: .75em 1em; }
+.art-body :deep(th) { background-color: var(--glass); font-weight: 700; text-align: left; }
+.art-body :deep(.task-list-item) { list-style-type: none; position: relative; margin-left: -1.5rem; }
+.art-body :deep(.task-list-item input[type="checkbox"]) { position: absolute; left: -1.5rem; top: .35rem; width: 1.1rem; height: 1.1rem; accent-color: var(--ink); cursor: pointer; }
+.art-end {
+  max-width: 68ch; margin: 96px auto 120px; padding-top: 40px;
+  border-top: 1px solid var(--divider); display: flex; align-items: center; justify-content: space-between;
 }
-
-.article-body :deep(code) {
-  font-family: var(--f-mono);
-  background: var(--bg-sub);
+.back-top-btn {
+  width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border);
+  background: var(--glass); backdrop-filter: blur(12px); color: var(--ink);
+  font-size: 16px; cursor: pointer; display: grid; place-items: center; transition: transform .2s;
 }
-
-.article-body :deep(blockquote) {
-  border-left: 3px solid var(--accent);
-  background: var(--glass);
-  padding: 0.75em 1.5em;
-  border-radius: 0 0.75rem 0.75rem 0;
-  opacity: 0.85;
-}
-
-/* Shiki 程式碼區塊：覆寫 Typography 的預設樣式，讓 Shiki 全權處理 */
-.article-body :deep(pre) {
-  background: transparent !important;
-  padding: 0 !important;
-  margin: 1.5em 0 !important;
-  max-width: 100%;
-  overflow-x: auto;
-}
-.article-body :deep(pre code) {
-  display: block;
-  padding: 1.25em 1.5em;
-  border-radius: 1rem;
-  font-size: 0.875em;
-  line-height: 1.7;
-  overflow-x: auto;
-  border: 1px solid var(--glass-border);
-}
-
-/* Shiki 雙主題 CSS Variables 切換 */
-.article-body :deep(.shiki) {
-  background-color: var(--shiki-light-bg, #f6f8fa) !important;
-}
-.article-body :deep(.shiki span) {
-  color: var(--shiki-light, inherit);
-}
-html.dark .article-body :deep(.shiki) {
-  background-color: var(--shiki-dark-bg, #24292e) !important;
-}
-html.dark .article-body :deep(.shiki span) {
-  color: var(--shiki-dark, inherit);
-}
-
-/* 連結顏色 */
-.article-body :deep(a) {
-  color: var(--accent);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-/* 圖片圓角 + 陰影 */
-.article-body :deep(img) {
-  border-radius: 1.5rem;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
-}
-
-/* 確保刪除線顯示正確 */
-.article-body :deep(del),
-.article-body :deep(s),
-.article-body :deep(strike) {
-  text-decoration: line-through;
-}
-
-/* 行內程式碼樣式（非 pre 區塊），讓其更明顯 */
-.article-body :deep(:not(pre) > code) {
-  background-color: var(--glass);
-  border: 1px solid var(--glass-border);
-  padding: 0.15em 0.4em;
-  border-radius: 0.375rem;
-  font-size: 0.85em;
-  color: var(--code-ink, #d23669);
-}
-html.dark .article-body :deep(:not(pre) > code) {
-  color: var(--code-ink-dark, #ff7b72);
-}
-
-/* 表格樣式優化 */
-.article-body :deep(table) {
-  display: block;
-  overflow-x: auto;
-  width: 100%;
-  border-collapse: collapse;
-  margin: 2em 0;
-  font-size: 0.9em;
-}
-.article-body :deep(th),
-.article-body :deep(td) {
-  border: 1px solid var(--glass-border);
-  padding: 0.75em 1em;
-}
-.article-body :deep(th) {
-  background-color: var(--glass);
-  font-weight: 700;
-  text-align: left;
-}
-.article-body :deep(tr:nth-child(even)) {
-  background-color: rgba(0, 0, 0, 0.02);
-}
-html.dark .article-body :deep(tr:nth-child(even)) {
-  background-color: rgba(255, 255, 255, 0.02);
-}
-
-/* 任務清單樣式（markdown-it-task-lists） */
-.article-body :deep(.task-list-item) {
-  list-style-type: none;
-  position: relative;
-  margin-left: -1.5rem;
-}
-.article-body :deep(.task-list-item input[type="checkbox"]) {
-  position: absolute;
-  left: -1.5rem;
-  top: 0.35rem;
-  width: 1.1rem;
-  height: 1.1rem;
-  accent-color: var(--ink);
-  cursor: pointer;
-}
+.back-top-btn:hover { transform: translateY(-3px); }
 </style>
