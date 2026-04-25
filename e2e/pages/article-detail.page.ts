@@ -3,9 +3,6 @@ import type { Page, Locator } from '@playwright/test'
 export class ArticleDetailPage {
   readonly page: Page
   readonly loadingText: Locator
-  readonly notFoundEmoji: Locator
-  readonly notFoundText: Locator
-  readonly notFoundBackButton: Locator
   readonly backButton: Locator
   readonly articleTitle: Locator
   readonly articleTags: Locator
@@ -20,9 +17,6 @@ export class ArticleDetailPage {
   constructor(page: Page) {
     this.page = page
     this.loadingText = page.getByText('萃取文章細節中...')
-    this.notFoundEmoji = page.getByText('🏜️')
-    this.notFoundText = page.getByText('找不到該篇文章（404）')
-    this.notFoundBackButton = page.getByRole('button', { name: '返回列表頁面' })
     this.backButton = page.getByRole('button', { name: '回列表' })
     this.articleTitle = page.getByTestId('article-title')
     this.articleTags = page.getByTestId('article-tags').locator('span')

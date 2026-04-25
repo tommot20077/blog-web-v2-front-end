@@ -20,7 +20,7 @@ const { renderedHtml, isReady: isShikiReady } = useMarkdownRenderer(markdownSour
 // 動態閱讀時間
 const { readingTimeMinutes } = useWordCount(markdownSource);
 
-// Redirect to not-found page if article not found after loading
+// Guard: isLoading starts true in useArticleDetail, so this only fires after fetch settles.
 watchEffect(() => {
   if (!isLoading.value && !article.value) {
     router.push({ name: 'not-found' })
