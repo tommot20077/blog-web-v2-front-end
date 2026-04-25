@@ -1,21 +1,39 @@
 import { test as base } from '@playwright/test'
 import { EditorPage } from '../pages/editor.page'
 
-// Mock 預設帳號（對應 authMockData.ts seed users）
-export const AUTHOR_CREDENTIALS = {
-  email: 'user@test.com',
-  password: 'Password1',
+const USE_MOCK = process.env.E2E_MOCK === '1'
+
+type Role = 'reader' | 'author' | 'admin'
+
+interface Credentials {
+  email: string
+  password: string
+  nickname: string
 }
+
+const MOCK_CREDENTIALS: Record<Role, Credentials> = {
+  reader: { email: 'user@test.com', password: 'Password1', nickname: 'Yuan' },
+  author: { email: 'user@test.com', password: 'Password1', nickname: 'Yuan' },
+  admin: { email: 'admin@test.com', password: 'Password1', nickname: 'Admin' },
+}
+
+const REAL_CREDENTIALS: Record<Role, Credentials> = {
+  reader: { email: 'reader@test.local', password: 'Test1234!', nickname: 'Reader' },
+  author: { email: 'author@test.local', password: 'Test1234!', nickname: 'Author' },
+  admin: { email: 'admin@test.local', password: 'Test1234!', nickname: 'Admin' },
+}
+
+export function getCredentials(role: Role): Credentials {
+  return USE_MOCK ? MOCK_CREDENTIALS[role] : REAL_CREDENTIALS[role]
+}
+
+// Keep AUTHOR_CREDENTIALS for backwards compatibility with existing specs
+export const AUTHOR_CREDENTIALS = getCredentials('author')
 
 type AuthFixtures = {
   editorPage: EditorPage
   /**
    * 以 AUTHOR 身份登入並導航至編輯器新建頁。
-   *
-   * 策略：
-   * 1. 在 /login 頁面完成登入（重導至首頁）
-   * 2. 透過 window.__router.push('/editor') 觸發 SPA 內部導航，
-   *    避免 page.goto('/editor') 全頁重載清空 Pinia 記憶體狀態
    */
   loginAsAuthorAndGoToEditor: () => Promise<void>
 }
@@ -26,20 +44,17 @@ export const test = base.extend<AuthFixtures>({
   },
 
   loginAsAuthorAndGoToEditor: async ({ page }, use) => {
+    const creds = getCredentials('author')
     const go = async () => {
-      // 1. 直接到 /login（不透過 /editor，避免在 goto 前 returnUrl 尚未設定）
       await page.goto('/login')
       await page.waitForURL(/\/login/, { timeout: 5000 })
 
-      // 2. 填入 AUTHOR 帳號並登入
-      await page.getByTestId('auth-login-field-email').fill(AUTHOR_CREDENTIALS.email)
-      await page.getByTestId('auth-login-field-password').fill(AUTHOR_CREDENTIALS.password)
+      await page.getByTestId('auth-login-field-email').fill(creds.email)
+      await page.getByTestId('auth-login-field-password').fill(creds.password)
       await page.getByTestId('auth-login-submit').click()
 
-      // 3. 等待離開 /login（登入成功後重導至首頁）
       await page.waitForURL((url) => !url.pathname.startsWith('/login'), { timeout: 5000 })
 
-      // 4. 透過 SPA 內部路由導航至 /editor（避免全頁重載清空 Pinia 狀態）
       await page.evaluate(() => {
         const router = (window as unknown as Record<string, { push: (p: string) => Promise<void> }>).__router
         return router.push('/editor')

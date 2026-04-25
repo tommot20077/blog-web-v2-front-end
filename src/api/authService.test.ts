@@ -193,14 +193,14 @@ describe('authService', () => {
       })
     })
 
-    it('verifyEmail 使用 apiClient.post 呼叫正確的 URL 和 body', async () => {
-      mockPost.mockResolvedValue(undefined)
+    it('verifyEmail 使用 apiClient.get 並將 token 作為 query param', async () => {
+      mockGet.mockResolvedValue(undefined)
 
       const { authService } = await import('./authService')
       await authService.verifyEmail('verify-token-xyz')
 
-      expect(mockPost).toHaveBeenCalledWith('/api/v1/auth/verify-email', {
-        token: 'verify-token-xyz',
+      expect(mockGet).toHaveBeenCalledWith('/api/v1/auth/verify-email', {
+        params: { token: 'verify-token-xyz' },
       })
     })
 

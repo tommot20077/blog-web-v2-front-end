@@ -50,6 +50,7 @@ test.describe('作者撰寫文章', () => {
     await expect(page).toHaveURL('/editor')
 
     await editorPage.fillTitle('E2E UUID 接力測試')
+    await editorPage.fillContent('Test content for E2E.')
     await editorPage.saveDraft()
     await editorPage.waitForSaveSuccess()
 
@@ -59,6 +60,7 @@ test.describe('作者撰寫文章', () => {
 
   test('再次儲存草稿 UUID 不變，URL 不再更改', async ({ page, editorPage }) => {
     await editorPage.fillTitle('E2E UUID 接力測試 - 重複儲存')
+    await editorPage.fillContent('Test content for repeated save E2E.')
     await editorPage.saveDraft()
     await editorPage.waitForSaveSuccess()
 

@@ -15,13 +15,13 @@ interface FrontendItem {
 describe('mapPageResult', () => {
   it('maps list items using the provided mapper', () => {
     const raw: BackendPageResult<BackendItem> = {
-      list: [
+      records: [
         { id: 1, label: 'Alpha' },
         { id: 2, label: 'Beta' },
       ],
-      pageNum: 1,
-      pageSize: 10,
-      totalPage: 3,
+      current: 1,
+      size: 10,
+      pages: 3,
       total: 25,
     }
 
@@ -38,10 +38,10 @@ describe('mapPageResult', () => {
 
   it('maps pagination fields correctly', () => {
     const raw: BackendPageResult<BackendItem> = {
-      list: [],
-      pageNum: 3,
-      pageSize: 20,
-      totalPage: 7,
+      records: [],
+      current: 3,
+      size: 20,
+      pages: 7,
       total: 140,
     }
 
@@ -59,10 +59,10 @@ describe('mapPageResult', () => {
 
   it('handles empty list gracefully', () => {
     const raw: BackendPageResult<BackendItem> = {
-      list: [],
-      pageNum: 1,
-      pageSize: 10,
-      totalPage: 0,
+      records: [],
+      current: 1,
+      size: 10,
+      pages: 0,
       total: 0,
     }
 

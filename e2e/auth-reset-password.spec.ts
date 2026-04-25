@@ -1,8 +1,11 @@
 import { test, expect } from '@playwright/test'
 import { AuthResetPasswordPage } from './pages/auth-reset-password.page'
 
+const USE_MOCK = process.env.E2E_MOCK === '1'
+
 test.describe('重設密碼流程', () => {
   test('合法 token — 重設成功後重導至登入頁', async ({ page }) => {
+    test.skip(!USE_MOCK, 'token-based test requires mock mode (real mode needs DB-seeded token)')
     const resetPage = new AuthResetPasswordPage(page)
     await resetPage.goto('mock-reset-token')
 
@@ -18,7 +21,8 @@ test.describe('重設密碼流程', () => {
 
     await resetPage.reset('NewPassword1!', 'NewPassword1!')
 
-    await expect(page.getByText('無效的重設密碼 token')).toBeVisible({ timeout: 5000 })
+    // mock: "無效的重設密碼 token"；real backend: "Token無效或已過期"
+    await expect(page.getByText(/無效.*token|token.*無效|Token無效/i)).toBeVisible({ timeout: 5000 })
   })
 
   test('未帶 token 訪問 — 顯示「無效的重設連結」提示', async ({ page }) => {

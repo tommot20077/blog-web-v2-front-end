@@ -25,6 +25,7 @@ export interface User {
   uuid: string;
   email: string;
   nickname: string;
+  bio?: string;
   avatarUrl: string | null;
   role: UserRole;
   emailVerified: boolean;

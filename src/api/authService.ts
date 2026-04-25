@@ -1,76 +1,84 @@
 import type { LoginPayload, RegisterPayload, AuthTokens, User } from '../types/auth'
-import apiClient from './apiClient'
 
 export const authService = {
   async login(payload: LoginPayload): Promise<AuthTokens> {
     if (import.meta.env.VITE_USE_MOCK === 'true') {
-      const { loginMock } = await import('./mock/authMockService')
-      return loginMock(payload)
+      const { authService: svc } = await import('./mock/authService')
+      return svc.login(payload)
     }
-    return apiClient.post('/api/v1/auth/login', payload)
+    const { authService: svc } = await import('./real/authService')
+    return svc.login(payload)
   },
 
   async register(payload: RegisterPayload): Promise<void> {
     if (import.meta.env.VITE_USE_MOCK === 'true') {
-      const { registerMock } = await import('./mock/authMockService')
-      return registerMock(payload)
+      const { authService: svc } = await import('./mock/authService')
+      return svc.register(payload)
     }
-    return apiClient.post('/api/v1/auth/register', payload)
+    const { authService: svc } = await import('./real/authService')
+    return svc.register(payload)
   },
 
   async refresh(): Promise<AuthTokens> {
     if (import.meta.env.VITE_USE_MOCK === 'true') {
-      const { refreshTokenMock } = await import('./mock/authMockService')
-      return refreshTokenMock()
+      const { authService: svc } = await import('./mock/authService')
+      return svc.refresh()
     }
-    return apiClient.post('/api/v1/auth/refresh')
+    const { authService: svc } = await import('./real/authService')
+    return svc.refresh()
   },
 
   async logout(): Promise<void> {
     if (import.meta.env.VITE_USE_MOCK === 'true') {
-      const { logoutMock } = await import('./mock/authMockService')
-      return logoutMock()
+      const { authService: svc } = await import('./mock/authService')
+      return svc.logout()
     }
-    return apiClient.post('/api/v1/auth/logout')
+    const { authService: svc } = await import('./real/authService')
+    return svc.logout()
   },
 
   async forgotPassword(email: string): Promise<void> {
     if (import.meta.env.VITE_USE_MOCK === 'true') {
-      const { forgotPasswordMock } = await import('./mock/authMockService')
-      return forgotPasswordMock(email)
+      const { authService: svc } = await import('./mock/authService')
+      return svc.forgotPassword(email)
     }
-    return apiClient.post('/api/v1/auth/forgot-password', { email })
+    const { authService: svc } = await import('./real/authService')
+    return svc.forgotPassword(email)
   },
 
   async resetPassword(token: string, newPassword: string): Promise<void> {
     if (import.meta.env.VITE_USE_MOCK === 'true') {
-      const { resetPasswordMock } = await import('./mock/authMockService')
-      return resetPasswordMock(token, newPassword)
+      const { authService: svc } = await import('./mock/authService')
+      return svc.resetPassword(token, newPassword)
     }
-    return apiClient.post('/api/v1/auth/reset-password', { token, newPassword })
+    const { authService: svc } = await import('./real/authService')
+    return svc.resetPassword(token, newPassword)
   },
 
   async verifyEmail(token: string): Promise<void> {
     if (import.meta.env.VITE_USE_MOCK === 'true') {
-      const { verifyEmailMock } = await import('./mock/authMockService')
-      return verifyEmailMock(token)
+      const { authService: svc } = await import('./mock/authService')
+      return svc.verifyEmail(token)
     }
-    return apiClient.post('/api/v1/auth/verify-email', { token })
+    const { authService: svc } = await import('./real/authService')
+    return svc.verifyEmail(token)
   },
 
   async getMe(): Promise<User> {
     if (import.meta.env.VITE_USE_MOCK === 'true') {
-      const { getMeMock } = await import('./mock/authMockService')
-      return getMeMock()
+      const { authService: svc } = await import('./mock/authService')
+      return svc.getMe()
     }
-    return apiClient.get('/api/v1/users/me')
+    const { authService: svc } = await import('./real/authService')
+    return svc.getMe()
   },
 
   async resendVerification(email: string): Promise<void> {
     if (import.meta.env.VITE_USE_MOCK === 'true') {
-      const { resendVerificationMock } = await import('./mock/authMockService')
-      return resendVerificationMock()
+      const { authService: svc } = await import('./mock/authService')
+      return svc.resendVerification(email)
     }
-    return apiClient.post('/api/v1/auth/resend-verification', { email })
+    const { authService: svc } = await import('./real/authService')
+    return svc.resendVerification(email)
   },
 }

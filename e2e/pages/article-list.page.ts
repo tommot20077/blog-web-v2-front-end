@@ -30,6 +30,14 @@ export class ArticleListPage {
     await this.articleCards.first().waitFor({ state: 'visible' })
   }
 
+  /** 等待載入完成，接受文章或空狀態（搜尋可能返回 0 結果） */
+  async waitForLoadingComplete(timeout = 10000) {
+    await Promise.race([
+      this.articleCards.first().waitFor({ state: 'visible', timeout }),
+      this.emptyMessage.waitFor({ state: 'visible', timeout }),
+    ])
+  }
+
   /** 點擊分頁器指定頁碼 */
   async goToPage(pageNumber: number) {
     await this.page.getByRole('button', { name: String(pageNumber), exact: true }).click()

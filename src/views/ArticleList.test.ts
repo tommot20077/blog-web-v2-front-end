@@ -3,6 +3,7 @@ import { flushPromises } from '@vue/test-utils'
 import ArticleList from './ArticleList.vue'
 import { renderWithRouter, createMockArticle, createMockPageResult } from '../test-utils'
 import { articleService } from '../api/articleService'
+import { searchService } from '../api/searchService'
 
 vi.mock('../api/articleService', () => ({
   articleService: {
@@ -11,7 +12,14 @@ vi.mock('../api/articleService', () => ({
   },
 }))
 
+vi.mock('../api/searchService', () => ({
+  searchService: {
+    search: vi.fn(),
+  },
+}))
+
 const mockGetArticles = vi.mocked(articleService.getArticles)
+const mockSearch = vi.mocked(searchService.search)
 
 function buildArticles(count: number) {
   return Array.from({ length: count }, (_, i) =>
@@ -136,9 +144,10 @@ describe('ArticleList 頁面', () => {
     })
   })
 
-  it('輸入關鍵字並按 Enter 後以正確 keyword 呼叫 getArticles', async () => {
+  it('輸入關鍵字並按 Enter 後改呼叫 searchService.search 而非 getArticles', async () => {
     const articles = buildArticles(3)
     mockGetArticles.mockResolvedValue(createMockPageResult(articles))
+    mockSearch.mockResolvedValue(createMockPageResult([]))
 
     const { getByTestId } = renderWithRouter(ArticleList)
 
@@ -149,7 +158,7 @@ describe('ArticleList 頁面', () => {
     await fireEvent.keyUp(searchInput, { key: 'Enter', code: 'Enter' })
 
     await waitFor(() => {
-      expect(mockGetArticles).toHaveBeenLastCalledWith(1, 6, '全部', '前端開發')
+      expect(mockSearch).toHaveBeenCalledWith(expect.objectContaining({ q: '前端開發' }))
     })
   })
 

@@ -33,12 +33,11 @@ describe('categoryService', () => {
     beforeEach(() => vi.stubEnv('VITE_USE_MOCK', 'false'))
     afterEach(() => { vi.restoreAllMocks(); vi.unstubAllEnvs() })
 
-    it('getCategories 呼叫 GET /api/v1/categories', async () => {
-      const mockCats = [{ uuid: 'c1', name: 'Vue', slug: 'vue' }]
-      vi.mocked(apiClient.get).mockResolvedValue(mockCats)
+    it('getCategories 呼叫 GET /api/v1/categories 並將 uuid 映射為 id', async () => {
+      vi.mocked(apiClient.get).mockResolvedValue([{ uuid: 'c1', name: 'Vue', slug: 'vue' }])
 
       const result = await categoryService.getCategories()
-      expect(result).toEqual(mockCats)
+      expect(result).toEqual([{ id: 'c1', name: 'Vue', slug: 'vue' }])
       expect(apiClient.get).toHaveBeenCalledWith('/api/v1/categories')
     })
 
@@ -49,12 +48,11 @@ describe('categoryService', () => {
       expect(result).toEqual([])
     })
 
-    it('getCategoryBySlug 呼叫 GET /api/v1/categories/:slug', async () => {
-      const mockCat = { uuid: 'c1', name: 'Vue', slug: 'vue' }
-      vi.mocked(apiClient.get).mockResolvedValue(mockCat)
+    it('getCategoryBySlug 呼叫 GET /api/v1/categories/:slug 並將 uuid 映射為 id', async () => {
+      vi.mocked(apiClient.get).mockResolvedValue({ uuid: 'c1', name: 'Vue', slug: 'vue' })
 
       const result = await categoryService.getCategoryBySlug('vue')
-      expect(result).toEqual(mockCat)
+      expect(result).toEqual({ id: 'c1', name: 'Vue', slug: 'vue' })
       expect(apiClient.get).toHaveBeenCalledWith('/api/v1/categories/vue')
     })
 

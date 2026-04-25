@@ -39,7 +39,6 @@ dist-ssr
 /.playwright/
 
 # Design & docs
-/blog-v2-design/
 /docs/
 
 # Git worktrees

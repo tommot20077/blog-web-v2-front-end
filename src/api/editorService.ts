@@ -1,33 +1,30 @@
-import apiClient from './apiClient'
 import type { ArticleFormData, EditorArticle } from '../types/editor'
 
 export const editorService = {
   async createArticle(data: ArticleFormData): Promise<EditorArticle> {
     if (import.meta.env.VITE_USE_MOCK === 'true') {
-      const { createArticleMock } = await import('./mock/editorMockService')
-      return createArticleMock(data)
+      const { editorService: svc } = await import('./mock/editorService')
+      return svc.createArticle(data)
     }
-    return apiClient.post<unknown, EditorArticle>('/api/v1/articles', data)
+    const { editorService: svc } = await import('./real/editorService')
+    return svc.createArticle(data)
   },
 
   async updateArticle(uuid: string, data: ArticleFormData): Promise<EditorArticle> {
     if (import.meta.env.VITE_USE_MOCK === 'true') {
-      const { updateArticleMock } = await import('./mock/editorMockService')
-      return updateArticleMock(uuid, data)
+      const { editorService: svc } = await import('./mock/editorService')
+      return svc.updateArticle(uuid, data)
     }
-    return apiClient.put<unknown, EditorArticle>(`/api/v1/articles/${uuid}`, data)
+    const { editorService: svc } = await import('./real/editorService')
+    return svc.updateArticle(uuid, data)
   },
 
   async getArticleForEdit(uuid: string): Promise<EditorArticle | null> {
     if (import.meta.env.VITE_USE_MOCK === 'true') {
-      const { getArticleForEditMock } = await import('./mock/editorMockService')
-      return getArticleForEditMock(uuid)
+      const { editorService: svc } = await import('./mock/editorService')
+      return svc.getArticleForEdit(uuid)
     }
-    try {
-      return await apiClient.get<unknown, EditorArticle>(`/api/v1/articles/${uuid}/edit`)
-    } catch (error) {
-      console.error('Failed to fetch article for edit:', error)
-      return null
-    }
+    const { editorService: svc } = await import('./real/editorService')
+    return svc.getArticleForEdit(uuid)
   },
 }

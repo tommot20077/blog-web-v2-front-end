@@ -27,11 +27,11 @@ describe('myArticlesService', () => {
 
     it('getMyArticles 呼叫 GET /api/v1/articles/me 並帶正確參數', async () => {
       vi.mocked(apiClient.get).mockResolvedValue({
-        list: [],
+        records: [],
         total: 0,
-        pageSize: 10,
-        pageNum: 1,
-        totalPage: 0,
+        size: 10,
+        current: 1,
+        pages: 0,
       })
       await myArticlesService.getMyArticles('DRAFT', 1, 10)
       expect(apiClient.get).toHaveBeenCalledWith('/api/v1/articles/me', { params: { status: 'DRAFT', page: 1, size: 10 } })
@@ -39,11 +39,11 @@ describe('myArticlesService', () => {
 
     it('getMyArticles ALL 時不帶 status 參數', async () => {
       vi.mocked(apiClient.get).mockResolvedValue({
-        list: [],
+        records: [],
         total: 0,
-        pageSize: 10,
-        pageNum: 1,
-        totalPage: 0,
+        size: 10,
+        current: 1,
+        pages: 0,
       })
       await myArticlesService.getMyArticles('ALL', 1, 10)
       expect(apiClient.get).toHaveBeenCalledWith('/api/v1/articles/me', { params: { page: 1, size: 10 } })
@@ -51,7 +51,7 @@ describe('myArticlesService', () => {
 
     it('tags 由物件陣列映射為字串陣列', async () => {
       vi.mocked(apiClient.get).mockResolvedValue({
-        list: [
+        records: [
           {
             uuid: 'my-1',
             title: '我的文章',
@@ -68,9 +68,9 @@ describe('myArticlesService', () => {
           },
         ],
         total: 1,
-        pageSize: 10,
-        pageNum: 1,
-        totalPage: 1,
+        size: 10,
+        current: 1,
+        pages: 1,
       })
       const result = await myArticlesService.getMyArticles('DRAFT', 1, 10)
       expect(result.records[0].tags).toEqual(['Vue'])
