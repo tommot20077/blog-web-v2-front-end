@@ -100,6 +100,11 @@ const router = createRouter({
       component: () => import('../views/AdminReviewView.vue'),
       meta: { requiresAuth: true, requiredRole: 'ADMIN' as UserRole }
     },
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'not-found',
+      component: () => import('../views/NotFoundView.vue')
+    }
   ],
   scrollBehavior() {
     return { top: 0, behavior: 'smooth' }

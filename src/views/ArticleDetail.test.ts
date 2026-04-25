@@ -70,14 +70,14 @@ describe('ArticleDetail 頁面', () => {
     expect(tagsEl?.textContent).toContain('TypeScript')
   })
 
-  it('找不到文章時顯示 404 畫面', async () => {
+  it('找不到文章時觸發 watchEffect 重導至 not-found 路由', async () => {
     vi.mocked(articleService.getArticleByUuid).mockResolvedValue(null)
 
-    await renderArticleDetail()
+    const { router } = await renderArticleDetail()
+    const pushSpy = vi.spyOn(router, 'push')
     await flushPromises()
 
-    expect(screen.getByText(/找不到該篇文章（404）/)).toBeInTheDocument()
-    expect(screen.getByText('🏜️')).toBeInTheDocument()
+    expect(pushSpy).toHaveBeenCalledWith({ name: 'not-found' })
   })
 
   it('有瀏覽歷史時，點擊「回列表」呼叫 router.back()', async () => {
@@ -110,17 +110,18 @@ describe('ArticleDetail 頁面', () => {
     expect(pushSpy).toHaveBeenCalledWith('/articles')
   })
 
-  it('404 頁面點擊「返回列表頁面」導向 /articles', async () => {
+  it('找不到文章時不顯示文章內容，只顯示載入中動畫', async () => {
     vi.mocked(articleService.getArticleByUuid).mockResolvedValue(null)
 
-    const { router } = await renderArticleDetail()
+    const { container } = await renderArticleDetail()
+    // 在載入中狀態，不應該看到文章 root
+    let articleRoot = container.querySelector('[data-testid="article-root"]')
+    expect(articleRoot).not.toBeInTheDocument()
+
+    // watchEffect 會觸發重導，不會顯示文章內容
     await flushPromises()
-
-    const pushSpy = vi.spyOn(router, 'push')
-
-    await fireEvent.click(screen.getByText('返回列表頁面'))
-
-    expect(pushSpy).toHaveBeenCalledWith('/articles')
+    articleRoot = container.querySelector('[data-testid="article-root"]')
+    expect(articleRoot).not.toBeInTheDocument()
   })
 
   describe('文章標頭 UI 增強', () => {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, watchEffect } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useArticleDetail } from '../composables/useArticleDetail';
 import { useMarkdownRenderer } from '../composables/useMarkdownRenderer';
@@ -19,6 +19,13 @@ const { renderedHtml, isReady: isShikiReady } = useMarkdownRenderer(markdownSour
 
 // 動態閱讀時間
 const { readingTimeMinutes } = useWordCount(markdownSource);
+
+// Redirect to not-found page if article not found after loading
+watchEffect(() => {
+  if (!isLoading.value && !article.value) {
+    router.push({ name: 'not-found' })
+  }
+})
 
 onMounted(() => {
   window.scrollTo({ top: 0, behavior: 'auto' });
@@ -50,17 +57,8 @@ const goBack = () => {
       <p class="mt-8 font-bold tracking-widest opacity-60">萃取文章細節中...</p>
     </div>
 
-    <!-- 找不到文章 (404) -->
-    <div v-else-if="!article" class="flex flex-col items-center justify-center pt-32 pb-64 min-h-[60vh]">
-      <div class="text-6xl mb-6">🏜️</div>
-      <p class="font-bold tracking-widest opacity-60 text-xl text-center leading-relaxed">這是一片荒蕪之地<br>找不到該篇文章（404）</p>
-      <button @click="router.push('/articles')" class="mt-8 px-8 py-3 rounded-full border border-[var(--glass-border)] bg-[var(--glass)] backdrop-blur-md opacity-80 hover:opacity-100 transition-all font-bold tracking-widest text-sm hover:scale-105 shadow-sm">
-        返回列表頁面
-      </button>
-    </div>
-
     <!-- 實際文章渲染層 -->
-    <article v-else class="article animate-fade-in-up" data-testid="article-root">
+    <article v-if="article" class="article animate-fade-in-up" data-testid="article-root">
 
       <!-- 返回按鈕列 -->
       <div class="mb-10 w-full flex items-center">
