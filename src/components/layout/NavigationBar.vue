@@ -73,6 +73,9 @@ async function handleLogout() {
     <!-- User menu (logged in) -->
     <div v-if="authStore.isAuthenticated" class="nav-user" data-testid="navbar-user-menu">
       <span class="nav-user__name" data-testid="navbar-user-greeting">你好, {{ authStore.user?.nickname }}!</span>
+      <RouterLink to="/settings" class="nav-link" active-class="active" data-testid="navbar-link-settings">
+        設定
+      </RouterLink>
       <button class="nav-link" data-testid="navbar-logout-btn" @click="handleLogout">登出</button>
     </div>
 
