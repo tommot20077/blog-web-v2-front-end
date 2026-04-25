@@ -7,7 +7,10 @@ import { syntaxHighlighting, indentOnInput } from '@codemirror/language'
 import { languages } from '@codemirror/language-data'
 import { classHighlighter } from '@lezer/highlight'
 
-export function useMarkdownEditor(containerRef: ShallowRef<HTMLElement | null>) {
+export function useMarkdownEditor(
+  containerRef: ShallowRef<HTMLElement | null>,
+  onCursorChange?: (lineIndex: number) => void,
+) {
   const editorView = shallowRef<EditorView | null>(null)
   const markdownContent = ref('')
 
@@ -18,9 +21,15 @@ export function useMarkdownEditor(containerRef: ShallowRef<HTMLElement | null>) 
     // Content sync extension（updateListener 在 mock 環境下為 undefined，安全跳過）
     const contentSyncExt = (EditorView as unknown as Record<string, { of: (fn: unknown) => unknown }>)
       .updateListener
-      ?.of((update: { docChanged: boolean; state: { doc: { toString(): string } } }) => {
+      ?.of((update: { docChanged: boolean; selectionSet: boolean; state: { doc: { toString(): string; lineAt(pos: number): { number: number } }; selection: { main: { head: number } } } }) => {
         if (update.docChanged) {
           markdownContent.value = update.state.doc.toString()
+        }
+        // Notify cursor line on selection change
+        if (update.selectionSet && onCursorChange) {
+          const head = update.state.selection.main.head
+          const lineObj = update.state.doc.lineAt(head)
+          onCursorChange(lineObj.number - 1) // 0-indexed line
         }
       })
 

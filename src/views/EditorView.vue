@@ -7,6 +7,7 @@ import { useMarkdownRenderer } from '../composables/useMarkdownRenderer'
 import { useWordCount } from '../composables/useWordCount'
 import { useToast } from '../composables/useToast'
 import { useEditorFocusMode } from '../composables/useEditorFocusMode'
+import { useEditorOutline } from '../composables/useEditorOutline'
 import { categoryService } from '../api/categoryService'
 import EditorToolbar from '../components/editor/EditorToolbar.vue'
 import EditorMetaSidebar from '../components/editor/EditorMetaSidebar.vue'
@@ -20,7 +21,17 @@ const props = defineProps<{
 const editorContainer = shallowRef<HTMLElement | null>(null)
 
 // ── CodeMirror editor ─────────────────────────────────────────────────────
-const { markdownContent, wrapSelection, insertText, prefixLines, setContent, undo, redo } = useMarkdownEditor(editorContainer)
+// Forward reference: cursor change callback used by useMarkdownEditor
+let _updateCursorLine: ((lineIndex: number) => void) | undefined
+function onCursorChange(lineIndex: number) {
+  _updateCursorLine?.(lineIndex)
+}
+
+const { editorView, markdownContent, wrapSelection, insertText, prefixLines, setContent, undo, redo } = useMarkdownEditor(editorContainer, onCursorChange)
+
+// ── Editor outline ─────────────────────────────────────────────────────────
+const { outline, activeLineIndex, updateCursorLine, jumpToLine } = useEditorOutline(markdownContent, editorView)
+_updateCursorLine = updateCursorLine
 
 // ── Markdown preview ───────────────────────────────────────────────────────
 const { renderedHtml } = useMarkdownRenderer(markdownContent)
@@ -172,10 +183,13 @@ async function onSubmitForReview() {
         :category-ids="categoryIds"
         :tag-names="tagNames"
         :categories="categories"
+        :outline="outline"
+        :active-heading-line-index="activeLineIndex"
         @update:summary="summary = $event"
         @update:cover-image-url="coverImageUrl = $event"
         @update:category-ids="categoryIds = $event"
         @update:tag-names="tagNames = $event"
+        @jump-to-line="jumpToLine"
       />
     </div>
 
