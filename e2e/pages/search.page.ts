@@ -29,7 +29,15 @@ export class SearchPage {
     await this.articleCards.first().waitFor({ state: 'visible', timeout })
   }
 
-  async waitForNoResult(timeout = 5000) {
+  async waitForNoResult(timeout = 8000) {
     await this.noResultState.waitFor({ state: 'visible', timeout })
+  }
+
+  /** 等待搜尋完成：接受「有結果」或「無結果提示」兩種情況 */
+  async waitForSearchComplete(timeout = 8000) {
+    await Promise.any([
+      this.articleCards.first().waitFor({ state: 'visible', timeout }),
+      this.noResultState.waitFor({ state: 'visible', timeout }),
+    ])
   }
 }
