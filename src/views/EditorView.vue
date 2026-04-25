@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { shallowRef, ref, onMounted } from 'vue'
+import { shallowRef, ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useEditorForm } from '../composables/useEditorForm'
 import { useMarkdownEditor } from '../composables/useMarkdownEditor'
@@ -42,6 +42,12 @@ const { showToast } = useToast()
 
 // ── Focus mode ─────────────────────────────────────────────────────────────
 const { isFocusMode, toggleFocusMode, exitFocusMode } = useEditorFocusMode()
+
+function onGlobalKeyDown(e: KeyboardEvent) {
+  if (e.key === 'Escape' && isFocusMode.value) exitFocusMode()
+}
+onMounted(() => window.addEventListener('keydown', onGlobalKeyDown))
+onUnmounted(() => window.removeEventListener('keydown', onGlobalKeyDown))
 
 // ── Mount: load article in edit mode + load categories ────────────────────
 onMounted(async () => {
@@ -89,7 +95,6 @@ async function onSubmitForReview() {
     class="editor-shell"
     data-testid="editor-root"
     :class="{ 'focus-mode': isFocusMode }"
-    @keydown.escape="exitFocusMode"
   >
 
     <!-- Meta bar (hidden in focus mode) -->
@@ -199,8 +204,8 @@ async function onSubmitForReview() {
 .editor-preview { flex: 1; min-width: 0; overflow-y: auto; padding: 2rem; font-family: var(--f-body); }
 
 /* Focus mode: dim all lines, highlight active */
-.editor-shell.focus-mode .cm-line { opacity: 0.3; transition: opacity 0.2s; }
-.editor-shell.focus-mode .cm-activeLine { opacity: 1; }
+.editor-shell.focus-mode :deep(.cm-line) { opacity: 0.3; transition: opacity 0.2s; }
+.editor-shell.focus-mode :deep(.cm-activeLine) { opacity: 1; }
 
 /* Floating mini-bar */
 .editor-focus-bar {
