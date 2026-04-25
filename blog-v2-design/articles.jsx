@@ -21,7 +21,6 @@ function ArticlesPage({ go, preFilter }) {
   const [sort, setSort] = aS(() => (preFilter === 'popular' ? 'popular' : (localStorage.getItem('blog.art.sort') || 'latest')));
   const [paging, setPaging] = aS(() => localStorage.getItem('blog.art.paging') || 'infinite');
   const [page, setPage] = aS(1);
-  const [q, setQ] = aS('');
   const [selTags, setSelTags] = aS([]);
   const [selCats, setSelCats] = aS([]);
   const [selAuthors, setSelAuthors] = aS([]);
@@ -33,7 +32,6 @@ function ArticlesPage({ go, preFilter }) {
 
   const filtered = aM(() => {
     let r = all;
-    if (q) { const ql = q.toLowerCase(); r = r.filter(a => a.title.toLowerCase().includes(ql) || a.summary.toLowerCase().includes(ql) || a.tags.some(t => t.includes(ql))); }
     if (selTags.length) r = r.filter(a => selTags.every(t => a.tags.includes(t)));
     if (selCats.length) r = r.filter(a => selCats.includes(a.category));
     if (selAuthors.length) r = r.filter(a => selAuthors.includes(a.authorHandle));
@@ -45,7 +43,7 @@ function ArticlesPage({ go, preFilter }) {
     else if (sort === 'commented') r = [...r].sort((a,b)=>b.commentCount-a.commentCount);
     else r = [...r].sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt));
     return r;
-  }, [all, q, selTags, selCats, selAuthors, dateRange, sort]);
+  }, [all, selTags, selCats, selAuthors, dateRange, sort]);
 
   const PER_PAGE = 12;
   const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
@@ -53,7 +51,7 @@ function ArticlesPage({ go, preFilter }) {
     ? filtered.slice((page-1)*PER_PAGE, page*PER_PAGE)
     : filtered.slice(0, page * PER_PAGE);
 
-  aE(() => { setPage(1); }, [q, selTags, selCats, selAuthors, dateRange, sort, paging]);
+  aE(() => { setPage(1); }, [selTags, selCats, selAuthors, dateRange, sort, paging]);
 
   // infinite scroll sentinel
   const sentRef = aR(null);
@@ -70,22 +68,15 @@ function ArticlesPage({ go, preFilter }) {
   const toggleTag = t => setSelTags(prev => prev.includes(t) ? prev.filter(x=>x!==t) : [...prev, t]);
   const toggleCat = c => setSelCats(prev => prev.includes(c) ? prev.filter(x=>x!==c) : [...prev, c]);
   const toggleAuthor = h => setSelAuthors(prev => prev.includes(h) ? prev.filter(x=>x!==h) : [...prev, h]);
-  const clearAll = () => { setQ(''); setSelTags([]); setSelCats([]); setSelAuthors([]); setDateRange('any'); };
+  const clearAll = () => { setSelTags([]); setSelCats([]); setSelAuthors([]); setDateRange('any'); };
 
-  const totalActive = selTags.length + selCats.length + selAuthors.length + (dateRange!=='any'?1:0) + (q?1:0);
+  const totalActive = selTags.length + selCats.length + selAuthors.length + (dateRange!=='any'?1:0);
 
   return React.createElement('main', { className: 'art-page' },
     // BODY
     React.createElement('div', { className: 'art-page-body wrap' },
       // RAIL
       React.createElement('aside', { className: 'art-rail' },
-        React.createElement('div', {className:'art-rail-search'},
-          React.createElement('input', {
-            type:'text', placeholder:'Search in articles…',
-            value: q, onChange: e=>setQ(e.target.value)
-          }),
-          q && React.createElement('button', {'data-hover':true, onClick:()=>setQ(''), title:'清除'}, '×')
-        ),
         React.createElement('div', {className:'art-rail-head'},
           React.createElement('span', null, 'FILTERS'),
           totalActive > 0 && React.createElement('button', {'data-hover':true, onClick:clearAll, className:'clear'}, 'Clear · '+totalActive)
@@ -142,7 +133,6 @@ function ArticlesPage({ go, preFilter }) {
           React.createElement('div', {className:'art-tb-left'},
             React.createElement('span', {className:'art-tb-count'}, filtered.length, React.createElement('em', null, ' articles')),
             totalActive > 0 && React.createElement('div', {className:'art-active-filters'},
-              q && React.createElement('span', {className:'art-af'}, 'q: "'+q+'"', React.createElement('button', {'data-hover':true, onClick:()=>setQ('')}, '×')),
               selTags.map(t => React.createElement('span', {key:t, className:'art-af'}, '#'+t, React.createElement('button', {'data-hover':true, onClick:()=>toggleTag(t)}, '×'))),
               selCats.map(c => { const cat = C.categories.find(x=>x.id===c); return React.createElement('span', {key:c, className:'art-af'}, cat?.name||c, React.createElement('button', {'data-hover':true, onClick:()=>toggleCat(c)}, '×')); }),
               selAuthors.map(h => { const au = (C.authors||[]).find(x=>x.handle===h); return React.createElement('span', {key:h, className:'art-af'}, '@'+(au?.name||h), React.createElement('button', {'data-hover':true, onClick:()=>toggleAuthor(h)}, '×')); }),
