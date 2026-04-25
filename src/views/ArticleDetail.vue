@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed, onMounted, watchEffect } from 'vue'
+import { computed, onMounted, ref, watchEffect } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useArticleDetail } from '../composables/useArticleDetail'
 import { useMarkdownRenderer } from '../composables/useMarkdownRenderer'
 import { useWordCount } from '../composables/useWordCount'
+import { useReadingProgress } from '../composables/useReadingProgress'
 
 const route = useRoute()
 const router = useRouter()
@@ -13,6 +14,9 @@ const { article, isLoading } = useArticleDetail(uuid)
 const markdownSource = computed(() => article.value?.content ?? '')
 const { renderedHtml } = useMarkdownRenderer(markdownSource)
 const { readingTimeMinutes } = useWordCount(markdownSource)
+
+const articleEl = ref<HTMLElement | null>(null)
+const { progress } = useReadingProgress(articleEl)
 
 watchEffect(() => {
   if (!isLoading.value && !article.value) router.replace({ name: 'not-found' })
@@ -32,10 +36,12 @@ const goBack = () => window.history.length > 1 ? router.back() : router.push('/a
   </div>
 
   <!-- Article -->
-  <article v-if="article" class="art-detail" data-testid="article-root">
+  <article v-if="article" ref="articleEl" class="art-detail" data-testid="article-root">
 
     <!-- Reading progress bar -->
-    <div class="art-progress" />
+    <div class="art-progress">
+      <div class="bar" :style="{ width: `${progress}%` }" data-testid="article-progress-bar" />
+    </div>
 
     <!-- Hero -->
     <div class="art-hero">
