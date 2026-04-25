@@ -1,7 +1,7 @@
 import { test, expect } from './fixtures/auth'
 
 test.describe('錯誤狀態與存取保護', () => {
-  test('訪問不存在的文章顯示 404 空狀態，點按鈕返回列表', async ({ page }) => {
+  test('訪問不存在的文章顯示 404，點連結返回首頁', async ({ page }) => {
     await page.goto('/articles/uuid-that-does-not-exist')
 
     // Redirect to NotFoundView, which shows "找不到這個頁面"
