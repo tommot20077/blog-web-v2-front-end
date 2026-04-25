@@ -4,7 +4,7 @@ export function useNavScroll() {
   const show = ref(true)
 
   // Scroll hide/show logic
-  let lastY = window.scrollY
+  let lastY = 0    // safe default; onMounted overwrites
   let ticking = false
   const onScroll = () => {
     if (!ticking) {
