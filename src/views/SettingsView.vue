@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onUnmounted } from 'vue'
 import { useSettings } from '../composables/useSettings'
 import SettingToggle from '../components/settings/SettingToggle.vue'
 import SettingFieldGroup from '../components/settings/SettingFieldGroup.vue'
@@ -13,6 +13,7 @@ const {
   editorMode, wordUnit, autosave, writingStatus, saveWriting,
   nComment, nLike, nReview, nFollow, nNewsletter, notifStatus, saveNotifications,
   deleteAccount,
+  showToast,
 } = useSettings()
 
 const navItems = [
@@ -37,6 +38,7 @@ function onFileChange(e: Event) {
   const file = input.files?.[0]
   if (file) {
     avatarFile.value = file
+    if (avatarUrl.value?.startsWith('blob:')) URL.revokeObjectURL(avatarUrl.value)
     avatarUrl.value = URL.createObjectURL(file)
   }
 }
@@ -56,9 +58,14 @@ function onDrop(e: DragEvent) {
   const file = e.dataTransfer?.files?.[0]
   if (file && file.type.startsWith('image/')) {
     avatarFile.value = file
+    if (avatarUrl.value?.startsWith('blob:')) URL.revokeObjectURL(avatarUrl.value)
     avatarUrl.value = URL.createObjectURL(file)
   }
 }
+
+onUnmounted(() => {
+  if (avatarUrl.value?.startsWith('blob:')) URL.revokeObjectURL(avatarUrl.value)
+})
 
 function removeAvatar() {
   avatarUrl.value = null
@@ -288,8 +295,8 @@ async function handleDeleteAccount() {
         </div>
 
         <div class="st-footer-row">
-          <button type="button" class="st-btn-primary" @click="saveWriting">儲存偏好</button>
           <SettingSaveToast :status="writingStatus" />
+          <button type="button" class="st-btn-primary" @click="saveWriting">儲存偏好</button>
         </div>
       </section>
 
@@ -326,7 +333,7 @@ async function handleDeleteAccount() {
             <div class="st-danger-title">匯出資料</div>
             <div class="st-danger-desc">下載你的所有文章、留言與個人資料的備份檔案。</div>
           </div>
-          <button type="button" class="st-btn-ghost">匯出資料</button>
+          <button type="button" class="st-btn-ghost" @click="showToast('資料匯出功能即將推出', 'info')">匯出資料</button>
         </div>
 
         <div class="st-danger-card danger">
@@ -369,25 +376,6 @@ async function handleDeleteAccount() {
 .st-section-head p { font-size: 14px; color: var(--muted); line-height: 1.65; margin: 0; }
 .st-section-sub { font-family: var(--f-mono); font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); padding: 4px 0; }
 .st-divider { height: 1px; background: var(--divider); margin: 8px 0; }
-
-/* Save toast — spring bounce from below */
-@keyframes st-toast-in {
-  0%   { opacity: 0; transform: translateY(8px) scale(0.88); }
-  60%  { opacity: 1; transform: translateY(-3px) scale(1.04); }
-  80%  { transform: translateY(1px) scale(0.98); }
-  100% { transform: translateY(0) scale(1); }
-}
-@keyframes st-toast-out {
-  0%   { opacity: 1; transform: scale(1); }
-  100% { opacity: 0; transform: scale(0.9) translateY(4px); }
-}
-.st-toast { display: inline-flex; align-items: center; gap: 7px; font-family: var(--f-mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; padding: 6px 14px; border-radius: 999px; animation: st-toast-in 0.35s cubic-bezier(.34,1.56,.64,1) forwards; box-shadow: 0 4px 14px rgba(0,0,0,0.10); }
-.st-toast.saving { color: var(--muted); background: var(--surface); border: 1px solid var(--border); }
-.st-toast.saved { color: #2E7D4E; background: color-mix(in oklch, #47B881 18%, var(--surface)); border: 1px solid color-mix(in oklch, #47B881 40%, var(--border)); }
-[data-theme="dark"] .st-toast.saved { color: #65D19A; }
-.st-toast-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-.st-toast-dot.saving { background: var(--muted-2); animation: pulse 1s ease-in-out infinite; }
-.st-toast-dot.saved { background: #47B881; }
 
 /* Field group */
 .st-field-group { display: grid; grid-template-columns: 200px 1fr; gap: 20px 32px; align-items: start; }

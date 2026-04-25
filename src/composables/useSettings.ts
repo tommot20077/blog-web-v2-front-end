@@ -80,7 +80,8 @@ export function useSettings() {
       nickname.value = authStore.user.nickname || ''
       bio.value = authStore.user.bio || ''
       email.value = authStore.user.email || ''
-      avatarUrl.value = authStore.user.avatarUrl
+      // TODO: backend profile update endpoint does not yet accept avatarUrl
+      avatarUrl.value = authStore.user.avatarUrl || localStorage.getItem('blog.settings.avatarUrl') || null
     }
     location.value = localStorage.getItem('blog.settings.location') || ''
     website.value = localStorage.getItem('blog.settings.website') || ''
@@ -88,18 +89,26 @@ export function useSettings() {
 
   // Save functions
   async function saveProfile() {
-    await withProfileSave(async () => {
-      if (avatarFile.value) {
-        // Upload avatar first, get URL
-        const resp = await fileService.uploadFile(avatarFile.value, 'AVATAR')
-        avatarUrl.value = resp.url
-        avatarFile.value = null
-      }
-      await userService.updateProfile({ nickname: nickname.value, bio: bio.value || undefined })
-      // Persist remaining fields locally (TODO: backend support)
-      localStorage.setItem('blog.settings.location', location.value)
-      localStorage.setItem('blog.settings.website', website.value)
-    })
+    try {
+      await withProfileSave(async () => {
+        if (avatarFile.value) {
+          // Upload avatar first, get URL
+          const resp = await fileService.uploadFile(avatarFile.value, 'AVATAR')
+          avatarUrl.value = resp.url
+          avatarFile.value = null
+          // TODO: backend profile update endpoint does not yet accept avatarUrl
+          localStorage.setItem('blog.settings.avatarUrl', resp.url)
+        }
+        await userService.updateProfile({ nickname: nickname.value, bio: bio.value || undefined })
+        // Refresh the auth store user object so the rest of the app sees updated data
+        await authStore.fetchUser()
+        // Persist remaining fields locally (TODO: backend support)
+        localStorage.setItem('blog.settings.location', location.value)
+        localStorage.setItem('blog.settings.website', website.value)
+      })
+    } catch {
+      showToast('儲存個人資料失敗', 'error')
+    }
   }
 
   async function saveAccount() {
@@ -108,45 +117,66 @@ export function useSettings() {
       showToast('新密碼不一致', 'error')
       return
     }
-    await withAccountSave(async () => {
-      await userService.changePassword({ oldPassword: pwCurrent.value, newPassword: pwNew.value })
-      pwCurrent.value = ''
-      pwNew.value = ''
-      pwConfirm.value = ''
-    })
+    try {
+      await withAccountSave(async () => {
+        await userService.changePassword({ oldPassword: pwCurrent.value, newPassword: pwNew.value })
+        pwCurrent.value = ''
+        pwNew.value = ''
+        pwConfirm.value = ''
+      })
+    } catch {
+      showToast('更新密碼失敗', 'error')
+    }
   }
 
   async function saveSocial() {
-    await withSocialSave(async () => {
-      // TODO: backend social links API
-      localStorage.setItem('blog.settings.github', github.value)
-      localStorage.setItem('blog.settings.twitter', twitter.value)
-      localStorage.setItem('blog.settings.linkedin', linkedin.value)
-    })
+    try {
+      await withSocialSave(async () => {
+        // TODO: backend social links API
+        localStorage.setItem('blog.settings.github', github.value)
+        localStorage.setItem('blog.settings.twitter', twitter.value)
+        localStorage.setItem('blog.settings.linkedin', linkedin.value)
+      })
+    } catch {
+      showToast('儲存社群連結失敗', 'error')
+    }
   }
 
   async function saveWriting() {
-    await withWritingSave(async () => {
-      localStorage.setItem('blog.edMode', editorMode.value)
-      localStorage.setItem('blog.settings.wordUnit', wordUnit.value)
-      localStorage.setItem('blog.settings.autosave', String(autosave.value))
-    })
+    try {
+      await withWritingSave(async () => {
+        localStorage.setItem('blog.edMode', editorMode.value)
+        localStorage.setItem('blog.settings.wordUnit', wordUnit.value)
+        localStorage.setItem('blog.settings.autosave', String(autosave.value))
+      })
+    } catch {
+      showToast('儲存寫作偏好失敗', 'error')
+    }
   }
 
   async function saveNotifications() {
-    await withNotifSave(async () => {
-      // TODO: backend notifications API
-      localStorage.setItem('blog.settings.nComment', String(nComment.value))
-      localStorage.setItem('blog.settings.nLike', String(nLike.value))
-      localStorage.setItem('blog.settings.nReview', String(nReview.value))
-      localStorage.setItem('blog.settings.nFollow', String(nFollow.value))
-      localStorage.setItem('blog.settings.nNewsletter', String(nNewsletter.value))
-    })
+    try {
+      await withNotifSave(async () => {
+        // TODO: backend notifications API
+        localStorage.setItem('blog.settings.nComment', String(nComment.value))
+        localStorage.setItem('blog.settings.nLike', String(nLike.value))
+        localStorage.setItem('blog.settings.nReview', String(nReview.value))
+        localStorage.setItem('blog.settings.nFollow', String(nFollow.value))
+        localStorage.setItem('blog.settings.nNewsletter', String(nNewsletter.value))
+      })
+    } catch {
+      showToast('儲存通知設定失敗', 'error')
+    }
   }
 
   async function deleteAccount(password: string) {
-    await userService.deleteAccount({ password })
-    authStore.logout()
+    try {
+      await userService.deleteAccount({ password })
+      authStore.logout()
+    } catch (e) {
+      showToast('刪除帳號失敗', 'error')
+      throw e
+    }
   }
 
   return {
@@ -163,5 +193,7 @@ export function useSettings() {
     nComment, nLike, nReview, nFollow, nNewsletter, notifStatus, saveNotifications,
     // Danger
     deleteAccount,
+    // Toast
+    showToast,
   }
 }
