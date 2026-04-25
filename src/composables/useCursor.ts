@@ -6,11 +6,22 @@ export function useCursor() {
   let ringX = 0, ringY = 0
   let dotX  = 0, dotY  = 0
   let rafId = 0
+  let hasMoved = false
+
+  const center = (x: number, y: number) =>
+    `translate(calc(${x}px - 50%), calc(${y}px - 50%))`
 
   const onMouseMove = (e: MouseEvent) => {
     dotX = e.clientX
     dotY = e.clientY
-    if (dot) dot.style.transform = `translate(${dotX}px, ${dotY}px)`
+    if (dot) dot.style.transform = center(dotX, dotY)
+    if (!hasMoved) {
+      hasMoved = true
+      ringX = dotX
+      ringY = dotY
+      dot?.classList.add('visible')
+      ring?.classList.add('visible')
+    }
   }
 
   const onMouseOver = (e: MouseEvent) => {
@@ -27,7 +38,7 @@ export function useCursor() {
     const ease = 0.18
     ringX += (dotX - ringX) * ease
     ringY += (dotY - ringY) * ease
-    if (ring) ring.style.transform = `translate(${ringX}px, ${ringY}px)`
+    if (ring) ring.style.transform = center(ringX, ringY)
     rafId = requestAnimationFrame(animateRing)
   }
 
@@ -36,6 +47,7 @@ export function useCursor() {
     ring = document.createElement('div')
     dot.className  = 'cursor-dot'
     ring.className = 'cursor-ring'
+    // .visible is added on first mousemove to prevent stale ring at 0,0
     document.body.appendChild(dot)
     document.body.appendChild(ring)
 
