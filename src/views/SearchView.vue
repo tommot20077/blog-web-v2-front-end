@@ -46,6 +46,7 @@ function goToFirstArticle() {
           v-model="query"
           type="text"
           placeholder="搜尋文章、標籤…"
+          data-testid="search-input"
           autofocus
           @focus="searchFocused = true"
           @blur="searchFocused = false"
@@ -137,7 +138,7 @@ function goToFirstArticle() {
 
       <!-- ─── NO RESULTS ─── -->
       <template v-else-if="!hasResults && !isLoading">
-        <div class="sv-noresult">
+        <div class="sv-noresult" data-testid="search-no-result">
           <div class="sv-noresult-mark">∅</div>
           <h3>找不到結果</h3>
           <p>沒有符合「{{ debouncedQuery }}」的文章或標籤，請嘗試其他關鍵字。</p>
@@ -175,6 +176,7 @@ function goToFirstArticle() {
               v-for="article in results.articles"
               :key="article.articleUuid"
               class="sv-card"
+              data-testid="search-article-card"
               @click="router.push('/articles/' + article.articleUuid)"
             >
               <!-- Thumbnail placeholder -->

@@ -6,6 +6,7 @@ import { NavigationBarPO } from '../pages/components/navigation-bar.po'
 import { FilterBarPO } from '../pages/components/filter-bar.po'
 import { ThemeSwitcherPO } from '../pages/components/theme-switcher.po'
 import { MobileBottomNavPO } from '../pages/components/mobile-bottom-nav.po'
+import { SearchPage } from '../pages/search.page'
 
 type Fixtures = {
   homePage: HomePage
@@ -15,6 +16,7 @@ type Fixtures = {
   filterBar: FilterBarPO
   themeSwitcher: ThemeSwitcherPO
   mobileBottomNav: MobileBottomNavPO
+  searchPage: SearchPage
 }
 
 export const test = base.extend<Fixtures>({
@@ -38,6 +40,9 @@ export const test = base.extend<Fixtures>({
   },
   mobileBottomNav: async ({ page }, use) => {
     await use(new MobileBottomNavPO(page))
+  },
+  searchPage: async ({ page }, use) => {
+    await use(new SearchPage(page))
   },
 })
 
