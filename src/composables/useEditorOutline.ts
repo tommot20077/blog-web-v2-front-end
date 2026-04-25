@@ -21,7 +21,7 @@ export function useEditorOutline(
         if (!match) return null
         return {
           level: match[1].length as 1 | 2 | 3,
-          text: match[2].replace(/\*+/g, '').trim(),
+          text: match[2].replace(/[*_`~]+/g, '').trim(),
           lineIndex: idx,
         }
       })

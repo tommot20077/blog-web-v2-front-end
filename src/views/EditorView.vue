@@ -21,7 +21,11 @@ const props = defineProps<{
 const editorContainer = shallowRef<HTMLElement | null>(null)
 
 // ── CodeMirror editor ─────────────────────────────────────────────────────
-// Forward reference: cursor change callback used by useMarkdownEditor
+// Forward reference to break the circular init order:
+// useMarkdownEditor needs the callback before useEditorOutline is created,
+// but useEditorOutline depends on markdownContent/editorView from useMarkdownEditor.
+// The assignment below completes before CodeMirror mounts (watchEffect is async),
+// so _updateCursorLine is always defined when the first selectionSet fires.
 let _updateCursorLine: ((lineIndex: number) => void) | undefined
 function onCursorChange(lineIndex: number) {
   _updateCursorLine?.(lineIndex)

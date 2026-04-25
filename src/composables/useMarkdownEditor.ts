@@ -1,5 +1,5 @@
 import { ref, shallowRef, watchEffect, onUnmounted, type ShallowRef } from 'vue'
-import { EditorView, lineNumbers, highlightActiveLine, keymap as cmKeymap } from '@codemirror/view'
+import { EditorView, ViewUpdate, lineNumbers, highlightActiveLine, keymap as cmKeymap } from '@codemirror/view'
 import { EditorState, type Extension } from '@codemirror/state'
 import { history, defaultKeymap, historyKeymap, indentWithTab, undo as cmUndo, redo as cmRedo } from '@codemirror/commands'
 import { markdown } from '@codemirror/lang-markdown'
@@ -21,7 +21,7 @@ export function useMarkdownEditor(
     // Content sync extension（updateListener 在 mock 環境下為 undefined，安全跳過）
     const contentSyncExt = (EditorView as unknown as Record<string, { of: (fn: unknown) => unknown }>)
       .updateListener
-      ?.of((update: { docChanged: boolean; selectionSet: boolean; state: { doc: { toString(): string; lineAt(pos: number): { number: number } }; selection: { main: { head: number } } } }) => {
+      ?.of((update: ViewUpdate) => {
         if (update.docChanged) {
           markdownContent.value = update.state.doc.toString()
         }
