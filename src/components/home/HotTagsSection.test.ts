@@ -8,9 +8,9 @@ const router = createRouter({
 });
 
 const mockTags = [
-  { uuid: 't-1', name: 'Vue', slug: 'vue', articleCount: 18 },
-  { uuid: 't-2', name: 'React', slug: 'react', articleCount: 12 },
-  { uuid: 't-3', name: 'TypeScript', slug: 'typescript', articleCount: 15 },
+  { name: 'Vue', count: 18 },
+  { name: 'React', count: 12 },
+  { name: 'TypeScript', count: 15 },
 ];
 
 describe('HotTagsSection', () => {
@@ -22,23 +22,33 @@ describe('HotTagsSection', () => {
     expect(wrapper.find('[data-testid="hot-tags-root"]').exists()).toBe(true);
   });
 
-  it('renders heading with data-testid="hot-tags-heading"', () => {
+  it('renders heading with data-testid="tags-heading" 且文字為設計師版本', () => {
     const wrapper = mount(HotTagsSection, {
       props: { tags: mockTags, isLoading: false },
       global: { plugins: [router] },
     });
-    expect(wrapper.find('[data-testid="hot-tags-heading"]').exists()).toBe(true);
-    expect(wrapper.find('[data-testid="hot-tags-heading"]').text()).toBe('Hot Tags');
+    expect(wrapper.find('[data-testid="tags-heading"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="tags-heading"]').text()).toBe('依主題瀏覽。');
   });
 
-  it('renders each tag with data-testid="hot-tag-{index}"', () => {
+  it('存在 .tags-cloud 容器', () => {
     const wrapper = mount(HotTagsSection, {
       props: { tags: mockTags, isLoading: false },
       global: { plugins: [router] },
     });
-    expect(wrapper.find('[data-testid="hot-tag-0"]').exists()).toBe(true);
-    expect(wrapper.find('[data-testid="hot-tag-1"]').exists()).toBe(true);
-    expect(wrapper.find('[data-testid="hot-tag-2"]').exists()).toBe(true);
+    expect(wrapper.find('.tags-cloud').exists()).toBe(true);
+  });
+
+  it('renders each tag with data-testid="tag-pill-{index}" and .tag-pill class', () => {
+    const wrapper = mount(HotTagsSection, {
+      props: { tags: mockTags, isLoading: false },
+      global: { plugins: [router] },
+    });
+    expect(wrapper.find('[data-testid="tag-pill-0"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="tag-pill-1"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="tag-pill-2"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="tag-pill-0"]').classes()).toContain('tag-pill');
+    expect(wrapper.find('[data-testid="tag-pill-1"]').classes()).toContain('tag-pill');
   });
 
   it('each tag pill displays the tag name', () => {
@@ -46,26 +56,36 @@ describe('HotTagsSection', () => {
       props: { tags: mockTags, isLoading: false },
       global: { plugins: [router] },
     });
-    expect(wrapper.find('[data-testid="hot-tag-0"]').text()).toContain('Vue');
-    expect(wrapper.find('[data-testid="hot-tag-1"]').text()).toContain('React');
-    expect(wrapper.find('[data-testid="hot-tag-2"]').text()).toContain('TypeScript');
+    expect(wrapper.find('[data-testid="tag-pill-0"]').text()).toContain('Vue');
+    expect(wrapper.find('[data-testid="tag-pill-1"]').text()).toContain('React');
+    expect(wrapper.find('[data-testid="tag-pill-2"]').text()).toContain('TypeScript');
   });
 
-  it('each tag pill displays the article count', () => {
+  it('each tag pill displays the count', () => {
     const wrapper = mount(HotTagsSection, {
       props: { tags: mockTags, isLoading: false },
       global: { plugins: [router] },
     });
-    expect(wrapper.find('[data-testid="hot-tag-0"]').text()).toContain('18');
-    expect(wrapper.find('[data-testid="hot-tag-1"]').text()).toContain('12');
+    expect(wrapper.find('[data-testid="tag-pill-0"]').text()).toContain('18');
+    expect(wrapper.find('[data-testid="tag-pill-1"]').text()).toContain('12');
   });
 
-  it('each tag pill links to /articles?tag={name}', () => {
+  it('isLoading 時顯示 .sk-pulse', () => {
+    const wrapper = mount(HotTagsSection, {
+      props: { tags: [], isLoading: true },
+      global: { plugins: [router] },
+    });
+    expect(wrapper.find('.sk-pulse').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="tag-pill-0"]').exists()).toBe(false);
+  });
+
+  it('顯示 totalTopics 和 totalPosts 統計', () => {
     const wrapper = mount(HotTagsSection, {
       props: { tags: mockTags, isLoading: false },
       global: { plugins: [router] },
     });
-    const firstLink = wrapper.find('[data-testid="hot-tag-0"]').element.closest('a');
-    expect(firstLink?.getAttribute('href')).toContain('Vue');
+    // 3 topics, 18+12+15=45 posts
+    expect(wrapper.text()).toContain('3 topics');
+    expect(wrapper.text()).toContain('45 posts');
   });
 });
