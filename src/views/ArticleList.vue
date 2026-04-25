@@ -1,78 +1,102 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { articleService, type ArticleItem } from '../api/articleService'
+import { useArticleFilters } from '../composables/useArticleFilters'
 
-const articles = ref<ArticleItem[]>([])
-const viewMode = ref<'grid' | 'list'>('grid')
-const gridPage = ref(1)
-const itemsPerPageGrid = 6
-const maxGridPages = ref(1)
-const listPage = ref(1)
-const itemsPerPageList = 5
-const isLoading = ref(false)
-const isLoadingMore = ref(false)
-const noMoreData = ref(false)
+// ── Data ────────────────────────────────────────────────────────────────────
+const allArticles  = ref<ArticleItem[]>([])
+const isLoading    = ref(false)
+const page         = ref(1)
+const PER_PAGE     = 12
 
-const categories = ['全部', 'Frontend', 'Backend', 'DevOps', 'UI/UX', 'Life']
-const activeCategory = ref('全部')
-const sortOrder = ref<'latest' | 'popular' | 'commented'>('latest')
-const filterParams = ref({ category: '全部' })
+const {
+  selTags, selCats, selAuthors, dateRange,
+  sort, view, paging,
+  toggleTag, toggleCat, toggleAuthor,
+  setDateRange, setSort, setView, setPaging,
+  clearAll, totalActive, filterAndSort,
+} = useArticleFilters()
 
-const fetchArticles = async (isLoadMore = false) => {
-  const currentMode = viewMode.value
-  const page = currentMode === 'grid' ? gridPage.value : listPage.value
-  const size = currentMode === 'grid' ? itemsPerPageGrid : itemsPerPageList
-  if (isLoadMore) { isLoadingMore.value = true } else { isLoading.value = true }
+// ── Fetch (once, client-side) ────────────────────────────────────────────────
+async function fetchAll() {
+  isLoading.value = true
   try {
-    const result = await articleService.getArticles(page, size, filterParams.value.category, '')
-    if (currentMode === 'grid') {
-      articles.value = result.records
-      maxGridPages.value = result.pages
-    } else {
-      if (isLoadMore) { articles.value.push(...result.records) } else { articles.value = result.records }
-      noMoreData.value = page >= result.pages || result.records.length === 0
-    }
+    const result = await articleService.getArticles(1, 1000, '全部', '')
+    allArticles.value = result.records
   } finally {
     isLoading.value = false
-    isLoadingMore.value = false
   }
 }
 
-const selectCategory = (cat: string) => { activeCategory.value = cat; applyFilter() }
-const toggleMode = (mode: 'grid' | 'list') => {
-  viewMode.value = mode; gridPage.value = 1; listPage.value = 1; noMoreData.value = false; fetchArticles()
+// ── Derived ──────────────────────────────────────────────────────────────────
+const filtered = computed(() => filterAndSort(allArticles.value))
+
+// Unique tags/authors from loaded articles
+const availableTags = computed(() => {
+  const s = new Set<string>()
+  allArticles.value.forEach(a => a.tags.forEach(t => s.add(t)))
+  return [...s].slice(0, 12)
+})
+const availableAuthors = computed(() => {
+  const s = new Set<string>()
+  allArticles.value.forEach(a => s.add(a.authorNickname))
+  return [...s]
+})
+
+// Paging
+const totalPages = computed(() => Math.ceil(filtered.value.length / PER_PAGE))
+const visible = computed(() => {
+  if (paging.value === 'pages') {
+    return filtered.value.slice((page.value - 1) * PER_PAGE, page.value * PER_PAGE)
+  }
+  return filtered.value.slice(0, page.value * PER_PAGE)
+})
+
+// Reset page on filter/sort change
+function resetPage() { page.value = 1 }
+
+const DATE_OPTIONS = [
+  { key: 'any', label: 'Any' },
+  { key: '30',  label: 'Last 30' },
+  { key: '90',  label: 'Last 90' },
+  { key: '365', label: 'This year' },
+] as const
+
+function handleToggleTag(t: string) { toggleTag(t); resetPage() }
+function handleToggleCat(c: string) { toggleCat(c); resetPage() }
+function handleToggleAuthor(a: string) { toggleAuthor(a); resetPage() }
+function handleDateRange(r: 'any'|'30'|'90'|'365') { setDateRange(r); resetPage() }
+function handleSort(s: 'latest'|'popular'|'commented') { setSort(s); resetPage() }
+function handleView(v: 'grid'|'list') { setView(v) }
+function handlePaging(p: 'pages'|'infinite') { setPaging(p); resetPage() }
+
+function goToPage(n: number) {
+  if (n < 1 || n > totalPages.value) return
+  page.value = n
+  window.scrollTo({ top: 0, behavior: 'smooth' })
 }
-const applyFilter = () => {
-  filterParams.value = { category: activeCategory.value }; gridPage.value = 1; listPage.value = 1; noMoreData.value = false; fetchArticles()
-}
-const goToPage = (n: number) => {
-  if (n < 1 || n > maxGridPages.value) return
-  gridPage.value = n; fetchArticles(); window.scrollTo({ top: 0, behavior: 'smooth' })
-}
-const loadNextPage = () => {
-  if (isLoadingMore.value || noMoreData.value || viewMode.value === 'grid') return
-  listPage.value += 1; fetchArticles(true)
-}
+
+// ── Infinite scroll sentinel ─────────────────────────────────────────────────
+const sentinel = ref<HTMLElement | null>(null)
+let ioObserver: IntersectionObserver | null = null
+
+onMounted(() => {
+  fetchAll()
+  ioObserver = new IntersectionObserver(([e]) => {
+    if (e.isIntersecting && paging.value === 'infinite' && page.value * PER_PAGE < filtered.value.length) {
+      page.value++
+    }
+  }, { rootMargin: '200px' })
+  if (sentinel.value) ioObserver.observe(sentinel.value)
+})
+onUnmounted(() => ioObserver?.disconnect())
 
 function formatDate(d: string) {
   if (!d) return ''
   const p = d.slice(0, 10).split('-')
   return p.length === 3 ? `${p[0]} · ${p[1]} · ${p[2]}` : d.slice(0, 10)
 }
-
-const observerTarget = ref<HTMLElement | null>(null)
-let ioObserver: IntersectionObserver | null = null
-
-onMounted(() => {
-  fetchArticles()
-  ioObserver = new IntersectionObserver(
-    (entries) => { if (entries[0].isIntersecting && !isLoading.value && !isLoadingMore.value) loadNextPage() },
-    { rootMargin: '150px' }
-  )
-  if (observerTarget.value) ioObserver.observe(observerTarget.value)
-})
-onUnmounted(() => { ioObserver?.disconnect() })
 </script>
 
 <template>
@@ -84,59 +108,130 @@ onUnmounted(() => { ioObserver?.disconnect() })
       </div>
 
       <div class="art-page-body">
-        <!-- Sidebar rail -->
+
+        <!-- ── Rail sidebar ──────────────────────────────────────────────── -->
         <aside>
           <div class="art-rail" data-testid="articles-filter-bar">
-            <div class="art-rail-head"><span>FILTERS</span></div>
+            <div class="art-rail-head">
+              <span>FILTERS</span>
+              <button v-if="totalActive > 0" class="clear" @click="clearAll">Clear</button>
+            </div>
 
+            <!-- Date -->
             <div class="art-rail-group">
               <h5>Date</h5>
               <div class="art-radio-row">
-                <button class="art-chip active">Any</button>
-                <button class="art-chip">Last 30</button>
-                <button class="art-chip">Last 90</button>
-                <button class="art-chip">This year</button>
+                <button
+                  v-for="opt in DATE_OPTIONS"
+                  :key="opt.key"
+                  class="art-chip"
+                  :class="{ active: dateRange === opt.key }"
+                  @click="handleDateRange(opt.key)"
+                >{{ opt.label }}</button>
               </div>
             </div>
 
+            <!-- Category (uses tags as categories) -->
             <div class="art-rail-group">
               <h5>Category</h5>
               <div>
                 <label
-                  v-for="cat in categories"
+                  v-for="cat in ['Frontend', 'Backend', 'Essay', 'Design', 'DevOps']"
                   :key="cat"
                   class="art-check"
-                  @click.prevent="selectCategory(cat)"
+                  @click.prevent="handleToggleCat(cat)"
                 >
-                  <input type="checkbox" :checked="activeCategory === cat" readonly />
+                  <input type="checkbox" :checked="selCats.includes(cat)" readonly />
                   <span class="box" />
                   <span class="l">{{ cat }}</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Tags -->
+            <div v-if="availableTags.length" class="art-rail-group">
+              <h5>Tags</h5>
+              <div class="art-tag-grid">
+                <button
+                  v-for="tag in availableTags"
+                  :key="tag"
+                  class="art-tag"
+                  :class="{ active: selTags.includes(tag) }"
+                  @click="handleToggleTag(tag)"
+                >
+                  {{ tag }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Authors -->
+            <div v-if="availableAuthors.length" class="art-rail-group">
+              <h5>Author</h5>
+              <div>
+                <label
+                  v-for="author in availableAuthors"
+                  :key="author"
+                  class="art-check"
+                  @click.prevent="handleToggleAuthor(author)"
+                >
+                  <input type="checkbox" :checked="selAuthors.includes(author)" readonly />
+                  <span class="box" />
+                  <span class="l">{{ author }}</span>
                 </label>
               </div>
             </div>
           </div>
         </aside>
 
-        <!-- Main -->
+        <!-- ── Main ─────────────────────────────────────────────────────── -->
         <div class="art-page-main">
+
           <!-- Toolbar -->
           <div class="art-toolbar">
             <div class="art-tb-left">
-              <span class="art-tb-count">{{ articles.length }}<em>ARTICLES</em></span>
-            </div>
-            <div class="art-tb-right">
-              <div class="art-seg" data-testid="articles-sort-select">
-                <button :class="{ active: sortOrder === 'latest' }" @click="sortOrder = 'latest'">Latest</button>
-                <button :class="{ active: sortOrder === 'popular' }" @click="sortOrder = 'popular'">Popular</button>
-                <button :class="{ active: sortOrder === 'commented' }" @click="sortOrder = 'commented'">Most commented</button>
+              <span class="art-tb-count">
+                {{ filtered.length }}<em>ARTICLES</em>
+              </span>
+
+              <!-- Active filters -->
+              <div v-if="totalActive > 0" class="art-active-filters">
+                <span v-for="t in selTags" :key="'t-'+t" class="art-af">
+                  #{{ t }}<button @click="handleToggleTag(t)">×</button>
+                </span>
+                <span v-for="c in selCats" :key="'c-'+c" class="art-af">
+                  {{ c }}<button @click="handleToggleCat(c)">×</button>
+                </span>
+                <span v-for="a in selAuthors" :key="'a-'+a" class="art-af">
+                  @{{ a }}<button @click="handleToggleAuthor(a)">×</button>
+                </span>
+                <span v-if="dateRange !== 'any'" class="art-af">
+                  {{ dateRange }}d<button @click="handleDateRange('any')">×</button>
+                </span>
               </div>
+            </div>
+
+            <div class="art-tb-right">
+              <!-- Sort -->
+              <div class="art-seg" data-testid="articles-sort-select">
+                <button :class="{ active: sort === 'latest' }"    @click="handleSort('latest')">Latest</button>
+                <button :class="{ active: sort === 'popular' }"   @click="handleSort('popular')">Popular</button>
+                <button :class="{ active: sort === 'commented' }" @click="handleSort('commented')">Most commented</button>
+              </div>
+
+              <!-- View -->
               <div class="art-seg art-seg-icon">
-                <button :class="{ active: viewMode === 'grid' }" title="網格與分頁模式" @click="toggleMode('grid')">
+                <button :class="{ active: view === 'grid' }" title="網格視圖" @click="handleView('grid')">
                   <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
                 </button>
-                <button :class="{ active: viewMode === 'list' }" title="無限捲動清單模式" @click="toggleMode('list')">
+                <button :class="{ active: view === 'list' }" title="無限捲動清單模式" @click="handleView('list')">
                   <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
                 </button>
+              </div>
+
+              <!-- Paging -->
+              <div class="art-seg">
+                <button :class="{ active: paging === 'pages' }"    @click="handlePaging('pages')">Pages</button>
+                <button :class="{ active: paging === 'infinite' }" @click="handlePaging('infinite')">∞ Infinite</button>
               </div>
             </div>
           </div>
@@ -146,10 +241,10 @@ onUnmounted(() => { ioObserver?.disconnect() })
             <div v-for="i in 6" :key="i" class="sk-pulse" style="height:260px" />
           </div>
 
-          <!-- Grid view -->
-          <div v-else-if="viewMode === 'grid' && articles.length > 0" class="art-grid">
+          <!-- Grid -->
+          <div v-else-if="view === 'grid' && visible.length > 0" class="art-grid">
             <RouterLink
-              v-for="(article, i) in articles"
+              v-for="(article, i) in visible"
               :key="article.uuid"
               :to="`/articles/${article.uuid}`"
             >
@@ -164,18 +259,28 @@ onUnmounted(() => { ioObserver?.disconnect() })
                   <h4><a>{{ article.title }}</a></h4>
                   <p>{{ article.summary }}</p>
                   <div class="art-card-foot">
-                    <span>{{ article.authorNickname }}</span>
-                    <span>{{ article.viewCount }} views</span>
+                    <div class="art-card-tags">
+                      <button
+                        v-for="tag in article.tags.slice(0, 2)"
+                        :key="tag"
+                        class="mini-tag"
+                        @click.prevent="handleToggleTag(tag)"
+                      >#{{ tag }}</button>
+                    </div>
+                    <div class="art-card-stats">
+                      <span>{{ article.viewCount }} views</span>
+                      <span>{{ article.likeCount }} ♡</span>
+                    </div>
                   </div>
                 </div>
               </article>
             </RouterLink>
           </div>
 
-          <!-- List view -->
-          <div v-else-if="viewMode === 'list' && articles.length > 0" class="art-list">
+          <!-- List -->
+          <div v-else-if="view === 'list' && visible.length > 0" class="art-list">
             <RouterLink
-              v-for="(article, i) in articles"
+              v-for="(article, i) in visible"
               :key="article.uuid"
               :to="`/articles/${article.uuid}`"
               class="art-row"
@@ -185,46 +290,50 @@ onUnmounted(() => { ioObserver?.disconnect() })
               <article class="art-row-body" :data-testid="'articles-card-' + i">
                 <div class="art-row-meta">
                   <span>{{ article.tags?.[0] ?? 'Article' }}</span>
+                  <span>·</span>
                   <span>{{ formatDate(article.publishedAt) }}</span>
                 </div>
                 <h3><a>{{ article.title }}</a></h3>
                 <p>{{ article.summary }}</p>
               </article>
               <div class="art-row-stats">
-                <span>{{ article.viewCount }} views</span>
-                <span>{{ article.likeCount }} ♡</span>
+                <div><b>{{ article.viewCount }}</b><span>views</span></div>
+                <div><b>{{ article.likeCount }}</b><span>likes</span></div>
+                <div><b>{{ article.commentCount }}</b><span>replies</span></div>
               </div>
+              <span class="art-row-arr">→</span>
             </RouterLink>
           </div>
 
           <!-- Empty -->
           <div v-else-if="!isLoading" class="es-wrap" data-testid="articles-empty-state">
             <div class="es-icon">∅</div>
-            <h3 class="es-title">沒有找到符合條件的文章。</h3>
+            <h3 class="es-title">沒有符合條件的文章。</h3>
             <p class="es-sub">試著放寬條件，或清除目前的篩選。</p>
+            <button class="es-cta" @click="clearAll">Clear all filters</button>
           </div>
 
-          <!-- Pagination -->
-          <div v-if="viewMode === 'grid' && maxGridPages > 1 && !isLoading" class="art-pagination">
-            <button class="page-btn" @click="goToPage(gridPage - 1)" :disabled="gridPage === 1">←</button>
+          <!-- Pagination (pages mode) -->
+          <div v-if="paging === 'pages' && totalPages > 1 && !isLoading" class="art-pagination">
+            <button class="page-btn" :disabled="page === 1" @click="goToPage(page - 1)">←</button>
             <button
-              v-for="page in maxGridPages"
-              :key="page"
+              v-for="p in totalPages"
+              :key="p"
               class="page-btn"
-              :class="{ active: gridPage === page }"
-              @click="goToPage(page)"
-            >{{ page }}</button>
-            <button class="page-btn" @click="goToPage(gridPage + 1)" :disabled="gridPage === maxGridPages">→</button>
+              :class="{ active: page === p }"
+              @click="goToPage(p)"
+            >{{ p }}</button>
+            <button class="page-btn" :disabled="page === totalPages" @click="goToPage(page + 1)">→</button>
           </div>
 
           <!-- Infinite scroll sentinel -->
           <div
-            v-show="viewMode === 'list' && articles.length > 0"
-            ref="observerTarget"
+            v-show="paging === 'infinite' && visible.length > 0"
+            ref="sentinel"
             class="art-sentinel"
           >
-            <div v-if="isLoadingMore" class="sk-pulse" style="width:120px;height:8px;border-radius:4px;" />
-            <span v-else-if="noMoreData" class="mono" style="color:var(--muted-2);font-size:11px;letter-spacing:.14em;text-transform:uppercase;">已經到底囉！</span>
+            <div v-if="page * PER_PAGE < filtered.length" class="sk-pulse" style="width:100px;height:4px;" />
+            <span v-else-if="allArticles.length > 0" class="mono" style="font-size:11px;color:var(--muted-2);letter-spacing:.14em;text-transform:uppercase;">到底了</span>
           </div>
         </div>
       </div>
@@ -247,4 +356,10 @@ onUnmounted(() => { ioObserver?.disconnect() })
 .art-sentinel {
   display: flex; justify-content: center; align-items: center; min-height: 4rem; margin-top: 2rem;
 }
+.mini-tag {
+  font-family: var(--f-mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--muted); border: 1px solid var(--divider); border-radius: 4px;
+  padding: 2px 6px; background: transparent; cursor: pointer;
+}
+.mini-tag:hover { color: var(--accent); border-color: var(--accent); }
 </style>
