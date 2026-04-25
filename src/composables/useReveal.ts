@@ -21,31 +21,43 @@ export function useReveal(target: Ref<HTMLElement | null>) {
   })
 }
 
-let globalObserver: IntersectionObserver | null = null
+let globalIO: IntersectionObserver | null = null
+let globalMO: MutationObserver | null = null
+
+function getIO(): IntersectionObserver {
+  if (!globalIO) {
+    globalIO = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('in')
+          globalIO?.unobserve(entry.target)
+        }
+      })
+    }, { threshold: 0.12 })
+  }
+  return globalIO
+}
+
+function observeAll() {
+  if (typeof document === 'undefined') return
+  document.querySelectorAll('.reveal:not(.in)').forEach(el => getIO().observe(el))
+}
 
 export function useGlobalReveal() {
-  const observe = () => {
-    if (typeof document === 'undefined') return
-    if (!globalObserver) {
-      globalObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('in')
-            globalObserver?.unobserve(entry.target)
-          }
-        })
-      }, { threshold: 0.12 })
-    }
-    document.querySelectorAll('.reveal:not(.in)').forEach(el => {
-      globalObserver!.observe(el)
-    })
-  }
+  onMounted(() => {
+    observeAll()
 
-  onMounted(() => observe())
-  onUnmounted(() => {
-    globalObserver?.disconnect()
-    globalObserver = null
+    // Watch for new .reveal elements added by async data
+    globalMO = new MutationObserver(() => observeAll())
+    globalMO.observe(document.body, { childList: true, subtree: true })
   })
 
-  return { observe }
+  onUnmounted(() => {
+    globalMO?.disconnect()
+    globalMO = null
+    globalIO?.disconnect()
+    globalIO = null
+  })
+
+  return { observe: observeAll }
 }

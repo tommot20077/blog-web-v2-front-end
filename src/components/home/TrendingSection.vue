@@ -32,36 +32,45 @@ function padIndex(i: number): string {
       <div v-for="i in 5" :key="i" class="sk-pulse"></div>
     </div>
 
-    <!-- Article list -->
+    <!-- Article list: wrap in full-span div so t-card rows span all 12 cols -->
     <div v-else class="trending-grid">
-      <RouterLink
-        v-for="(article, index) in articles"
-        :key="article.uuid"
-        :to="'/articles/' + article.uuid"
-        class="t-card reveal"
-        :data-testid="'trending-card-' + index"
-      >
-        <div class="row">
-          <span class="no">{{ padIndex(index) }}</span>
-          <span class="ttl">{{ article.title }}</span>
-          <span class="cat">{{ article.tags?.[0] || 'General' }}</span>
-          <span class="date">{{ formatDate(article.publishedAt) }}</span>
-          <span class="arrow">→</span>
-        </div>
-      </RouterLink>
+      <div style="grid-column: 1 / -1">
+        <RouterLink
+          v-for="(article, index) in articles"
+          :key="article.uuid"
+          :to="'/articles/' + article.uuid"
+          class="t-card reveal"
+          :data-testid="'trending-card-' + index"
+        >
+          <div class="row">
+            <span class="no">{{ padIndex(index) }}</span>
+            <span class="ttl">{{ article.title }}</span>
+            <span class="cat">{{ article.tags?.[0] || 'General' }}</span>
+            <span class="date">{{ formatDate(article.publishedAt) }}</span>
+            <span class="arrow">→</span>
+          </div>
+        </RouterLink>
+      </div>
     </div>
 
     <!-- Featured card (first article) -->
     <div v-if="articles[0]" class="featured reveal">
       <div class="hero-art">
-        <span class="big-no">№001</span>
+        <span class="tag-art">FEATURED · ESSAY</span>
+        <span class="big-n">№001</span>
+        <span class="tag-art r">{{ articles[0].tags?.[0] }}</span>
       </div>
       <div class="col-r">
-        <h3 class="f-title">{{ articles[0].title }}</h3>
-        <p class="f-lede">{{ articles[0].summary }}</p>
-        <div class="author-meta">
-          <span class="author">{{ articles[0].authorNickname }}</span>
-          <span class="f-date">{{ formatDate(articles[0].publishedAt) }}</span>
+        <div>
+          <span class="caption">{{ formatDate(articles[0].publishedAt) }}</span>
+          <h3><RouterLink :to="'/articles/' + articles[0].uuid">{{ articles[0].title }}</RouterLink></h3>
+          <p class="lede">{{ articles[0].summary }}</p>
+        </div>
+        <div class="meta-line">
+          <div class="avatar"></div>
+          <div class="who">
+            <b>{{ articles[0].authorNickname }}</b>
+          </div>
         </div>
       </div>
     </div>
