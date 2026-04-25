@@ -68,6 +68,7 @@ onUnmounted(() => {
 })
 
 function removeAvatar() {
+  if (avatarUrl.value?.startsWith('blob:')) URL.revokeObjectURL(avatarUrl.value)
   avatarUrl.value = null
   avatarFile.value = null
 }
