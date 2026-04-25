@@ -27,8 +27,6 @@ export interface User {
   nickname: string;
   bio?: string;
   avatarUrl: string | null;
-  website?: string;
-  socialLinks?: string;
   role: UserRole;
   emailVerified: boolean;
   createdAt: string;
