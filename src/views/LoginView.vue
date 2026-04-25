@@ -64,7 +64,7 @@ async function handleSubmit() {
     heroTagline="MY BLOG WEB. — EST 2023"
     titleTestId="auth-login-title"
   >
-    <form @submit.prevent="handleSubmit" class="flex flex-col gap-4">
+    <form @submit.prevent="handleSubmit" class="auth-form">
       <FormField
         data-testid="auth-login-field-email"
         label="Email"
@@ -91,32 +91,36 @@ async function handleSubmit() {
         data-testid="auth-login-submit"
         type="submit"
         :disabled="isSubmitting"
-        class="mt-2 w-full rounded-full py-2.5 text-sm font-semibold text-white transition-opacity disabled:opacity-50"
-        style="background: var(--accent)"
+        class="auth-submit-btn"
       >
         {{ isSubmitting ? '登入中...' : '登入' }}
       </button>
     </form>
 
     <template #footer>
-      <div class="flex flex-col gap-2">
-        <RouterLink
-          data-testid="auth-login-forgot-link"
-          to="/forgot-password"
-          class="opacity-70 hover:opacity-100 transition-opacity"
-          style="color: var(--accent)"
-        >
+      <div class="auth-footer-links">
+        <RouterLink data-testid="auth-login-forgot-link" to="/forgot-password" class="auth-link">
           忘記密碼？
         </RouterLink>
-        <RouterLink
-          data-testid="auth-login-alt-link"
-          to="/register"
-          class="opacity-70 hover:opacity-100 transition-opacity"
-          style="color: var(--accent)"
-        >
+        <RouterLink data-testid="auth-login-alt-link" to="/register" class="auth-link">
           還沒有帳號？註冊
         </RouterLink>
       </div>
     </template>
   </AuthFormLayout>
 </template>
+
+<style scoped>
+.auth-form { display: flex; flex-direction: column; gap: 28px; }
+.auth-submit-btn {
+  width: 100%; padding: 14px 24px; border-radius: 999px;
+  background: var(--ink); color: var(--bg); border: none; cursor: pointer;
+  font-family: var(--f-mono); font-size: 12px; letter-spacing: .18em; text-transform: uppercase;
+  transition: opacity .2s; margin-top: 8px;
+}
+.auth-submit-btn:hover { opacity: .85; }
+.auth-submit-btn:disabled { opacity: .4; cursor: not-allowed; }
+.auth-footer-links { display: flex; flex-direction: column; gap: 10px; }
+.auth-link { font-size: 13.5px; color: var(--accent); text-decoration: none; transition: opacity .2s; }
+.auth-link:hover { opacity: .75; }
+</style>

@@ -85,10 +85,7 @@ async function handleSubmit() {
     heroTagline="MY BLOG WEB. — EST 2023"
     titleTestId="auth-register-title"
   >
-    <form
-      class="flex flex-col gap-4"
-      @submit.prevent="handleSubmit"
-    >
+    <form class="auth-form" @submit.prevent="handleSubmit">
       <FormField
         data-testid="auth-register-field-email"
         v-model="email"
@@ -135,9 +132,7 @@ async function handleSubmit() {
         data-testid="auth-register-submit"
         type="submit"
         :disabled="isLoading"
-        class="w-full rounded-xl py-2.5 text-sm font-semibold text-white transition-opacity"
-        :class="isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'"
-        style="background: var(--accent-primary)"
+        class="auth-submit-btn"
       >
         {{ isLoading ? '註冊中...' : '註冊' }}
       </button>
@@ -148,8 +143,7 @@ async function handleSubmit() {
       <RouterLink
         data-testid="auth-register-alt-link"
         to="/login"
-        class="ml-1 font-medium"
-        style="color: var(--accent-primary)"
+        class="auth-link"
       >
         登入
       </RouterLink>
