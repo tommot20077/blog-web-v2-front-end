@@ -1,4 +1,4 @@
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { userService } from '../api/userService'
 import { fileService } from '../api/fileService'
 import { useAuthStore } from '../stores/auth'
@@ -22,6 +22,10 @@ function useSaveStatus() {
       throw e
     }
   }
+
+  onUnmounted(() => {
+    if (resetTimer) clearTimeout(resetTimer)
+  })
 
   return { status, withSave }
 }
@@ -169,6 +173,13 @@ export function useSettings() {
     }
   }
 
+  function removeAvatar() {
+    if (avatarUrl.value?.startsWith('blob:')) URL.revokeObjectURL(avatarUrl.value)
+    avatarUrl.value = null
+    avatarFile.value = null
+    localStorage.removeItem('blog.settings.avatarUrl')
+  }
+
   async function deleteAccount(password: string) {
     try {
       await userService.deleteAccount({ password })
@@ -191,6 +202,8 @@ export function useSettings() {
     editorMode, wordUnit, autosave, writingStatus, saveWriting,
     // Notifications
     nComment, nLike, nReview, nFollow, nNewsletter, notifStatus, saveNotifications,
+    // Profile actions
+    removeAvatar,
     // Danger
     deleteAccount,
     // Toast

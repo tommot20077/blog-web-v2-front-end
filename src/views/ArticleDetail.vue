@@ -23,7 +23,7 @@ const { readingTimeMinutes } = useWordCount(markdownSource);
 // Guard: isLoading starts true in useArticleDetail, so this only fires after fetch settles.
 watchEffect(() => {
   if (!isLoading.value && !article.value) {
-    router.push({ name: 'not-found' })
+    router.replace({ name: 'not-found' })
   }
 })
 

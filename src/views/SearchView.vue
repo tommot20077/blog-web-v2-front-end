@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import DOMPurify from 'dompurify'
 import { useSearch } from '../composables/useSearch'
+import { highlight } from '../utils/highlight'
 
 const router = useRouter()
 const {
@@ -29,13 +29,6 @@ function goToFirstArticle() {
   }
 }
 
-function highlight(text: string, q: string): string {
-  const safeText = DOMPurify.sanitize(text)
-  if (!q.trim()) return safeText
-  const escaped = q.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const regex = new RegExp(`(${escaped})`, 'gi')
-  return safeText.replace(regex, '<mark>$1</mark>')
-}
 </script>
 
 <template>

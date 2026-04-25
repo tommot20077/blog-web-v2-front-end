@@ -36,11 +36,10 @@ export function useEditorOutline(
   function jumpToLine(lineIndex: number) {
     const view = editorView.value
     if (!view) return
-    const lines = markdownContent.value.split('\n')
-    const charsBefore = lines.slice(0, lineIndex).join('\n').length + (lineIndex > 0 ? 1 : 0)
-    const lineEnd = charsBefore + lines[lineIndex].length
+    // 直接從 CM editor state 取得正確位置，避免字串計算與實際文件偏移
+    const line = view.state.doc.line(lineIndex + 1)
     view.dispatch({
-      selection: { anchor: charsBefore, head: lineEnd },
+      selection: { anchor: line.from, head: line.to },
       scrollIntoView: true,
     })
     view.focus()

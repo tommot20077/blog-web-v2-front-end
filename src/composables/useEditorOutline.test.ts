@@ -33,6 +33,41 @@ describe('useEditorOutline', () => {
     })
   })
 
+  describe('jumpToLine', () => {
+    it('使用 editorView.state.doc.line() 取得 from/to，而非字串計算', () => {
+      const md = ref('# Title\n## Section\n### Sub')
+      const mockDispatch = vi.fn()
+      const mockFocus = vi.fn()
+
+      // doc.line() 回傳刻意偏移的值（模擬 CRLF 或 editor transform 造成的差距）
+      // 若實作用字串計算，這些值不會被使用，測試就會失敗
+      const FAKE_FROM = 9999
+      const FAKE_TO = 10010
+      const mockView = {
+        dispatch: mockDispatch,
+        focus: mockFocus,
+        state: {
+          doc: {
+            line: vi.fn().mockReturnValue({ from: FAKE_FROM, to: FAKE_TO }),
+          },
+        },
+      }
+
+      const editorView = shallowRef(mockView as unknown as import('@codemirror/view').EditorView)
+      const { jumpToLine, activeLineIndex } = useEditorOutline(md, editorView)
+
+      jumpToLine(1) // 跳到第二行（0-indexed），應呼叫 doc.line(2)
+
+      expect(mockView.state.doc.line).toHaveBeenCalledWith(2)
+      expect(mockDispatch).toHaveBeenCalledWith({
+        selection: { anchor: FAKE_FROM, head: FAKE_TO },
+        scrollIntoView: true,
+      })
+      expect(mockFocus).toHaveBeenCalled()
+      expect(activeLineIndex.value).toBe(1)
+    })
+  })
+
   describe('updateCursorLine', () => {
     it('sets activeLineIndex to the nearest heading above cursor', () => {
       const md = ref('# H1\ntext\n## H2\nmore')

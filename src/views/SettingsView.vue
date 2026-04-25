@@ -8,6 +8,7 @@ import SettingSaveToast from '../components/settings/SettingSaveToast.vue'
 const {
   activeSection, setSection,
   nickname, bio, location, website, avatarUrl, avatarFile, profileStatus, saveProfile,
+  removeAvatar,
   email, pwCurrent, pwNew, pwConfirm, accountStatus, saveAccount,
   github, twitter, linkedin, socialStatus, saveSocial,
   editorMode, wordUnit, autosave, writingStatus, saveWriting,
@@ -36,11 +37,13 @@ function onAvatarClick() {
 function onFileChange(e: Event) {
   const input = e.target as HTMLInputElement
   const file = input.files?.[0]
-  if (file) {
+  if (file && file.type.startsWith('image/')) {
     avatarFile.value = file
     if (avatarUrl.value?.startsWith('blob:')) URL.revokeObjectURL(avatarUrl.value)
     avatarUrl.value = URL.createObjectURL(file)
   }
+  // 清除 input value，確保重複選同一檔案也能觸發 change 事件
+  input.value = ''
 }
 
 function onDragOver(e: DragEvent) {
@@ -66,12 +69,6 @@ function onDrop(e: DragEvent) {
 onUnmounted(() => {
   if (avatarUrl.value?.startsWith('blob:')) URL.revokeObjectURL(avatarUrl.value)
 })
-
-function removeAvatar() {
-  if (avatarUrl.value?.startsWith('blob:')) URL.revokeObjectURL(avatarUrl.value)
-  avatarUrl.value = null
-  avatarFile.value = null
-}
 
 function getInitials(name: string): string {
   return name ? name.charAt(0).toUpperCase() : '?'

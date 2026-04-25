@@ -21,11 +21,10 @@ const props = defineProps<{
 const editorContainer = shallowRef<HTMLElement | null>(null)
 
 // ── CodeMirror editor ─────────────────────────────────────────────────────
-// Forward reference to break the circular init order:
-// useMarkdownEditor needs the callback before useEditorOutline is created,
-// but useEditorOutline depends on markdownContent/editorView from useMarkdownEditor.
-// The assignment below completes before CodeMirror mounts (watchEffect is async),
-// so _updateCursorLine is always defined when the first selectionSet fires.
+// 前向參考以打破循環初始化順序：
+// useMarkdownEditor 需要 callback，但 useEditorOutline 依賴 useMarkdownEditor 的回傳值。
+// useMarkdownEditor 內部以 flush:'sync' watchEffect 掛載 CM，同步執行，
+// 因此 _updateCursorLine 在任何 selectionSet 觸發前必然已完成賦值。
 let _updateCursorLine: ((lineIndex: number) => void) | undefined
 function onCursorChange(lineIndex: number) {
   _updateCursorLine?.(lineIndex)

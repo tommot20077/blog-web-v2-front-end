@@ -11,9 +11,14 @@ const authStore = useAuthStore()
 const router = useRouter()
 
 const onGlobalKeyDown = (e: KeyboardEvent) => {
-  if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-    // Don't trigger when typing in inputs
-    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+    const target = e.target
+    if (
+      target instanceof HTMLInputElement ||
+      target instanceof HTMLTextAreaElement ||
+      (target instanceof Element &&
+        (target.closest('[contenteditable="true"]') || target.closest('.cm-editor')))
+    ) return
     e.preventDefault()
     if (router.currentRoute.value.path !== '/search') router.push('/search')
   }

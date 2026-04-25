@@ -18,13 +18,25 @@ export function useSearch(initialQuery = '') {
   const debouncedQuery = ref(initialQuery)
   const isLoading = ref(false)
   const popularTags = ref<TagDetailResponse[]>([])
-  const results = ref<GroupedResults>({ articles: [], tags: [], total: 0 })
+  const articles = ref<SearchResult[]>([])
   const recentSearches = ref<string[]>([])
+
+  // #7: tag 過濾改為 computed，同時響應 popularTags 與 debouncedQuery 的變化
+  const filteredTags = computed<TagDetailResponse[]>(() => {
+    const q = debouncedQuery.value.trim().toLowerCase()
+    if (!q) return []
+    return popularTags.value.filter(t => t.name.toLowerCase().includes(q))
+  })
+
+  const results = computed<GroupedResults>(() => ({
+    articles: articles.value,
+    tags: filteredTags.value,
+    total: articles.value.length + filteredTags.value.length,
+  }))
 
   const hasQuery = computed(() => !!debouncedQuery.value.trim())
   const hasResults = computed(() => results.value.total > 0)
 
-  // Load popular tags and recent searches on init
   onMounted(async () => {
     recentSearches.value = loadRecent()
     popularTags.value = await tagService.getHotTags(20)
@@ -37,29 +49,36 @@ export function useSearch(initialQuery = '') {
     debounceTimer = setTimeout(() => { debouncedQuery.value = val }, 220)
   })
 
-  // Search when debouncedQuery changes
+  // #4: 用 onCleanup 取消過期請求，避免 race condition
   let saveRecentTimer: ReturnType<typeof setTimeout> | null = null
-  watch(debouncedQuery, async (val) => {
+  watch(debouncedQuery, async (val, _old, onCleanup) => {
     const q = val.trim()
     if (!q) {
-      results.value = { articles: [], tags: [], total: 0 }
+      articles.value = []
       return
     }
+
+    let cancelled = false
+    onCleanup(() => { cancelled = true })
+
     isLoading.value = true
     try {
       const articlesPage = await searchService.search({ q, size: 30 })
-      const articles = articlesPage.records
-      // Tags: client-side filter from hot tags
-      const ql = q.toLowerCase()
-      const tags = popularTags.value.filter(t => t.name.toLowerCase().includes(ql))
-      results.value = { articles, tags, total: articles.length + tags.length }
+      if (!cancelled) {
+        articles.value = articlesPage.records
+      }
     } catch {
-      results.value = { articles: [], tags: [], total: 0 }
+      if (!cancelled) {
+        articles.value = []
+      }
     } finally {
-      isLoading.value = false
+      if (!cancelled) {
+        isLoading.value = false
+      }
     }
 
-    // Save to recent after 1200ms on stable query of ≥ 2 chars
+    if (cancelled) return
+
     if (saveRecentTimer) clearTimeout(saveRecentTimer)
     if (q.length >= 2) {
       saveRecentTimer = setTimeout(() => {
@@ -69,11 +88,20 @@ export function useSearch(initialQuery = '') {
     }
   })
 
-  function clearQuery() { query.value = '' }
+  // #6: clearQuery 同步清除 debouncedQuery、articles 與 pending timers
+  function clearQuery() {
+    if (debounceTimer) { clearTimeout(debounceTimer); debounceTimer = null }
+    if (saveRecentTimer) { clearTimeout(saveRecentTimer); saveRecentTimer = null }
+    query.value = ''
+    debouncedQuery.value = ''
+    articles.value = []
+  }
+
   function clearRecent() {
     localStorage.removeItem(RECENT_KEY)
     recentSearches.value = []
   }
+
   function setQuery(q: string) { query.value = q }
 
   onUnmounted(() => {

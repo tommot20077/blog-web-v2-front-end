@@ -151,6 +151,87 @@ describe('useSearch', () => {
     expect(localStorage.getItem('blog.recentSearches')).toBeNull()
   })
 
+  it('clearQuery() 立即重置 debouncedQuery 與 results（不等 debounce）', async () => {
+    const { result } = await mountWithUseSearch()
+
+    // 先讓 debouncedQuery 有值並有搜尋結果
+    result.query.value = 'vue'
+    await nextTick()
+    vi.advanceTimersByTime(220)
+    await nextTick()
+    await flushPromises()
+    expect(result.results.value.articles).toHaveLength(1)
+
+    // clearQuery 後 debouncedQuery 與 results 應同步清除
+    result.clearQuery()
+    await nextTick()
+
+    expect(result.query.value).toBe('')
+    expect(result.debouncedQuery.value).toBe('')
+    expect(result.results.value.articles).toHaveLength(0)
+    expect(result.hasQuery.value).toBe(false)
+  })
+
+  it('race condition：舊請求結果不覆蓋新請求', async () => {
+    let resolveFirst!: (v: typeof mockArticlesPage) => void
+    let resolveSecond!: (v: typeof mockArticlesPage) => void
+
+    const firstPage = { ...mockArticlesPage, records: [{ ...mockArticlesPage.records[0], title: 'First' }] }
+    const secondPage = { ...mockArticlesPage, records: [{ ...mockArticlesPage.records[0], title: 'Second' }] }
+
+    vi.mocked(searchService.search)
+      .mockReturnValueOnce(new Promise(res => { resolveFirst = res }))
+      .mockReturnValueOnce(new Promise(res => { resolveSecond = res }))
+
+    const { result } = await mountWithUseSearch()
+
+    // 發出第一個搜尋
+    result.query.value = 'first'
+    await nextTick()
+    vi.advanceTimersByTime(220)
+    await nextTick()
+
+    // 發出第二個搜尋（在第一個回應前）
+    result.query.value = 'second'
+    await nextTick()
+    vi.advanceTimersByTime(220)
+    await nextTick()
+
+    // 第二個先回應，然後第一個才回應
+    resolveSecond(secondPage)
+    await flushPromises()
+    resolveFirst(firstPage)
+    await flushPromises()
+
+    // 最終結果應為第二個（second），不被第一個（first）覆蓋
+    expect(result.results.value.articles[0]?.title).toBe('Second')
+  })
+
+  it('popularTags 載入後搜尋結果的 tags 自動更新', async () => {
+    let resolveHotTags!: (v: typeof mockTags) => void
+    vi.mocked(tagService.getHotTags).mockReturnValue(new Promise(res => { resolveHotTags = res }))
+
+    const { result } = await mountWithUseSearch()
+
+    // 在 popularTags 載入前先設定 query
+    result.query.value = 'vue'
+    await nextTick()
+    vi.advanceTimersByTime(220)
+    await nextTick()
+    await flushPromises()
+
+    // popularTags 尚未載入，tags 結果可能為空
+    const tagsBeforeLoad = result.results.value.tags.length
+
+    // 現在載入 popularTags
+    resolveHotTags(mockTags)
+    await flushPromises()
+
+    // tags 結果應自動更新包含 'vue'
+    expect(result.results.value.tags.map(t => t.name)).toContain('vue')
+    expect(result.results.value.tags.length).toBeGreaterThan(tagsBeforeLoad)
+  })
+
   it('does not call searchService after unmount when debounce is in flight', async () => {
     const { result, wrapper } = await mountWithUseSearch()
 
