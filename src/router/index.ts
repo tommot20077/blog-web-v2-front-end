@@ -102,6 +102,18 @@ const router = createRouter({
       meta: { requiresAuth: true, requiredRole: 'ADMIN' as UserRole }
     },
     {
+      path: '/tags/:slug',
+      name: 'tag',
+      component: () => import('../views/TagView.vue'),
+      props: true
+    },
+    {
+      path: '/author/:handle',
+      name: 'author',
+      component: () => import('../views/AuthorView.vue'),
+      props: true
+    },
+    {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
       component: () => import('../views/NotFoundView.vue')

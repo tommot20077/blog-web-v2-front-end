@@ -180,15 +180,21 @@ function goToFirstArticle() {
               @click="router.push('/articles/' + article.articleUuid)"
             >
               <!-- Thumbnail placeholder -->
-              <div class="sv-thumb">
-                <span class="sv-thumb-n">{{ article.viewCount }} 閱</span>
+              <div class="sv-thumb" :data-tag="article.tagNames?.[0] ?? ''">
+                <span class="sv-thumb-n">{{ article.viewCount }} views</span>
               </div>
 
               <h5 v-html="highlight(article.title, debouncedQuery)" />
               <p>{{ article.summary }}</p>
 
               <div class="sv-card-foot">
-                <span class="sv-author-n" v-html="highlight(article.authorNickname, debouncedQuery)" />
+                <div>
+                  <span class="sv-author-n" v-html="highlight(article.authorNickname, debouncedQuery)" />
+                  <span style="color:var(--muted-2);margin:0 6px">·</span>
+                  <span style="font-family:var(--f-mono);font-size:10px;color:var(--muted-2)">
+                    {{ article.publishedAt?.slice(0, 10) }}
+                  </span>
+                </div>
                 <span class="sv-card-arr">→</span>
               </div>
             </div>

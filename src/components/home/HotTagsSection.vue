@@ -26,15 +26,15 @@ const totalPosts = computed(() => props.tags.reduce((sum, t) => sum + (t.article
 
       <!-- Tags cloud -->
       <div v-else class="tags-cloud reveal">
-        <a
+        <RouterLink
           v-for="(tag, index) in tags"
           :key="tag.name"
           class="tag-pill"
           :data-testid="'tag-pill-' + index"
-          href="#"
+          :to="`/tags/${tag.slug || tag.name.replace(/\s+/g, '-')}`"
         >
           {{ tag.name }} <span class="n">{{ tag.articleCount }}</span>
-        </a>
+        </RouterLink>
       </div>
     </div>
   </section>
