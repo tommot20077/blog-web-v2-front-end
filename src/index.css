@@ -138,8 +138,7 @@ body {
 [data-theme="dark"] .td-rel-pill:hover { border-color: var(--ink); }
 [data-theme="dark"] .sv-bar { background: var(--surface); border-color: rgba(255,255,255,0.12); }
 [data-theme="dark"] .sv-bar:focus-within { border-color: var(--accent); }
-[data-theme="dark"] .sv-card { background: var(--surface); }
 [data-theme="dark"] .sv-tag-pill { background: var(--surface); border-color: rgba(255,255,255,0.12); }
 
 /* Error page */
-[data-theme="dark"] .err-bg-num { color: var(--ink); }
+[data-theme="dark"] .err-bg-num { opacity: .06; }
