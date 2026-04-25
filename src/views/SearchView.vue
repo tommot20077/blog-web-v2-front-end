@@ -15,7 +15,13 @@ const {
 
 const searchFocused = ref(false)
 
-const isMac = computed(() => typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform))
+const isMac = computed(() => {
+  if (typeof navigator === 'undefined') return false
+  if ((navigator as unknown as { userAgentData?: { platform: string } }).userAgentData?.platform) {
+    return /mac/i.test((navigator as unknown as { userAgentData: { platform: string } }).userAgentData.platform)
+  }
+  return /Mac|iPhone|iPad/.test(navigator.userAgent)
+})
 
 function goToFirstArticle() {
   if (results.value.articles.length > 0) {

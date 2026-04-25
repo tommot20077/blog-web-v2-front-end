@@ -150,4 +150,23 @@ describe('useSearch', () => {
     expect(result.recentSearches.value).toHaveLength(0)
     expect(localStorage.getItem('blog.recentSearches')).toBeNull()
   })
+
+  it('does not call searchService after unmount when debounce is in flight', async () => {
+    const { result, wrapper } = await mountWithUseSearch()
+
+    // Set query which starts 220ms debounce timer
+    result.query.value = 'vue'
+    await nextTick()
+
+    // Unmount before debounce completes (should clear timer via onUnmounted)
+    wrapper.unmount()
+
+    // Advance time past the debounce window
+    vi.advanceTimersByTime(300)
+    await nextTick()
+    await flushPromises()
+
+    // searchService.search should NOT have been called because timer was cleared on unmount
+    expect(searchService.search).not.toHaveBeenCalled()
+  })
 })
