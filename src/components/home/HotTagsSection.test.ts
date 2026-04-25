@@ -8,9 +8,9 @@ const router = createRouter({
 });
 
 const mockTags = [
-  { name: 'Vue', count: 18 },
-  { name: 'React', count: 12 },
-  { name: 'TypeScript', count: 15 },
+  { uuid: '1', name: 'Vue', slug: 'vue', articleCount: 18 },
+  { uuid: '2', name: 'React', slug: 'react', articleCount: 12 },
+  { uuid: '3', name: 'TypeScript', slug: 'typescript', articleCount: 15 },
 ];
 
 describe('HotTagsSection', () => {

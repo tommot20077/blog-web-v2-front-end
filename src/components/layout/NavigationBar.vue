@@ -58,6 +58,13 @@ async function handleLogout() {
       >
         Search
       </RouterLink>
+      <RouterLink
+        to="/#about"
+        class="nav-link"
+        data-testid="navbar-link-about"
+      >
+        About
+      </RouterLink>
 
       <!-- Theme toggle -->
       <button

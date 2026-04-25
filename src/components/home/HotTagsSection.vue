@@ -1,18 +1,14 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-
-interface TagItem {
-  name: string;
-  count: number;
-}
+import type { TagDetailResponse } from '../../api/tagService';
 
 const props = defineProps<{
-  tags: TagItem[];
+  tags: TagDetailResponse[];
   isLoading: boolean;
 }>();
 
 const totalTopics = computed(() => props.tags.length);
-const totalPosts = computed(() => props.tags.reduce((sum, t) => sum + t.count, 0));
+const totalPosts = computed(() => props.tags.reduce((sum, t) => sum + (t.articleCount ?? 0), 0));
 </script>
 
 <template>
@@ -37,7 +33,7 @@ const totalPosts = computed(() => props.tags.reduce((sum, t) => sum + t.count, 0
           :data-testid="'tag-pill-' + index"
           href="#"
         >
-          {{ tag.name }} <span class="n">{{ tag.count }}</span>
+          {{ tag.name }} <span class="n">{{ tag.articleCount }}</span>
         </a>
       </div>
     </div>
