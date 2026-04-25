@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from './stores/auth'
 import NavigationBar from './components/layout/NavigationBar.vue'
 import AppFooter from './components/layout/AppFooter.vue'
@@ -7,6 +8,16 @@ import MobileBottomNav from './components/layout/MobileBottomNav.vue'
 import ToastContainer from './components/ui/ToastContainer.vue'
 
 const authStore = useAuthStore()
+const router = useRouter()
+
+const onGlobalKeyDown = (e: KeyboardEvent) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+    // Don't trigger when typing in inputs
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+    e.preventDefault()
+    router.push('/search')
+  }
+}
 
 onMounted(async () => {
   try {
@@ -14,7 +25,10 @@ onMounted(async () => {
   } catch {
     // 靜默失敗，使用者未登入
   }
+  window.addEventListener('keydown', onGlobalKeyDown)
 })
+
+onUnmounted(() => window.removeEventListener('keydown', onGlobalKeyDown))
 </script>
 
 <template>

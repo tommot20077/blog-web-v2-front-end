@@ -35,6 +35,12 @@ const router = createRouter({
       props: true
     },
     {
+      path: '/search',
+      name: 'search',
+      component: () => import('../views/SearchView.vue')
+      // no auth required — public page
+    },
+    {
       path: '/login',
       name: 'login',
       component: () => import('../views/LoginView.vue'),

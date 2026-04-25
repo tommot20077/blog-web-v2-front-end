@@ -47,6 +47,9 @@ async function handleLogout() {
     >
       文章
     </RouterLink>
+    <RouterLink to="/search" class="nav-link" active-class="active" data-testid="navbar-link-search">
+      搜尋
+    </RouterLink>
 
     <!-- Right cluster -->
     <!-- Theme toggle -->
