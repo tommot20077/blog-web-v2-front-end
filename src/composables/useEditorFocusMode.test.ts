@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { useEditorFocusMode } from './useEditorFocusMode'
 
+// Each test calls useEditorFocusMode() directly. This works because the
+// composable creates a new ref on every call (no module-level singleton).
+// If this composable is ever refactored to share state, add beforeEach resets.
 describe('useEditorFocusMode', () => {
   it('starts with focus mode off', () => {
     const { isFocusMode } = useEditorFocusMode()
