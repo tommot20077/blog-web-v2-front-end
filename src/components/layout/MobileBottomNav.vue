@@ -12,7 +12,7 @@ const authStore = useAuthStore();
 const tabs = [
   { key: 'home', label: '首頁', to: '/', icon: 'home' },
   { key: 'articles', label: '文章', to: '/articles', icon: 'document' },
-  { key: 'search', label: '搜尋', to: null, icon: 'search' },
+  { key: 'search', label: '搜尋', to: '/search', icon: 'search' },
   { key: 'profile', label: '我的', to: null, icon: 'user' },
 ] as const;
 

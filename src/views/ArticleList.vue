@@ -2,7 +2,6 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { RouterLink } from 'vue-router';
 import { articleService, type ArticleItem } from '../api/articleService';
-import { searchService } from '../api/searchService';
 
 // ── article data ──────────────────────────────────────────────────────────────
 const articles = ref<ArticleItem[]>([]);
@@ -22,10 +21,9 @@ const noMoreData = ref(false);
 // ── filter bar state (inlined from FilterBar component) ───────────────────────
 const categories = ['全部', 'Frontend', 'Backend', 'DevOps', 'UI/UX', 'Life'];
 const activeCategory = ref('全部');
-const keyword = ref('');
 const sortOrder = ref<'latest' | 'popular' | 'commented'>('latest');
 
-const filterParams = ref({ category: '全部', keyword: '' });
+const filterParams = ref({ category: '全部' });
 
 // ── core fetch logic ──────────────────────────────────────────────────────────
 const fetchArticles = async (isLoadMore = false) => {
@@ -40,29 +38,7 @@ const fetchArticles = async (isLoadMore = false) => {
   }
 
   try {
-    let result: Awaited<ReturnType<typeof articleService.getArticles>>;
-    const kw = filterParams.value.keyword;
-    if (kw) {
-      const raw = await searchService.search({ q: kw, page, size });
-      result = {
-        ...raw,
-        records: raw.records.map((r) => ({
-          uuid: r.articleUuid,
-          title: r.title,
-          summary: r.summary,
-          slug: r.slug,
-          authorNickname: r.authorNickname,
-          tags: r.tagNames,
-          publishedAt: r.publishedAt,
-          viewCount: r.viewCount,
-          likeCount: r.likeCount,
-          coverImageUrl: null,
-          commentCount: 0,
-        } as ArticleItem)),
-      };
-    } else {
-      result = await articleService.getArticles(page, size, filterParams.value.category, '');
-    }
+    const result = await articleService.getArticles(page, size, filterParams.value.category, '');
 
     if (currentMode === 'grid') {
       articles.value = result.records;
@@ -95,12 +71,8 @@ const toggleMode = (mode: 'grid' | 'list') => {
   fetchArticles();
 };
 
-const onSearch = () => {
-  applyFilter();
-};
-
 const applyFilter = () => {
-  filterParams.value = { category: activeCategory.value, keyword: keyword.value };
+  filterParams.value = { category: activeCategory.value };
   gridPage.value = 1;
   listPage.value = 1;
   noMoreData.value = false;
@@ -150,21 +122,6 @@ onUnmounted(() => {
     <!-- Sticky filter bar -->
     <div class="filter-bar-sticky">
       <div class="filter-bar" data-testid="articles-filter-bar">
-
-        <!-- Search input -->
-        <div class="search-wrap">
-          <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          <input
-            v-model="keyword"
-            @keyup.enter="onSearch"
-            type="text"
-            placeholder="搜尋文章..."
-            class="search-input"
-            data-testid="articles-search-input"
-          />
-        </div>
 
         <!-- Tag / category chips -->
         <div class="tag-chips">
@@ -367,39 +324,6 @@ onUnmounted(() => {
   flex-wrap: wrap;
   max-width: 80rem;
   margin: 0 auto;
-}
-
-/* ── Search input ───────────────────────────────────────────── */
-.search-wrap {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--surface);
-  min-width: 220px;
-}
-
-.search-icon {
-  width: 14px;
-  height: 14px;
-  color: var(--muted);
-  flex-shrink: 0;
-}
-
-.search-input {
-  border: none;
-  outline: none;
-  background: transparent;
-  color: var(--ink);
-  font: inherit;
-  font-size: 13px;
-  width: 100%;
-}
-
-.search-input::placeholder {
-  color: var(--muted);
 }
 
 /* ── Tag chips ──────────────────────────────────────────────── */

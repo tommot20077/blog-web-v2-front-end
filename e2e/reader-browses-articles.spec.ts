@@ -1,7 +1,7 @@
 import { test, expect } from './fixtures/base'
 
 test.describe('讀者瀏覽文章', () => {
-  test('從首頁進入文章列表，過濾分類，搜尋關鍵字，翻頁瀏覽，切換視圖', async ({
+  test('從首頁進入文章列表，過濾分類，翻頁瀏覽，切換視圖', async ({
     page,
     homePage,
     articleListPage,
@@ -24,18 +24,6 @@ test.describe('讀者瀏覽文章', () => {
     const frontendCount = await articleListPage.articleCards.count()
     expect(frontendCount).toBeGreaterThan(0)
 
-    // --- 搜尋關鍵字：結果更新（Elasticsearch 可能未索引，允許 0 筆）---
-    await filterBar.search('Vue')
-    await articleListPage.waitForLoadingComplete()
-    const searchCount = await articleListPage.articleCards.count()
-    expect(searchCount).toBeGreaterThanOrEqual(0)
-
-    // --- 清空搜尋：結果恢復 ---
-    await filterBar.clearSearch()
-    await articleListPage.waitForArticlesLoaded()
-    const clearedCount = await articleListPage.articleCards.count()
-    expect(clearedCount).toBeGreaterThanOrEqual(0)
-
     // --- 切回全部分類 ---
     await filterBar.selectCategory('全部')
     await articleListPage.waitForArticlesLoaded()
@@ -52,14 +40,12 @@ test.describe('讀者瀏覽文章', () => {
     await expect(articleListPage.paginationNext).not.toBeVisible()
   })
 
-  test('搜尋不存在的內容時看到空狀態提示', async ({
-    articleListPage,
-    filterBar,
-  }) => {
-    await articleListPage.goto()
-    await articleListPage.waitForArticlesLoaded()
+  test('使用搜尋頁搜尋不存在的內容時看到無結果提示', async ({ searchPage }) => {
+    await searchPage.goto()
 
-    await filterBar.search('完全不存在的關鍵字xyzzy')
-    await expect(articleListPage.emptyMessage).toBeVisible()
+    await searchPage.typeKeyword('完全不存在的關鍵字xyzzy')
+    await searchPage.waitForNoResult()
+
+    await expect(searchPage.noResultState).toBeVisible()
   })
 })

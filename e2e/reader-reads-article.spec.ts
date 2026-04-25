@@ -39,19 +39,18 @@ test.describe('讀者閱讀文章', () => {
     await expect(page).toHaveURL('/articles')
   })
 
-  test('訪問不存在的文章看到 404，點按鈕返回列表', async ({
+  test('訪問不存在的文章看到 404，點按鈕返回首頁', async ({
     page,
-    articleDetailPage,
   }) => {
     // --- 直接訪問不存在的 UUID ---
-    await articleDetailPage.goto('not-exist-uuid-12345')
+    await page.goto('/articles/not-exist-uuid-12345')
 
-    // --- 看到 404 提示 ---
-    await expect(articleDetailPage.notFoundText).toBeVisible()
+    // --- 看到 NotFoundView 404 提示 ---
+    await expect(page.getByText('找不到這個頁面')).toBeVisible({ timeout: 5000 })
 
-    // --- 點「返回列表頁面」，回到 /articles ---
-    await articleDetailPage.notFoundBackButton.click()
-    await expect(page).toHaveURL('/articles')
+    // --- 點「回到首頁」，回到 / ---
+    await page.getByRole('link', { name: '← 回到首頁' }).click()
+    await expect(page).toHaveURL('/')
   })
 
   test('文章 Metadata 可見性：閱讀時間、分類、讚數、留言數', async ({

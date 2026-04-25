@@ -18,15 +18,20 @@ function Cursor() {
       const isText = e.target.closest('input,textarea,[contenteditable]');
       if (ringRef.current) ringRef.current.classList.toggle('text', !!isText);
     };
+    let paused = false;
+    const onDown = e => { if (e.button === 1) { paused = true; } };
+    const onUp = e => { if (e.button === 1) { paused = false; } };
     const tick = () => {
-      rx += (x-rx)*0.18; ry += (y-ry)*0.18;
+      if (!paused) { rx += (x-rx)*0.18; ry += (y-ry)*0.18; }
       if(ringRef.current) ringRef.current.style.transform = `translate(${rx}px,${ry}px) translate(-50%,-50%)`;
       requestAnimationFrame(tick);
     };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseover', onOver);
+    window.addEventListener('mousedown', onDown);
+    window.addEventListener('mouseup', onUp);
     tick();
-    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseover', onOver); };
+    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseover', onOver); window.removeEventListener('mousedown', onDown); window.removeEventListener('mouseup', onUp); };
   }, []);
   return React.createElement(React.Fragment, null,
     React.createElement('div', { ref: dotRef, className: 'cursor-dot' }),
@@ -58,15 +63,55 @@ function useReveal() {
 
 // ============ NAVBAR ============
 function Navbar({ view, setView, theme, toggleTheme }) {
-  return React.createElement('div', { className: 'nav-wrap' },
-    React.createElement('nav', { className: 'nav-inner' },
+  const [visible, setVisible] = React.useState(true);
+  const [hovered, setHovered] = React.useState(false);
+  const hideTimer = React.useRef(null);
+  const show = visible || hovered;
+
+  const startHide = () => {
+    hideTimer.current = setTimeout(() => setHovered(false), 300);
+  };
+  const cancelHide = () => {
+    clearTimeout(hideTimer.current);
+    setHovered(true);
+  };
+
+  React.useEffect(() => {
+    let lastY = window.scrollY;
+    let ticking = false;
+    const onScroll = () => {
+      if (!ticking) { requestAnimationFrame(() => {
+        const y = window.scrollY;
+        if (y < 60) { setVisible(true); }
+        else if (y > lastY + 4) { setVisible(false); }
+        else if (y < lastY - 2) { setVisible(true); }
+        lastY = y; ticking = false;
+      }); ticking = true; }
+    };
+    window.addEventListener('scroll', onScroll, {passive:true});
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  return React.createElement(React.Fragment, null,
+    // Invisible hover zone at the top — triggers navbar to appear
+    React.createElement('div', {
+      style: { position:'fixed', top:0, left:0, right:0, height:64, zIndex:99, pointerEvents: show ? 'none' : 'auto' },
+      onMouseEnter: cancelHide,
+      onMouseLeave: startHide,
+    }),
+    React.createElement('div', {
+      className: 'nav-wrap',
+      style: { transform: show?'translateY(0)':'translateY(-120%)', transition:'transform 0.35s cubic-bezier(.22,1,.36,1)', pointerEvents: show?'auto':'none' },
+      onMouseEnter: cancelHide,
+      onMouseLeave: startHide,
+    },
       React.createElement('a', { href: '#', className: 'nav-logo', onClick: e=>{e.preventDefault();setView('home');} },
         React.createElement('span', { className: 'mark' }),
         React.createElement('span', { className: 'name' }, 'MY BLOG WEB.')
       ),
       React.createElement('a', { href: '#', className: 'nav-link '+(view==='home'?'active':''), onClick:e=>{e.preventDefault();setView('home');} }, 'Writing'),
       React.createElement('a', { href: '#', className: 'nav-link '+(view==='articles'?'active':''), onClick:e=>{e.preventDefault();setView('articles');} }, 'Articles'),
-      React.createElement('a', { href: '#', className: 'nav-link', onClick:e=>e.preventDefault() }, 'Notes'),
+      React.createElement('a', { href: '#', className: 'nav-link '+(view==='search'?'active':''), onClick:e=>{e.preventDefault();setView('search');} }, 'Search'),
       React.createElement('a', { href: '#', className: 'nav-link', onClick:e=>e.preventDefault() }, 'About'),
       React.createElement('a', { href: '#', className: 'nav-link '+(view==='login'?'active':''), onClick:e=>{e.preventDefault();setView('login');} },
         React.createElement('span',{className:'dot'}), 'Sign in'
@@ -79,8 +124,8 @@ function Navbar({ view, setView, theme, toggleTheme }) {
           : React.createElement('svg',{viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:1.8},
               React.createElement('path',{d:'M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z'}))
       )
-    )
-  );
+    )  // close nav-wrap div
+  );  // close Fragment
 }
 
 // ============ HOME ============
@@ -331,6 +376,26 @@ function Auth({ mode, setMode }) {
   );
 }
 
+// ============ 404 / 500 ERROR PAGES ============
+function ErrorPage({ code, go }) {
+  const CODE = code || 404;
+  const msgs = {
+    404: { tag: '§ error · not found', title: '找不到這一頁。', sub: '這個 URL 可能已移除、改名，或從來就不存在。', cta: '回首頁 →' },
+    500: { tag: '§ error · server error', title: '有些東西壞掉了。', sub: '伺服器遇到了一個非預期的錯誤，我們已經記錄下來。稍後再試。', cta: '回首頁 →' },
+  };
+  const m = msgs[CODE] || msgs[404];
+  return React.createElement('div', { className: 'err-page' },
+    React.createElement('div', { className: 'err-inner' },
+      React.createElement('div', { className: 'err-bg-num' }, CODE),
+      React.createElement('div', { className: 'err-tag' }, m.tag),
+      React.createElement('h1', { className: 'err-title' }, m.title),
+      React.createElement('p', { className: 'err-sub' }, m.sub),
+      React.createElement('div', { className: 'err-rule' }),
+      React.createElement('a', { href:'#', className:'err-cta', 'data-hover':true, onClick:e=>{e.preventDefault();go&&go('home');} }, m.cta)
+    )
+  );
+}
+
 // ============ FOOTER ============
 function Footer() {
   return React.createElement('footer', { className: 'footer wrap' },
@@ -344,13 +409,18 @@ function Footer() {
 }
 
 // ============ VIEW SWITCHER ============
-function ViewSwitch({ view, setView }) {
+function ViewSwitch({ view, setView, go }) {
   return React.createElement('div', { className: 'view-switch' },
     React.createElement('button', { className: view==='home'?'active':'', 'data-hover':true, onClick:()=>setView('home') }, 'Home'),
     React.createElement('button', { className: view==='articles'?'active':'', 'data-hover':true, onClick:()=>setView('articles') }, 'Articles'),
     React.createElement('button', { className: view==='article'?'active':'', 'data-hover':true, onClick:()=>setView('article') }, 'Article'),
     React.createElement('button', { className: view==='my'?'active':'', 'data-hover':true, onClick:()=>setView('my') }, 'My'),
     React.createElement('button', { className: view==='editor'?'active':'', 'data-hover':true, onClick:()=>setView('editor') }, 'Editor'),
+    React.createElement('button', { className: view==='search'?'active':'', 'data-hover':true, onClick:()=>setView('search') }, 'Search'),
+    React.createElement('button', { className: view==='tag'?'active':'', 'data-hover':true, onClick:()=>go('tag','css') }, 'Tag'),
+    React.createElement('button', { className: view==='author'?'active':'', 'data-hover':true, onClick:()=>go('author','yuanluca') }, 'Author'),
+    React.createElement('button', { className: view==='settings'?'active':'', 'data-hover':true, onClick:()=>setView('settings') }, 'Settings'),
+    React.createElement('button', { className: view==='404'?'active':'', 'data-hover':true, onClick:()=>setView('404') }, '404'),
     React.createElement('button', { className: view==='login'?'active':'', 'data-hover':true, onClick:()=>setView('login') }, 'Sign in'),
     React.createElement('button', { className: view==='register'?'active':'', 'data-hover':true, onClick:()=>setView('register') }, 'Register')
   );
@@ -416,9 +486,15 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
 }/*EDITMODE-END*/;
 
 function App() {
-  const [view, setView] = useState(() => localStorage.getItem('blog.view') || 'home');
+  const VALID_VIEWS = ['home','articles','article','login','register','my','editor','search','tag','author','settings','404','500'];
+  const [view, setView] = useState(() => {
+    const v = localStorage.getItem('blog.view') || 'home';
+    return VALID_VIEWS.includes(v) ? v : 'home';
+  });
   const [uuid, setUuid] = useState(() => localStorage.getItem('blog.uuid') || 'a1');
   const go = (v, id) => {
+    if (v === 'tag') { setUuid(id); setView('tag'); return; }
+    if (v === 'author') { setUuid(id); setView('author'); return; }
     if (v === 'editor-new') { setView('editor'); setUuid('new'); return; }
     if (v === 'my-drafts') { setView('my'); return; }
     if (v === 'my-published') { setView('my'); return; }
@@ -437,6 +513,18 @@ function App() {
 
   useEffect(() => { localStorage.setItem('blog.view', view); }, [view]);
   useEffect(() => { localStorage.setItem('blog.tweaks', JSON.stringify(state)); }, [state]);
+
+  // ⌘K / Ctrl+K to open Search
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setView('search');
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   // apply state to html
   useEffect(() => {
@@ -470,7 +558,7 @@ function App() {
 
   return React.createElement(React.Fragment, null,
     React.createElement(Cursor),
-    (view === 'home' || view === 'articles' || view === 'login' || view === 'register' || view === 'article')
+    (view === 'home' || view === 'articles' || view === 'login' || view === 'register' || view === 'article' || view === 'search' || view === 'tag' || view === 'author')
       && React.createElement(Navbar, { view, setView, theme: state.theme, toggleTheme }),
     view === 'home' ? React.createElement(Home, { go })
     : (view === 'login' || view === 'register') ? React.createElement(Auth, { mode: view, setMode: setView })
@@ -478,8 +566,14 @@ function App() {
     : view === 'editor' ? React.createElement(window.BlogViews.Editor, { uuid, go })
     : view === 'article' ? React.createElement(window.BlogViews.ArticleDetail, { uuid, go, fromEditor: false })
     : view === 'articles' ? React.createElement(window.ArticlesPage, { go, preFilter: uuid })
-    : React.createElement(Home),
-    React.createElement(ViewSwitch, { view, setView }),
+    : view === 'search' ? React.createElement(window.SearchView, { go, initialQuery: uuid && uuid.startsWith('q:') ? uuid.slice(2) : '' })
+    : view === 'tag' ? React.createElement(window.BlogViews.TagDetail, { tag: uuid, go })
+    : view === 'author' ? React.createElement(window.BlogViews.AuthorProfile, { handle: uuid, go })
+    : view === 'settings' ? React.createElement(window.SettingsView, { go })
+    : view === '404' ? React.createElement(ErrorPage, { code: 404, go })
+    : view === '500' ? React.createElement(ErrorPage, { code: 500, go })
+    : React.createElement(Home, { go }),
+    React.createElement(ViewSwitch, { view, setView, go }),
     editMode && React.createElement(TweaksPanel, {
       state, setState,
       hidden: false,

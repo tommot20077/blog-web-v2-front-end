@@ -1,50 +1,34 @@
 import { test, expect } from './fixtures/base'
 
 test.describe('搜尋流程', () => {
-  test('輸入關鍵字搜尋 — 結果更新、清空後恢復', async ({
-    articleListPage,
-    filterBar,
-  }) => {
-    await articleListPage.goto()
-    await articleListPage.waitForArticlesLoaded()
-    const initialCount = await articleListPage.articleCards.count()
-    expect(initialCount).toBeGreaterThan(0)
+  test('輸入關鍵字搜尋 — 搜尋完成並顯示結果或無結果提示', async ({ searchPage }) => {
+    await searchPage.goto()
 
-    await filterBar.search('Vue')
-    await articleListPage.waitForLoadingComplete()
-    const searchCount = await articleListPage.articleCards.count()
-    expect(searchCount).toBeGreaterThanOrEqual(0)
+    await searchPage.typeKeyword('Vue')
+    await searchPage.waitForSearchComplete()
 
-    await filterBar.clearSearch()
-    await articleListPage.waitForArticlesLoaded()
-    const clearedCount = await articleListPage.articleCards.count()
-    expect(clearedCount).toBeGreaterThanOrEqual(searchCount)
+    // 搜尋完成：有結果（mock / ES 已索引）或無結果提示（ES 索引延遲）皆可接受
+    const hasCards = await searchPage.articleCards.count() > 0
+    const hasNoResult = await searchPage.noResultState.isVisible()
+    expect(hasCards || hasNoResult).toBe(true)
   })
 
-  test('搜尋無結果關鍵字 — 顯示空狀態提示', async ({
-    articleListPage,
-    filterBar,
-  }) => {
-    await articleListPage.goto()
-    await articleListPage.waitForArticlesLoaded()
+  test('搜尋無結果關鍵字 — 顯示無結果提示', async ({ searchPage }) => {
+    await searchPage.goto()
 
-    await filterBar.search('絕對不存在的內容xyzzy123')
-    await expect(articleListPage.emptyMessage).toBeVisible({ timeout: 5000 })
+    await searchPage.typeKeyword('絕對不存在的內容xyzzy123')
+    await searchPage.waitForNoResult()
+
+    await expect(searchPage.noResultState).toBeVisible()
   })
 
-  test('搜尋後切換分類 — 清除關鍵字並顯示分類結果', async ({
-    articleListPage,
-    filterBar,
-  }) => {
-    await articleListPage.goto()
-    await articleListPage.waitForArticlesLoaded()
+  test('清空關鍵字 — 回到初始狀態（無文章卡片）', async ({ searchPage }) => {
+    await searchPage.goto()
 
-    await filterBar.search('Vue')
-    await articleListPage.waitForLoadingComplete()
+    await searchPage.typeKeyword('Vue')
+    await searchPage.waitForSearchComplete()
 
-    await filterBar.selectCategory('全部')
-    await articleListPage.waitForLoadingComplete()
-    const allCount = await articleListPage.articleCards.count()
-    expect(allCount).toBeGreaterThanOrEqual(0)
+    await searchPage.clearSearch()
+    await expect(searchPage.articleCards.first()).not.toBeVisible()
   })
 })

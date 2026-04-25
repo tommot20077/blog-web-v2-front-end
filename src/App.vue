@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from './stores/auth'
 import NavigationBar from './components/layout/NavigationBar.vue'
 import AppFooter from './components/layout/AppFooter.vue'
@@ -7,14 +8,32 @@ import MobileBottomNav from './components/layout/MobileBottomNav.vue'
 import ToastContainer from './components/ui/ToastContainer.vue'
 
 const authStore = useAuthStore()
+const router = useRouter()
+
+const onGlobalKeyDown = (e: KeyboardEvent) => {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+    const target = e.target
+    if (
+      target instanceof HTMLInputElement ||
+      target instanceof HTMLTextAreaElement ||
+      (target instanceof Element &&
+        (target.closest('[contenteditable="true"]') || target.closest('.cm-editor')))
+    ) return
+    e.preventDefault()
+    if (router.currentRoute.value.path !== '/search') router.push('/search')
+  }
+}
 
 onMounted(async () => {
+  window.addEventListener('keydown', onGlobalKeyDown)
   try {
     await authStore.refreshToken()
   } catch {
     // 靜默失敗，使用者未登入
   }
 })
+
+onUnmounted(() => window.removeEventListener('keydown', onGlobalKeyDown))
 </script>
 
 <template>

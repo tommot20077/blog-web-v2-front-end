@@ -108,7 +108,7 @@ test.describe('按鈕互動 — 返回頂部（BUG-001）', () => {
 test.describe('按鈕互動 — 手機底部導覽', { tag: '@mobile' }, () => {
   test.use({ viewport: { width: 375, height: 812 } })
 
-  test('搜尋 tab 點擊後顯示 toast「即將推出」', async ({
+  test('搜尋 tab 點擊後導向 /search 頁面', async ({
     page,
     mobileBottomNav,
   }) => {
@@ -117,7 +117,7 @@ test.describe('按鈕互動 — 手機底部導覽', { tag: '@mobile' }, () => {
 
     await mobileBottomNav.clickSearchTab()
 
-    await expect(page.getByText('即將推出')).toBeVisible({ timeout: 3000 })
+    await expect(page).toHaveURL('/search')
   })
 
   test('首頁 tab 導向 /', async ({ page, mobileBottomNav }) => {

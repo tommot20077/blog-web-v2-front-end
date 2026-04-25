@@ -1,14 +1,15 @@
 import { test, expect } from './fixtures/auth'
 
 test.describe('錯誤狀態與存取保護', () => {
-  test('訪問不存在的文章顯示 404 空狀態，點按鈕返回列表', async ({ page }) => {
+  test('訪問不存在的文章顯示 404，點連結返回首頁', async ({ page }) => {
     await page.goto('/articles/uuid-that-does-not-exist')
 
-    await expect(page.getByText('找不到該篇文章（404）')).toBeVisible({ timeout: 5000 })
-    await expect(page.getByText('🏜️')).toBeVisible()
+    // Redirect to NotFoundView, which shows "找不到這個頁面"
+    await expect(page.getByText('找不到這個頁面')).toBeVisible({ timeout: 5000 })
 
-    await page.getByRole('button', { name: '返回列表頁面' }).click()
-    await expect(page).toHaveURL('/articles')
+    // Click back to home link (← 回到首頁)
+    await page.getByRole('link', { name: '← 回到首頁' }).click()
+    await expect(page).toHaveURL('/')
   })
 
   test('未登入訪問 /my-articles 重導至登入頁', async ({ page }) => {

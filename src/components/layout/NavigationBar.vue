@@ -2,10 +2,12 @@
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../../stores/auth';
 import { useTheme } from '../../composables/useTheme';
+import { useNavScroll } from '../../composables/useNavScroll';
 
 const router = useRouter();
 const authStore = useAuthStore();
 const { isDark, toggleTheme } = useTheme();
+const { show } = useNavScroll();
 
 async function handleLogout() {
   await authStore.logout();
@@ -18,6 +20,7 @@ async function handleLogout() {
   <nav
     class="nav"
     data-testid="navbar-root"
+    :style="{ transform: show ? 'translateY(0)' : 'translateY(-120%)', transition: 'transform 0.35s cubic-bezier(.22,1,.36,1)', pointerEvents: show ? 'auto' : 'none' }"
   >
     <!-- Logo -->
     <RouterLink to="/" class="nav-logo" data-testid="navbar-logo">
@@ -44,6 +47,9 @@ async function handleLogout() {
     >
       文章
     </RouterLink>
+    <RouterLink to="/search" class="nav-link" active-class="active" data-testid="navbar-link-search">
+      搜尋
+    </RouterLink>
 
     <!-- Right cluster -->
     <!-- Theme toggle -->
@@ -67,6 +73,9 @@ async function handleLogout() {
     <!-- User menu (logged in) -->
     <div v-if="authStore.isAuthenticated" class="nav-user" data-testid="navbar-user-menu">
       <span class="nav-user__name" data-testid="navbar-user-greeting">你好, {{ authStore.user?.nickname }}!</span>
+      <RouterLink to="/settings" class="nav-link" active-class="active" data-testid="navbar-link-settings">
+        設定
+      </RouterLink>
       <button class="nav-link" data-testid="navbar-logout-btn" @click="handleLogout">登出</button>
     </div>
 

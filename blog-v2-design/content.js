@@ -131,31 +131,84 @@ window.BLOG_CONTENT = {
 
 接下來幾篇會寫 CodeMirror 主題、Shiki 高亮配色、以及我如何在 Vitest 4 下做 TDD。慢慢寫。`,
 
-  // Full articles feed — for the Articles page catalog
+  // Comments mock data
+  comments: [
+    {
+      id: "c1", author: "Kimura A.", handle: "kimura", time: "2026-04-15 · 14:32",
+      body: "tokens.css 的那段「不加什麼」讓我想到 Dieter Rams 的十個原則。設計語言最難的地方不是選什麼，而是為什麼不選某些東西。這篇說清楚了。",
+      likes: 18, liked: false,
+      replies: [
+        { id: "c1r1", author: "Yuan Luca", handle: "yuanluca", time: "2026-04-15 · 15:08",
+          body: "對，Rams 的 Less, but better 是我整理這份 tokens 的起點。設計決策最重要的文件往往是「不做清單」。謝謝你的共鳴。", likes: 7, liked: false },
+        { id: "c1r2", author: "Nora Feng", handle: "norafeng", time: "2026-04-16 · 09:14",
+          body: "同感。我也試著在 Figma 裡維護一份「不用的元件」資料夾，定期回顧。某種意義上是在練習放棄的勇氣。", likes: 5, liked: false },
+        { id: "c1r3", author: "M. Olsen", handle: "olsen", time: "2026-04-16 · 11:20",
+          body: "這個做法可以形式化嗎？比如用 ADR（Architecture Decision Records）記錄「不做」的決定？", likes: 3, liked: false },
+      ]
+    },
+    {
+      id: "c2", author: "M. Olsen", handle: "olsen", time: "2026-04-16 · 10:45",
+      body: "§03 的非對稱網格那段讓我重新看了一遍自己的 CSS。我現在 12 欄裡至少有六種不同的「7 欄」寫法，每一個都是當下最合理的選擇。讀完這篇我要去統一它了。",
+      likes: 11, liked: false,
+      replies: [
+        { id: "c2r1", author: "Yuan Luca", handle: "yuanluca", time: "2026-04-16 · 12:30",
+          body: "六種！哈哈。我也有過同樣的問題，最後的解法就是先寫測試（對，Grid 也能有測試），確定行為再統一語義。", likes: 4, liked: false },
+      ]
+    },
+    {
+      id: "c3", author: "Nora Feng", handle: "norafeng", time: "2026-04-17 · 08:20",
+      body: "「三個月後再打開第一版 CSS，像在讀別人的文章」— 這句話讓我有點心虛。我有一個六個月前的 Figma 檔，上面有我當時非常確定的 shadow token，現在完全看不懂自己在想什麼。",
+      likes: 24, liked: true,
+      replies: []
+    },
+    {
+      id: "c4", author: "Alex Chen", handle: "alexchen", time: "2026-04-18 · 16:05",
+      body: "這篇讓我下定決心把公司的 design system 從 Tailwind 的 arbitrary values 搬回 token。上一次嘗試中途放棄，這次有這篇當參考應該會更清楚切入點。",
+      likes: 8, liked: false,
+      replies: []
+    },
+    {
+      id: "c5", author: "Lena Wu", handle: "lenawu", time: "2026-04-19 · 22:11",
+      body: "請問 tokens.css 的 800 行有考慮開源嗎？想看看實際的結構長什麼樣子。",
+      likes: 15, liked: false,
+      replies: [
+        { id: "c5r1", author: "Yuan Luca", handle: "yuanluca", time: "2026-04-20 · 09:00",
+          body: "在考慮中！打算整理成更通用的版本再發出來。先訂閱 newsletter 我會在那裡第一時間公告。", likes: 9, liked: false },
+      ]
+    },
+  ],
   articlesFeed: [
-    { uuid: "f01", title: "一個安靜的系統，用來收整想法。", summary: "花了三個月把整個 Blog 的 Design System 收斂成一份 800 行的 tokens.css。減法遠比加法難。", category: "c4", tags: ["design systems", "essay", "css"], authorHandle: "yuanluca", updatedAt: "2026-04-14", readMinutes: 9, viewCount: 2841, likeCount: 184, commentCount: 27 },
-    { uuid: "f02", title: "Writing less, publishing more.", summary: "不相信日更。每篇文章只解決一個問題。一年下來比勉強日更的人多寫了兩倍。", category: "c2", tags: ["essay", "slow web"], authorHandle: "yuanluca", updatedAt: "2026-04-11", readMinutes: 5, viewCount: 1205, likeCount: 92, commentCount: 14 },
-    { uuid: "f03", title: "關於 Tailwind v4 的第一印象。", summary: "設定檔消失，@theme 指令接手；Lightning CSS 的速度讓熱重載像是沒有發生。", category: "c1", tags: ["tailwind", "css", "frontend"], authorHandle: "yuanluca", updatedAt: "2026-04-08", readMinutes: 7, viewCount: 3412, likeCount: 246, commentCount: 31 },
-    { uuid: "f04", title: "Vitest 4 遷移筆記。", summary: "happy-dom 取代 jsdom，測試快兩倍；但有三個 edge case 讓我回滾了一次。", category: "c1", tags: ["vitest", "tdd", "typescript"], authorHandle: "olsen", updatedAt: "2026-04-03", readMinutes: 11, viewCount: 1876, likeCount: 104, commentCount: 18 },
-    { uuid: "f05", title: "CodeMirror 6 自訂主題心法。", summary: "從 @lezer/highlight 開始，少即是多。十二個 token 顏色，做出的主題比二十四個還耐看。", category: "c4", tags: ["codemirror", "frontend", "typography"], authorHandle: "kimura", updatedAt: "2026-03-29", readMinutes: 13, viewCount: 942, likeCount: 71, commentCount: 9 },
-    { uuid: "f06", title: "我為什麼離開 Pinia。", summary: "短答：我沒有離開，只是把它藏回 composables 的後面。長答比較有趣。", category: "c1", tags: ["pinia", "vue 3", "frontend"], authorHandle: "yuanluca", updatedAt: "2026-03-26", readMinutes: 8, viewCount: 2108, likeCount: 156, commentCount: 22 },
-    { uuid: "f07", title: "試著用 JetBrains Mono 寫整個 Blog。", summary: "一個字體的決策，會影響四十個頁面。也會讓你重新思考什麼叫做「閱讀」。", category: "c4", tags: ["typography", "design systems"], authorHandle: "kimura", updatedAt: "2026-03-20", readMinutes: 6, viewCount: 432, likeCount: 31, commentCount: 3 },
-    { uuid: "f08", title: "灰階不是偷懶的藉口。", summary: "一個 #f4f4f4 的背景，配 #0a0a0b 的文字，就足以撐起整個站。限制是一種風格。", category: "c4", tags: ["css", "typography", "design systems"], authorHandle: "yuanluca", updatedAt: "2026-03-17", readMinutes: 4, viewCount: 1532, likeCount: 118, commentCount: 19 },
-    { uuid: "f09", title: "Playwright 取代 Cypress 的那一天。", summary: "不是 Cypress 不好，是 Playwright 的 Trace Viewer 把我寵壞了。", category: "c1", tags: ["playwright", "tdd", "frontend"], authorHandle: "olsen", updatedAt: "2026-03-12", readMinutes: 10, viewCount: 1689, likeCount: 127, commentCount: 15 },
-    { uuid: "f10", title: "在 Figma 裡寫 MDX。", summary: "把設計文件從「附件」變成「內容」的一個小實驗。失敗了，但學到很多。", category: "c4", tags: ["figma", "design systems", "essay"], authorHandle: "norafeng", updatedAt: "2026-03-06", readMinutes: 7, viewCount: 821, likeCount: 54, commentCount: 11 },
-    { uuid: "f11", title: "為什麼我關掉了所有通知。", summary: "包括 GitHub 的。尤其是 GitHub 的。三個月後的心智耗能曲線。", category: "c2", tags: ["essay", "slow web"], authorHandle: "norafeng", updatedAt: "2026-02-28", readMinutes: 5, viewCount: 2945, likeCount: 289, commentCount: 42 },
-    { uuid: "f12", title: "Vite 5 → 6：我改了什麼沒改什麼。", summary: "upgrade guide 之外的真實經驗。三個專案，兩個順利，一個出了意外。", category: "c1", tags: ["vite", "frontend", "typescript"], authorHandle: "yuanluca", updatedAt: "2026-02-22", readMinutes: 9, viewCount: 1423, likeCount: 98, commentCount: 12 },
-    { uuid: "f13", title: "Shiki 跟我的 IDE 終於長得一樣。", summary: "把 VS Code 的 theme 搬到網頁上，差點讓我變成 JSON 工程師。", category: "c4", tags: ["shiki", "css", "typography"], authorHandle: "kimura", updatedAt: "2026-02-15", readMinutes: 6, viewCount: 756, likeCount: 48, commentCount: 7 },
-    { uuid: "f14", title: "TDD 是一種寫作練習。", summary: "紅、綠、重構，其實跟寫作的初稿、修稿、潤稿是同一件事。", category: "c2", tags: ["tdd", "essay"], authorHandle: "olsen", updatedAt: "2026-02-08", readMinutes: 8, viewCount: 1102, likeCount: 87, commentCount: 16 },
-    { uuid: "f15", title: "Notes — 關於「完成」的定義。", summary: "部落格文章、產品、設計系統，各自的「完成」都不一樣。", category: "c3", tags: ["essay", "slow web"], authorHandle: "yuanluca", updatedAt: "2026-02-01", readMinutes: 3, viewCount: 689, likeCount: 52, commentCount: 6 },
-    { uuid: "f16", title: "為 Blog 做一份 2025 總結。", summary: "42 篇發文、6 個草稿、3 次大改版。一張表看完一整年。", category: "c2", tags: ["essay"], authorHandle: "yuanluca", updatedAt: "2026-01-12", readMinutes: 12, viewCount: 4215, likeCount: 312, commentCount: 58 },
-    { uuid: "f17", title: "TypeScript 5.8 的 const type parameters，改變了什麼？", summary: "把一個 200 行的 utility library 重寫成 80 行的過程。型別是會呼吸的。", category: "c1", tags: ["typescript", "frontend"], authorHandle: "olsen", updatedAt: "2026-01-05", readMinutes: 10, viewCount: 1887, likeCount: 142, commentCount: 20 },
-    { uuid: "f18", title: "一個 designer 的 git 習慣。", summary: "commit message 我寫很長。不是為了別人，是為了三個月後的自己。", category: "c4", tags: ["essay", "design systems"], authorHandle: "norafeng", updatedAt: "2025-12-28", readMinutes: 4, viewCount: 943, likeCount: 72, commentCount: 9 },
-    { uuid: "f19", title: "從零開始做一個部落格系統（上）。", summary: "為什麼決定自己做、不用 Ghost / Hashnode / Medium。需求清單、技術選擇。", category: "c1", tags: ["vue 3", "frontend", "essay"], authorHandle: "yuanluca", updatedAt: "2025-12-20", readMinutes: 14, viewCount: 2678, likeCount: 198, commentCount: 29 },
-    { uuid: "f20", title: "從零開始做一個部落格系統（下）。", summary: "資料模型、編輯器、發布流程、以及那些沒做的功能。", category: "c1", tags: ["vue 3", "frontend", "essay"], authorHandle: "yuanluca", updatedAt: "2025-12-14", readMinutes: 16, viewCount: 2341, likeCount: 176, commentCount: 24 },
-    { uuid: "f21", title: "Notes — 讀 Edward Tufte。", summary: "資料視覺化的三個原則，放在部落格排版也成立。", category: "c3", tags: ["typography", "essay"], authorHandle: "kimura", updatedAt: "2025-12-02", readMinutes: 5, viewCount: 587, likeCount: 41, commentCount: 4 },
-    { uuid: "f22", title: "我重新定義「首頁」。", summary: "從 feed 變成 index，從動態變成靜態。讀者多待了四倍的時間。", category: "c4", tags: ["design systems", "essay"], authorHandle: "norafeng", updatedAt: "2025-11-22", readMinutes: 7, viewCount: 1456, likeCount: 108, commentCount: 17 },
-    { uuid: "f23", title: "CSS cascade layers 真的改變了我的寫法。", summary: "@layer reset, base, components, utilities — 一個簡單的秩序，解決了五年的焦慮。", category: "c1", tags: ["css", "frontend"], authorHandle: "yuanluca", updatedAt: "2025-11-10", readMinutes: 8, viewCount: 2087, likeCount: 163, commentCount: 21 },
-    { uuid: "f24", title: "一年了，那個「全站黑白」的決定。", summary: "從 12 個 accent color，砍到只剩一個萊姆。回頭看，是對的。", category: "c4", tags: ["design systems", "essay"], authorHandle: "yuanluca", updatedAt: "2025-10-30", readMinutes: 6, viewCount: 1823, likeCount: 137, commentCount: 19 },
+    // ── Yuan Luca ──
+    { uuid: "f01", title: "一個安靜的系統，用來收整想法。", summary: "花了三個月把整個 Blog 的 Design System 收斂成一份 800 行的 tokens.css。減法遠比加法難，但值得。", category: "c4", tags: ["design systems", "essay", "css"], authorHandle: "yuanluca", updatedAt: "2026-04-14", readMinutes: 9, viewCount: 2841, likeCount: 184, commentCount: 27 },
+    { uuid: "f02", title: "Writing less, publishing more.", summary: "不相信日更。每篇文章只解決一個問題，然後在一週內把它說清楚。一年下來反而比強迫日更的人多寫了兩倍有用的東西。", category: "c2", tags: ["essay", "slow web"], authorHandle: "yuanluca", updatedAt: "2026-04-11", readMinutes: 5, viewCount: 1205, likeCount: 92, commentCount: 14 },
+    { uuid: "f03", title: "關於 Tailwind v4 的第一印象。", summary: "設定檔消失，@theme 指令接手；Lightning CSS 的速度讓熱重載像是沒有發生。這是我用了三天之後的誠實感想。", category: "c1", tags: ["tailwind", "css", "frontend"], authorHandle: "yuanluca", updatedAt: "2026-04-08", readMinutes: 7, viewCount: 3412, likeCount: 246, commentCount: 31 },
+    { uuid: "f06", title: "我為什麼離開 Pinia。", summary: "短答：我沒有離開，只是把它藏回 composables 的後面。長答比較有趣，涉及到一個關於「誰應該知道狀態存在」的設計問題。", category: "c1", tags: ["pinia", "vue 3", "frontend"], authorHandle: "yuanluca", updatedAt: "2026-03-26", readMinutes: 8, viewCount: 2108, likeCount: 156, commentCount: 22 },
+    { uuid: "f08", title: "灰階不是偷懶的藉口。", summary: "一個 #f4f4f4 的背景，配 #0a0a0b 的文字，就足以撐起整個站。限制是一種風格，不是妥協。", category: "c4", tags: ["css", "typography", "design systems"], authorHandle: "yuanluca", updatedAt: "2026-03-17", readMinutes: 4, viewCount: 1532, likeCount: 118, commentCount: 19 },
+    { uuid: "f12", title: "Vite 5 to 6：我改了什麼沒改什麼。", summary: "upgrade guide 之外的真實遷移經驗。三個專案，兩個順利，一個出了意外，一個讓我對 plugin API 重新有了敬意。", category: "c1", tags: ["vite", "frontend", "typescript"], authorHandle: "yuanluca", updatedAt: "2026-02-22", readMinutes: 9, viewCount: 1423, likeCount: 98, commentCount: 12 },
+    { uuid: "f15", title: "Notes — 關於「完成」的定義。", summary: "部落格文章、產品、設計系統，各自的「完成」都不一樣。我最近把「完成」拆成三個問題，反而更容易放手。", category: "c3", tags: ["essay", "slow web"], authorHandle: "yuanluca", updatedAt: "2026-02-01", readMinutes: 3, viewCount: 689, likeCount: 52, commentCount: 6 },
+    { uuid: "f16", title: "為 Blog 做一份 2025 總結。", summary: "42 篇發文、6 個草稿、3 次大改版、一次全站重寫。一張表看完一整年。最讓我意外的數字是留言數。", category: "c2", tags: ["essay"], authorHandle: "yuanluca", updatedAt: "2026-01-12", readMinutes: 12, viewCount: 4215, likeCount: 312, commentCount: 58 },
+    { uuid: "f19", title: "從零開始做一個部落格系統（上）。", summary: "為什麼決定自己做、不用 Ghost / Hashnode / Medium。需求清單、技術選擇、以及我在第一週就後悔的那個決定。", category: "c1", tags: ["vue 3", "frontend", "essay"], authorHandle: "yuanluca", updatedAt: "2025-12-20", readMinutes: 14, viewCount: 2678, likeCount: 198, commentCount: 29 },
+    { uuid: "f20", title: "從零開始做一個部落格系統（下）。", summary: "資料模型、編輯器選型、發布流程、以及那些我刻意沒做的功能。有時候空白才是設計。", category: "c1", tags: ["vue 3", "frontend", "essay"], authorHandle: "yuanluca", updatedAt: "2025-12-14", readMinutes: 16, viewCount: 2341, likeCount: 176, commentCount: 24 },
+    { uuid: "f23", title: "CSS cascade layers 真的改變了我的寫法。", summary: "@layer reset, base, components, utilities — 一個簡單的秩序，解決了五年的焦慮。Tailwind 在這個體系裡的位置也終於說清楚了。", category: "c1", tags: ["css", "frontend"], authorHandle: "yuanluca", updatedAt: "2025-11-10", readMinutes: 8, viewCount: 2087, likeCount: 163, commentCount: 21 },
+    { uuid: "f24", title: "一年了，那個「全站黑白」的決定。", summary: "從 12 個 accent color，砍到只剩一個冷藍。回頭看，是對的。有時候少選一個顏色，反而逼你在排版上更用心。", category: "c4", tags: ["design systems", "essay"], authorHandle: "yuanluca", updatedAt: "2025-10-30", readMinutes: 6, viewCount: 1823, likeCount: 137, commentCount: 19 },
+    // ── Kimura A. ──
+    { uuid: "f05", title: "CodeMirror 6 自訂主題心法。", summary: "從 @lezer/highlight 開始，少即是多。十二個 token 顏色做出的主題，比二十四個還耐看。關鍵在於你決定不上色什麼。", category: "c4", tags: ["codemirror", "frontend", "typography"], authorHandle: "kimura", updatedAt: "2026-03-29", readMinutes: 13, viewCount: 942, likeCount: 71, commentCount: 9 },
+    { uuid: "f07", title: "試著用 JetBrains Mono 寫整個 Blog。", summary: "一個字體的決策，會影響四十個頁面。也會讓你重新思考什麼叫做「閱讀」。後來我換了，但不後悔那個月的實驗。", category: "c4", tags: ["typography", "design systems"], authorHandle: "kimura", updatedAt: "2026-03-20", readMinutes: 6, viewCount: 432, likeCount: 31, commentCount: 3 },
+    { uuid: "f13", title: "Shiki 跟我的 IDE 終於長得一樣。", summary: "把 VS Code 的 One Dark Pro 搬到網頁上，差點讓我變成 JSON 工程師。最後用 theme studio 省了很多時間。", category: "c4", tags: ["shiki", "css", "typography"], authorHandle: "kimura", updatedAt: "2026-02-15", readMinutes: 6, viewCount: 756, likeCount: 48, commentCount: 7 },
+    { uuid: "f21", title: "Notes — 讀 Edward Tufte。", summary: "資料視覺化的三個原則，放在部落格排版也完全成立。Data-ink ratio 在 CSS 的世界叫做 specificity-ink ratio。", category: "c3", tags: ["typography", "essay"], authorHandle: "kimura", updatedAt: "2025-12-02", readMinutes: 5, viewCount: 587, likeCount: 41, commentCount: 4 },
+    { uuid: "fk01", title: "Motion design 在 UI 裡不是裝飾。", summary: "動畫的意義不是讓東西動起來，而是讓使用者知道「現在發生了什麼」。三個讓動畫有意義的原則。", category: "c4", tags: ["design systems", "essay"], authorHandle: "kimura", updatedAt: "2026-01-20", readMinutes: 7, viewCount: 1104, likeCount: 88, commentCount: 12 },
+    { uuid: "fk02", title: "Type scale 的選擇比你想的重要。", summary: "用 Major Third 還是 Perfect Fourth？這個問題在你的設計裡每天都在問你，只是你沒聽到。", category: "c4", tags: ["typography", "design systems"], authorHandle: "kimura", updatedAt: "2025-11-28", readMinutes: 8, viewCount: 879, likeCount: 62, commentCount: 8 },
+    // ── Nora Feng ──
+    { uuid: "f10", title: "在 Figma 裡寫 MDX。", summary: "把設計文件從「附件」變成「內容」的一個小實驗。失敗了，但學到了很多關於設計交付流程的事。", category: "c4", tags: ["figma", "design systems", "essay"], authorHandle: "norafeng", updatedAt: "2026-03-06", readMinutes: 7, viewCount: 821, likeCount: 54, commentCount: 11 },
+    { uuid: "f11", title: "為什麼我關掉了所有通知。", summary: "包括 GitHub 的。尤其是 GitHub 的。三個月後的心智耗能曲線讓我相信：非同步才是預設值。", category: "c2", tags: ["essay", "slow web"], authorHandle: "norafeng", updatedAt: "2026-02-28", readMinutes: 5, viewCount: 2945, likeCount: 289, commentCount: 42 },
+    { uuid: "f18", title: "一個 designer 的 git 習慣。", summary: "commit message 我寫很長。不是為了別人，是為了三個月後的自己。feat 和 fix 之外，我還有一個 think。", category: "c4", tags: ["essay", "design systems"], authorHandle: "norafeng", updatedAt: "2025-12-28", readMinutes: 4, viewCount: 943, likeCount: 72, commentCount: 9 },
+    { uuid: "f22", title: "我重新定義「首頁」。", summary: "從 feed 變成 index，從動態變成靜態。讀者平均停留時間多了四倍。這讓我開始懷疑「最新」是不是錯的預設。", category: "c4", tags: ["design systems", "essay"], authorHandle: "norafeng", updatedAt: "2025-11-22", readMinutes: 7, viewCount: 1456, likeCount: 108, commentCount: 17 },
+    { uuid: "fn01", title: "Product 思維跟 Design 思維為什麼吵架。", summary: "在同一間公司待了兩年，我終於知道為什麼 PM 和 Designer 永遠在爭論「使用者到底要什麼」。", category: "c2", tags: ["essay"], authorHandle: "norafeng", updatedAt: "2026-01-08", readMinutes: 9, viewCount: 1678, likeCount: 124, commentCount: 23 },
+    // ── M. Olsen ──
+    { uuid: "f04", title: "Vitest 4 遷移筆記。", summary: "happy-dom 取代 jsdom，測試快兩倍；但有三個 edge case 讓我回滾了一次，最後在 CI 上才發現真正的問題。", category: "c1", tags: ["vitest", "tdd", "typescript"], authorHandle: "olsen", updatedAt: "2026-04-03", readMinutes: 11, viewCount: 1876, likeCount: 104, commentCount: 18 },
+    { uuid: "f09", title: "Playwright 取代 Cypress 的那一天。", summary: "不是 Cypress 不好，是 Playwright 的 Trace Viewer 把我寵壞了。現在回不去了。", category: "c1", tags: ["playwright", "tdd", "frontend"], authorHandle: "olsen", updatedAt: "2026-03-12", readMinutes: 10, viewCount: 1689, likeCount: 127, commentCount: 15 },
+    { uuid: "f14", title: "TDD 是一種寫作練習。", summary: "紅、綠、重構，其實跟寫作的初稿、修稿、潤稿是同一件事。我在準備技術分享的時候才突然想通。", category: "c2", tags: ["tdd", "essay"], authorHandle: "olsen", updatedAt: "2026-02-08", readMinutes: 8, viewCount: 1102, likeCount: 87, commentCount: 16 },
+    { uuid: "f17", title: "TypeScript 5.8 的 const type parameters，改變了什麼？", summary: "把一個 200 行的 utility library 重寫成 80 行的過程。型別推導在這個版本終於開始像是在幫你，而不是在考你。", category: "c1", tags: ["typescript", "frontend"], authorHandle: "olsen", updatedAt: "2026-01-05", readMinutes: 10, viewCount: 1887, likeCount: 142, commentCount: 20 },
+    { uuid: "fo01", title: "Event sourcing 在小 side project 有意義嗎？", summary: "我在一個個人部落格後端裡試著用 event sourcing。結論是：有趣，但你需要很清楚自己為什麼要這樣做。", category: "c1", tags: ["frontend", "essay"], authorHandle: "olsen", updatedAt: "2025-12-10", readMinutes: 12, viewCount: 934, likeCount: 71, commentCount: 11 },
   ],
 };

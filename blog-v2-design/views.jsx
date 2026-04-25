@@ -264,6 +264,53 @@ function Editor({ uuid, go }) {
 
   const [pendingAlign, setPendingAlign] = uS('center');
   const [showInsertMenu, setShowInsertMenu] = uS(false);
+  const [metaTab, setMetaTab] = uS('meta'); // 'meta' | 'outline'
+  const [focus, setFocus] = uS(false);
+  const [cursorLine, setCursorLine] = uS(0);
+
+  // Track cursor line for outline highlight
+  const onTaKeyUp = e => {
+    const ta = e.target;
+    const before = md.slice(0, ta.selectionStart);
+    setCursorLine(before.split('\n').length - 1);
+  };
+
+  // Parse outline from markdown
+  const outline = uM(() => {
+    return md.split('\n').map((line, idx) => {
+      const m = line.match(/^(#{1,3})\s+(.+)/);
+      if (!m) return null;
+      return { level: m[1].length, text: m[2].replace(/\*+/g,'').trim(), lineIdx: idx };
+    }).filter(Boolean);
+  }, [md]);
+
+  // Jump to heading line in textarea
+  const jumpToLine = lineIdx => {
+    const ta = taRef.current; if (!ta) return;
+    const lines = md.split('\n');
+    const charsBefore = lines.slice(0, lineIdx).join('\n').length + (lineIdx > 0 ? 1 : 0);
+    const lineEnd = charsBefore + lines[lineIdx].length;
+    ta.focus();
+    ta.setSelectionRange(charsBefore, lineEnd);
+    const lh = 24; ta.scrollTop = Math.max(0, (lineIdx - 4) * lh);
+    setCursorLine(lineIdx);
+  };
+
+  // Active outline heading (closest h at or before cursor)
+  const activeOutlineIdx = uM(() => {
+    const above = outline.filter(h => h.lineIdx <= cursorLine);
+    return above.length > 0 ? above[above.length-1].lineIdx : -1;
+  }, [outline, cursorLine]);
+
+  // Focus mode: paragraph dimming
+  const [focusPara, setFocusPara] = uS(-1);
+  const onTaFocusScroll = e => {
+    const ta = e.target;
+    const before = md.slice(0, ta.selectionStart);
+    const lineN = before.split('\n').length - 1;
+    setFocusPara(lineN);
+    onTaKeyUp(e);
+  };
 
   const changeAlign = (idx, newAlign) => {
     setImages(prev => prev.map((im,i)=> i===idx ? {...im, align: newAlign} : im));
@@ -323,8 +370,8 @@ function Editor({ uuid, go }) {
       )
     );
 
-  return React.createElement('div', { className: 'ed-shell' },
-    React.createElement('div', { className: 'ed-topbar' },
+  return React.createElement('div', { className: 'ed-shell '+(focus?'focus-mode':''), onKeyDown:e=>{if(e.key==='Escape'&&focus){setFocus(false);}} },
+    !focus && React.createElement('div', { className: 'ed-topbar' },
       React.createElement('button', { className: 'ed-back', 'data-hover':true, onClick:()=>go('my') }, '←', ' 我的文章'),
       React.createElement('input', {
         className: 'ed-title-input', placeholder: '為這篇文章取個標題…',
@@ -350,6 +397,12 @@ function Editor({ uuid, go }) {
           saving==='saved' ? '已自動儲存 · 剛剛' : '編輯中…'
         ),
         React.createElement('button', { className: 'ed-btn', 'data-hover':true, onClick:()=>setShowMeta(m=>!m) }, showMeta ? 'Hide meta' : 'Show meta'),
+        React.createElement('button', { className: 'ed-btn '+(focus?'active':''), 'data-hover':true, onClick:()=>setFocus(f=>!f), title:'Focus mode (ESC to exit)' },
+          React.createElement('svg',{width:13,height:13,viewBox:'0 0 16 16',fill:'none',stroke:'currentColor',strokeWidth:1.4},
+            React.createElement('path',{d:'M2 5V2h3M11 2h3v3M14 11v3h-3M5 14H2v-3'})
+          ),
+          focus ? 'Exit focus' : 'Focus'
+        ),
         React.createElement('button', { className: 'ed-btn', 'data-hover':true, onClick:()=>go('article', uuid) }, 'Preview ↗'),
         React.createElement('button', { className: 'ed-btn', 'data-hover':true }, 'Save draft'),
         React.createElement('button', { className: 'ed-btn primary', 'data-hover':true }, 'Submit for review →')
@@ -389,7 +442,12 @@ function Editor({ uuid, go }) {
               Array.from({length: Math.max(lines.length, 30)}).map((_,i)=>React.createElement('div',{key:i}, i+1))
             ),
             React.createElement('textarea', {
-              ref: taRef, value: md, onChange: e => setMd(e.target.value), onPaste, spellCheck: false
+              ref: taRef, value: md,
+              onChange: e => { setMd(e.target.value); onTaFocusScroll(e); },
+              onKeyUp: onTaKeyUp,
+              onClick: onTaKeyUp,
+              onPaste, spellCheck: false,
+              className: focus ? 'focus-textarea' : ''
             })
           )
         ),
@@ -413,7 +471,32 @@ function Editor({ uuid, go }) {
         )
       ),
       // RIGHT: meta
-      showMeta && React.createElement('div', { className: 'ed-pane ed-meta' },
+      !focus && showMeta && React.createElement('div', { className: 'ed-pane ed-meta' },
+        // Meta / Outline tab switcher
+        React.createElement('div', { className: 'ed-meta-tabs' },
+          React.createElement('button', { 'data-hover':true, className:'ed-meta-tab '+(metaTab==='meta'?'active':''), onClick:()=>setMetaTab('meta') }, 'Meta'),
+          React.createElement('button', { 'data-hover':true, className:'ed-meta-tab '+(metaTab==='outline'?'active':''), onClick:()=>setMetaTab('outline') }, 'Outline')
+        ),
+
+        // OUTLINE tab
+        metaTab === 'outline' && React.createElement('div', { className: 'ed-outline' },
+          outline.length === 0
+            ? React.createElement('div', { className: 'ed-outline-empty' }, '尚無標題', React.createElement('br'), React.createElement('span', null, '使用 # / ## / ### 新增大綱'))
+            : outline.map((h, i) =>
+                React.createElement('button', {
+                  key: i, 'data-hover': true,
+                  className: 'ed-outline-item level-'+h.level+' '+(activeOutlineIdx===h.lineIdx?'active':''),
+                  onClick: ()=>jumpToLine(h.lineIdx),
+                  style: { paddingLeft: (h.level-1)*14+8+'px' }
+                },
+                  React.createElement('span', { className: 'ed-outline-icon' }, h.level===1?'§':h.level===2?'¶':'·'),
+                  React.createElement('span', { className: 'ed-outline-text' }, h.text)
+                )
+              )
+        ),
+
+        // META tab
+        metaTab === 'meta' && React.createElement(React.Fragment, null,
         React.createElement('div', null,
           React.createElement('h5', null, 'Cover image · 封面'),
           React.createElement('div', { className: 'cover-upload', 'data-hover':true },
@@ -492,7 +575,19 @@ function Editor({ uuid, go }) {
           React.createElement('h5', null, 'Status'),
           React.createElement('div', { className: 'ma-status '+(existing?.status||'DRAFT') }, STATUS_LABELS[existing?.status || 'DRAFT'])
         )
-      )
+        )  // close React.Fragment for meta tab
+      )  // close ed-meta pane
+    ),
+
+    // FOCUS MODE floating bar
+    focus && React.createElement('div', { className: 'ed-focus-bar' },
+      React.createElement('div', { className: 'ed-seg' },
+        React.createElement('button', { 'data-hover':true, className: mode==='write'?'active':'', onClick:()=>setMode('write') }, 'Write'),
+        React.createElement('button', { 'data-hover':true, className: mode==='split'?'active':'', onClick:()=>setMode('split') }, 'Split'),
+        React.createElement('button', { 'data-hover':true, className: mode==='preview'?'active':'', onClick:()=>setMode('preview') }, 'Preview')
+      ),
+      React.createElement('span', { className: 'ed-focus-wc' }, wordCount, React.createElement('em',null,' chars')),
+      React.createElement('button', { className: 'ed-focus-esc', 'data-hover':true, onClick:()=>setFocus(false) }, 'ESC · Exit focus')
     )
   );
 }
@@ -593,10 +688,515 @@ function ArticleDetail({ uuid, go, fromEditor }) {
           ),
           React.createElement('a', { className:'react', 'data-hover':true, href:'#top', onClick:e=>{e.preventDefault();window.scrollTo({top:0,behavior:'smooth'});} }, 'Back to top ↑')
         )
+      ),
+      React.createElement(Comments, { articleUuid: uuid })
+    )
+  );
+}
+
+// ============ COMMENTS ============
+function Comments({ articleUuid }) {
+  const C = window.BLOG_CONTENT || {};
+  const [comments, setComments] = uS(() => (C.comments || []).map(c => ({...c, replies: (c.replies||[]).map(r=>({...r}))})));
+  const [body, setBody] = uS('');
+  const [preview, setPreview] = uS(false);
+  const [replyTo, setReplyTo] = uS(null);
+  const [replyBody, setReplyBody] = uS('');
+  const [collapsed, setCollapsed] = uS({});
+  const THRESHOLD = 3;
+
+  const toggleLike = (cid, rid) => {
+    setComments(prev => prev.map(c => {
+      if (rid) {
+        if (c.id !== cid) return c;
+        return { ...c, replies: c.replies.map(r => r.id === rid ? { ...r, liked: !r.liked, likes: r.liked ? r.likes-1 : r.likes+1 } : r) };
+      }
+      if (c.id !== cid) return c;
+      return { ...c, liked: !c.liked, likes: c.liked ? c.likes-1 : c.likes+1 };
+    }));
+  };
+
+  const postComment = e => {
+    e.preventDefault();
+    if (!body.trim()) return;
+    setComments(prev => [{ id:'u'+Date.now(), author:'You', handle:'you', time:'Just now', body:body.trim(), likes:0, liked:false, replies:[] }, ...prev]);
+    setBody(''); setPreview(false);
+  };
+
+  const postReply = cid => {
+    if (!replyBody.trim()) return;
+    setComments(prev => prev.map(c => c.id===cid ? {...c, replies:[...c.replies, {id:'ur'+Date.now(), author:'You', handle:'you', time:'Just now', body:replyBody.trim(), likes:0, liked:false}]} : c));
+    setReplyTo(null); setReplyBody('');
+  };
+
+  const Av = ({ name }) => React.createElement('div', { className:'cm-av', style:{background:`hsl(${(name.charCodeAt(0)*47)%360}deg 28% ${name==='You'?'30':'38'}%)`} }, name.split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase());
+
+  const CMBody = ({ t }) => React.createElement('div', { className:'cm-body', dangerouslySetInnerHTML:{__html: t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/`([^`]+)`/g,'<code>$1</code>').replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/\*([^*]+)\*/g,'<em>$1</em>')} });
+
+  const total = comments.reduce((s,c)=>s+1+c.replies.length, 0);
+
+  const CommentRow = ({ c, isReply }) => React.createElement('article', { className:'cm-comment '+(isReply?'reply':'') },
+    React.createElement(Av, { name: c.author }),
+    React.createElement('div', { className:'cm-right' },
+      React.createElement('div', { className:'cm-meta' },
+        React.createElement('span', { className:'cm-name' }, c.author),
+        React.createElement('span', { className:'cm-time' }, c.time)
+      ),
+      React.createElement(CMBody, { t: c.body }),
+      React.createElement('div', { className:'cm-actions' },
+        React.createElement('button', { className:'cm-act '+(c.liked?'liked':''), 'data-hover':true, onClick:()=>toggleLike(isReply?c._parent:c.id, isReply?c.id:null) },
+          '♡', React.createElement('span',null, c.likes)
+        ),
+        !isReply && React.createElement('button', { className:'cm-act '+(replyTo===c.id?'active':''), 'data-hover':true, onClick:()=>setReplyTo(replyTo===c.id?null:c.id) },
+          replyTo===c.id ? 'Cancel' : 'Reply'
+        )
+      ),
+      !isReply && replyTo===c.id && React.createElement('div', { className:'cm-reply-compose' },
+        React.createElement('textarea', { className:'cm-textarea sm', rows:3, placeholder:`回覆 @${c.author}… 支援 **粗體**、\`code\``, value:replyBody, onChange:e=>setReplyBody(e.target.value) }),
+        replyBody.trim() && React.createElement('div', { className:'cm-compose-foot' },
+          React.createElement('button', { 'data-hover':true, className:'cm-post-btn sm', onClick:()=>postReply(c.id) }, 'Reply →')
+        )
+      ),
+      !isReply && c.replies.length > 0 && React.createElement('div', { className:'cm-replies' },
+        (collapsed[c.id]===false ? c.replies : c.replies.slice(0, THRESHOLD)).map(r =>
+          React.createElement(CommentRow, { key:r.id, c:{...r, _parent:c.id}, isReply:true })
+        ),
+        c.replies.length > THRESHOLD && React.createElement('button', {
+          className:'cm-show-more', 'data-hover':true,
+          onClick:()=>setCollapsed(p=>({...p,[c.id]:p[c.id]===false?true:false}))
+        }, collapsed[c.id]===false ? '收起回覆 ↑' : `展開另 ${c.replies.length-THRESHOLD} 則回覆 ↓`)
+      )
+    )
+  );
+
+  return React.createElement('section', { className:'cm-section wrap' },
+    React.createElement('div', { className:'cm-head' },
+      React.createElement('span', { className:'td-mono' }, '§ Comments'),
+      React.createElement('span', { className:'cm-count' }, total, ' 則留言')
+    ),
+    React.createElement('form', { className:'cm-compose', onSubmit:postComment },
+      React.createElement('div', { className:'cm-compose-top' },
+        React.createElement(Av, { name:'You' }),
+        React.createElement('div', { className:'cm-compose-right' },
+          !preview
+            ? React.createElement('textarea', { className:'cm-textarea', rows:4, placeholder:'留下你的想法… 支援 **粗體**、*斜體*、`code`', value:body, onChange:e=>setBody(e.target.value) })
+            : React.createElement('div', { className:'cm-preview-box' },
+                body.trim() ? React.createElement(CMBody,{t:body}) : React.createElement('span',{className:'cm-empty-preview'},'輸入內容後可預覽…')
+              )
+        )
+      ),
+      body.trim() && React.createElement('div', { className:'cm-compose-foot' },
+        React.createElement('button', { type:'button', 'data-hover':true, className:'cm-foot-btn '+(preview?'active':''), onClick:()=>setPreview(p=>!p) }, preview?'Edit':'Preview'),
+        React.createElement('button', { type:'submit', 'data-hover':true, className:'cm-post-btn' }, 'Post comment →')
+      )
+    ),
+    comments.length===0
+      ? React.createElement('div',{className:'cm-empty'},'還沒有人留言，你來第一個。')
+      : React.createElement('div',{className:'cm-thread'},
+          comments.map(c => React.createElement(CommentRow, {key:c.id, c, isReply:false}))
+        )
+  );
+}
+
+// ============ TAG DETAIL ============
+function TagDetail({ tag, go }) {
+  uE(() => { window.scrollTo({ top: 0 }); }, [tag]);
+
+  const C = window.BLOG_CONTENT || {};
+  const tagData = (C.tags || []).find(t => t.name === tag) || { name: tag, n: 0 };
+
+  // All articles that mention this tag (mock: filter by tag name in category/tag field)
+  const all = [...(C.trending || []), ...(C.latest || [])];
+  const articles = all.filter(a => {
+    const haystack = [(a.category||''),(a.tag||''),(a.title||'')].join(' ').toLowerCase();
+    return haystack.includes(tag.toLowerCase());
+  });
+  // Fallback: show latest if tag has articles but none matched
+  const list = articles.length > 0 ? articles : (C.latest || []).slice(0, tagData.n || 4);
+
+  // Related tags: pick a few that aren't this one
+  const related = (C.tags || []).filter(t => t.name !== tag).slice(0, 8);
+
+  // Tag descriptions (mock)
+  const DESC = {
+    'vue 3': 'Composition API、Pinia、VueRouter 4 到 SSR，記錄從 Options API 移過來的每一個轉折點。',
+    'tailwind': 'v3 到 v4 的遷移筆記，plugin 撰寫，以及我為什麼在 prose 之外幾乎不用 @apply。',
+    'css': 'cascade layers、container queries、oklch 色彩空間，以及一些只有自己懂的 specificity 焦慮。',
+    'design systems': '800 行 tokens.css 的誕生過程，以及如何在 side project 裡讓設計不再拖垮自己。',
+    'tdd': 'Vitest + happy-dom 的組合筆記，測試先行的心理學，以及怎麼讓 CI 跑得比你的直覺還快。',
+    'essay': '不是教學，也不是筆記。只是想把一件事說清楚。',
+  };
+  const desc = DESC[tag] || `關於 #${tag} 的所有文章與紀錄。`;
+
+  return React.createElement('div', { className: 'td-page' },
+    // Back link
+    React.createElement('div', { className: 'td-back wrap' },
+      React.createElement('a', {
+        href: '#', className: 'td-back-link', 'data-hover': true,
+        onClick: e => { e.preventDefault(); go('articles'); }
+      }, '← 所有標籤')
+    ),
+
+    // Header
+    React.createElement('header', { className: 'td-header wrap' },
+      React.createElement('div', { className: 'td-header-inner' },
+        React.createElement('div', { className: 'td-eyebrow' },
+          React.createElement('span', { className: 'td-mono' }, '§ TAG'),
+          React.createElement('span', { className: 'td-mono' }, `${list.length} articles`)
+        ),
+        React.createElement('h1', { className: 'td-title' }, '#', tagData.name),
+        React.createElement('p', { className: 'td-desc' }, desc),
+        React.createElement('div', { className: 'td-related' },
+          React.createElement('span', { className: 'td-mono td-related-label' }, 'Related →'),
+          related.map((t, i) =>
+            React.createElement('button', {
+              key: i, className: 'td-rel-pill', 'data-hover': true,
+              onClick: () => go('tag', t.name)
+            }, '#', t.name, React.createElement('span', { className: 'td-rel-n' }, t.n))
+          )
+        )
+      )
+    ),
+
+    // Divider
+    React.createElement('div', { className: 'td-divider wrap' }),
+
+    // Article list
+    React.createElement('main', { className: 'td-list wrap' },
+      list.map((a, i) =>
+        React.createElement('article', {
+          key: i, className: 'td-row', 'data-hover': true,
+          onClick: () => go('article', a.uuid || 'a1')
+        },
+          React.createElement('div', { className: 'td-row-left' },
+            React.createElement('div', { className: 'td-thumb', 'data-cat': (a.category || a.tag || 'Essay').toUpperCase() },
+              React.createElement('span', { className: 'td-thumb-n' }, String(i + 1).padStart(2, '0'))
+            )
+          ),
+          React.createElement('div', { className: 'td-row-body' },
+            React.createElement('div', { className: 'td-row-meta' },
+              React.createElement('span', { className: 'td-mono' }, a.category || a.tag || 'Essay'),
+              React.createElement('span', { className: 'td-dot' }),
+              React.createElement('span', { className: 'td-mono' }, a.date || '2026')
+            ),
+            React.createElement('h3', { className: 'td-row-title' }, a.title),
+            (a.excerpt || a.lede) && React.createElement('p', { className: 'td-row-excerpt' },
+              (a.excerpt || a.lede).slice(0, 160) + ((a.excerpt || a.lede).length > 160 ? '…' : '')
+            )
+          ),
+          React.createElement('div', { className: 'td-row-arr' }, '→')
+        )
+      )
+    ),
+
+    // Footer back link
+    React.createElement('div', { className: 'td-foot wrap' },
+      React.createElement('a', {
+        href: '#', className: 'td-back-link', 'data-hover': true,
+        onClick: e => { e.preventDefault(); go('home'); }
+      }, '← 回首頁')
+    )
+  );
+}
+
+// ============ AUTHOR PROFILE ============
+function AuthorProfile({ handle, go }) {
+  uE(() => { window.scrollTo({ top: 0 }); }, [handle]);
+  // Force reveal all cards immediately (no IntersectionObserver in this view)
+  uE(() => {
+    const els = document.querySelectorAll('.ap-page .reveal:not(.in)');
+    els.forEach(el => el.classList.add('in'));
+  });
+
+  const C = window.BLOG_CONTENT || {};
+  const authors = C.authors || [];
+  const author = authors.find(a => a.handle === handle) || {
+    handle: handle || 'yuanluca',
+    name: 'Yuan Luca',
+    role: 'Frontend · Taipei',
+    articleCount: 42,
+  };
+
+  // Mock extended author data
+  const PROFILES = {
+    yuanluca: {
+      bio: '寫 Vue 3、設計系統、以及那些花很長時間才想清楚的事。Frontend @ Taipei。平時喜歡把一件事說清楚，偶爾在咖啡館裡寫草稿。',
+      joined: '2023 · Q3',
+      views: '2.1k',
+      social: { github: 'yuanluca', twitter: 'yuanluca_dev' },
+      pinned: [0, 2],
+    },
+    kimura: {
+      bio: 'Design systems, motion, and the space between pixels. Based in Tokyo.',
+      joined: '2024 · Q1',
+      views: '890',
+      social: { github: 'kimura-a' },
+      pinned: [0],
+    },
+  };
+  const profile = PROFILES[author.handle] || PROFILES['yuanluca'];
+
+  // Use articlesFeed (rich data), filter by handle
+  const feed = (C.articlesFeed || []).filter(a => a.authorHandle === handle);
+  // Fallback to trending/latest if feed is empty for this handle
+  const allFallback = [...(C.trending || []), ...(C.latest || [])];
+  const feedData = feed.length > 0 ? feed : allFallback.slice(0, author.articleCount || 6);
+
+  // Map feedData to unified shape
+  const normalize = a => ({
+    uuid: a.uuid || 'a1',
+    title: a.title,
+    summary: a.summary || a.excerpt || a.lede || '',
+    category: a.category || a.tag || 'Essay',
+    updatedAt: a.updatedAt || a.date || '2026-01-01',
+    tags: a.tags || [],
+    viewCount: a.viewCount || 0,
+    likeCount: a.likeCount || 0,
+    commentCount: a.commentCount || 0,
+    artTag: a.artTag || (a.category || a.tag || 'ESSAY').toUpperCase(),
+  });
+  const articles = feedData.map(normalize);
+  const pinned = profile.pinned.map(i => articles[i]).filter(Boolean);
+
+  // List controls
+  const [artView, setArtView] = uS(() => localStorage.getItem('blog.ap.view') || 'grid');
+  const [sort, setSort] = uS(() => localStorage.getItem('blog.ap.sort') || 'latest');
+  const [paging, setPaging] = uS(() => localStorage.getItem('blog.ap.paging') || 'infinite');
+  const [page, setPage] = uS(1);
+  const sentRef = uR(null);
+
+  uE(() => { localStorage.setItem('blog.ap.view', artView); }, [artView]);
+  uE(() => { localStorage.setItem('blog.ap.sort', sort); }, [sort]);
+  uE(() => { localStorage.setItem('blog.ap.paging', paging); }, [paging]);
+
+  const sorted = uM(() => {
+    let r = [...articles]; // show ALL articles including pinned
+    if (sort === 'popular') r = [...r].sort((a,b) => b.viewCount - a.viewCount);
+    else if (sort === 'commented') r = [...r].sort((a,b) => b.commentCount - a.commentCount);
+    return r;
+  }, [articles, sort]);
+  const pinnedUuids = new Set(profile.pinned.map(i => articles[i]?.uuid).filter(Boolean));
+
+  const PER = 6;
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PER));
+  const visible = paging === 'pagination'
+    ? sorted.slice((page-1)*PER, page*PER)
+    : sorted.slice(0, page * PER);
+
+  uE(() => { setPage(1); }, [sort, paging]);
+  uE(() => {
+    if (paging !== 'infinite' || !sentRef.current) return;
+    const io = new IntersectionObserver(entries => {
+      entries.forEach(e => { if (e.isIntersecting && page * PER < sorted.length) setPage(p => p+1); });
+    }, { rootMargin: '200px' });
+    io.observe(sentRef.current);
+    return () => io.disconnect();
+  }, [paging, page, sorted.length]);
+
+  return React.createElement('div', { className: 'ap-page' },
+
+    // Back
+    React.createElement('div', { className: 'ap-back wrap' },
+      React.createElement('a', {
+        href: '#', className: 'td-back-link', 'data-hover': true,
+        onClick: e => { e.preventDefault(); go('home'); }
+      }, '← 回首頁')
+    ),
+
+    // Hero
+    React.createElement('header', { className: 'ap-header wrap' },
+      React.createElement('div', { className: 'ap-avatar-col' },
+        React.createElement('div', { className: 'ap-avatar' },
+          React.createElement('span', { className: 'ap-avatar-init' },
+            author.name.split(' ').map(p => p[0]).slice(0, 2).join('')
+          )
+        )
+      ),
+      React.createElement('div', { className: 'ap-info' },
+        React.createElement('div', { className: 'ap-eyebrow td-mono' }, '§ AUTHOR'),
+        React.createElement('h1', { className: 'ap-name' }, author.name),
+        React.createElement('div', { className: 'ap-role' }, author.role),
+        React.createElement('p', { className: 'ap-bio' }, profile.bio),
+        React.createElement('div', { className: 'ap-stats' },
+          React.createElement('span', { className: 'ap-stat' },
+            React.createElement('span', { className: 'ap-stat-n' }, author.articleCount),
+            React.createElement('span', { className: 'ap-stat-l' }, 'articles')
+          ),
+          React.createElement('span', { className: 'ap-stat-div' }),
+          React.createElement('span', { className: 'ap-stat' },
+            React.createElement('span', { className: 'ap-stat-n' }, profile.views),
+            React.createElement('span', { className: 'ap-stat-l' }, 'total views')
+          ),
+          React.createElement('span', { className: 'ap-stat-div' }),
+          React.createElement('span', { className: 'ap-stat' },
+            React.createElement('span', { className: 'ap-stat-n' }, profile.joined),
+            React.createElement('span', { className: 'ap-stat-l' }, 'joined')
+          )
+        ),
+        React.createElement('div', { className: 'ap-social' },
+          profile.social.github && React.createElement('a', {
+            href: '#', className: 'ap-social-link', 'data-hover': true,
+            onClick: e => e.preventDefault()
+          },
+            React.createElement('svg', { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'currentColor' },
+              React.createElement('path', { d: 'M12 .5a12 12 0 0 0-3.79 23.4c.6.1.82-.26.82-.58v-2c-3.34.72-4.04-1.6-4.04-1.6-.55-1.4-1.34-1.77-1.34-1.77-1.09-.74.08-.73.08-.73 1.2.08 1.83 1.23 1.83 1.23 1.07 1.83 2.8 1.3 3.48 1 .1-.77.42-1.3.76-1.6-2.67-.3-5.47-1.33-5.47-5.94 0-1.31.47-2.38 1.23-3.22-.12-.3-.53-1.52.12-3.17 0 0 1-.32 3.3 1.23a11.47 11.47 0 0 1 6 0c2.3-1.55 3.3-1.23 3.3-1.23.65 1.65.24 2.87.12 3.17.77.84 1.23 1.91 1.23 3.22 0 4.62-2.8 5.63-5.48 5.93.43.37.82 1.1.82 2.22v3.3c0 .32.22.69.82.58A12 12 0 0 0 12 .5z' })
+            ),
+            '@', profile.social.github
+          ),
+          profile.social.twitter && React.createElement('a', {
+            href: '#', className: 'ap-social-link', 'data-hover': true,
+            onClick: e => e.preventDefault()
+          },
+            React.createElement('svg', { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'currentColor' },
+              React.createElement('path', { d: 'M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.259 5.631 5.905-5.631zm-1.161 17.52h1.833L7.084 4.126H5.117z' })
+            ),
+            '@', profile.social.twitter
+          ),
+          React.createElement('a', {
+            href: '#', className: 'ap-social-link', 'data-hover': true,
+            onClick: e => e.preventDefault()
+          },
+            React.createElement('svg', { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8 },
+              React.createElement('path', { d: 'M4 11a9 9 0 0 1 9 9' }),
+              React.createElement('path', { d: 'M4 4a16 16 0 0 1 16 16' }),
+              React.createElement('circle', { cx: 5, cy: 19, r: 1, fill: 'currentColor', stroke: 'none' })
+            ),
+            'RSS'
+          )
+        )
+      )
+    ),
+
+    React.createElement('div', { className: 'td-divider wrap' }),
+
+    // Pinned
+    pinned.length > 0 && React.createElement('section', { className: 'ap-section wrap' },
+      React.createElement('div', { className: 'ap-section-head' },
+        React.createElement('span', { className: 'td-mono' }, '§ Pinned · 精選'),
+        React.createElement('span', { className: 'td-mono', style: { color: 'var(--muted-2)' } }, pinned.length + ' posts')
+      ),
+      React.createElement('div', { className: 'ap-pinned-grid' },
+        pinned.map((a, i) =>
+          React.createElement('article', {
+            key: i, className: 'ap-pin-card', 'data-hover': true,
+            onClick: () => go('article', a.uuid || 'a1')
+          },
+            React.createElement('div', { className: 'ap-pin-thumb', 'data-cat': (a.category || a.tag || 'ESSAY').toUpperCase() },
+              React.createElement('span', { className: 'ap-pin-n' }, '★')
+            ),
+            React.createElement('div', { className: 'ap-pin-body' },
+              React.createElement('div', { className: 'td-row-meta', style: { marginBottom: 8 } },
+                React.createElement('span', { className: 'td-mono' }, a.category || a.tag || 'Essay'),
+                React.createElement('span', { className: 'td-dot' }),
+                React.createElement('span', { className: 'td-mono' }, a.date || '2026')
+              ),
+              React.createElement('h3', { className: 'ap-pin-title' }, a.title),
+              (a.excerpt || a.lede) && React.createElement('p', { className: 'ap-pin-excerpt' },
+                (a.excerpt || a.lede).slice(0, 120) + '…'
+              )
+            )
+          )
+        )
+      )
+    ),
+
+    // All articles — full toolbar + cards
+    React.createElement('section', { className: 'ap-section wrap' },
+      React.createElement('div', { className: 'ap-section-head' },
+        React.createElement('span', { className: 'td-mono' }, '§ All Articles · ', sorted.length, ' posts'),
+        React.createElement('div', { className: 'ap-tb-right' },
+          // sort
+          React.createElement('div', { className: 'art-seg' },
+            [['latest','Latest'],['popular','Popular'],['commented','Most commented']].map(([k,l]) =>
+              React.createElement('button', { key:k, 'data-hover':true, className: sort===k?'active':'', onClick:()=>setSort(k) }, l)
+            )
+          ),
+          // view
+          React.createElement('div', { className: 'art-seg art-seg-icon' },
+            React.createElement('button', { 'data-hover':true, className: artView==='list'?'active':'', onClick:()=>setArtView('list'), title:'List' },
+              React.createElement('svg',{width:12,height:12,viewBox:'0 0 16 16',fill:'none',stroke:'currentColor',strokeWidth:1.4},React.createElement('path',{d:'M2 4h12M2 8h12M2 12h12'}))
+            ),
+            React.createElement('button', { 'data-hover':true, className: artView==='grid'?'active':'', onClick:()=>setArtView('grid'), title:'Grid' },
+              React.createElement('svg',{width:12,height:12,viewBox:'0 0 16 16',fill:'none',stroke:'currentColor',strokeWidth:1.4},React.createElement('rect',{x:2,y:2,width:5,height:5}),React.createElement('rect',{x:9,y:2,width:5,height:5}),React.createElement('rect',{x:2,y:9,width:5,height:5}),React.createElement('rect',{x:9,y:9,width:5,height:5}))
+            )
+          ),
+          // paging
+          React.createElement('div', { className: 'art-seg' },
+            React.createElement('button', { 'data-hover':true, className: paging==='pagination'?'active':'', onClick:()=>setPaging('pagination') }, 'Pages'),
+            React.createElement('button', { 'data-hover':true, className: paging==='infinite'?'active':'', onClick:()=>setPaging('infinite') }, '∞')
+          )
+        )
+      ),
+
+      // Cards
+      React.createElement('div', { className: artView === 'grid' ? 'art-grid' : 'art-list' },
+        visible.map((a, i) => artView === 'grid'
+          ? React.createElement('article', { key: a.uuid+'_'+i, className: 'art-card-g reveal' },
+              React.createElement('a', { href:'#', onClick:e=>{e.preventDefault();go&&go('article',a.uuid);}, className:'art-card-thumb', 'data-tag':a.artTag },
+                pinnedUuids.has(a.uuid) && React.createElement('span', { className:'ap-pin-star' }, '★ Pinned')
+              ),
+              React.createElement('div', { className:'art-card-body' },
+                React.createElement('div', { className:'art-card-meta' },
+                  React.createElement('span', null, a.category),
+                  React.createElement('span', null, '·'),
+                  React.createElement('span', null, a.updatedAt.replace(/-/g,'.'))
+                ),
+                React.createElement('h4', null, React.createElement('a', { href:'#', onClick:e=>{e.preventDefault();go&&go('article',a.uuid);} }, a.title)),
+                React.createElement('p', null, a.summary.slice(0,120)+(a.summary.length>120?'…':'')),
+                React.createElement('div', { className:'art-card-foot' },
+                  React.createElement('div', { className:'art-card-tags' },
+                    a.tags.slice(0,2).map(t => React.createElement('span', { key:t, className:'mini-tag' }, '#'+t))
+                  ),
+                  React.createElement('div', { className:'art-card-stats' },
+                    React.createElement('span', null, a.viewCount.toLocaleString(), ' views'),
+                    React.createElement('span', null, a.likeCount, ' ♡')
+                  )
+                )
+              )
+            )
+          : React.createElement('article', { key: a.uuid+'_'+i, className:'art-row reveal' },
+              React.createElement('span', { className:'art-row-n' }, String(i+1).padStart(3,'0')),
+              React.createElement('a', { href:'#', onClick:e=>{e.preventDefault();go&&go('article',a.uuid);}, className:'art-row-thumb', 'data-tag':a.artTag }),
+              React.createElement('div', { className:'art-row-body' },
+                React.createElement('div', { className:'art-row-meta' },
+                  React.createElement('span', null, a.category),
+                  React.createElement('span', null, a.updatedAt.replace(/-/g,'.')),
+                  a.tags.slice(0,2).map(t => React.createElement('span', { key:t, className:'art-row-tag' }, '#'+t))
+                ),
+                React.createElement('h3', null, React.createElement('a', { href:'#', onClick:e=>{e.preventDefault();go&&go('article',a.uuid);} }, a.title)),
+                React.createElement('p', null, a.summary)
+              ),
+              React.createElement('div', { className:'art-row-stats' },
+                React.createElement('div', null, React.createElement('b',null,a.viewCount.toLocaleString()), React.createElement('span',null,' views')),
+                React.createElement('div', null, React.createElement('b',null,a.likeCount), React.createElement('span',null,' ♡'))
+              ),
+              React.createElement('span', { className:'art-row-arr' }, '→')
+            )
+        )
+      ),
+
+      // Pagination / Infinite sentinel
+      sorted.length > 0 && paging === 'pagination' && React.createElement('div', { className:'art-pager' },
+        React.createElement('button', { 'data-hover':true, disabled: page===1, onClick:()=>setPage(p=>Math.max(1,p-1)) }, '← Prev'),
+        React.createElement('div', { className:'art-pager-nums' },
+          Array.from({length: totalPages}).map((_,i) =>
+            React.createElement('button', { key:i, 'data-hover':true, className: page===(i+1)?'active':'', onClick:()=>setPage(i+1) }, String(i+1).padStart(2,'0'))
+          )
+        ),
+        React.createElement('button', { 'data-hover':true, disabled: page===totalPages, onClick:()=>setPage(p=>Math.min(totalPages,p+1)) }, 'Next →')
+      ),
+      sorted.length > 0 && paging === 'infinite' && (page * PER < sorted.length
+        ? React.createElement('div', { ref: sentRef, className:'art-sentinel' },
+            React.createElement('span', null, 'Loading more…'),
+            React.createElement('span', { className:'dots' }, React.createElement('i'),React.createElement('i'),React.createElement('i'))
+          )
+        : React.createElement('div', { className:'art-sentinel done' },
+            React.createElement('span', null, 'END · 共 '+sorted.length+' 篇')
+          )
       )
     )
   );
 }
 
 // Export to window for app.jsx
-window.BlogViews = { MyArticles, Editor, ArticleDetail };
+window.BlogViews = { MyArticles, Editor, ArticleDetail, TagDetail, AuthorProfile };

@@ -35,6 +35,12 @@ const router = createRouter({
       props: true
     },
     {
+      path: '/search',
+      name: 'search',
+      component: () => import('../views/SearchView.vue')
+      // no auth required — public page
+    },
+    {
       path: '/login',
       name: 'login',
       component: () => import('../views/LoginView.vue'),
@@ -83,11 +89,22 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/settings',
+      name: 'settings',
+      component: () => import('../views/SettingsView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/admin/review',
       name: 'admin-review',
       component: () => import('../views/AdminReviewView.vue'),
       meta: { requiresAuth: true, requiredRole: 'ADMIN' as UserRole }
     },
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'not-found',
+      component: () => import('../views/NotFoundView.vue')
+    }
   ],
   scrollBehavior() {
     return { top: 0, behavior: 'smooth' }

@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { shallowRef, ref, onMounted } from 'vue'
+import { shallowRef, ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useEditorForm } from '../composables/useEditorForm'
 import { useMarkdownEditor } from '../composables/useMarkdownEditor'
 import { useMarkdownRenderer } from '../composables/useMarkdownRenderer'
 import { useWordCount } from '../composables/useWordCount'
 import { useToast } from '../composables/useToast'
+import { useEditorFocusMode } from '../composables/useEditorFocusMode'
+import { useEditorOutline } from '../composables/useEditorOutline'
 import { categoryService } from '../api/categoryService'
 import EditorToolbar from '../components/editor/EditorToolbar.vue'
 import EditorMetaSidebar from '../components/editor/EditorMetaSidebar.vue'
@@ -19,7 +21,20 @@ const props = defineProps<{
 const editorContainer = shallowRef<HTMLElement | null>(null)
 
 // ── CodeMirror editor ─────────────────────────────────────────────────────
-const { markdownContent, wrapSelection, insertText, prefixLines, setContent, undo, redo } = useMarkdownEditor(editorContainer)
+// 前向參考以打破循環初始化順序：
+// useMarkdownEditor 需要 callback，但 useEditorOutline 依賴 useMarkdownEditor 的回傳值。
+// useMarkdownEditor 內部以 flush:'sync' watchEffect 掛載 CM，同步執行，
+// 因此 _updateCursorLine 在任何 selectionSet 觸發前必然已完成賦值。
+let _updateCursorLine: ((lineIndex: number) => void) | undefined
+function onCursorChange(lineIndex: number) {
+  _updateCursorLine?.(lineIndex)
+}
+
+const { editorView, markdownContent, wrapSelection, insertText, prefixLines, setContent, undo, redo } = useMarkdownEditor(editorContainer, onCursorChange)
+
+// ── Editor outline ─────────────────────────────────────────────────────────
+const { outline, activeLineIndex, updateCursorLine, jumpToLine } = useEditorOutline(markdownContent, editorView)
+_updateCursorLine = updateCursorLine
 
 // ── Markdown preview ───────────────────────────────────────────────────────
 const { renderedHtml } = useMarkdownRenderer(markdownContent)
@@ -38,6 +53,15 @@ const categories = ref<CategoryOption[]>([])
 
 const router = useRouter()
 const { showToast } = useToast()
+
+// ── Focus mode ─────────────────────────────────────────────────────────────
+const { isFocusMode, toggleFocusMode, exitFocusMode } = useEditorFocusMode()
+
+function onGlobalKeyDown(e: KeyboardEvent) {
+  if (e.key === 'Escape' && isFocusMode.value) exitFocusMode()
+}
+onMounted(() => window.addEventListener('keydown', onGlobalKeyDown))
+onUnmounted(() => window.removeEventListener('keydown', onGlobalKeyDown))
 
 // ── Mount: load article in edit mode + load categories ────────────────────
 onMounted(async () => {
@@ -81,10 +105,14 @@ async function onSubmitForReview() {
 </script>
 
 <template>
-  <div class="editor-shell" data-testid="editor-root">
+  <div
+    class="editor-shell"
+    data-testid="editor-root"
+    :class="{ 'focus-mode': isFocusMode }"
+  >
 
-    <!-- Meta bar -->
-    <div class="editor-meta">
+    <!-- Meta bar (hidden in focus mode) -->
+    <div v-show="!isFocusMode" class="editor-meta">
       <input
         v-model="title"
         class="editor-title-input"
@@ -110,6 +138,19 @@ async function onSubmitForReview() {
         @click="onSubmitForReview"
       >
         送出審核
+      </button>
+      <button
+        type="button"
+        class="btn btn--ghost"
+        data-testid="editor-focus-btn"
+        :class="{ 'btn--active': isFocusMode }"
+        @click="toggleFocusMode"
+        :title="isFocusMode ? 'Exit focus (ESC)' : 'Focus mode'"
+      >
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
+          <path d="M2 5V2h3M11 2h3v3M14 11v3h-3M5 14H2v-3" />
+        </svg>
+        {{ isFocusMode ? 'Exit focus' : 'Focus' }}
       </button>
     </div>
 
@@ -145,11 +186,26 @@ async function onSubmitForReview() {
         :category-ids="categoryIds"
         :tag-names="tagNames"
         :categories="categories"
+        :outline="outline"
+        :active-heading-line-index="activeLineIndex"
         @update:summary="summary = $event"
         @update:cover-image-url="coverImageUrl = $event"
         @update:category-ids="categoryIds = $event"
         @update:tag-names="tagNames = $event"
+        @jump-to-line="jumpToLine"
       />
+    </div>
+
+    <!-- Floating focus mode bar (visible only in focus mode) -->
+    <div
+      v-show="isFocusMode"
+      class="editor-focus-bar"
+    >
+      <span class="editor-focus-hint">ESC · Exit focus</span>
+      <span class="editor-word-count">{{ wordCount }} 字</span>
+      <button type="button" class="btn btn--ghost btn--sm" @click="exitFocusMode">
+        Exit focus
+      </button>
     </div>
 
   </div>
@@ -163,4 +219,37 @@ async function onSubmitForReview() {
 .editor-body { flex: 1; display: flex; overflow: hidden; }
 .editor-pane { flex: 1; min-width: 0; overflow-y: auto; border-right: 1px solid var(--divider); }
 .editor-preview { flex: 1; min-width: 0; overflow-y: auto; padding: 2rem; font-family: var(--f-body); }
+
+/* Focus mode: dim all lines, highlight active */
+.editor-shell.focus-mode :deep(.cm-line) { opacity: 0.3; transition: opacity 0.2s; }
+.editor-shell.focus-mode :deep(.cm-activeLine) { opacity: 1; }
+
+/* Floating mini-bar */
+.editor-focus-bar {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 1rem;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 999px;
+  box-shadow: var(--shadow-md);
+  z-index: 100;
+  font-size: 0.8125rem;
+}
+.editor-focus-hint {
+  font-family: var(--f-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.btn--sm { padding: 0.25rem 0.75rem; font-size: 0.75rem; }
+.btn--active { background: var(--ink); color: var(--bg); }
 </style>

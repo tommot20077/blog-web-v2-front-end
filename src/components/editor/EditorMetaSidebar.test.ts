@@ -17,6 +17,8 @@ const defaultProps = {
     createMockCategoryOption({ id: 'cat-1', name: 'Vue', slug: 'vue' }),
     createMockCategoryOption({ id: 'cat-2', name: 'TypeScript', slug: 'typescript' }),
   ],
+  outline: [],
+  activeHeadingLineIndex: -1,
 }
 
 describe('EditorMetaSidebar', () => {
