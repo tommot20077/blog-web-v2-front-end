@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted } from 'vue'
+import { computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from './stores/auth'
 import { useAppearance } from './composables/useAppearance'
 import { useCursor } from './composables/useCursor'
+import { useGlobalReveal } from './composables/useReveal'
 import NavigationBar from './components/layout/NavigationBar.vue'
 import AppFooter from './components/layout/AppFooter.vue'
 import ToastContainer from './components/ui/ToastContainer.vue'
@@ -12,9 +13,13 @@ const authStore = useAuthStore()
 const router = useRouter()
 const route = useRoute()
 
-// Global appearance + cursor
+// Global appearance, cursor, reveal
 useAppearance()
 useCursor()
+const { observe } = useGlobalReveal()
+
+// Re-observe reveal elements after each route transition
+router.afterEach(() => nextTick(() => observe()))
 
 const isShellOrFull = computed(() =>
   route.meta.layout === 'shell' || route.meta.layout === 'full'
