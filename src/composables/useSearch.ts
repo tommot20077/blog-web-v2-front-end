@@ -1,4 +1,4 @@
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { searchService } from '../api/searchService'
 import { tagService } from '../api/tagService'
 import type { SearchResult } from '../types/search'
@@ -47,9 +47,7 @@ export function useSearch(initialQuery = '') {
     }
     isLoading.value = true
     try {
-      const [articlesPage] = await Promise.all([
-        searchService.search({ q, size: 30 }),
-      ])
+      const articlesPage = await searchService.search({ q, size: 30 })
       const articles = articlesPage.records
       // Tags: client-side filter from hot tags
       const ql = q.toLowerCase()
@@ -77,6 +75,11 @@ export function useSearch(initialQuery = '') {
     recentSearches.value = []
   }
   function setQuery(q: string) { query.value = q }
+
+  onUnmounted(() => {
+    if (debounceTimer) clearTimeout(debounceTimer)
+    if (saveRecentTimer) clearTimeout(saveRecentTimer)
+  })
 
   return {
     query, debouncedQuery, isLoading,

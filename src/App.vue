@@ -15,17 +15,17 @@ const onGlobalKeyDown = (e: KeyboardEvent) => {
     // Don't trigger when typing in inputs
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
     e.preventDefault()
-    router.push('/search')
+    if (router.currentRoute.value.path !== '/search') router.push('/search')
   }
 }
 
 onMounted(async () => {
+  window.addEventListener('keydown', onGlobalKeyDown)
   try {
     await authStore.refreshToken()
   } catch {
     // 靜默失敗，使用者未登入
   }
-  window.addEventListener('keydown', onGlobalKeyDown)
 })
 
 onUnmounted(() => window.removeEventListener('keydown', onGlobalKeyDown))

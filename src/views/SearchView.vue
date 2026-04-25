@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import DOMPurify from 'dompurify'
 import { useSearch } from '../composables/useSearch'
 
 const router = useRouter()
@@ -14,6 +15,8 @@ const {
 
 const searchFocused = ref(false)
 
+const isMac = computed(() => typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform))
+
 function goToFirstArticle() {
   if (results.value.articles.length > 0) {
     router.push('/articles/' + results.value.articles[0].articleUuid)
@@ -21,11 +24,11 @@ function goToFirstArticle() {
 }
 
 function highlight(text: string, q: string): string {
-  if (!q.trim()) return text
-  // Escape special regex characters in query
+  const safeText = DOMPurify.sanitize(text)
+  if (!q.trim()) return safeText
   const escaped = q.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   const regex = new RegExp(`(${escaped})`, 'gi')
-  return text.replace(regex, '<mark>$1</mark>')
+  return safeText.replace(regex, '<mark>$1</mark>')
 }
 </script>
 
@@ -57,7 +60,7 @@ function highlight(text: string, q: string): string {
         <!-- Count badge -->
         <span class="sv-count">
           <template v-if="hasQuery">{{ results.total }}</template>
-          <template v-else>⌘K</template>
+          <template v-else>{{ isMac ? '⌘K' : 'Ctrl+K' }}</template>
         </span>
       </div>
 
@@ -123,7 +126,7 @@ function highlight(text: string, q: string): string {
                 v-for="tag in popularTags"
                 :key="tag.uuid"
                 class="sv-tag-pill"
-                @click="router.push('/articles')"
+                @click="setQuery(tag.name)"
               >
                 {{ tag.name }}
                 <span class="sv-tag-n">{{ tag.articleCount }}</span>
@@ -202,7 +205,7 @@ function highlight(text: string, q: string): string {
               v-for="tag in results.tags"
               :key="tag.uuid"
               class="sv-tag-pill"
-              @click="router.push('/articles')"
+              @click="setQuery(tag.name)"
             >
               <span v-html="highlight(tag.name, debouncedQuery)" />
               <span class="sv-tag-n">{{ tag.articleCount }}</span>
