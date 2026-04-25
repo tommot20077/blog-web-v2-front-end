@@ -1,14 +1,24 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, onMounted, onUnmounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from './stores/auth'
+import { useAppearance } from './composables/useAppearance'
+import { useCursor } from './composables/useCursor'
 import NavigationBar from './components/layout/NavigationBar.vue'
 import AppFooter from './components/layout/AppFooter.vue'
-import MobileBottomNav from './components/layout/MobileBottomNav.vue'
 import ToastContainer from './components/ui/ToastContainer.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
+const route = useRoute()
+
+// Global appearance + cursor
+useAppearance()
+useCursor()
+
+const isShellOrFull = computed(() =>
+  route.meta.layout === 'shell' || route.meta.layout === 'full'
+)
 
 const onGlobalKeyDown = (e: KeyboardEvent) => {
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
@@ -29,7 +39,7 @@ onMounted(async () => {
   try {
     await authStore.refreshToken()
   } catch {
-    // 靜默失敗，使用者未登入
+    // silent fail — user not logged in
   }
 })
 
@@ -37,39 +47,22 @@ onUnmounted(() => window.removeEventListener('keydown', onGlobalKeyDown))
 </script>
 
 <template>
-  <div class="min-h-screen relative font-sans flex flex-col">
-    <!-- 導覽列 -->
+  <!-- Toast always global -->
+  <ToastContainer />
+
+  <!-- Shell / Full-screen pages (my-articles, settings, editor) -->
+  <template v-if="isShellOrFull">
+    <router-view />
+  </template>
+
+  <!-- Default public layout (navbar + content + footer) -->
+  <template v-else>
     <NavigationBar />
-
-    <!-- 路由視圖出口 -->
-    <div class="flex-1 w-full flex flex-col relative pb-16 md:pb-0">
-      <router-view v-slot="{ Component, route }">
-        <transition name="fade" mode="out-in">
-          <div :key="route.path" class="w-full flex-1 flex flex-col">
-            <component :is="Component" />
-          </div>
-        </transition>
-      </router-view>
-    </div>
-
-    <!-- Footer -->
+    <router-view v-slot="{ Component, route: r }">
+      <transition name="fade" mode="out-in">
+        <component :is="Component" :key="r.path" />
+      </transition>
+    </router-view>
     <AppFooter />
-
-    <!-- 手機底部導覽列 -->
-    <MobileBottomNav />
-
-    <!-- Toast 通知容器 -->
-    <ToastContainer />
-  </div>
+  </template>
 </template>
-
-<style>
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-</style>
