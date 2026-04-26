@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useArticleDetail } from '../composables/useArticleDetail'
 import { useMarkdownRenderer } from '../composables/useMarkdownRenderer'
 import { useWordCount } from '../composables/useWordCount'
 import { useReadingProgress } from '../composables/useReadingProgress'
+import NotFoundView from './NotFoundView.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -17,10 +18,6 @@ const { readingTimeMinutes } = useWordCount(markdownSource)
 
 const articleEl = ref<HTMLElement | null>(null)
 const { progress } = useReadingProgress(articleEl)
-
-watch(isLoading, (loading) => {
-  if (!loading && !article.value) router.replace('/not-found')
-}, { flush: 'post' })
 
 onMounted(() => window.scrollTo({ top: 0, behavior: 'auto' }))
 
@@ -35,8 +32,11 @@ const goBack = () => window.history.length > 1 ? router.back() : router.push('/a
     <p class="mono">萃取文章細節中...</p>
   </div>
 
+  <!-- 404 -->
+  <NotFoundView v-else-if="!article" />
+
   <!-- Article -->
-  <article v-if="article" ref="articleEl" class="art-detail" data-testid="article-root">
+  <article v-else ref="articleEl" class="art-detail" data-testid="article-root">
 
     <!-- Reading progress bar -->
     <div class="art-progress">
