@@ -67,4 +67,28 @@ describe('useCursor', () => {
     const calls = removeSpy.mock.calls.filter(([ev]) => ev === 'mousemove')
     expect(calls.length).toBeGreaterThanOrEqual(1)
   })
+
+  it('data-cursor="off" 時不插入游標 DOM 節點', async () => {
+    document.documentElement.dataset.cursor = 'off'
+    await mountWithCursor()
+    expect(document.querySelector('.cursor-dot')).toBeNull()
+    expect(document.querySelector('.cursor-ring')).toBeNull()
+    delete document.documentElement.dataset.cursor
+  })
+
+  it('觸控裝置（hover:none）時不插入游標 DOM 節點', async () => {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: query === '(hover: none)',
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    }))
+    await mountWithCursor()
+    expect(document.querySelector('.cursor-dot')).toBeNull()
+    expect(document.querySelector('.cursor-ring')).toBeNull()
+  })
 })

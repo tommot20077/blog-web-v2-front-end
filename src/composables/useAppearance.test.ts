@@ -166,6 +166,31 @@ describe('useAppearance', () => {
     expect(localStorage.getItem('accent')).toBe('off')
   })
 
+  // ── Cursor body style ──────────────────────────────────────────────────────
+
+  it('setCursor("off") 時 document.body.style.cursor 設為 auto（讓原生游標可見）', async () => {
+    const useAppearance = await loadUseAppearance()
+    const { setCursor } = useAppearance()
+    await nextTick()
+
+    setCursor('off' as Cursor)
+    await nextTick()
+
+    expect(document.body.style.cursor).toBe('auto')
+  })
+
+  it('cursor 從 off 改為其他值時 body.style.cursor 清除', async () => {
+    localStorage.setItem('cursor', 'off')
+    const useAppearance = await loadUseAppearance()
+    const { setCursor } = useAppearance()
+    await nextTick()
+
+    setCursor('ring' as Cursor)
+    await nextTick()
+
+    expect(document.body.style.cursor).toBe('')
+  })
+
   // ── Singleton ───────────────────────────────────────────────────────────────
 
   it('多次呼叫 useAppearance() 共享同一個狀態', async () => {

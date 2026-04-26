@@ -16,9 +16,10 @@ async function handleLogout() {
 </script>
 
 <template>
-  <div
+  <nav
     class="nav-wrap"
     data-testid="navbar-root"
+    aria-label="主導覽"
     :style="{
       transform: show ? 'translateY(0)' : 'translateY(-120%)',
       transition: 'transform 0.35s cubic-bezier(.22,1,.36,1)',
@@ -104,5 +105,5 @@ async function handleLogout() {
         Sign in
       </RouterLink>
     </div>
-  </div>
+  </nav>
 </template>

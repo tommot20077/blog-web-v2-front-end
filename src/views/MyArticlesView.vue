@@ -31,16 +31,33 @@ async function fetchArticles() {
 }
 
 async function handleFilterChange(status: ArticleStatusFilter) {
-  currentFilter.value = status; currentPage.value = 1; await fetchArticles()
+  currentFilter.value = status
+  currentPage.value = 1
+  await fetchArticles()
 }
-async function goToPage(page: number) { currentPage.value = page; await fetchArticles() }
+
+async function goToPage(page: number) {
+  currentPage.value = page
+  await fetchArticles()
+}
+
 async function handleSubmit(uuid: string) {
-  try { await myArticlesService.submitForReview(uuid); showToast('已送出審核', 'success'); await fetchArticles() }
-  catch { showToast('送出失敗', 'error') }
+  try {
+    await myArticlesService.submitForReview(uuid)
+    showToast('已送出審核', 'success')
+    await fetchArticles()
+  } catch {
+    showToast('送出失敗', 'error')
+  }
 }
+
 async function handleDelete(uuid: string) {
-  try { await myArticlesService.deleteArticle(uuid); await fetchArticles() }
-  catch { showToast('刪除失敗', 'error') }
+  try {
+    await myArticlesService.deleteArticle(uuid)
+    await fetchArticles()
+  } catch {
+    showToast('刪除失敗', 'error')
+  }
 }
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' })

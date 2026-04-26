@@ -78,55 +78,49 @@ onMounted(fetchArticles)
 </script>
 
 <template>
-  <div class="max-w-4xl mx-auto px-4 py-8">
+  <div class="admin-wrap">
     <!-- 標題 -->
-    <h1 class="text-2xl font-bold mb-6">
+    <h1 class="admin-title">
       待審核文章
-      <span v-if="!isLoading" class="text-base font-normal text-gray-500 ml-2">
-        （共 {{ totalCount }} 篇）
-      </span>
+      <span v-if="!isLoading" class="admin-title-sub">（共 {{ totalCount }} 篇）</span>
     </h1>
 
     <!-- Loading -->
-    <div v-if="isLoading" data-testid="loading" class="flex justify-center py-12">
-      <div class="flex gap-2">
-        <span class="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style="animation-delay: 0ms" />
-        <span class="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style="animation-delay: 150ms" />
-        <span class="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style="animation-delay: 300ms" />
-      </div>
+    <div v-if="isLoading" data-testid="loading" class="admin-loading">
+      <span class="admin-loading-dot" style="animation-delay:0ms" />
+      <span class="admin-loading-dot" style="animation-delay:150ms" />
+      <span class="admin-loading-dot" style="animation-delay:300ms" />
     </div>
 
     <!-- 空狀態 -->
-    <div v-else-if="articles.length === 0" class="text-center py-12 text-gray-500">
+    <div v-else-if="articles.length === 0" class="admin-empty">
       目前沒有待審核文章
     </div>
 
     <!-- 文章列表 -->
-    <ul v-else class="space-y-4">
+    <ul v-else class="admin-list">
       <li
         v-for="article in articles"
         :key="article.uuid"
-        class="p-4 rounded-xl border border-white/80 dark:border-white/15 bg-white/60 dark:bg-white/8 backdrop-blur-md"
+        class="admin-card"
       >
-        <!-- 標題 + 日期 -->
-        <div class="flex items-start justify-between gap-4 mb-3">
+        <!-- 標題 + 日期 + 操作 -->
+        <div class="admin-card-head">
           <div>
-            <h2 class="font-semibold">{{ article.title }}</h2>
-            <time class="text-xs text-gray-500">提交：{{ formatDate(article.updatedAt) }}</time>
+            <h2 class="admin-card-title">{{ article.title }}</h2>
+            <time class="admin-card-time">提交：{{ formatDate(article.updatedAt) }}</time>
           </div>
-
-          <!-- 操作按鈕 -->
-          <div class="shrink-0 flex gap-2">
+          <div class="admin-actions">
             <button
               type="button"
-              class="px-3 py-1.5 rounded-full text-sm bg-green-500 text-white hover:opacity-90 transition-opacity"
+              class="admin-btn admin-btn-approve"
               @click="handlePublish(article.uuid)"
             >
               通過
             </button>
             <button
               type="button"
-              class="px-3 py-1.5 rounded-full text-sm bg-red-500 text-white hover:opacity-90 transition-opacity"
+              class="admin-btn admin-btn-reject"
               @click="openRejectForm(article.uuid)"
             >
               退回
@@ -135,24 +129,24 @@ onMounted(fetchArticles)
         </div>
 
         <!-- Inline 退回表單 -->
-        <div v-if="rejectingUuid === article.uuid" class="mt-3 space-y-2">
+        <div v-if="rejectingUuid === article.uuid" class="admin-reject-form">
           <textarea
             v-model="rejectReason"
             placeholder="請輸入退回理由"
             rows="3"
-            class="w-full px-3 py-2 rounded-lg border border-white/80 dark:border-white/15 bg-white/60 dark:bg-white/8 text-sm resize-none outline-none focus:ring-2 focus:ring-[var(--accent)]"
+            class="admin-reject-textarea"
           />
-          <div class="flex gap-2 justify-end">
+          <div class="admin-reject-actions">
             <button
               type="button"
-              class="px-3 py-1.5 rounded-full text-sm bg-white/60 border border-white/80 hover:bg-white/80 dark:bg-white/8 dark:border-white/15 transition-colors"
+              class="admin-btn admin-btn-cancel"
               @click="cancelReject"
             >
               取消
             </button>
             <button
               type="button"
-              class="px-3 py-1.5 rounded-full text-sm bg-red-500 text-white hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+              class="admin-btn admin-btn-confirm-reject"
               :disabled="!canConfirmReject"
               @click="handleReject(article.uuid)"
             >
@@ -164,19 +158,19 @@ onMounted(fetchArticles)
     </ul>
 
     <!-- 分頁 -->
-    <div v-if="totalPages > 1" class="flex items-center justify-center gap-4 mt-8">
+    <div v-if="totalPages > 1" class="admin-pagination">
       <button
         type="button"
-        class="px-4 py-2 rounded-full text-sm bg-white/60 border border-white/80 hover:bg-white/80 disabled:opacity-40 disabled:cursor-not-allowed dark:bg-white/8 dark:border-white/15 transition-colors"
+        class="admin-page-btn"
         :disabled="currentPage === 1"
         @click="goToPage(currentPage - 1)"
       >
         上一頁
       </button>
-      <span class="text-sm text-gray-500">第 {{ currentPage }} / {{ totalPages }} 頁</span>
+      <span class="admin-page-info">第 {{ currentPage }} / {{ totalPages }} 頁</span>
       <button
         type="button"
-        class="px-4 py-2 rounded-full text-sm bg-white/60 border border-white/80 hover:bg-white/80 disabled:opacity-40 disabled:cursor-not-allowed dark:bg-white/8 dark:border-white/15 transition-colors"
+        class="admin-page-btn"
         :disabled="currentPage === totalPages"
         @click="goToPage(currentPage + 1)"
       >

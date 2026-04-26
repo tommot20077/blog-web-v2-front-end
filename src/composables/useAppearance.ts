@@ -33,6 +33,9 @@ watchEffect(() => {
   localStorage.setItem('font',   font.value)
   localStorage.setItem('cursor', cursor.value)
   localStorage.setItem('accent', accent.value)
+  // global CSS has `body { cursor: none }`, restore native cursor when off
+  if (cursor.value === 'off') document.body.style.cursor = 'auto'
+  else document.body.style.cursor = ''
 })
 
 export function useAppearance() {

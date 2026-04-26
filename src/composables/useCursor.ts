@@ -43,6 +43,9 @@ export function useCursor() {
   }
 
   onMounted(() => {
+    if (document.documentElement.dataset.cursor === 'off') return
+    if (window.matchMedia('(hover: none)').matches) return
+
     dot  = document.createElement('div')
     ring = document.createElement('div')
     dot.className  = 'cursor-dot'
