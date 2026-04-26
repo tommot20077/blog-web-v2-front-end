@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watchEffect } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useArticleDetail } from '../composables/useArticleDetail'
 import { useMarkdownRenderer } from '../composables/useMarkdownRenderer'
@@ -18,8 +18,8 @@ const { readingTimeMinutes } = useWordCount(markdownSource)
 const articleEl = ref<HTMLElement | null>(null)
 const { progress } = useReadingProgress(articleEl)
 
-watchEffect(() => {
-  if (!isLoading.value && !article.value) router.replace({ name: 'not-found', params: { pathMatch: ['not-found'] } })
+watch(isLoading, (loading) => {
+  if (!loading && !article.value) router.replace('/not-found')
 })
 
 onMounted(() => window.scrollTo({ top: 0, behavior: 'auto' }))

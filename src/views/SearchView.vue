@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSearch } from '../composables/useSearch'
 import { highlight } from '../utils/highlight'
@@ -28,6 +28,12 @@ function goToFirstArticle() {
     router.push('/articles/' + results.value.articles[0].articleUuid)
   }
 }
+
+function onGlobalEscape(e: KeyboardEvent) {
+  if (e.key === 'Escape') clearQuery()
+}
+onMounted(() => window.addEventListener('keydown', onGlobalEscape))
+onUnmounted(() => window.removeEventListener('keydown', onGlobalEscape))
 
 </script>
 
