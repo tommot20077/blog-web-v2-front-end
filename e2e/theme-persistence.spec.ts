@@ -11,7 +11,7 @@ test.describe('主題偏好持久化', () => {
     expect(await themeSwitcher.getTheme()).toBe('light')
 
     // --- 切換主題 → dark ---
-    await themeSwitcher.toggle()
+    await themeSwitcher.toggleTheme()
     expect(await themeSwitcher.getTheme()).toBe('dark')
 
     // --- 導航至文章列表 → 仍為 dark ---
@@ -24,7 +24,7 @@ test.describe('主題偏好持久化', () => {
     expect(await themeSwitcher.getTheme()).toBe('dark')
 
     // --- 再次切換 → 回到 light ---
-    await themeSwitcher.toggle()
+    await themeSwitcher.toggleTheme()
     expect(await themeSwitcher.getTheme()).toBe('light')
   })
 })
