@@ -13,8 +13,8 @@ test.describe('搜尋完整流程', () => {
 
   test('空狀態顯示熱門查詢', async ({ page, searchPage }) => {
     await searchPage.goto()
-    // 未輸入時顯示熱門查詢 section
-    await expect(page.locator('.sv-section')).toBeVisible()
+    // 未輸入時顯示熱門查詢 section（可能有多個 section，取第一個）
+    await expect(page.locator('.sv-section').first()).toBeVisible()
   })
 
   test('輸入關鍵字後顯示搜尋結果卡片', async ({ page, searchPage }) => {
@@ -55,8 +55,8 @@ test.describe('搜尋完整流程', () => {
     await page.keyboard.press('Escape')
     await page.waitForTimeout(200)
 
-    // 應顯示空狀態（熱門查詢）
-    await expect(page.locator('.sv-section')).toBeVisible()
+    // 應顯示空狀態（熱門查詢）（可能有多個 section，取第一個）
+    await expect(page.locator('.sv-section').first()).toBeVisible()
   })
 
   test('點搜尋結果文章進入 ArticleDetail', async ({ page, searchPage }) => {

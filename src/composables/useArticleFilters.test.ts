@@ -194,6 +194,18 @@ describe('useArticleFilters', () => {
     expect(result).toHaveLength(2)
   })
 
+  it('category filter 大小寫不敏感：選 Frontend 可匹配 tag frontend（整合後端小寫 slug）', async () => {
+    const articles = [
+      makeArticle({ uuid: 'a1', tags: ['frontend'] }),
+      makeArticle({ uuid: 'a2', tags: ['css'] }),
+    ]
+    const { filterAndSort, toggleCat } = await loadFilters()
+    toggleCat('Frontend')
+    const result = filterAndSort(articles)
+    expect(result).toHaveLength(1)
+    expect(result[0].uuid).toBe('a1')
+  })
+
   it('sort popular 依 viewCount 降序', async () => {
     const articles = [
       makeArticle({ uuid: 'a1', viewCount: 100 }),

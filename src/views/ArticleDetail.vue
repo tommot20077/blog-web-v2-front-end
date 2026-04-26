@@ -20,7 +20,7 @@ const { progress } = useReadingProgress(articleEl)
 
 watch(isLoading, (loading) => {
   if (!loading && !article.value) router.replace('/not-found')
-})
+}, { flush: 'post' })
 
 onMounted(() => window.scrollTo({ top: 0, behavior: 'auto' }))
 
