@@ -64,7 +64,7 @@ test.describe('文章多條件篩選', () => {
 
   test('切換 Sort → Popular 後文章順序改變', async ({ page }) => {
     // 等初始文章載入
-    const initialFirst = await page.locator('[role="article"]').first().textContent()
+    const initialFirst = await page.locator('article').first().textContent()
 
     // 點 Popular
     await page.locator('.art-seg button', { hasText: 'Popular' }).click()

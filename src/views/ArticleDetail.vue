@@ -53,12 +53,14 @@ const goBack = () => window.history.length > 1 ? router.back() : router.push('/a
 
         <!-- Meta -->
         <div class="art-hero-meta">
-          <span
-            v-for="cat in article.categories ?? []"
-            :key="cat"
-            class="mono"
-            style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent)"
-          >{{ cat }}</span>
+          <div data-testid="article-categories">
+            <span
+              v-for="cat in article.categories ?? []"
+              :key="cat"
+              class="mono"
+              style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent)"
+            >{{ cat }}</span>
+          </div>
           <span class="mono" style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)">
             {{ readingTimeMinutes }} MIN READ
           </span>

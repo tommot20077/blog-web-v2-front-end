@@ -34,7 +34,7 @@ test.describe('讀者完整瀏覽流程', () => {
     await articleListPage.goto()
     await articleListPage.waitForArticlesLoaded()
 
-    const firstArticle = page.locator('[role="article"]').first()
+    const firstArticle = page.locator('article').first()
     if (await firstArticle.count() > 0) {
       await firstArticle.click()
       await expect(page).toHaveURL(/\/articles\//)

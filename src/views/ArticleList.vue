@@ -68,7 +68,10 @@ function handleToggleCat(c: string) { toggleCat(c); resetPage() }
 function handleToggleAuthor(a: string) { toggleAuthor(a); resetPage() }
 function handleDateRange(r: 'any'|'30'|'90'|'365') { setDateRange(r); resetPage() }
 function handleSort(s: 'latest'|'popular'|'commented') { setSort(s); resetPage() }
-function handleView(v: 'grid'|'list') { setView(v) }
+function handleView(v: 'grid'|'list') {
+  setView(v)
+  if (v === 'list') setPaging('infinite')
+}
 function handlePaging(p: 'pages'|'infinite') { setPaging(p); resetPage() }
 
 function goToPage(n: number) {
@@ -152,15 +155,14 @@ function formatDate(d: string) {
             <div v-if="availableTags.length" class="art-rail-group">
               <h5>Tags</h5>
               <div class="art-tag-grid">
-                <button
+                <RouterLink
                   v-for="tag in availableTags"
                   :key="tag"
                   class="art-tag"
-                  :class="{ active: selTags.includes(tag) }"
-                  @click="handleToggleTag(tag)"
+                  :to="`/tags/${tag}`"
                 >
                   {{ tag }}
-                </button>
+                </RouterLink>
               </div>
             </div>
 
@@ -314,7 +316,7 @@ function formatDate(d: string) {
           </div>
 
           <!-- Pagination (pages mode) -->
-          <div v-if="paging === 'pages' && totalPages > 1 && !isLoading" class="art-pagination">
+          <div v-if="paging === 'pages' && totalPages > 0 && !isLoading" class="art-pagination">
             <button class="page-btn" :disabled="page === 1" @click="goToPage(page - 1)">←</button>
             <button
               v-for="p in totalPages"

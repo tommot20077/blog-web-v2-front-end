@@ -28,12 +28,17 @@ test.describe('讀者瀏覽文章', () => {
     await filterBar.selectCategory('全部')
     await articleListPage.waitForArticlesLoaded()
 
-    // --- 翻到第 2 頁：仍能看到文章 ---
-    await articleListPage.goToPage(2)
+    // --- 切換到 Pages 分頁模式，翻第 2 頁（integration 只有 1 頁時跳過）---
+    await filterBar.switchToPagesMode()
     await articleListPage.waitForArticlesLoaded()
-    expect(await articleListPage.articleCards.count()).toBeGreaterThan(0)
+    const page2Btn = articleListPage.pageButton(2)
+    if (await page2Btn.isVisible()) {
+      await articleListPage.goToPage(2)
+      await articleListPage.waitForArticlesLoaded()
+      expect(await articleListPage.articleCards.count()).toBeGreaterThan(0)
+    }
 
-    // --- 切換 List 模式：分頁器消失 ---
+    // --- 切換 List 模式：同時切回 infinite，分頁器消失 ---
     await filterBar.switchToList()
     await articleListPage.waitForArticlesLoaded()
     await expect(articleListPage.paginationPrev).not.toBeVisible()

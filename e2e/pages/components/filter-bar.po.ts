@@ -7,12 +7,22 @@ export class FilterBarPO {
 
   constructor(page: Page) {
     this.page = page
-    this.gridToggle = page.getByTitle('網格與分頁模式')
+    this.gridToggle = page.getByTitle('網格視圖')
     this.listToggle = page.getByTitle('無限捲動清單模式')
   }
 
   async selectCategory(name: string) {
-    await this.page.getByTestId('articles-filter-bar').getByRole('button', { name, exact: true }).click()
+    if (name === '全部') {
+      const clearBtn = this.page.locator('.art-rail-head .clear')
+      if (await clearBtn.isVisible()) {
+        await clearBtn.click()
+      }
+      return
+    }
+    await this.page
+      .getByTestId('articles-filter-bar')
+      .locator('.art-check', { hasText: name })
+      .click()
   }
 
   async switchToGrid() {
@@ -21,5 +31,9 @@ export class FilterBarPO {
 
   async switchToList() {
     await this.listToggle.click()
+  }
+
+  async switchToPagesMode() {
+    await this.page.locator('.art-seg button', { hasText: 'Pages' }).click()
   }
 }

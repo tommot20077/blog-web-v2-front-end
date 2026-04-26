@@ -4,11 +4,11 @@ test.describe('錯誤狀態與存取保護', () => {
   test('訪問不存在的文章顯示 404，點連結返回首頁', async ({ page }) => {
     await page.goto('/articles/uuid-that-does-not-exist')
 
-    // Redirect to NotFoundView, which shows "找不到這個頁面"
-    await expect(page.getByText('找不到這個頁面')).toBeVisible({ timeout: 5000 })
+    // Redirect to NotFoundView, which shows "找不到這一頁。"
+    await expect(page.getByText('找不到這一頁。')).toBeVisible({ timeout: 5000 })
 
-    // Click back to home link (← 回到首頁)
-    await page.getByRole('link', { name: '← 回到首頁' }).click()
+    // Click back to home link (回首頁 →)
+    await page.getByRole('link', { name: '回首頁 →' }).click()
     await expect(page).toHaveURL('/')
   })
 
