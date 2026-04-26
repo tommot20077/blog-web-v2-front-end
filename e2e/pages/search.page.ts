@@ -17,6 +17,10 @@ export class SearchPage {
     await this.page.goto('/search')
   }
 
+  async search(keyword: string) {
+    await this.searchInput.fill(keyword)
+  }
+
   async typeKeyword(keyword: string) {
     await this.searchInput.fill(keyword)
   }

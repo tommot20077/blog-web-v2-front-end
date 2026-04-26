@@ -14,9 +14,9 @@ describe('ArticleList Integration', () => {
     })
   })
 
-  it('掛載後以 page=1, size=6 呼叫 getArticles', async () => {
+  it('掛載後一次性取得所有文章（client-side filter 模式，size=1000）', async () => {
     renderWithRouter(ArticleList)
     await flushPromises()
-    expect(articleService.getArticles).toHaveBeenCalledWith(1, 6, '全部', '')
+    expect(articleService.getArticles).toHaveBeenCalledWith(1, 1000, '全部', '')
   })
 })

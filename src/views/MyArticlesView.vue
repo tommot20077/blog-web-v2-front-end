@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { RouterLink } from 'vue-router'
 import { myArticlesService } from '../api/myArticlesService'
 import { useToast } from '../composables/useToast'
 import {
@@ -58,12 +59,10 @@ async function handleDelete(uuid: string) {
     showToast('刪除失敗', 'error')
   }
 }
-
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' })
 }
 
-// Map status filter keys to their testid suffix
 const TAB_TESTIDS: Partial<Record<ArticleStatusFilter, string>> = {
   DRAFT: 'my-tab-draft',
   PUBLISHED: 'my-tab-published',
@@ -74,313 +73,166 @@ onMounted(fetchArticles)
 </script>
 
 <template>
-  <main class="my-articles" data-testid="my-root">
-    <!-- Header -->
-    <div class="my-header">
-      <h1 class="my-title" data-testid="my-header-title">My Articles</h1>
-      <RouterLink to="/editor" class="btn btn--primary" data-testid="my-new-btn">New Article</RouterLink>
-    </div>
+  <div class="shell" data-testid="my-root">
 
-    <!-- 狀態過濾 Tabs -->
-    <div class="my-tabs" role="tablist">
+    <!-- Left rail -->
+    <nav class="shell-rail">
+      <div class="brand">
+        <span class="mark" />
+        <span class="name">MY BLOG WEB.</span>
+      </div>
+
+      <span class="rail-section">WORKSPACE</span>
+
+      <button class="rail-item active" data-testid="my-header-title">
+        我的文章
+        <span class="n">{{ articles.length }}</span>
+      </button>
+
+      <RouterLink to="/editor" class="rail-item" data-testid="my-new-btn">
+        開始新文章
+      </RouterLink>
+
+      <span class="rail-section">LIBRARY</span>
+
       <button
         v-for="(label, status) in ARTICLE_STATUS_LABELS"
         :key="status"
         role="tab"
         :aria-selected="currentFilter === status"
         :data-testid="TAB_TESTIDS[status as ArticleStatusFilter]"
+        class="rail-item"
         :class="{ active: currentFilter === status }"
         @click="handleFilterChange(status as ArticleStatusFilter)"
       >
         {{ label }}
       </button>
-    </div>
 
-    <!-- Loading -->
-    <div v-if="isLoading" data-testid="loading" class="loading-wrap">
-      <div class="loading-dots">
-        <span />
-        <span />
-        <span />
+      <div class="rail-foot">
+        <RouterLink to="/">← Blog 首頁</RouterLink>
       </div>
-    </div>
+    </nav>
 
-    <!-- 空狀態 -->
-    <div v-else-if="articles.length === 0" class="empty-state">
-      目前沒有文章
-    </div>
+    <!-- Main content -->
+    <div class="shell-main">
 
-    <!-- 文章表格 -->
-    <table v-else class="my-table">
-      <thead>
-        <tr>
-          <th>Title</th>
-          <th>Status</th>
-          <th>Updated</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <template v-for="article in articles" :key="article.uuid">
-          <tr :data-testid="'my-row-' + article.uuid">
-            <td>{{ article.title }}</td>
-            <td>
-              <span
-                class="status-badge"
-                :class="'status-badge--' + ARTICLE_STATUS_COLORS[article.status]"
-              >
-                {{ ARTICLE_STATUS_LABELS[article.status] }}
-              </span>
-            </td>
-            <td>
-              <time>{{ formatDate(article.updatedAt) }}</time>
-            </td>
-            <td class="actions-cell">
-              <RouterLink
-                v-if="article.status === 'DRAFT' || article.status === 'REJECTED'"
-                :to="`/editor/${article.uuid}`"
-                class="btn btn--ghost"
-                :data-testid="'my-row-action-edit-' + article.uuid"
-              >
-                編輯
-              </RouterLink>
+      <!-- Back breadcrumb -->
+      <div class="shell-back">
+        <span class="mono" style="font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted-2)">
+          作者後台 · YUAN LUCA
+        </span>
+      </div>
 
-              <button
-                v-if="article.status === 'DRAFT'"
-                type="button"
-                class="btn btn--primary"
-                @click="handleSubmit(article.uuid)"
-              >
-                送出審核
-              </button>
+      <!-- Header -->
+      <div class="ma-head">
+        <div class="ma-title-row">
+          <h1 class="ma-title">我的文章<span class="em">。</span></h1>
+          <RouterLink to="/editor" class="ma-new-btn">+ 開始新文章</RouterLink>
+        </div>
+      </div>
 
-              <button
-                v-if="article.status === 'DRAFT'"
-                type="button"
-                class="btn btn--danger"
-                :data-testid="'my-row-action-delete-' + article.uuid"
-                @click="handleDelete(article.uuid)"
-              >
-                刪除
-              </button>
-            </td>
+      <!-- Loading -->
+      <div v-if="isLoading" data-testid="loading" class="ma-loading">
+        <div class="sk-pulse" style="height:4px;width:80px;border-radius:2px;" />
+      </div>
+
+      <!-- Empty -->
+      <div v-else-if="articles.length === 0" class="es-wrap">
+        目前沒有文章
+      </div>
+
+      <!-- Table -->
+      <table v-else class="ma-table">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Status</th>
+            <th>Updated</th>
+            <th>Actions</th>
           </tr>
-          <!-- 退回原因 -->
-          <tr
-            v-if="article.status === 'REJECTED' && article.rejectReason"
-            :data-testid="'my-row-reject-' + article.uuid"
-          >
-            <td colspan="4" class="reject-reason">
-              {{ article.rejectReason }}
-            </td>
-          </tr>
-        </template>
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          <template v-for="article in articles" :key="article.uuid">
+            <tr :data-testid="'my-row-' + article.uuid">
+              <td>{{ article.title }}</td>
+              <td>
+                <span class="ma-status" :class="article.status">
+                  {{ ARTICLE_STATUS_LABELS[article.status] }}
+                </span>
+              </td>
+              <td><time>{{ formatDate(article.updatedAt) }}</time></td>
+              <td class="ma-actions">
+                <RouterLink
+                  v-if="article.status === 'DRAFT' || article.status === 'REJECTED'"
+                  :to="`/editor/${article.uuid}`"
+                  class="ma-btn"
+                  :data-testid="'my-row-action-edit-' + article.uuid"
+                >編輯</RouterLink>
+                <button
+                  v-if="article.status === 'DRAFT'"
+                  type="button"
+                  class="ma-btn ma-btn--accent"
+                  @click="handleSubmit(article.uuid)"
+                >送出審核</button>
+                <button
+                  v-if="article.status === 'DRAFT'"
+                  type="button"
+                  class="ma-btn ma-btn--danger"
+                  :data-testid="'my-row-action-delete-' + article.uuid"
+                  @click="handleDelete(article.uuid)"
+                >刪除</button>
+              </td>
+            </tr>
+            <tr
+              v-if="article.status === 'REJECTED' && article.rejectReason"
+              :data-testid="'my-row-reject-' + article.uuid"
+            >
+              <td colspan="4" class="ma-reject-reason">{{ article.rejectReason }}</td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
 
-    <!-- 分頁 -->
-    <div v-if="totalPages > 1" class="pagination">
-      <button
-        type="button"
-        class="btn btn--ghost"
-        :disabled="currentPage === 1"
-        @click="goToPage(currentPage - 1)"
-      >
-        上一頁
-      </button>
-      <span class="pagination-info">第 {{ currentPage }} / {{ totalPages }} 頁</span>
-      <button
-        type="button"
-        class="btn btn--ghost"
-        :disabled="currentPage === totalPages"
-        @click="goToPage(currentPage + 1)"
-      >
-        下一頁
-      </button>
+      <!-- Pagination -->
+      <div v-if="totalPages > 1" class="ma-pagination">
+        <button type="button" class="ma-btn" :disabled="currentPage === 1" @click="goToPage(currentPage - 1)">上一頁</button>
+        <span class="mono" style="font-size:11px;color:var(--muted)">第 {{ currentPage }} / {{ totalPages }} 頁</span>
+        <button type="button" class="ma-btn" :disabled="currentPage === totalPages" @click="goToPage(currentPage + 1)">下一頁</button>
+      </div>
+
     </div>
-  </main>
+  </div>
 </template>
 
 <style scoped>
-.my-articles {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem;
+.ma-new-btn {
+  display: inline-flex; align-items: center; padding: 9px 20px; border-radius: 999px;
+  background: var(--ink); color: var(--bg); font-family: var(--f-mono); font-size: 11px;
+  letter-spacing: .14em; text-transform: uppercase; text-decoration: none; transition: opacity .2s;
 }
-
-.my-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
+.ma-new-btn:hover { opacity: .8; }
+.ma-loading { padding: 3rem 0; display: flex; justify-content: center; }
+.ma-table { width: 100%; border-collapse: collapse; margin-top: 24px; }
+.ma-table th, .ma-table td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--divider); font-size: 13.5px; }
+.ma-table th { font-family: var(--f-mono); font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--muted-2); }
+.ma-status { display: inline-block; padding: 3px 10px; border-radius: 999px; font-family: var(--f-mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
+.ma-status.DRAFT { background: var(--bg-sub); color: var(--muted); }
+.ma-status.PUBLISHED { background: rgba(34,197,94,.12); color: #15803d; }
+.ma-status.PENDING_REVIEW { background: rgba(234,179,8,.12); color: #a16207; }
+.ma-status.REJECTED { background: rgba(239,68,68,.12); color: #b91c1c; }
+.ma-status.ARCHIVED { background: rgba(99,102,241,.12); color: #4338ca; }
+.ma-actions { display: flex; gap: 6px; align-items: center; }
+.ma-btn {
+  display: inline-flex; align-items: center; padding: 5px 12px; border-radius: 8px;
+  border: 1px solid var(--border); background: transparent; color: var(--ink);
+  font-size: 12px; cursor: pointer; text-decoration: none; transition: all .15s;
 }
-
-.my-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--ink);
-}
-
-.my-tabs {
-  display: flex;
-  gap: 0.25rem;
-  border-bottom: 2px solid var(--border);
-  margin-bottom: 1.5rem;
-}
-
-.my-tabs button {
-  padding: 0.5rem 1rem;
-  border: none;
-  background: none;
-  color: var(--muted);
-  cursor: pointer;
-}
-
-.my-tabs button.active {
-  color: var(--ink);
-  border-bottom: 2px solid var(--accent);
-}
-
-.my-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.my-table th,
-.my-table td {
-  padding: 0.75rem;
-  text-align: left;
-  border-bottom: 1px solid var(--divider);
-}
-
-.status-badge {
-  display: inline-block;
-  padding: 0.125rem 0.5rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-
-.status-badge--gray {
-  background: var(--badge-gray-bg, #f3f4f6);
-  color: var(--badge-gray-text, #4b5563);
-}
-
-.status-badge--yellow {
-  background: var(--badge-yellow-bg, #fef9c3);
-  color: var(--badge-yellow-text, #a16207);
-}
-
-.status-badge--green {
-  background: var(--badge-green-bg, #dcfce7);
-  color: var(--badge-green-text, #15803d);
-}
-
-.status-badge--red {
-  background: var(--badge-red-bg, #fee2e2);
-  color: var(--badge-red-text, #b91c1c);
-}
-
-.status-badge--blue {
-  background: var(--badge-blue-bg, #dbeafe);
-  color: var(--badge-blue-text, #1d4ed8);
-}
-
-.actions-cell {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.reject-reason {
-  color: var(--danger, #dc2626);
-  font-size: 0.875rem;
-  background: var(--danger-bg, #fff1f2);
-}
-
-.loading-wrap {
-  display: flex;
-  justify-content: center;
-  padding: 3rem 0;
-}
-
-.loading-dots {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.loading-dots span {
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 9999px;
-  background: var(--muted);
-  animation: bounce 1s infinite;
-}
-
-.loading-dots span:nth-child(2) {
-  animation-delay: 150ms;
-}
-
-.loading-dots span:nth-child(3) {
-  animation-delay: 300ms;
-}
-
-@keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-0.375rem); }
-}
-
-.empty-state {
-  text-align: center;
-  padding: 3rem 0;
-  color: var(--muted);
-}
-
-.pagination {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  margin-top: 2rem;
-}
-
-.pagination-info {
-  font-size: 0.875rem;
-  color: var(--muted);
-}
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.375rem 0.875rem;
-  border-radius: 9999px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  border: none;
-  text-decoration: none;
-  transition: opacity 0.15s;
-}
-
-.btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.btn--primary {
-  background: var(--accent);
-  color: var(--on-accent, #fff);
-}
-
-.btn--ghost {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--ink);
-}
-
-.btn--danger {
-  background: var(--danger, #ef4444);
-  color: #fff;
-}
+.ma-btn:hover { background: var(--bg-sub); }
+.ma-btn:disabled { opacity: .35; cursor: not-allowed; }
+.ma-btn--accent { background: var(--accent); border-color: var(--accent); color: #fff; }
+.ma-btn--accent:hover { opacity: .88; background: var(--accent); }
+.ma-btn--danger { background: #ef4444; border-color: #ef4444; color: #fff; }
+.ma-btn--danger:hover { opacity: .88; background: #ef4444; }
+.ma-reject-reason { background: rgba(239,68,68,.05); color: #b91c1c; font-size: 13px; }
+.ma-pagination { display: flex; align-items: center; gap: 12px; margin-top: 28px; }
 </style>

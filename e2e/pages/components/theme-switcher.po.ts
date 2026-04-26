@@ -9,7 +9,7 @@ export class ThemeSwitcherPO {
     this.toggleButton = page.getByTestId('navbar-theme-toggle')
   }
 
-  async toggle() {
+  async toggleTheme() {
     await this.toggleButton.click()
   }
 

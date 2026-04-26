@@ -50,9 +50,9 @@ describe('Home 頁面', () => {
     expect(h1?.textContent).toContain('MY BLOG WEB.')
   })
 
-  it('顯示「最新發布」標題', () => {
-    const { getByText } = renderWithRouter(Home)
-    expect(getByText('最新發布')).toBeInTheDocument()
+  it('顯示「最近在寫的東西」標題', () => {
+    const { container } = renderWithRouter(Home)
+    expect(container.querySelector('[data-testid="latest-heading"]')).toBeInTheDocument()
   })
 
   it('renders trending section (data-testid="trending-root")', () => {

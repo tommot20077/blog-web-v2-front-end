@@ -12,6 +12,7 @@ declare module 'vue-router' {
     requiresAuth?: boolean
     requiredRole?: UserRole
     guestOnly?: boolean
+    layout?: 'default' | 'shell' | 'full'
   }
 }
 
@@ -73,32 +74,44 @@ const router = createRouter({
       path: '/editor',
       name: 'editor-new',
       component: () => import('../views/EditorView.vue'),
-      meta: { requiresAuth: true, requiredRole: 'AUTHOR' as UserRole }
+      meta: { requiresAuth: true, requiredRole: 'AUTHOR' as UserRole, layout: 'full' as const }
     },
     {
       path: '/editor/:uuid',
       name: 'editor-edit',
       component: () => import('../views/EditorView.vue'),
-      meta: { requiresAuth: true, requiredRole: 'AUTHOR' as UserRole },
+      meta: { requiresAuth: true, requiredRole: 'AUTHOR' as UserRole, layout: 'full' as const },
       props: true
     },
     {
       path: '/my-articles',
       name: 'my-articles',
       component: () => import('../views/MyArticlesView.vue'),
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: true, layout: 'shell' as const }
     },
     {
       path: '/settings',
       name: 'settings',
       component: () => import('../views/SettingsView.vue'),
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: true, layout: 'shell' as const }
     },
     {
       path: '/admin/review',
       name: 'admin-review',
       component: () => import('../views/AdminReviewView.vue'),
       meta: { requiresAuth: true, requiredRole: 'ADMIN' as UserRole }
+    },
+    {
+      path: '/tags/:slug',
+      name: 'tag',
+      component: () => import('../views/TagView.vue'),
+      props: true
+    },
+    {
+      path: '/author/:handle',
+      name: 'author',
+      component: () => import('../views/AuthorView.vue'),
+      props: true
     },
     {
       path: '/:pathMatch(.*)*',

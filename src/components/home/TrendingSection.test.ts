@@ -16,7 +16,7 @@ describe('TrendingSection', () => {
       props: { articles: [], isLoading: true },
       global: { plugins: [router] },
     });
-    expect(wrapper.findAll('.animate-pulse').length).toBeGreaterThan(0);
+    expect(wrapper.findAll('.sk-pulse').length).toBeGreaterThan(0);
   });
 
   it('載入完成後顯示文章卡片', async () => {
@@ -49,5 +49,26 @@ describe('TrendingSection', () => {
       global: { plugins: [router] },
     });
     expect(wrapper.find('[data-testid="trending-root"]').exists()).toBe(true);
+  });
+
+  it('featured 卡片在有文章時顯示', async () => {
+    const router = createTestRouter();
+    await router.isReady();
+    const wrapper = mount(TrendingSection, {
+      props: { articles: mockArticles, isLoading: false },
+      global: { plugins: [router] },
+    });
+    expect(wrapper.find('.featured').exists()).toBe(true);
+    expect(wrapper.find('.featured').text()).toContain('熱門文章 1');
+  });
+
+  it('無文章時不顯示 featured 卡片', async () => {
+    const router = createTestRouter();
+    await router.isReady();
+    const wrapper = mount(TrendingSection, {
+      props: { articles: [], isLoading: false },
+      global: { plugins: [router] },
+    });
+    expect(wrapper.find('.featured').exists()).toBe(false);
   });
 });

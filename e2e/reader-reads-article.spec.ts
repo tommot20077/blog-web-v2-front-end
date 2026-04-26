@@ -46,10 +46,10 @@ test.describe('讀者閱讀文章', () => {
     await page.goto('/articles/not-exist-uuid-12345')
 
     // --- 看到 NotFoundView 404 提示 ---
-    await expect(page.getByText('找不到這個頁面')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText('找不到這一頁。')).toBeVisible({ timeout: 5000 })
 
-    // --- 點「回到首頁」，回到 / ---
-    await page.getByRole('link', { name: '← 回到首頁' }).click()
+    // --- 點「回首頁 →」，回到 / ---
+    await page.getByRole('link', { name: '回首頁 →' }).click()
     await expect(page).toHaveURL('/')
   })
 

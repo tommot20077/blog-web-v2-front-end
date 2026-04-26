@@ -1,694 +1,367 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
-import { RouterLink } from 'vue-router';
-import { articleService, type ArticleItem } from '../api/articleService';
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { RouterLink } from 'vue-router'
+import { articleService, type ArticleItem } from '../api/articleService'
+import { useArticleFilters } from '../composables/useArticleFilters'
 
-// ── article data ──────────────────────────────────────────────────────────────
-const articles = ref<ArticleItem[]>([]);
-const viewMode = ref<'grid' | 'list'>('grid');
+// ── Data ────────────────────────────────────────────────────────────────────
+const allArticles  = ref<ArticleItem[]>([])
+const isLoading    = ref(false)
+const page         = ref(1)
+const PER_PAGE     = 12
 
-const gridPage = ref(1);
-const itemsPerPageGrid = 6;
-const maxGridPages = ref(1);
+const {
+  selTags, selCats, selAuthors, dateRange,
+  sort, view, paging,
+  toggleTag, toggleCat, toggleAuthor,
+  setDateRange, setSort, setView, setPaging,
+  clearAll, totalActive, filterAndSort,
+} = useArticleFilters()
 
-const listPage = ref(1);
-const itemsPerPageList = 5;
-
-const isLoading = ref(false);
-const isLoadingMore = ref(false);
-const noMoreData = ref(false);
-
-// ── filter bar state (inlined from FilterBar component) ───────────────────────
-const categories = ['全部', 'Frontend', 'Backend', 'DevOps', 'UI/UX', 'Life'];
-const activeCategory = ref('全部');
-const sortOrder = ref<'latest' | 'popular' | 'commented'>('latest');
-
-const filterParams = ref({ category: '全部' });
-
-// ── core fetch logic ──────────────────────────────────────────────────────────
-const fetchArticles = async (isLoadMore = false) => {
-  const currentMode = viewMode.value;
-  const page = currentMode === 'grid' ? gridPage.value : listPage.value;
-  const size = currentMode === 'grid' ? itemsPerPageGrid : itemsPerPageList;
-
-  if (isLoadMore) {
-    isLoadingMore.value = true;
-  } else {
-    isLoading.value = true;
-  }
-
+// ── Fetch (once, client-side) ────────────────────────────────────────────────
+async function fetchAll() {
+  isLoading.value = true
   try {
-    const result = await articleService.getArticles(page, size, filterParams.value.category, '');
-
-    if (currentMode === 'grid') {
-      articles.value = result.records;
-      maxGridPages.value = result.pages;
-    } else {
-      if (isLoadMore) {
-        articles.value.push(...result.records);
-      } else {
-        articles.value = result.records;
-      }
-      noMoreData.value = page >= result.pages || result.records.length === 0;
-    }
+    const result = await articleService.getArticles(1, 1000, '全部', '')
+    allArticles.value = result.records
   } finally {
-    isLoading.value = false;
-    isLoadingMore.value = false;
+    isLoading.value = false
   }
-};
+}
 
-// ── filter bar handlers (previously emitted from FilterBar) ───────────────────
-const selectCategory = (cat: string) => {
-  activeCategory.value = cat;
-  applyFilter();
-};
+// ── Derived ──────────────────────────────────────────────────────────────────
+const filtered = computed(() => filterAndSort(allArticles.value))
 
-const toggleMode = (mode: 'grid' | 'list') => {
-  viewMode.value = mode;
-  gridPage.value = 1;
-  listPage.value = 1;
-  noMoreData.value = false;
-  fetchArticles();
-};
+// Unique tags/authors from loaded articles
+const availableTags = computed(() => {
+  const s = new Set<string>()
+  allArticles.value.forEach(a => a.tags.forEach(t => s.add(t)))
+  return [...s].slice(0, 12)
+})
+const availableAuthors = computed(() => {
+  const s = new Set<string>()
+  allArticles.value.forEach(a => s.add(a.authorNickname))
+  return [...s]
+})
 
-const applyFilter = () => {
-  filterParams.value = { category: activeCategory.value };
-  gridPage.value = 1;
-  listPage.value = 1;
-  noMoreData.value = false;
-  fetchArticles();
-};
+// Paging
+const totalPages = computed(() => Math.ceil(filtered.value.length / PER_PAGE))
+const visible = computed(() => {
+  if (paging.value === 'pages') {
+    return filtered.value.slice((page.value - 1) * PER_PAGE, page.value * PER_PAGE)
+  }
+  return filtered.value.slice(0, page.value * PER_PAGE)
+})
 
-// ── pagination (grid mode) ────────────────────────────────────────────────────
-const goToPage = (pageNumber: number) => {
-  if (pageNumber < 1 || pageNumber > maxGridPages.value) return;
-  gridPage.value = pageNumber;
-  fetchArticles();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-};
+// Reset page on filter/sort change
+function resetPage() { page.value = 1 }
 
-// ── infinite scroll (list mode) ───────────────────────────────────────────────
-const loadNextPage = () => {
-  if (isLoadingMore.value || noMoreData.value || viewMode.value === 'grid') return;
-  listPage.value += 1;
-  fetchArticles(true);
-};
+const DATE_OPTIONS = [
+  { key: 'any', label: 'Any' },
+  { key: '30',  label: 'Last 30' },
+  { key: '90',  label: 'Last 90' },
+  { key: '365', label: 'This year' },
+] as const
 
-const observerTarget = ref<HTMLElement | null>(null);
-let observer: IntersectionObserver | null = null;
+function handleToggleTag(t: string) { toggleTag(t); resetPage() }
+function handleToggleCat(c: string) { toggleCat(c); resetPage() }
+function handleToggleAuthor(a: string) { toggleAuthor(a); resetPage() }
+function handleDateRange(r: 'any'|'30'|'90'|'365') { setDateRange(r); resetPage() }
+function handleSort(s: 'latest'|'popular'|'commented') { setSort(s); resetPage() }
+function handleView(v: 'grid'|'list') {
+  setView(v)
+  if (v === 'list') setPaging('infinite')
+}
+function handlePaging(p: 'pages'|'infinite') { setPaging(p); resetPage() }
+
+function goToPage(n: number) {
+  if (n < 1 || n > totalPages.value) return
+  page.value = n
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+// ── Infinite scroll sentinel ─────────────────────────────────────────────────
+const sentinel = ref<HTMLElement | null>(null)
+let ioObserver: IntersectionObserver | null = null
 
 onMounted(() => {
-  fetchArticles();
-
-  observer = new IntersectionObserver((entries) => {
-    if (entries[0].isIntersecting && !isLoading.value && !isLoadingMore.value) {
-      loadNextPage();
+  fetchAll()
+  ioObserver = new IntersectionObserver(([e]) => {
+    if (e.isIntersecting && paging.value === 'infinite' && page.value * PER_PAGE < filtered.value.length) {
+      page.value++
     }
-  }, { rootMargin: '150px' });
+  }, { rootMargin: '200px' })
+  if (sentinel.value) ioObserver.observe(sentinel.value)
+})
+onUnmounted(() => ioObserver?.disconnect())
 
-  if (observerTarget.value) {
-    observer.observe(observerTarget.value);
-  }
-});
-
-onUnmounted(() => {
-  if (observer) observer.disconnect();
-});
+function formatDate(d: string) {
+  if (!d) return ''
+  const p = d.slice(0, 10).split('-')
+  return p.length === 3 ? `${p[0]} · ${p[1]} · ${p[2]}` : d.slice(0, 10)
+}
 </script>
 
 <template>
-  <main class="articles-page" data-testid="articles-root">
+  <section class="art-page" data-testid="articles-root">
+    <div class="wrap">
+      <div class="art-page-head">
+        <h1>Articles.</h1>
+        <p class="lede">設計、前端與緩慢思考的記錄。</p>
+      </div>
 
-    <!-- Sticky filter bar -->
-    <div class="filter-bar-sticky">
-      <div class="filter-bar" data-testid="articles-filter-bar">
+      <div class="art-page-body">
 
-        <!-- Tag / category chips -->
-        <div class="tag-chips">
-          <button
-            v-for="cat in categories"
-            :key="cat"
-            class="tag-chip"
-            :class="{ active: activeCategory === cat }"
-            @click="selectCategory(cat)"
-          >
-            {{ cat }}
-          </button>
-        </div>
+        <!-- ── Rail sidebar ──────────────────────────────────────────────── -->
+        <aside>
+          <div class="art-rail" data-testid="articles-filter-bar">
+            <div class="art-rail-head">
+              <span>FILTERS</span>
+              <button v-if="totalActive > 0" class="clear" @click="clearAll">Clear</button>
+            </div>
 
-        <!-- Right controls: sort + view mode -->
-        <div class="filter-bar-right">
-          <!-- Sort select -->
-          <select
-            v-model="sortOrder"
-            class="sort-select"
-            data-testid="articles-sort-select"
-          >
-            <option value="latest">Latest</option>
-            <option value="popular">Popular</option>
-            <option value="commented">Most commented</option>
-          </select>
+            <!-- Date -->
+            <div class="art-rail-group">
+              <h5>Date</h5>
+              <div class="art-radio-row">
+                <button
+                  v-for="opt in DATE_OPTIONS"
+                  :key="opt.key"
+                  class="art-chip"
+                  :class="{ active: dateRange === opt.key }"
+                  @click="handleDateRange(opt.key)"
+                >{{ opt.label }}</button>
+              </div>
+            </div>
 
-          <!-- View mode toggle -->
-          <div class="view-toggle">
-            <button
-              class="view-btn"
-              :class="{ active: viewMode === 'grid' }"
-              @click="toggleMode('grid')"
-              title="網格與分頁模式"
+            <!-- Category (uses tags as categories) -->
+            <div class="art-rail-group">
+              <h5>Category</h5>
+              <div>
+                <label
+                  v-for="cat in ['Frontend', 'Backend', 'Essay', 'Design', 'DevOps']"
+                  :key="cat"
+                  class="art-check"
+                  @click.prevent="handleToggleCat(cat)"
+                >
+                  <input type="checkbox" :checked="selCats.includes(cat)" readonly />
+                  <span class="box" />
+                  <span class="l">{{ cat }}</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Tags -->
+            <div v-if="availableTags.length" class="art-rail-group">
+              <h5>Tags</h5>
+              <div class="art-tag-grid">
+                <RouterLink
+                  v-for="tag in availableTags"
+                  :key="tag"
+                  class="art-tag"
+                  :to="`/tags/${tag}`"
+                >
+                  {{ tag }}
+                </RouterLink>
+              </div>
+            </div>
+
+            <!-- Authors -->
+            <div v-if="availableAuthors.length" class="art-rail-group">
+              <h5>Author</h5>
+              <div>
+                <label
+                  v-for="author in availableAuthors"
+                  :key="author"
+                  class="art-check"
+                  @click.prevent="handleToggleAuthor(author)"
+                >
+                  <input type="checkbox" :checked="selAuthors.includes(author)" readonly />
+                  <span class="box" />
+                  <span class="l">{{ author }}</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <!-- ── Main ─────────────────────────────────────────────────────── -->
+        <div class="art-page-main">
+
+          <!-- Toolbar -->
+          <div class="art-toolbar">
+            <div class="art-tb-left">
+              <span class="art-tb-count">
+                {{ filtered.length }}<em>ARTICLES</em>
+              </span>
+
+              <!-- Active filters -->
+              <div v-if="totalActive > 0" class="art-active-filters">
+                <span v-for="t in selTags" :key="'t-'+t" class="art-af">
+                  #{{ t }}<button @click="handleToggleTag(t)">×</button>
+                </span>
+                <span v-for="c in selCats" :key="'c-'+c" class="art-af">
+                  {{ c }}<button @click="handleToggleCat(c)">×</button>
+                </span>
+                <span v-for="a in selAuthors" :key="'a-'+a" class="art-af">
+                  @{{ a }}<button @click="handleToggleAuthor(a)">×</button>
+                </span>
+                <span v-if="dateRange !== 'any'" class="art-af">
+                  {{ dateRange }}d<button @click="handleDateRange('any')">×</button>
+                </span>
+              </div>
+            </div>
+
+            <div class="art-tb-right">
+              <!-- Sort -->
+              <div class="art-seg" data-testid="articles-sort-select">
+                <button :class="{ active: sort === 'latest' }"    @click="handleSort('latest')">Latest</button>
+                <button :class="{ active: sort === 'popular' }"   @click="handleSort('popular')">Popular</button>
+                <button :class="{ active: sort === 'commented' }" @click="handleSort('commented')">Most commented</button>
+              </div>
+
+              <!-- View -->
+              <div class="art-seg art-seg-icon">
+                <button :class="{ active: view === 'grid' }" title="網格視圖" @click="handleView('grid')">
+                  <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                </button>
+                <button :class="{ active: view === 'list' }" title="無限捲動清單模式" @click="handleView('list')">
+                  <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                </button>
+              </div>
+
+              <!-- Paging -->
+              <div class="art-seg">
+                <button :class="{ active: paging === 'pages' }"    @click="handlePaging('pages')">Pages</button>
+                <button :class="{ active: paging === 'infinite' }" @click="handlePaging('infinite')">∞ Infinite</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Loading -->
+          <div v-if="isLoading" class="art-grid" data-testid="articles-loading">
+            <div v-for="i in 6" :key="i" class="sk-pulse" style="height:260px" />
+          </div>
+
+          <!-- Grid -->
+          <div v-else-if="view === 'grid' && visible.length > 0" class="art-grid">
+            <RouterLink
+              v-for="(article, i) in visible"
+              :key="article.uuid"
+              :to="`/articles/${article.uuid}`"
             >
-              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-              </svg>
-            </button>
-            <button
-              class="view-btn"
-              :class="{ active: viewMode === 'list' }"
-              @click="toggleMode('list')"
-              title="無限捲動清單模式"
+              <article class="art-card-g" :data-testid="'articles-card-' + i">
+                <span class="art-card-thumb" :data-tag="article.tags?.[0] ?? ''" />
+                <div class="art-card-body">
+                  <div class="art-card-meta">
+                    <span>{{ article.tags?.[0] ?? 'Article' }}</span>
+                    <span>·</span>
+                    <span>{{ formatDate(article.publishedAt) }}</span>
+                  </div>
+                  <h4><a>{{ article.title }}</a></h4>
+                  <p>{{ article.summary }}</p>
+                  <div class="art-card-foot">
+                    <div class="art-card-tags">
+                      <button
+                        v-for="tag in article.tags.slice(0, 2)"
+                        :key="tag"
+                        class="mini-tag"
+                        @click.prevent="handleToggleTag(tag)"
+                      >#{{ tag }}</button>
+                    </div>
+                    <div class="art-card-stats">
+                      <span>{{ article.viewCount }} views</span>
+                      <span>{{ article.likeCount }} ♡</span>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            </RouterLink>
+          </div>
+
+          <!-- List -->
+          <div v-else-if="view === 'list' && visible.length > 0" class="art-list">
+            <RouterLink
+              v-for="(article, i) in visible"
+              :key="article.uuid"
+              :to="`/articles/${article.uuid}`"
+              class="art-row"
             >
-              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
+              <span class="art-row-n">{{ String(i + 1).padStart(2, '0') }}</span>
+              <span class="art-row-thumb" :data-tag="article.tags?.[0] ?? ''" />
+              <article class="art-row-body" :data-testid="'articles-card-' + i">
+                <div class="art-row-meta">
+                  <span>{{ article.tags?.[0] ?? 'Article' }}</span>
+                  <span>·</span>
+                  <span>{{ formatDate(article.publishedAt) }}</span>
+                </div>
+                <h3><a>{{ article.title }}</a></h3>
+                <p>{{ article.summary }}</p>
+              </article>
+              <div class="art-row-stats">
+                <div><b>{{ article.viewCount }}</b><span>views</span></div>
+                <div><b>{{ article.likeCount }}</b><span>likes</span></div>
+                <div><b>{{ article.commentCount }}</b><span>replies</span></div>
+              </div>
+              <span class="art-row-arr">→</span>
+            </RouterLink>
+          </div>
+
+          <!-- Empty -->
+          <div v-else-if="!isLoading" class="es-wrap" data-testid="articles-empty-state">
+            <div class="es-icon">∅</div>
+            <h3 class="es-title">沒有符合條件的文章。</h3>
+            <p class="es-sub">試著放寬條件，或清除目前的篩選。</p>
+            <button class="es-cta" @click="clearAll">Clear all filters</button>
+          </div>
+
+          <!-- Pagination (pages mode) -->
+          <div v-if="paging === 'pages' && totalPages > 0 && !isLoading" class="art-pagination">
+            <button class="page-btn" :disabled="page === 1" @click="goToPage(page - 1)">←</button>
+            <button
+              v-for="p in totalPages"
+              :key="p"
+              class="page-btn"
+              :class="{ active: page === p }"
+              @click="goToPage(p)"
+            >{{ p }}</button>
+            <button class="page-btn" :disabled="page === totalPages" @click="goToPage(page + 1)">→</button>
+          </div>
+
+          <!-- Infinite scroll sentinel -->
+          <div
+            v-show="paging === 'infinite' && visible.length > 0"
+            ref="sentinel"
+            class="art-sentinel"
+          >
+            <div v-if="page * PER_PAGE < filtered.length" class="sk-pulse" style="width:100px;height:4px;" />
+            <span v-else-if="allArticles.length > 0" class="mono" style="font-size:11px;color:var(--muted-2);letter-spacing:.14em;text-transform:uppercase;">到底了</span>
           </div>
         </div>
       </div>
     </div>
-
-    <!-- Content area -->
-    <div class="articles-content">
-
-      <!-- Loading skeleton -->
-      <div v-if="isLoading" class="loading-state">
-        <div class="loading-dots">
-          <div class="dot animate-bounce"></div>
-          <div class="dot animate-bounce" style="animation-delay: 0.15s"></div>
-          <div class="dot animate-bounce" style="animation-delay: 0.3s"></div>
-        </div>
-      </div>
-
-      <!-- Article grid -->
-      <div
-        v-else-if="articles.length > 0"
-        class="article-grid"
-        :class="viewMode === 'list' ? 'article-grid--list' : ''"
-      >
-        <RouterLink
-          v-for="(article, i) in articles"
-          :key="article.uuid"
-          :to="`/articles/${article.uuid}`"
-          class="article-card-link"
-        >
-          <article
-            class="article-card"
-            :data-testid="'articles-card-' + i"
-          >
-            <!-- Cover image / fallback -->
-            <div class="article-card-cover">
-              <img
-                v-if="article.coverImageUrl"
-                :src="article.coverImageUrl"
-                :alt="article.title"
-                loading="lazy"
-                class="cover-img"
-              />
-              <div v-else class="cover-fallback"></div>
-            </div>
-
-            <!-- Card body -->
-            <div class="article-card-body">
-              <!-- Category / tag pill -->
-              <div class="article-card-meta">
-                <span class="article-tag-pill">{{ article.tags?.[0] ?? 'Article' }}</span>
-                <span class="meta-sep">·</span>
-                <span class="meta-date">{{ article.publishedAt }}</span>
-              </div>
-
-              <!-- Title -->
-              <h3 class="article-card-title">{{ article.title }}</h3>
-
-              <!-- Excerpt / summary -->
-              <p class="article-card-excerpt">{{ article.summary }}</p>
-
-              <!-- Author + date meta -->
-              <div class="article-card-footer">
-                <span class="article-author">{{ article.authorNickname }}</span>
-                <span class="meta-sep">·</span>
-                <span class="article-views">{{ article.viewCount }} views</span>
-              </div>
-            </div>
-          </article>
-        </RouterLink>
-      </div>
-
-      <!-- Empty state -->
-      <div
-        v-else-if="!isLoading"
-        class="empty-state"
-        data-testid="articles-empty-state"
-      >
-        <div class="empty-state-mark">∅</div>
-        <h3 class="empty-state-title">沒有找到符合條件的文章。</h3>
-        <p class="empty-state-hint">試著放寬條件，或清除目前的篩選。</p>
-      </div>
-
-      <!-- Pagination (grid mode) -->
-      <div v-if="viewMode === 'grid' && maxGridPages > 1 && !isLoading" class="pagination">
-        <button
-          @click="goToPage(gridPage - 1)"
-          :disabled="gridPage === 1"
-          class="page-btn page-btn--arrow"
-        >←</button>
-
-        <button
-          v-for="page in maxGridPages"
-          :key="page"
-          @click="goToPage(page)"
-          class="page-btn"
-          :class="{ active: gridPage === page }"
-        >{{ page }}</button>
-
-        <button
-          @click="goToPage(gridPage + 1)"
-          :disabled="gridPage === maxGridPages"
-          class="page-btn page-btn--arrow"
-        >→</button>
-      </div>
-
-      <!-- Infinite scroll sentinel (list mode) -->
-      <div
-        v-show="viewMode === 'list' && articles.length > 0"
-        ref="observerTarget"
-        class="scroll-sentinel"
-      >
-        <div v-if="isLoadingMore" class="loading-dots">
-          <div class="dot animate-bounce"></div>
-          <div class="dot animate-bounce" style="animation-delay: 0.15s"></div>
-          <div class="dot animate-bounce" style="animation-delay: 0.3s"></div>
-          <span class="loading-label">載入下一頁中...</span>
-        </div>
-        <div v-else-if="noMoreData" class="sentinel-end">
-          已經到底囉！
-        </div>
-      </div>
-
-    </div>
-  </main>
+  </section>
 </template>
 
 <style scoped>
-/* ── Page shell ─────────────────────────────────────────────── */
-.articles-page {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: var(--bg);
-  color: var(--ink);
+.art-pagination {
+  display: flex; justify-content: center; gap: 4px; margin-top: 3rem;
 }
-
-/* ── Sticky filter bar ──────────────────────────────────────── */
-.filter-bar-sticky {
-  position: sticky;
-  top: 0;
-  z-index: 40;
-  background: var(--bg);
-  border-bottom: 1px solid var(--border);
-  padding: 100px 2rem 1rem;
-}
-
-.filter-bar {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-  max-width: 80rem;
-  margin: 0 auto;
-}
-
-/* ── Tag chips ──────────────────────────────────────────────── */
-.tag-chips {
-  display: flex;
-  gap: 0.375rem;
-  flex-wrap: wrap;
-}
-
-.tag-chip {
-  padding: 5px 14px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--ink-2);
-  font-size: 12.5px;
-  cursor: pointer;
-  transition: all 0.18s;
-}
-
-.tag-chip:hover {
-  border-color: var(--border-strong);
-  color: var(--ink);
-}
-
-.tag-chip.active {
-  background: var(--ink);
-  color: var(--bg);
-  border-color: var(--ink);
-}
-
-/* ── Right controls ─────────────────────────────────────────── */
-.filter-bar-right {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-left: auto;
-}
-
-/* ── Sort select ────────────────────────────────────────────── */
-.sort-select {
-  padding: 6px 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
-  color: var(--ink);
-  font: inherit;
-  font-size: 12.5px;
-  cursor: pointer;
-  outline: none;
-  transition: border-color 0.18s;
-}
-
-.sort-select:hover {
-  border-color: var(--border-strong);
-}
-
-/* ── View toggle ────────────────────────────────────────────── */
-.view-toggle {
-  display: inline-flex;
-  gap: 2px;
-  padding: 2px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--bg-sub);
-}
-
-.view-btn {
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 28px;
-  border-radius: 6px;
-  color: var(--muted);
-  transition: all 0.15s;
-}
-
-.view-btn:hover {
-  color: var(--ink);
-}
-
-.view-btn.active {
-  background: var(--surface);
-  color: var(--ink);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-}
-
-/* ── Content area ───────────────────────────────────────────── */
-.articles-content {
-  flex: 1;
-  max-width: 80rem;
-  margin: 0 auto;
-  width: 100%;
-  padding: 2rem 2rem 5rem;
-}
-
-/* ── Loading state ──────────────────────────────────────────── */
-.loading-state {
-  display: flex;
-  justify-content: center;
-  padding: 5rem 0;
-}
-
-.loading-dots {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  opacity: 0.6;
-}
-
-.dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--ink);
-}
-
-/* ── Article grid ───────────────────────────────────────────── */
-.article-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 2rem 1.5rem;
-  padding-top: 2rem;
-}
-
-.article-grid--list {
-  grid-template-columns: 1fr;
-  gap: 1.5rem;
-}
-
-/* ── Article card link wrapper ──────────────────────────────── */
-.article-card-link {
-  text-decoration: none;
-  color: inherit;
-  display: block;
-}
-
-/* ── Article card ───────────────────────────────────────────── */
-.article-card {
-  display: flex;
-  flex-direction: column;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  overflow: hidden;
-  background: var(--surface);
-  transition: all 0.25s;
-  height: 100%;
-}
-
-.article-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-  border-color: var(--border-strong);
-}
-
-/* Cover */
-.article-card-cover {
-  aspect-ratio: 16 / 10;
-  overflow: hidden;
-  background: var(--bg-sub);
-}
-
-.cover-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.cover-fallback {
-  width: 100%;
-  height: 100%;
-  background:
-    repeating-linear-gradient(135deg, rgba(10, 10, 11, 0.06) 0 2px, transparent 2px 14px),
-    linear-gradient(180deg, var(--bg-sub), var(--surface));
-}
-
-/* Card body */
-.article-card-body {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding: 1.25rem;
-  flex: 1;
-}
-
-.article-card-meta {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--muted-2);
-}
-
-.article-tag-pill {
-  padding: 2px 8px;
-  border-radius: 999px;
-  border: 1px solid var(--divider);
-  background: transparent;
-  color: var(--muted);
-  font-size: 10px;
-  letter-spacing: 0.12em;
-}
-
-.meta-sep {
-  color: var(--muted-2);
-}
-
-.meta-date {
-  color: var(--muted-2);
-}
-
-.article-card-title {
-  font-size: 17px;
-  font-weight: 500;
-  line-height: 1.35;
-  letter-spacing: -0.005em;
-  color: var(--ink);
-  margin: 0;
-}
-
-.article-card-excerpt {
-  font-size: 13px;
-  color: var(--muted);
-  line-height: 1.6;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  flex: 1;
-  margin: 0;
-}
-
-.article-card-footer {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 11px;
-  color: var(--muted);
-  margin-top: auto;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--divider);
-}
-
-.article-author {
-  color: var(--ink-2);
-  font-weight: 500;
-}
-
-.article-views {
-  color: var(--muted-2);
-}
-
-/* ── Empty state ────────────────────────────────────────────── */
-.empty-state {
-  padding: 5rem 0;
-  text-align: center;
-}
-
-.empty-state-mark {
-  font-size: 80px;
-  color: var(--muted-2);
-  opacity: 0.3;
-  line-height: 1;
-  margin-bottom: 0.5rem;
-}
-
-.empty-state-title {
-  font-size: 22px;
-  font-weight: 500;
-  color: var(--ink);
-  margin: 0 0 0.5rem;
-}
-
-.empty-state-hint {
-  color: var(--muted);
-  font-size: 14px;
-}
-
-/* ── Pagination ─────────────────────────────────────────────── */
-.pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 4px;
-  margin-top: 3rem;
-}
-
 .page-btn {
-  min-width: 36px;
-  height: 36px;
-  padding: 0 10px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--ink-2);
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.15s;
-  display: grid;
-  place-items: center;
+  min-width: 36px; height: 36px; padding: 0 10px; border-radius: 8px;
+  border: 1px solid var(--border); background: transparent; color: var(--ink-2);
+  font-size: 13px; cursor: pointer; transition: all .15s; display: grid; place-items: center;
 }
-
-.page-btn:hover:not(:disabled) {
-  background: var(--bg-sub);
-  color: var(--ink);
+.page-btn:hover:not(:disabled) { background: var(--bg-sub); color: var(--ink); }
+.page-btn.active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.page-btn:disabled { opacity: .3; cursor: not-allowed; }
+.art-sentinel {
+  display: flex; justify-content: center; align-items: center; min-height: 4rem; margin-top: 2rem;
 }
-
-.page-btn.active {
-  background: var(--ink);
-  color: var(--bg);
-  border-color: var(--ink);
+.mini-tag {
+  font-family: var(--f-mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--muted); border: 1px solid var(--divider); border-radius: 4px;
+  padding: 2px 6px; background: transparent; cursor: pointer;
 }
-
-.page-btn:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-
-/* ── Infinite scroll sentinel ───────────────────────────────── */
-.scroll-sentinel {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 6rem;
-  margin-top: 2rem;
-}
-
-.loading-label {
-  margin-left: 0.5rem;
-  font-size: 12px;
-  letter-spacing: 0.12em;
-  color: var(--muted);
-}
-
-.sentinel-end {
-  font-size: 12px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--muted-2);
-  padding: 0.75rem 1.5rem;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-}
-
-/* ── Responsive ─────────────────────────────────────────────── */
-@media (max-width: 768px) {
-  .filter-bar-sticky {
-    padding-top: 80px;
-    padding-left: 1rem;
-    padding-right: 1rem;
-  }
-
-  .articles-content {
-    padding-left: 1rem;
-    padding-right: 1rem;
-  }
-
-  .article-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .filter-bar-right {
-    margin-left: 0;
-  }
-}
+.mini-tag:hover { color: var(--accent); border-color: var(--accent); }
 </style>

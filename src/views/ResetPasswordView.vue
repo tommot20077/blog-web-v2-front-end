@@ -72,8 +72,7 @@ const handleSubmit = async () => {
     <div
       v-if="!token"
       data-testid="auth-reset-invalid-token"
-      class="rounded-xl p-4 text-center text-sm text-red-500"
-      style="background: rgba(239, 68, 68, 0.1)"
+      class="auth-msg auth-msg-error"
     >
       無效的重設連結
     </div>
@@ -82,45 +81,42 @@ const handleSubmit = async () => {
     <form
       v-else
       @submit.prevent="handleSubmit"
+      class="auth-form"
     >
-      <div class="flex flex-col gap-4">
-        <FormField
-          data-testid="auth-reset-field-password"
-          v-model="form.password"
-          label="新密碼"
-          type="password"
-          placeholder="請輸入新密碼"
-          :error="errors.password"
-          :disabled="isSubmitting"
-        />
+      <FormField
+        data-testid="auth-reset-field-password"
+        v-model="form.password"
+        label="新密碼"
+        type="password"
+        placeholder="請輸入新密碼"
+        :error="errors.password"
+        :disabled="isSubmitting"
+      />
 
-        <FormField
-          data-testid="auth-reset-field-confirm"
-          v-model="form.confirmPassword"
-          label="確認密碼"
-          type="password"
-          placeholder="請再次輸入新密碼"
-          :error="errors.confirmPassword"
-          :disabled="isSubmitting"
-        />
+      <FormField
+        data-testid="auth-reset-field-confirm"
+        v-model="form.confirmPassword"
+        label="確認密碼"
+        type="password"
+        placeholder="請再次輸入新密碼"
+        :error="errors.confirmPassword"
+        :disabled="isSubmitting"
+      />
 
-        <button
-          data-testid="auth-reset-submit"
-          type="submit"
-          class="w-full rounded-full py-2.5 text-sm font-medium text-white transition-opacity"
-          style="background: var(--accent)"
-          :disabled="isSubmitting"
-        >
-          {{ isSubmitting ? '重設中...' : '重設密碼' }}
-        </button>
-      </div>
+      <button
+        data-testid="auth-reset-submit"
+        type="submit"
+        class="auth-submit-btn"
+        :disabled="isSubmitting"
+      >
+        {{ isSubmitting ? '重設中...' : '重設密碼' }}
+      </button>
     </form>
 
     <template #footer>
       <RouterLink
         to="/login"
-        class="opacity-70 hover:opacity-100 transition-opacity"
-        style="color: var(--ink)"
+        class="auth-link"
       >
         回到登入
       </RouterLink>

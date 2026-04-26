@@ -18,6 +18,9 @@ export function createTestRouter(initialRoute = '/') {
       { path: '/editor/:uuid', name: 'editor-edit', component: StubComponent, props: true },
       { path: '/my-articles', name: 'my-articles', component: StubComponent },
       { path: '/admin/review', name: 'admin-review', component: StubComponent },
+      { path: '/settings', name: 'settings', component: StubComponent },
+      { path: '/tags/:slug', name: 'tag', component: StubComponent, props: true },
+      { path: '/author/:handle', name: 'author', component: StubComponent, props: true },
       { path: '/:pathMatch(.*)*', name: 'not-found', component: StubComponent },
     ],
   })

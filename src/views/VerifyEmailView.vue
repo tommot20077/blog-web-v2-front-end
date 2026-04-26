@@ -49,8 +49,7 @@ onMounted(() => {
     <div
       v-if="!token"
       data-testid="auth-verify-no-token"
-      class="rounded-xl p-4 text-center text-sm text-red-500"
-      style="background: rgba(239, 68, 68, 0.1)"
+      class="auth-msg auth-msg-error"
     >
       無效的驗證連結
     </div>
@@ -58,8 +57,7 @@ onMounted(() => {
     <!-- 載入中 -->
     <div
       v-else-if="isLoading"
-      class="text-center text-sm"
-      style="color: var(--ink)"
+      class="auth-msg auth-msg-info"
     >
       驗證中...
     </div>
@@ -68,18 +66,14 @@ onMounted(() => {
     <div
       v-else-if="isSuccess"
       data-testid="auth-verify-success"
-      class="flex flex-col items-center gap-4"
+      class="auth-form"
     >
-      <div
-        class="rounded-xl p-4 text-center text-sm"
-        style="background: rgba(34, 197, 94, 0.1); color: rgb(34, 197, 94)"
-      >
+      <div class="auth-msg auth-msg-success">
         信箱驗證成功！
       </div>
       <RouterLink
         to="/login"
-        class="text-sm opacity-70 hover:opacity-100 transition-opacity"
-        style="color: var(--accent)"
+        class="auth-link"
       >
         前往登入
       </RouterLink>
@@ -89,19 +83,16 @@ onMounted(() => {
     <div
       v-else-if="errorMessage"
       data-testid="auth-verify-failure"
-      class="flex flex-col items-center gap-4"
+      class="auth-form"
     >
-      <div
-        class="rounded-xl p-4 text-center text-sm text-red-500"
-        style="background: rgba(239, 68, 68, 0.1)"
-      >
-        <p class="font-medium">驗證失敗</p>
-        <p class="mt-1 opacity-70">{{ errorMessage }}</p>
+      <div class="auth-msg auth-msg-error">
+        <p style="font-weight:600">驗證失敗</p>
+        <p style="opacity:.7;margin-top:4px">{{ errorMessage }}</p>
       </div>
       <button
         data-testid="auth-verify-resend-btn"
-        class="text-sm opacity-70 hover:opacity-100 transition-opacity"
-        style="color: var(--accent)"
+        class="auth-link"
+        style="background:none;border:none;cursor:pointer;padding:0"
         @click="verify"
       >
         重新發送驗證信

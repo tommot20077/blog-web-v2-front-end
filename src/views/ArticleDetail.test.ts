@@ -70,14 +70,13 @@ describe('ArticleDetail 頁面', () => {
     expect(tagsEl?.textContent).toContain('TypeScript')
   })
 
-  it('找不到文章時觸發 watchEffect 重導至 not-found 路由（用 replace 避免 Back 循環）', async () => {
+  it('找不到文章時直接顯示「找不到這一頁。」而不依賴路由跳轉', async () => {
     vi.mocked(articleService.getArticleByUuid).mockResolvedValue(null)
 
-    const { router } = await renderArticleDetail()
-    const replaceSpy = vi.spyOn(router, 'replace')
+    const { getByText } = await renderArticleDetail()
     await flushPromises()
 
-    expect(replaceSpy).toHaveBeenCalledWith({ name: 'not-found' })
+    expect(getByText('找不到這一頁。')).toBeInTheDocument()
   })
 
   it('有瀏覽歷史時，點擊「回列表」呼叫 router.back()', async () => {

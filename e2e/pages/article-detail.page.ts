@@ -29,12 +29,23 @@ export class ArticleDetailPage {
     this.commentCount = page.locator('[data-testid="comment-count"]')
   }
 
-  async goto(uuid: string) {
-    await this.page.goto(`/articles/${uuid}`)
+  async goto(uuid?: string) {
+    if (uuid) {
+      await this.page.goto(`/articles/${uuid}`)
+      return
+    }
+    await this.page.goto('/articles')
+    await this.page.locator('article').first().waitFor({ state: 'visible', timeout: 10000 })
+    await this.page.locator('article').first().click()
+    await this.page.waitForURL(/\/articles\//, { timeout: 10000 })
   }
 
   /** 等待文章載入完成 */
   async waitForArticleLoaded() {
     await this.articleTitle.waitFor({ state: 'visible' })
+  }
+
+  async waitForContent() {
+    await this.waitForArticleLoaded()
   }
 }

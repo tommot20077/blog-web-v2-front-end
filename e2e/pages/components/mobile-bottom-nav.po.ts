@@ -10,7 +10,7 @@ export class MobileBottomNavPO {
 
   constructor(page: Page) {
     this.nav = page.locator('[data-testid="mobile-bottom-nav"]')
-    this.tabs = page.locator('[data-testid="nav-tab"]')
+    this.tabs = this.nav.locator('[data-testid="nav-tab"]')
     this.homeTab = this.tabs.nth(0)
     this.articlesTab = this.tabs.nth(1)
     this.searchTab = this.tabs.nth(2)
