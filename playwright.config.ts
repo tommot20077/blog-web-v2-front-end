@@ -12,7 +12,9 @@ export default defineConfig({
   timeout: 20000,
   reporter: [['html', { open: 'never' }], ['list']],
   use: {
-    baseURL: 'http://127.0.0.1:5500',
+    // 用 localhost (而非 127.0.0.1) 與 backend hostname 對齊，
+    // 避免 SameSite=Strict 把 refresh token cookie 視為跨 site 而擋掉
+    baseURL: 'http://localhost:5500',
     actionTimeout: 8000,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
@@ -23,8 +25,8 @@ export default defineConfig({
   ],
   globalSetup: USE_MOCK ? undefined : './e2e/global-setup.ts',
   webServer: {
-    command: 'npx vite --host 127.0.0.1 --port 5500',
-    url: 'http://127.0.0.1:5500',
+    command: 'npx vite --host localhost --port 5500',
+    url: 'http://localhost:5500',
     reuseExistingServer: !process.env.CI,
     env: { VITE_USE_MOCK: USE_MOCK ? 'true' : 'false' },
   },

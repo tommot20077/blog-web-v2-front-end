@@ -16,7 +16,9 @@ app.provide(headSymbol, head)
 app.mixin(VueHeadMixin)
 app.mount('#app')
 
-// E2E 測試用：開發模式下將 router 掛到 window，讓 Playwright 可觸發 SPA 導航（含 real-backend 模式）
+// E2E 測試用：開發模式下將 router 與 pinia 掛到 window，讓 Playwright 可觸發 SPA 導航
+// 並操作 store state（例如模擬 access token 過期，驗證 axios refresh interceptor）
 if (import.meta.env.DEV) {
   ;(window as unknown as Record<string, unknown>).__router = router
+  ;(window as unknown as Record<string, unknown>).__pinia = pinia
 }
