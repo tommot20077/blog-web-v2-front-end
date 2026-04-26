@@ -77,7 +77,7 @@ describe('ArticleDetail 頁面', () => {
     const replaceSpy = vi.spyOn(router, 'replace')
     await flushPromises()
 
-    expect(replaceSpy).toHaveBeenCalledWith({ name: 'not-found' })
+    expect(replaceSpy).toHaveBeenCalledWith({ name: 'not-found', params: { pathMatch: ['not-found'] } })
   })
 
   it('有瀏覽歷史時，點擊「回列表」呼叫 router.back()', async () => {

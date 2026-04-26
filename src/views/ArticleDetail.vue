@@ -19,7 +19,7 @@ const articleEl = ref<HTMLElement | null>(null)
 const { progress } = useReadingProgress(articleEl)
 
 watchEffect(() => {
-  if (!isLoading.value && !article.value) router.replace({ name: 'not-found' })
+  if (!isLoading.value && !article.value) router.replace({ name: 'not-found', params: { pathMatch: ['not-found'] } })
 })
 
 onMounted(() => window.scrollTo({ top: 0, behavior: 'auto' }))

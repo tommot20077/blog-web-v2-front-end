@@ -8,6 +8,7 @@ import { useGlobalReveal } from './composables/useReveal'
 import NavigationBar from './components/layout/NavigationBar.vue'
 import AppFooter from './components/layout/AppFooter.vue'
 import ToastContainer from './components/ui/ToastContainer.vue'
+import MobileBottomNav from './components/layout/MobileBottomNav.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -69,5 +70,6 @@ onUnmounted(() => window.removeEventListener('keydown', onGlobalKeyDown))
       </transition>
     </router-view>
     <AppFooter />
+    <MobileBottomNav />
   </template>
 </template>

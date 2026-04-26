@@ -35,11 +35,11 @@ test.describe('按鈕互動 — 色彩對比度（WCAG AA）', () => {
     // 取得「Frontend」按鈕（未選中狀態）的 computed color
     const colorInfo = await page.locator('button', { hasText: 'Frontend' }).first().evaluate((btn) => {
       const style = window.getComputedStyle(btn)
-      const parentStyle = window.getComputedStyle(document.documentElement)
+      const bodyStyle = window.getComputedStyle(document.body)
       return {
         textColor: style.color,
         bgColor: style.backgroundColor,
-        pageBgColor: parentStyle.backgroundColor,
+        pageBgColor: bodyStyle.backgroundColor,
       }
     })
 
@@ -72,7 +72,7 @@ test.describe('按鈕互動 — 色彩對比度（WCAG AA）', () => {
 
     const colorInfo = await page2Btn.evaluate((btn) => {
       const style = window.getComputedStyle(btn)
-      const pageBgColor = window.getComputedStyle(document.documentElement).backgroundColor
+      const pageBgColor = window.getComputedStyle(document.body).backgroundColor
       return { textColor: style.color, bgColor: style.backgroundColor, pageBgColor }
     })
 

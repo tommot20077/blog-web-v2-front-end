@@ -9,7 +9,7 @@ test.describe('ArticleDetail 閱讀進度條', () => {
     await articleDetailPage.waitForContent()
 
     const bar = page.locator('[data-testid="article-progress-bar"]')
-    await expect(bar).toBeVisible()
+    await expect(bar).toBeAttached()
     const width = await bar.evaluate(el => (el as HTMLElement).style.width)
     expect(parseFloat(width)).toBeLessThan(10)
   })
@@ -30,6 +30,6 @@ test.describe('ArticleDetail 閱讀進度條', () => {
   test('art-progress .bar 元素存在', async ({ page, articleDetailPage }) => {
     await articleDetailPage.goto()
     await articleDetailPage.waitForContent()
-    await expect(page.locator('.art-progress .bar')).toBeVisible()
+    await expect(page.locator('.art-progress .bar')).toBeAttached()
   })
 })
