@@ -105,8 +105,8 @@ describe('ArticleList 頁面', () => {
     const { container } = renderWithRouter(ArticleList)
     await flushPromises()
 
-    const vuePill = Array.from(container.querySelectorAll('.art-tag')).find(
-      el => el.textContent?.trim() === 'Vue',
+    const vuePill = Array.from(container.querySelectorAll('.mini-tag')).find(
+      el => el.textContent?.includes('Vue'),
     ) as HTMLElement | undefined
 
     if (vuePill) {
@@ -151,7 +151,7 @@ describe('ArticleList 頁面', () => {
     const { container } = renderWithRouter(ArticleList)
     await flushPromises()
 
-    const vuePill = Array.from(container.querySelectorAll('.art-tag')).find(
+    const vuePill = Array.from(container.querySelectorAll('.mini-tag')).find(
       el => el.textContent?.includes('Vue'),
     ) as HTMLElement | undefined
 
