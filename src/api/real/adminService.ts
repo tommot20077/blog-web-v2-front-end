@@ -11,7 +11,8 @@ export const adminService = {
 
   async getPendingCount(): Promise<number> {
     try {
-      return await apiClient.get<unknown, number>('/api/v1/admin/articles/pending/count')
+      const page = await this.getPendingArticles(1, 1)
+      return page.total
     } catch (error) {
       console.error('Failed to get pending count:', error)
       return 0
