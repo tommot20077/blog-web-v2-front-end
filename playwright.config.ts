@@ -5,10 +5,13 @@ const USE_MOCK = process.env.E2E_MOCK === '1'
 export default defineConfig({
   testDir: './e2e',
   testMatch: '**/*.spec.ts',
-  fullyParallel: true,
+  // 對接真實 dev backend 時, 多 spec 同時建/刪 article 會撞
+  // (如 reader-reads-article 點第一篇時, admin-review 正在 publish 影響列表 ordering)
+  // 改成串行確保 fixture 穩定; CI 上的 mock 環境可改回並行
+  fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: 1,
   timeout: 20000,
   reporter: [['html', { open: 'never' }], ['list']],
   use: {
