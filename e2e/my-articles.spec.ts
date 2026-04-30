@@ -6,6 +6,8 @@ const BACKEND = 'http://localhost:9010'
 test.describe.configure({ mode: 'serial' })
 
 test.describe('My Articles (F7/F8)', () => {
+  test.skip(process.env.E2E_MOCK === '1', '需要真實後端，在 e2e-integration job 執行')
+
   test('F7: /my-articles 列表 + DRAFT 過濾顯示草稿', async ({ page, request }) => {
     const author = getCredentials('author')
     const loginResp = await request.post(`${BACKEND}/api/v1/auth/login`, {

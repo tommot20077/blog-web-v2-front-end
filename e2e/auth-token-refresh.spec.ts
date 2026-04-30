@@ -20,6 +20,8 @@ async function loginUI(page: Page, email: string, password: string) {
 test.describe.configure({ mode: 'serial' })
 
 test.describe('Auth token refresh (A6/A7/A8)', () => {
+  test.skip(process.env.E2E_MOCK === '1', '需要真實後端，在 e2e-integration job 執行')
+
   test('A6: 未驗證帳號 login 顯示驗證提示', async ({ page, request }) => {
     const ts = Date.now()
     const email = `unverified_${ts}@test.local`

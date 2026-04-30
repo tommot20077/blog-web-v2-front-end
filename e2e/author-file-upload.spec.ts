@@ -42,6 +42,8 @@ test.describe('作者上傳封面圖', () => {
 import { getCredentials } from './fixtures/auth'
 
 test.describe('檔案上傳邊界 API (G3/G4/G8)', () => {
+  test.skip(process.env.E2E_MOCK === '1', '需要真實後端，在 e2e-integration job 執行')
+
   test('G3: png MIME 上傳成功並回 FileUploadResponse', async ({ request }) => {
     const author = getCredentials('author')
     const loginResp = await request.post('http://localhost:9010/api/v1/auth/login', {

@@ -76,6 +76,8 @@ async function loginAsAdminViaUI(page: import('@playwright/test').Page): Promise
 test.describe.configure({ mode: 'serial' })
 
 test.describe('Admin Review (H1/H3/H4/H5)', () => {
+  test.skip(process.env.E2E_MOCK === '1', '需要真實後端，在 e2e-integration job 執行')
+
   test('H1+H3: admin 看到 pending 列表，點「通過」後文章消失', async ({ page, request }) => {
     const { authorToken, adminToken, categoryUuid } = await setupTokens(request)
     const title = `Approve Test ${Date.now()}`

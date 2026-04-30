@@ -6,6 +6,8 @@ const BACKEND = 'http://localhost:9010'
 test.describe.configure({ mode: 'serial' })
 
 test.describe('Search advanced (D3/D4/D5)', () => {
+  test.skip(process.env.E2E_MOCK === '1', '需要真實後端，在 e2e-integration job 執行')
+
   test('D3: 搜尋歷史 — 登入 user 搜過後 history 包含該關鍵字, 清除後消失', async ({ request }) => {
     const reader = getCredentials('reader')
     const loginResp = await request.post(`${BACKEND}/api/v1/auth/login`, {

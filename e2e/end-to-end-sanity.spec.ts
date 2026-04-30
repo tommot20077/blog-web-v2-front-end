@@ -41,6 +41,7 @@ async function logoutUI(page: Page) {
 }
 
 test('C2 端到端 sanity: 完整 user journey 一條龍', async ({ page, request }) => {
+  test.skip(process.env.E2E_MOCK === '1', '需要真實後端，在 e2e-integration job 執行')
   test.setTimeout(120_000)
 
   const ts = Date.now()

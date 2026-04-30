@@ -78,6 +78,7 @@ test.describe('作者撰寫文章', () => {
 
   // F2/F3/F10 補強
   test('F2: 勾選兩個分類後儲存, backend 應收到兩個 categoryIds', async ({ page, editorPage }) => {
+    test.skip(process.env.E2E_MOCK === '1', '需要真實後端，在 e2e-integration job 執行')
     await editorPage.fillTitle(`E2E 多分類 ${Date.now()}`)
     await editorPage.fillContent('multi-category test')
 
@@ -105,6 +106,7 @@ test.describe('作者撰寫文章', () => {
   })
 
   test('F10: 特殊字元 (emoji + 中文 + 全形) 標題能 round-trip 正常存讀', async ({ request }) => {
+    test.skip(process.env.E2E_MOCK === '1', '需要真實後端，在 e2e-integration job 執行')
     const author = (await import('./fixtures/auth')).getCredentials('author')
     const loginResp = await request.post('http://localhost:9010/api/v1/auth/login', {
       data: { identifier: author.email, password: author.password },

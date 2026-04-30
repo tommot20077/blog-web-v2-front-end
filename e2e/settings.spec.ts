@@ -15,6 +15,8 @@ async function loginUI(page: import('@playwright/test').Page, email: string, pas
 test.describe.configure({ mode: 'serial' })
 
 test.describe('Settings (B1/B2/B3/B4)', () => {
+  test.skip(process.env.E2E_MOCK === '1', '需要真實後端，在 e2e-integration job 執行')
+
   test('B1: /settings 載入 user 資料 (nickname 帶入既有值)', async ({ page }) => {
     const author = getCredentials('author')
     await loginUI(page, author.email, author.password)

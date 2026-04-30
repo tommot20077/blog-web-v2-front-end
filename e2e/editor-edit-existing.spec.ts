@@ -4,6 +4,8 @@ import { getCredentials } from './fixtures/auth'
 const BACKEND = 'http://localhost:9010'
 
 test.describe('Editor - edit existing article (F5/F8)', () => {
+  test.skip(process.env.E2E_MOCK === '1', '需要真實後端，在 e2e-integration job 執行')
+
   test('載入既有 draft 應正確帶入 title 與 content', async ({ page, request }) => {
     const creds = getCredentials('author')
 
