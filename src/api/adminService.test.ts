@@ -57,11 +57,15 @@ describe('adminService', () => {
       )
     })
 
-    it('getPendingCount 呼叫 GET /api/v1/admin/articles/pending/count 並回傳數字', async () => {
-      vi.mocked(apiClient.get).mockResolvedValue(5)
+    it('getPendingCount 呼叫 GET /api/v1/admin/articles/pending 並以 total 回傳數字', async () => {
+      const mockPage = { records: [], total: 5, size: 1, current: 1, pages: 5 }
+      vi.mocked(apiClient.get).mockResolvedValue(mockPage)
       const result = await adminService.getPendingCount()
       expect(result).toBe(5)
-      expect(apiClient.get).toHaveBeenCalledWith('/api/v1/admin/articles/pending/count')
+      expect(apiClient.get).toHaveBeenCalledWith(
+        '/api/v1/admin/articles/pending',
+        { params: { page: 1, size: 1 } }
+      )
     })
 
     it('publishArticle 呼叫 POST /api/v1/articles/:uuid/publish', async () => {
