@@ -1,8 +1,14 @@
 import { execSync } from 'child_process'
+import path from 'path'
+import { fileURLToPath } from 'url'
 import { test, expect, type Page } from '@playwright/test'
 import { getCredentials } from '../fixtures/auth'
 
 const BACKEND = 'http://localhost:9010'
+const IS_CI = process.env.E2E_CI === '1'
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+const COMPOSE_FILE = path.join(__dirname, '../../docker-compose.e2e.yml')
 
 interface PiniaWindow {
   __pinia: { state: { value: { auth: { accessToken: string | null } } } }
@@ -11,10 +17,14 @@ interface PiniaWindow {
 
 function activateUser(email: string, role: 'AUTHOR' | 'USER' | 'ADMIN' = 'AUTHOR'): void {
   const sql = `UPDATE users SET email_verified=true, status='ACTIVE', role='${role}' WHERE email='${email}'`
-  execSync(
-    `docker run --rm -e PGPASSWORD=tommot40 postgres:15-alpine psql -h 10.0.0.214 -p 30120 -U luca -d blog_v2_db -c "${sql}"`,
-    { stdio: 'pipe' },
-  )
+  const cmd = IS_CI
+    ? `docker compose -f "${COMPOSE_FILE}" exec -T postgres psql -U e2e_user -d blog_e2e -c "${sql}"`
+    : `kubectl exec -n infra-dev deploy/postgres -- psql -U luca -d blog_v2_db -c "${sql}"`
+  try {
+    execSync(cmd, { stdio: 'pipe' })
+  } catch {
+    console.warn(`Could not activate ${email} — skipping`)
+  }
 }
 
 async function loginUI(page: Page, email: string, password: string) {
