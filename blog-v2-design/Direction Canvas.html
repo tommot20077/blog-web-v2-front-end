@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1440" />
+<title>Blog Direction Canvas · v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Geist:wght@300;400;500;600;700;900&family=Geist+Mono:wght@400;500&family=Noto+Sans+TC:wght@300;400;500;600;700;900&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#ededed; --ink:#0b0b0b; --muted:#6b6b6b;
+    --accent:#FF8D28;
+    --card-light:#fbfbfb; --card-light-sub:#f2f2f2;
+    --card-dark:#161617; --card-dark-sub:#1d1d1f;
+    --text-dark:#e9e9ea; --text-dark-sub:#a4a4a7;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Space Grotesk","Noto Sans TC",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;transition:background .4s,color .4s}
+  body.dark{background:#0c0c0d;color:#e9e9ea}
+  .mono{font-family:"IBM Plex Mono",monospace}
+
+  /* ============ HEAD ============ */
+  .page-head{max-width:1440px;margin:0 auto;padding:64px 56px 8px}
+  .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+  h1.page-title{font-size:56px;letter-spacing:-.035em;font-weight:500;line-height:1;margin:14px 0 20px}
+  p.page-sub{max-width:680px;color:inherit;opacity:.72;font-size:15px;line-height:1.7;margin:0}
+
+  .toolbar{max-width:1440px;margin:24px auto 0;padding:0 56px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+    font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase}
+  .toolbar button{padding:8px 12px;border-radius:999px;border:1px solid rgba(0,0,0,.12);background:#fff;color:#111;cursor:pointer;
+    font:inherit;letter-spacing:inherit;text-transform:inherit;transition:all .25s}
+  body.dark .toolbar button{background:#1a1a1c;color:#e9e9ea;border-color:rgba(255,255,255,.14)}
+  .toolbar button[aria-pressed="true"]{background:#0b0b0b;color:#fafafa;border-color:#0b0b0b}
+  body.dark .toolbar button[aria-pressed="true"]{background:#f2f2f3;color:#0b0b0b;border-color:#f2f2f3}
+  .toolbar span.l{opacity:.5}
+  .toolbar .sep{width:1px;height:18px;background:currentColor;opacity:.18;margin:0 6px}
+
+  /* ============ DIFF TABLE ============ */
+  .diff{max-width:1440px;margin:48px auto 0;padding:0 56px}
+  .diff h2{font-size:14px;font-family:"IBM Plex Mono",monospace;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);font-weight:500;margin:0 0 14px}
+  .diff-grid{display:grid;grid-template-columns:200px repeat(3,1fr);gap:0;border-top:1px solid rgba(0,0,0,.15)}
+  body.dark .diff-grid{border-top-color:rgba(255,255,255,.18)}
+  .diff-grid>div{padding:18px 18px;border-bottom:1px solid rgba(0,0,0,.08);font-size:13.5px;line-height:1.65}
+  body.dark .diff-grid>div{border-bottom-color:rgba(255,255,255,.08)}
+  .diff-grid .h{font-family:"Space Grotesk";font-weight:600;font-size:22px;letter-spacing:-.02em;padding-top:20px;padding-bottom:10px}
+  .diff-grid .hk{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);padding-top:22px;padding-bottom:6px}
+  .diff-grid .l{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);align-self:start}
+  .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:#0b0b0b;color:#fafafa;font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase}
+  body.dark .pill{background:#f2f2f3;color:#0b0b0b}
+
+  /* ============ DIRECTION CARDS (one row, big) ============ */
+  .direction-row{max-width:1440px;margin:40px auto 0;padding:0 56px;display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+  .card{position:relative;border-radius:18px;overflow:hidden;aspect-ratio:3/4;
+    box-shadow:0 1px 0 rgba(0,0,0,.04),0 30px 60px -30px rgba(0,0,0,.18);
+    transition:transform .3s,box-shadow .3s}
+  .card:hover{transform:translateY(-4px);box-shadow:0 1px 0 rgba(0,0,0,.04),0 40px 80px -30px rgba(0,0,0,.25)}
+  .card.light{background:var(--card-light);color:#0a0a0a}
+  .card.dark{background:var(--card-dark);color:var(--text-dark)}
+  .chip{position:absolute;top:14px;left:14px;font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;padding:5px 9px;border-radius:999px;backdrop-filter:blur(8px);background:rgba(255,255,255,.55);color:#111;border:1px solid rgba(0,0,0,.06);z-index:3}
+  .card.dark .chip{background:rgba(255,255,255,.08);color:#e7e7e7;border-color:rgba(255,255,255,.1)}
+  .inner{position:absolute;inset:0;padding:48px 36px 36px;display:flex;flex-direction:column;z-index:2}
+  .nav{position:absolute;top:14px;left:50%;transform:translateX(-50%);padding:8px 14px;border-radius:999px;
+    background:rgba(255,255,255,.65);backdrop-filter:blur(12px);border:1px solid rgba(0,0,0,.06);
+    display:flex;gap:14px;font-size:10.5px;letter-spacing:.06em;color:#111;z-index:3}
+  .card.dark .nav{background:rgba(30,30,32,.72);border-color:rgba(255,255,255,.1);color:var(--text-dark)}
+  .nav i{opacity:.5;font-style:normal}
+
+  /* A · Editorial */
+  .a .inner{padding-top:110px;justify-content:space-between}
+  .a .meta{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;opacity:.7}
+  .a h2{font-family:"Space Grotesk","Noto Sans TC",sans-serif;font-weight:500;font-size:54px;line-height:1.05;letter-spacing:-.025em;margin:22px 0 0}
+  .a .sub{margin-top:22px;opacity:.72;font-size:13px;line-height:1.75;max-width:320px}
+  .a .foot{display:flex;justify-content:space-between;align-items:flex-end;font-family:"IBM Plex Mono",monospace;font-size:10.5px;opacity:.6;letter-spacing:.14em;text-transform:uppercase}
+  .a .foot .n{font-size:40px;opacity:1;font-family:"Space Grotesk";letter-spacing:-.02em;text-transform:none}
+  .a .accent-dot{display:inline-block;width:8px;height:8px;border-radius:999px;background:var(--accent);vertical-align:middle;margin-left:8px;transform:translateY(-2px)}
+
+  /* B · Swiss */
+  .b .inner{padding:110px 28px 28px;display:grid;grid-template-columns:1fr 1fr;gap:14px 14px;align-content:start}
+  .b .rule{grid-column:1/-1;height:1px;background:currentColor;opacity:.85}
+  .b .tag{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase}
+  .b .tag.r{text-align:right}
+  .b h2{grid-column:1/-1;font-family:"Space Grotesk","Noto Sans TC",sans-serif;font-weight:700;font-size:44px;line-height:1;letter-spacing:-.035em;margin:10px 0 0}
+  .b .body{grid-column:1/-1;opacity:.7;font-size:12.5px;line-height:1.8;margin-top:6px}
+  .b .foot{grid-column:1/-1;margin-top:auto;display:flex;justify-content:space-between;font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;opacity:.6}
+  .b .accent-link{color:var(--accent);text-decoration:none;border-bottom:1px solid currentColor;padding-bottom:1px}
+
+  /* C · Brutalist */
+  .c .inner{padding:100px 28px 28px;justify-content:space-between}
+  .c .stamp{display:flex;gap:8px;font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase}
+  .c .hero-word{font-family:"Space Grotesk","Noto Sans TC",sans-serif;font-weight:700;font-size:64px;line-height:.9;letter-spacing:-.05em;margin:18px 0 0}
+  .c .slash{opacity:.22}
+  .c .block{background:#111;color:#fafafa;padding:14px;border-radius:4px;font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;line-height:1.6;max-width:72%}
+  .c.dark .block{background:#f2f2f2;color:#0b0b0b}
+  .c .accent-bar{height:4px;width:44px;background:var(--accent);margin-top:8px;border-radius:2px}
+  .c .foot{display:grid;grid-template-columns:1fr auto;align-items:end}
+  .c .foot .n{font-family:"Space Grotesk";font-weight:700;font-size:52px;line-height:1;letter-spacing:-.04em}
+  .c .foot .n span{opacity:.3}
+  .c .foot .k{font-family:"IBM Plex Mono",monospace;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;text-align:right;opacity:.6;line-height:1.7}
+
+  /* ============ TYPE SPECIMENS ============ */
+  .type-wrap{max-width:1440px;margin:72px auto 0;padding:0 56px}
+  .type-wrap h2.sec{font-size:14px;font-family:"IBM Plex Mono",monospace;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);font-weight:500;margin:0 0 14px}
+  .type-wrap h3.big{font-size:48px;letter-spacing:-.03em;font-weight:500;margin:0 0 32px;line-height:1.02}
+  .pairs{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+  .pair{border:1px solid rgba(0,0,0,.1);border-radius:18px;padding:28px 28px 32px;background:#fff;transition:background .4s,border-color .4s;position:relative;overflow:hidden}
+  body.dark .pair{background:#131315;border-color:rgba(255,255,255,.1)}
+  .pair .label{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;opacity:.6}
+  .pair .pname{font-size:22px;letter-spacing:-.015em;font-weight:600;margin:6px 0 2px}
+  .pair .psub{font-size:12px;opacity:.65;line-height:1.6}
+  .pair .divider{height:1px;background:currentColor;opacity:.12;margin:22px 0}
+
+  .specimen-block{margin-bottom:22px}
+  .specimen-block .kind{font-family:"IBM Plex Mono",monospace;font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;opacity:.5;margin-bottom:6px}
+  .display-XL{font-weight:500;font-size:64px;line-height:.95;letter-spacing:-.045em}
+  .display-L{font-weight:500;font-size:40px;line-height:1;letter-spacing:-.03em}
+  .heading-M{font-weight:600;font-size:22px;line-height:1.25;letter-spacing:-.01em}
+  .body-L{font-weight:400;font-size:15px;line-height:1.7}
+  .caption{font-weight:500;font-size:12.5px;line-height:1.6;opacity:.72}
+  .nums{font-variant-numeric:tabular-nums;font-feature-settings:"tnum";font-size:28px;letter-spacing:-.02em;font-weight:500}
+  .mono-b{font-family:"IBM Plex Mono",monospace;font-size:12.5px;line-height:1.7;opacity:.82;background:rgba(0,0,0,.04);padding:12px;border-radius:8px}
+  body.dark .mono-b{background:rgba(255,255,255,.04)}
+
+  .weights{display:flex;gap:10px;flex-wrap:wrap;align-items:baseline;margin-top:4px}
+  .weights span{font-size:26px;letter-spacing:-.02em}
+  .weights .w300{font-weight:300}.weights .w400{font-weight:400}
+  .weights .w500{font-weight:500}.weights .w600{font-weight:600}
+  .weights .w700{font-weight:700}
+
+  /* type-specific wrappers (apply families to everything inside) */
+  .fam-space{font-family:"Space Grotesk","Noto Sans TC",sans-serif}
+  .fam-space .mono-b,.fam-space .kind,.fam-space .label{font-family:"IBM Plex Mono",monospace}
+  .fam-inter{font-family:"Inter Tight","Noto Sans TC",sans-serif}
+  .fam-inter .mono-b,.fam-inter .kind,.fam-inter .label{font-family:"JetBrains Mono",monospace}
+  .fam-geist{font-family:"Geist","Noto Sans TC",sans-serif}
+  .fam-geist .mono-b,.fam-geist .kind,.fam-geist .label{font-family:"Geist Mono",monospace}
+
+  .locked-tag{position:absolute;top:14px;right:14px;padding:4px 8px;border-radius:999px;background:var(--accent);color:#0b0b0b;font-family:"IBM Plex Mono",monospace;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:600}
+
+  /* ============ ACCENT SHOWCASE ============ */
+  .accent-wrap{max-width:1440px;margin:72px auto 0;padding:0 56px}
+  .accent-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:18px}
+  .accent-card{border:1px solid rgba(0,0,0,.1);border-radius:18px;padding:28px;background:#fff;transition:background .4s,border-color .4s;min-height:260px;display:flex;flex-direction:column;justify-content:space-between}
+  body.dark .accent-card{background:#131315;border-color:rgba(255,255,255,.1)}
+  .accent-card .label{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;opacity:.6}
+  .accent-card h4{font-size:22px;margin:6px 0 18px;letter-spacing:-.015em;font-weight:600}
+  .sample-line{display:flex;align-items:center;gap:12px;font-size:14px;line-height:1.7;margin-bottom:6px}
+  .sample-line .swatch{width:12px;height:12px;border-radius:3px;background:var(--accent)}
+  .sample-line .swatch.off{background:#d8d8d8}
+  body.dark .sample-line .swatch.off{background:#2a2a2c}
+  .btn-demo{display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:999px;border:1px solid currentColor;font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;margin-top:6px}
+  .btn-demo.accent{background:var(--accent);color:#0b0b0b;border-color:var(--accent)}
+  .btn-demo.mono-pill{background:#0b0b0b;color:#fafafa;border-color:#0b0b0b}
+  body.dark .btn-demo.mono-pill{background:#f2f2f3;color:#0b0b0b;border-color:#f2f2f3}
+  .link-inline{border-bottom:1px solid currentColor;padding-bottom:1px;text-decoration:none}
+  .link-inline.accent{color:var(--accent);border-color:var(--accent)}
+
+  /* ============ FOOTER ============ */
+  .footer-note{max-width:1440px;margin:72px auto 0;padding:60px 56px 100px;display:grid;grid-template-columns:1fr 1fr;gap:40px;border-top:1px solid rgba(0,0,0,.08)}
+  body.dark .footer-note{border-top-color:rgba(255,255,255,.08)}
+  .footer-note h3{font-size:22px;letter-spacing:-.02em;margin:0 0 10px;font-weight:500}
+  .footer-note p{font-size:13.5px;line-height:1.75;opacity:.75;margin:0 0 8px}
+  .pick{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:.55}
+</style>
+</head>
+<body>
+
+<div class="page-head">
+  <div class="eyebrow">direction canvas · v2 · 2026 / 04 / 18</div>
+  <h1 class="page-title">挑一個「方向」，<br/>再看清楚每套字的性格。</h1>
+  <p class="page-sub">新版回答了你的三個問題：(1) 三個方向的差異用對照表列出、(2) accent 位置在每張卡上畫出來、(3) Dark 模式改用 #0c0c0d 背景 + #e9e9ea 文字（不再純黑純白）。字體樣張大幅擴充——大標、內文、數字、mono、中英混排都能看。</p>
+</div>
+
+<div class="toolbar">
+  <span class="l">mode</span>
+  <button id="mLight" aria-pressed="true">Light</button>
+  <button id="mDark" aria-pressed="false">Dark</button>
+  <span class="sep"></span>
+  <span class="l">accent</span>
+  <button id="aOn" aria-pressed="true">On</button>
+  <button id="aOff" aria-pressed="false">Off</button>
+</div>
+
+<!-- ============ DIFFERENCE TABLE ============ -->
+<section class="diff">
+  <h2>三個方向到底差在哪</h2>
+  <div class="diff-grid">
+    <div class="hk"></div>
+    <div class="h">A · Editorial Quiet</div>
+    <div class="h">B · Swiss Precision</div>
+    <div class="h">C · Brutalist Premium</div>
+
+    <div class="l">一句話定義</div>
+    <div>像一本安靜的散文集。留白最多、一頁只講一件事。</div>
+    <div>像工程師的作業簿。四欄網格、左對齊、一切歸位。</div>
+    <div>像一張 2026 的海報。巨大字重、冷硬塊面、海報感。</div>
+
+    <div class="l">典型參考</div>
+    <div>Apple 官網、Nothing、Arc Browser 的官網</div>
+    <div>Vercel docs、Linear、Swiss design school</div>
+    <div>Figma 原稿的 /2026 風、Kanye DONDA、Nothing Press</div>
+
+    <div class="l">首頁主視覺</div>
+    <div>一行中文大標，其餘空白。連時間與閱讀分鐘都藏到腳。</div>
+    <div>一條橫線 + 日期 + 標題 + 頁碼，像一頁雜誌版權頁。</div>
+    <div>單字炸裂（BLOG / 2026），下方塞一個黑色 mono 區塊。</div>
+
+    <div class="l">字重偏好</div>
+    <div>Medium 500 居多，避免 Bold，氣質「輕」。</div>
+    <div>Bold 700 當標題，Regular 400 當內文，對比清晰。</div>
+    <div>Heavy 700–900，字面壓到極緊，letter-spacing 壓到 -5%。</div>
+
+    <div class="l">accent 出現的地方</div>
+    <div>只有一個 <span class="pill">accent dot</span>，標記 unread；其他全灰階。</div>
+    <div>只有 <a href="#" class="accent-link">inline link</a> 會變色，其它全無。</div>
+    <div>有一條 <span style="display:inline-block;height:4px;width:32px;background:var(--accent);vertical-align:middle;border-radius:2px"></span> 色帶當 section divider；區塊標題可反白。</div>
+
+    <div class="l">最適合誰</div>
+    <div>想被「慢讀」的寫作者；文章長、情感重、不想吵。</div>
+    <div>技術文件 / 教學 / 長 Side Project 紀錄。結構強的人。</div>
+    <div>想被一眼記住、個人品牌感強、偶爾發 side project demo。</div>
+
+    <div class="l">我的建議</div>
+    <div>✦ 推薦給你</div>
+    <div>合理備案</div>
+    <div>可做 Tweaks 的第二視覺</div>
+  </div>
+</section>
+
+<!-- ============ DIRECTION CARDS ============ -->
+<section class="direction-row">
+  <div class="card a light fam-space">
+    <div class="chip">A · editorial</div>
+    <div class="inner">
+      <div class="nav"><span>writing</span><i>·</i><span>notes</span><i>·</i><span>about</span></div>
+      <div>
+        <div class="meta">Essay · 2026 · 08 min<span class="accent-dot" title="unread marker = 這個就是 accent"></span></div>
+        <h2>慢慢把一件事<br/>說清楚。</h2>
+        <div class="sub">工程師寫部落格，我一直在找一種比「發佈」更重要的節奏——把一件事說清楚，然後走開。</div>
+      </div>
+      <div class="foot"><span>— index</span><span class="n">042</span></div>
+    </div>
+  </div>
+
+  <div class="card b light fam-space">
+    <div class="chip">B · swiss</div>
+    <div class="inner">
+      <div class="nav"><span>writing</span><i>·</i><span>notes</span><i>·</i><span>about</span></div>
+      <div class="rule"></div>
+      <div class="tag">§ 04 — essay</div>
+      <div class="tag r">2026 / 04 / 18</div>
+      <h2>一個安靜的系統，<br/>用來收整想法。</h2>
+      <div class="body">四欄網格 × type scale × 0.5s 淡入。收斂視覺，反而讓每篇文章更像自己。閱讀更多 <a href="#" class="accent-link">design system →</a></div>
+      <div class="foot"><span>MY BLOG WEB.</span><span>pp. 042 / 128</span></div>
+    </div>
+  </div>
+
+  <div class="card c light fam-space">
+    <div class="chip">C · brutalist</div>
+    <div class="inner">
+      <div class="nav"><span>writing</span><i>·</i><span>notes</span><i>·</i><span>about</span></div>
+      <div class="stamp"><span>MY BLOG</span><span>/</span><span>2026</span></div>
+      <div class="hero-word">少，<br/>但是<span class="slash">/</span>更好。</div>
+      <div class="accent-bar"></div>
+      <div class="block">INDEX OF WRITINGS ON<br/>DESIGN SYSTEMS, VUE,<br/>AND THE SLOW WEB.</div>
+      <div class="foot">
+        <div class="n">042<span>/128</span></div>
+        <div class="k">SCROLL ↓<br/>TO CONTINUE</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TYPE SPECIMENS ============ -->
+<section class="type-wrap">
+  <h2 class="sec">字體比較 · 每套字的真實性格</h2>
+  <h3 class="big">同一段文字，三種氣質。</h3>
+
+  <div class="pairs">
+
+    <!-- Space Grotesk -->
+    <div class="pair fam-space">
+      <div class="locked-tag">Locked</div>
+      <div class="label">pairing 01 · display + body + mono</div>
+      <div class="pname">Space Grotesk</div>
+      <div class="psub">display / body · 帶個性的中性體，圓潤但工程感</div>
+      <div class="pname" style="margin-top:6px">IBM Plex Mono</div>
+      <div class="psub">code / caption · IBM 自家開源，方正冷靜</div>
+
+      <div class="divider"></div>
+
+      <div class="specimen-block"><div class="kind">Display XL · 64</div>
+        <div class="display-XL">Less, but&nbsp;better.</div>
+        <div class="display-XL" style="margin-top:6px">少，但更好。</div>
+      </div>
+
+      <div class="specimen-block"><div class="kind">Display L · 40</div>
+        <div class="display-L">慢慢把一件事說清楚。</div>
+      </div>
+
+      <div class="specimen-block"><div class="kind">Weights · 300 → 700</div>
+        <div class="weights"><span class="w300">Ag</span><span class="w400">Ag</span><span class="w500">Ag</span><span class="w600">Ag</span><span class="w700">Ag</span></div>
+      </div>
+
+      <div class="specimen-block"><div class="kind">Heading M · 22</div>
+        <div class="heading-M">Building a quiet design system for a personal blog in 2026.</div>
+      </div>
+
+      <div class="specimen-block"><div class="kind">Body L · 15 / 1.7</div>
+        <div class="body-L">技術部落格不一定要張牙舞爪。留白、細灰階、慢慢把 API 的語境、trade-off、以及你為什麼選它的理由都說清楚——讀者會留下來。Vue 3 的 Composition API 在 2025 之後成為主流，但多少團隊真正用它設計出「可被接手」的程式碼？</div>
+      </div>
+
+      <div class="specimen-block"><div class="kind">Numerals · tabular</div>
+        <div class="nums">042 / 128 · $1,299.00 · 2026-04-18 · 09:42:07</div>
+      </div>
+
+      <div class="specimen-block"><div class="kind">Mono · IBM Plex Mono · 12.5</div>
+        <div class="mono-b">$ pnpm add @vueuse/core<br/>&gt; const { theme, toggle } = useTheme()<br/>&gt; // 0.5s linear fade between modes</div>
+      </div>
+
+      <div class="specimen-block"><div class="kind">Caption</div>
+        <div class="caption">UPDATED · 2026 / 04 / 18 · 08 MIN READ · ENG / 繁中</div>
+      </div>
+    </div>
+
+    <!-- Inter Tight -->
+    <div class="pair fam-inter">
+      <div class="label">pairing 02 · display + body + mono</div>
+      <div class="pname">Inter Tight</div>
+      <div class="psub">display / body · Inter 的升級版，字面更緊，氣質更乾淨</div>
+      <div class="pname" style="margin-top:6px">JetBrains Mono</div>
+      <div class="psub">code · 連字符號、終端機愛用</div>
+
+      <div class="divider"></div>
+
+      <div class="specimen-block"><div class="kind">Display XL · 64</div>
+        <div class="display-XL">Less, but&nbsp;better.</div>
+        <div class="display-XL" style="margin-top:6px">少，但更好。</div>
+      </div>
+      <div class="specimen-block"><div class="kind">Display L · 40</div>
+        <div class="display-L">慢慢把一件事說清楚。</div>
+      </div>
+      <div class="specimen-block"><div class="kind">Weights · 300 → 700</div>
+        <div class="weights"><span class="w300">Ag</span><span class="w400">Ag</span><span class="w500">Ag</span><span class="w600">Ag</span><span class="w700">Ag</span></div>
+      </div>
+      <div class="specimen-block"><div class="kind">Heading M · 22</div>
+        <div class="heading-M">Building a quiet design system for a personal blog in 2026.</div>
+      </div>
+      <div class="specimen-block"><div class="kind">Body L · 15 / 1.7</div>
+        <div class="body-L">技術部落格不一定要張牙舞爪。留白、細灰階、慢慢把 API 的語境、trade-off、以及你為什麼選它的理由都說清楚——讀者會留下來。Vue 3 的 Composition API 在 2025 之後成為主流，但多少團隊真正用它設計出「可被接手」的程式碼？</div>
+      </div>
+      <div class="specimen-block"><div class="kind">Numerals · tabular</div>
+        <div class="nums">042 / 128 · $1,299.00 · 2026-04-18 · 09:42:07</div>
+      </div>
+      <div class="specimen-block"><div class="kind">Mono · JetBrains Mono</div>
+        <div class="mono-b">$ pnpm add @vueuse/core<br/>&gt; const { theme, toggle } = useTheme()<br/>&gt; // 0.5s linear fade between modes</div>
+      </div>
+      <div class="specimen-block"><div class="kind">Caption</div>
+        <div class="caption">UPDATED · 2026 / 04 / 18 · 08 MIN READ · ENG / 繁中</div>
+      </div>
+    </div>
+
+    <!-- Geist -->
+    <div class="pair fam-geist">
+      <div class="label">pairing 03 · display + body + mono</div>
+      <div class="pname">Geist</div>
+      <div class="psub">display / body · Vercel 家字體，極冷靜科技感</div>
+      <div class="pname" style="margin-top:6px">Geist Mono</div>
+      <div class="psub">code · 與 Geist 同家族</div>
+
+      <div class="divider"></div>
+
+      <div class="specimen-block"><div class="kind">Display XL · 64</div>
+        <div class="display-XL">Less, but&nbsp;better.</div>
+        <div class="display-XL" style="margin-top:6px">少，但更好。</div>
+      </div>
+      <div class="specimen-block"><div class="kind">Display L · 40</div>
+        <div class="display-L">慢慢把一件事說清楚。</div>
+      </div>
+      <div class="specimen-block"><div class="kind">Weights · 300 → 900</div>
+        <div class="weights"><span class="w300">Ag</span><span class="w400">Ag</span><span class="w500">Ag</span><span class="w600">Ag</span><span class="w700">Ag</span><span style="font-weight:900">Ag</span></div>
+      </div>
+      <div class="specimen-block"><div class="kind">Heading M · 22</div>
+        <div class="heading-M">Building a quiet design system for a personal blog in 2026.</div>
+      </div>
+      <div class="specimen-block"><div class="kind">Body L · 15 / 1.7</div>
+        <div class="body-L">技術部落格不一定要張牙舞爪。留白、細灰階、慢慢把 API 的語境、trade-off、以及你為什麼選它的理由都說清楚——讀者會留下來。Vue 3 的 Composition API 在 2025 之後成為主流，但多少團隊真正用它設計出「可被接手」的程式碼？</div>
+      </div>
+      <div class="specimen-block"><div class="kind">Numerals · tabular</div>
+        <div class="nums">042 / 128 · $1,299.00 · 2026-04-18 · 09:42:07</div>
+      </div>
+      <div class="specimen-block"><div class="kind">Mono · Geist Mono</div>
+        <div class="mono-b">$ pnpm add @vueuse/core<br/>&gt; const { theme, toggle } = useTheme()<br/>&gt; // 0.5s linear fade between modes</div>
+      </div>
+      <div class="specimen-block"><div class="kind">Caption</div>
+        <div class="caption">UPDATED · 2026 / 04 / 18 · 08 MIN READ · ENG / 繁中</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============ ACCENT SHOWCASE ============ -->
+<section class="accent-wrap">
+  <h2 class="sec">強調色 · 到底出現在哪幾個地方</h2>
+  <h3 class="big" style="font-size:40px">三種 accent 策略的真實模樣。</h3>
+
+  <div class="accent-grid">
+    <div class="accent-card">
+      <div>
+        <div class="label">option 01 · 完全無彩色</div>
+        <h4>純黑灰白，極致</h4>
+        <div class="sample-line"><span class="swatch off"></span><span>unread marker（用深灰點，不上色）</span></div>
+        <div class="sample-line"><span class="swatch off"></span><span>link（<a href="#" class="link-inline">inline 底線</a>，不換色）</span></div>
+        <div class="sample-line"><span class="swatch off"></span><span>section divider（<span style="display:inline-block;height:3px;width:24px;background:currentColor;vertical-align:middle;border-radius:2px;opacity:.85"></span>）</span></div>
+      </div>
+      <div>
+        <button class="btn-demo mono-pill">Subscribe →</button>
+      </div>
+    </div>
+
+    <div class="accent-card">
+      <div>
+        <div class="label">option 02 · 橘色 #FF8D28（你原本 Figma 的顏色）</div>
+        <h4>保留你的身份色</h4>
+        <div class="sample-line"><span class="swatch"></span><span>unread marker · <span style="color:var(--accent)">●</span> 新文章</span></div>
+        <div class="sample-line"><span class="swatch"></span><span>link · <a href="#" class="link-inline accent">design system →</a></span></div>
+        <div class="sample-line"><span class="swatch"></span><span>focus ring / primary button</span></div>
+      </div>
+      <div>
+        <button class="btn-demo accent">Subscribe →</button>
+      </div>
+    </div>
+
+    <div class="accent-card">
+      <div>
+        <div class="label">option 03 · Electric Blue #3B5BDB</div>
+        <h4>冷靜的科技感 accent</h4>
+        <div class="sample-line"><span class="swatch" style="background:#3B5BDB"></span><span>unread marker · <span style="color:#3B5BDB">●</span> 新文章</span></div>
+        <div class="sample-line"><span class="swatch" style="background:#3B5BDB"></span><span>link · <a href="#" style="color:#3B5BDB;border-bottom:1px solid #3B5BDB;text-decoration:none;padding-bottom:1px">design system →</a></span></div>
+        <div class="sample-line"><span class="swatch" style="background:#3B5BDB"></span><span>適合偏 framework / devtool 氣質</span></div>
+      </div>
+      <div>
+        <button class="btn-demo" style="background:#3B5BDB;color:#fff;border-color:#3B5BDB">Subscribe →</button>
+      </div>
+    </div>
+  </div>
+
+  <p class="pick" style="margin-top:20px">三個選項在原型裡都會以 Tweaks 留著可切。</p>
+</section>
+
+<div class="footer-note">
+  <div>
+    <div class="pick">how to use</div>
+    <h3>告訴我「方向 + accent」就能動工</h3>
+    <p>例：「<b>A + 橘色 accent</b>」或「<b>A + 完全無彩色</b>」。字體已鎖 Space Grotesk + IBM Plex Mono，但 Tweaks 仍會保留切換能力。</p>
+  </div>
+  <div>
+    <div class="pick">next up</div>
+    <p>Home（Hero + Trending + Latest + Tags）、Navbar（Glassmorphism 膠囊）、Footer（只留版權一行）、LoginView、RegisterView — 全做成一頁可互動原型，含自訂游標、捲動淡入、0.5s 主題切換。</p>
+  </div>
+</div>
+
+<script>
+(function(){
+  const body=document.body;
+  const mLight=document.getElementById('mLight'),mDark=document.getElementById('mDark');
+  const aOn=document.getElementById('aOn'),aOff=document.getElementById('aOff');
+  function setMode(dark){
+    body.classList.toggle('dark',dark);
+    document.querySelectorAll('.card').forEach(c=>{c.classList.toggle('dark',dark);c.classList.toggle('light',!dark)});
+    document.querySelectorAll('.chip').forEach(ch=>{ch.textContent=ch.textContent.replace(/light|dark|editorial|swiss|brutalist/,(m)=>m)});
+    mLight.setAttribute('aria-pressed',String(!dark));mDark.setAttribute('aria-pressed',String(dark));
+  }
+  mLight.addEventListener('click',()=>setMode(false));
+  mDark.addEventListener('click',()=>setMode(true));
+  function setAccent(on){
+    document.documentElement.style.setProperty('--accent',on?'#FF8D28':'#8a8a8d');
+    aOn.setAttribute('aria-pressed',String(on));aOff.setAttribute('aria-pressed',String(!on));
+  }
+  aOn.addEventListener('click',()=>setAccent(true));
+  aOff.addEventListener('click',()=>setAccent(false));
+})();
+</script>
+</body>
+</html>
