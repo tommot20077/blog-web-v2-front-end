@@ -199,5 +199,28 @@ export default async function globalSetup() {
   await seedArticle(authorToken, adminToken, 'E2E Test Article — Redis Caching', 'backend')
   await seedArticle(authorToken, adminToken, 'E2E Test Article — TailwindCSS Tips', 'frontend')
 
+  // B-4: seed 常見技術 tag（用單一文章帶 tagNames，後端會 auto-create 不存在的 tag）
+  console.log('[E2E global-setup] Seeding common tags...')
+  const COMMON_TAGS = [
+    'vue', 'react', 'typescript', 'javascript',
+    'java', 'spring-boot', 'python',
+    'docker', 'kubernetes', 'nodejs',
+  ]
+  try {
+    await fetch(`${BACKEND}/api/v1/articles`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authorToken}` },
+      body: JSON.stringify({
+        title: 'E2E common tags seed',
+        content: 'tag seed only',
+        summary: 'seed',
+        categoryIds: [],
+        tagNames: COMMON_TAGS,
+      }),
+    })
+  } catch {
+    console.warn('Could not seed common tags — continuing')
+  }
+
   console.log('[E2E global-setup] Done.')
 }
