@@ -4,6 +4,7 @@ import { useSettings } from '../composables/useSettings'
 import SettingToggle from '../components/settings/SettingToggle.vue'
 import SettingFieldGroup from '../components/settings/SettingFieldGroup.vue'
 import SettingSaveToast from '../components/settings/SettingSaveToast.vue'
+import PasswordRulesChecklist from '../components/auth/PasswordRulesChecklist.vue'
 
 const {
   activeSection, setSection,
@@ -195,6 +196,7 @@ async function handleDeleteAccount() {
 
         <SettingFieldGroup label="新密碼">
           <input class="st-input" type="password" v-model="pwNew" placeholder="輸入新密碼" autocomplete="new-password" />
+          <PasswordRulesChecklist :password="pwNew" />
         </SettingFieldGroup>
 
         <SettingFieldGroup label="確認新密碼">
