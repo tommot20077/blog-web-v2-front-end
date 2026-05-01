@@ -110,7 +110,10 @@ test.describe('Auth token refresh (A6/A7/A8)', () => {
       }
     });
 
-    // 觸發兩個並行對 /articles/me 的請求
+    // 兩次 page.goto 對同一 page 序列執行（第二個會中斷第一個 navigation），
+    // 真實並行需在 backend 啟動後實際跑，必要時改寫為觸發兩個 router-view 元件並行 fetch。
+    // 目前期望：第一個 goto 觸發 articles/me fetch → 401 → refresh 啟動 isRefreshing flag；
+    //           第二個 goto 期間若 fetch 也命中 401，應走 failedQueue 而非再次 refresh。
     await Promise.all([page.goto('/my-articles'), page.goto('/my-articles?status=DRAFT')]);
 
     // 等 page idle
