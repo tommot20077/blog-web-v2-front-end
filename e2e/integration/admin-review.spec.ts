@@ -136,4 +136,37 @@ test.describe('Admin Review (H1/H3/H4/H5)', () => {
       await deleteArticle(request, authorToken, draftUuid)
     }
   })
+
+  test('H7: 無待審文章時應顯示 empty state (mock)', async ({ page }) => {
+    const admin = getCredentials('admin')
+
+    // mock pending list 回空，避開 fixture 副作用
+    await page.route('**/api/v1/admin/articles/pending*', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          code: '00000',
+          message: '操作成功',
+          data: { records: [], total: 0, page: 1, size: 20 },
+        }),
+      }),
+    )
+
+    await page.goto('/login')
+    await page.getByTestId('auth-login-field-email').fill(admin.email)
+    await page.getByTestId('auth-login-field-password').fill(admin.password)
+    await page.getByTestId('auth-login-submit').click()
+    await page.waitForURL((url) => !url.pathname.startsWith('/login'))
+
+    // 用 router.push 避免 page.goto full reload 重置 Pinia state → guard 誤判未登入
+    await page.evaluate(() => {
+      const router = (window as unknown as Record<string, { push: (p: string) => Promise<void> }>).__router
+      return router.push('/admin/review')
+    })
+    await page.waitForURL('/admin/review', { timeout: 5000 })
+
+    // empty state UI: AdminReviewView 顯示「目前沒有待審核文章」
+    await expect(page.getByText('目前沒有待審核文章')).toBeVisible({ timeout: 5000 })
+  })
 })
