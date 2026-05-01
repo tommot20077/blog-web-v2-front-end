@@ -58,7 +58,7 @@ onUnmounted(() => window.removeEventListener('keydown', onGlobalKeyDown))
 
   <!-- Shell / Full-screen pages (my-articles, settings, editor) -->
   <template v-if="isShellOrFull">
-    <router-view />
+    <router-view :key="route.path" />
   </template>
 
   <!-- Default public layout (navbar + content + footer) -->

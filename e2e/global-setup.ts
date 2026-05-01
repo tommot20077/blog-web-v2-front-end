@@ -1,10 +1,5 @@
 import { execSync } from 'child_process'
-import path from 'path'
-import { fileURLToPath } from 'url'
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
-const COMPOSE_FILE = path.join(__dirname, '..', 'docker-compose.e2e.yml')
+import { activateUser } from './fixtures/admin-helpers'
 
 const BACKEND = process.env.VITE_API_BASE_URL || 'http://localhost:9010'
 const IS_CI = process.env.E2E_CI === '1'
@@ -51,19 +46,6 @@ async function registerUser(user: SeedUser) {
   if (!res.ok && res.status !== 409 && res.status !== 400) {
     const body = await res.text().catch(() => '')
     console.warn(`Register ${user.email} → ${res.status}: ${body}`)
-  }
-}
-
-function activateUser(email: string, role: string) {
-  // Must set status='ACTIVE' alongside email_verified — backend checks both
-  const sql = `UPDATE users SET email_verified=true, status='ACTIVE', role='${role}' WHERE email='${email}'`
-  const cmd = IS_CI
-    ? `docker compose -f "${COMPOSE_FILE}" exec -T postgres psql -U e2e_user -d blog_e2e -c "${sql}"`
-    : `kubectl exec -n infra-dev deploy/postgres -- psql -U luca -d blog_v2_db -c "${sql}"`
-  try {
-    execSync(cmd, { stdio: 'pipe' })
-  } catch {
-    console.warn(`Could not activate ${email} — skipping`)
   }
 }
 
@@ -163,6 +145,44 @@ async function seedArticle(authorToken: string, adminToken: string, title: strin
   }
 }
 
+const COMMON_TAGS = [
+  'vue', 'react', 'typescript', 'javascript',
+  'java', 'spring-boot', 'python',
+  'docker', 'kubernetes', 'nodejs',
+]
+
+async function seedCommonTags(authorToken: string): Promise<void> {
+  console.log('[E2E global-setup] Seeding common tags...')
+  // Idempotent: 若 'vue' 已存在 → 視為已 seed 過，跳過
+  try {
+    const tagCheck = await fetch(`${BACKEND}/api/v1/tags/suggest?q=vue`)
+    const tagBody = await tagCheck.json()
+    const existing = (tagBody.data ?? []) as Array<string | { name: string }>
+    const existingNames = existing.map((t) => (typeof t === 'string' ? t : t.name))
+    if (existingNames.includes('vue')) {
+      console.log('[E2E global-setup] Common tags already seeded — skipping')
+      return
+    }
+  } catch {
+    // 檢查失敗 → 繼續嘗試 seed
+  }
+  try {
+    await fetch(`${BACKEND}/api/v1/articles`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authorToken}` },
+      body: JSON.stringify({
+        title: 'E2E common tags seed',
+        content: 'tag seed only',
+        summary: 'seed',
+        categoryIds: [],
+        tagNames: COMMON_TAGS,
+      }),
+    })
+  } catch {
+    console.warn('Could not seed common tags — continuing')
+  }
+}
+
 // ── main ─────────────────────────────────────────────────────────────────────
 
 export default async function globalSetup() {
@@ -198,6 +218,10 @@ export default async function globalSetup() {
   await seedArticle(authorToken, adminToken, 'E2E Test Article — Pinia State Management', 'frontend')
   await seedArticle(authorToken, adminToken, 'E2E Test Article — Redis Caching', 'backend')
   await seedArticle(authorToken, adminToken, 'E2E Test Article — TailwindCSS Tips', 'frontend')
+
+  // B-4: seed 常見技術 tag（用單一文章帶 tagNames，後端會 auto-create 不存在的 tag）
+  // Idempotent: 若 'vue' tag 已存在跳過 — 避免重跑 setup 累積 draft 文章
+  await seedCommonTags(authorToken)
 
   console.log('[E2E global-setup] Done.')
 }
