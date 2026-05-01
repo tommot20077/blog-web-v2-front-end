@@ -138,12 +138,19 @@ export function useSettings() {
           // TODO: backend profile update endpoint does not yet accept avatarUrl
           localStorage.setItem('blog.settings.avatarUrl', resp.url)
         }
-        await userService.updateProfile({ nickname: nickname.value, bio: bio.value || undefined })
+        // 帶上 socialLinks 現值，避免後端 setWebsite(null) 模式的反向問題：
+        // 若不送 socialLinks，後端 updateProfile 會把它清成 null
+        const socialLinks = authStore.user?.socialLinks ?? undefined
+        await userService.updateProfile({
+          nickname: nickname.value,
+          bio: bio.value || undefined,
+          website: website.value || undefined,
+          socialLinks,
+        })
         // Refresh the auth store user object so the rest of the app sees updated data
         await authStore.fetchUser()
         // Persist remaining fields locally (TODO: backend support)
         localStorage.setItem('blog.settings.location', location.value)
-        localStorage.setItem('blog.settings.website', website.value)
       })
     } catch {
       showToast('儲存個人資料失敗', 'error')
@@ -183,9 +190,12 @@ export function useSettings() {
           twitter: twitter.value,
           linkedin: linkedin.value,
         })
+        // 解構帶上 website 現值，避免後端無條件 setWebsite(null) 抹掉既有值
+        const { nickname, bio, website: currentWebsite } = authStore.user!
         await userService.updateProfile({
-          nickname: authStore.user!.nickname,
-          bio: authStore.user!.bio,
+          nickname,
+          bio,
+          website: currentWebsite ?? undefined,
           socialLinks,
         })
         await authStore.fetchUser()
