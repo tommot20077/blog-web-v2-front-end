@@ -7,6 +7,7 @@ const VALIDATION_RULE_TYPE = {
   MIN_LENGTH: 'minLength',
   MATCH_FIELD: 'matchField',
   CUSTOM: 'custom',
+  PATTERN: 'pattern',
 } as const;
 
 type ValidationRuleType = (typeof VALIDATION_RULE_TYPE)[keyof typeof VALIDATION_RULE_TYPE];
@@ -34,6 +35,7 @@ const DEFAULT_MESSAGES: Record<string, string> = {
   minLength: '最少需要 {min} 個字元',
   matchField: '兩次輸入不一致',
   custom: '驗證失敗',
+  pattern: '格式不正確',
 };
 
 /**
@@ -111,6 +113,15 @@ export function useFormValidation<T extends Record<string, unknown>>(
   };
 
   /**
+   * 取得密碼是否符合三條規則：長度 8-50、含英文字母、含數字
+   */
+  const getPasswordRules = (password: string) => ({
+    length: password.length >= 8 && password.length <= 50,
+    letter: /[A-Za-z]/.test(password),
+    digit: /\d/.test(password),
+  });
+
+  /**
    * 計算密碼強度
    */
   const getPasswordStrength = (password: string): PasswordStrength => {
@@ -142,6 +153,7 @@ export function useFormValidation<T extends Record<string, unknown>>(
     validateForm,
     clearErrors,
     getPasswordStrength,
+    getPasswordRules,
   };
 }
 
@@ -169,6 +181,13 @@ function runRule<T extends Record<string, unknown>>(
       if (!formData || !rule.params?.field) return false;
       const targetField = rule.params.field as string;
       return value === formData[targetField];
+    }
+
+    case 'pattern': {
+      const pattern = rule.params?.pattern;
+      if (!pattern) return true;
+      const regex = pattern instanceof RegExp ? pattern : new RegExp(String(pattern));
+      return regex.test(String(value));
     }
 
     case 'custom':
