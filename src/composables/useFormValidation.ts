@@ -21,6 +21,12 @@ const PASSWORD_STRENGTH = {
 
 type PasswordStrength = (typeof PASSWORD_STRENGTH)[keyof typeof PASSWORD_STRENGTH];
 
+export type PasswordRules = {
+  length: boolean;
+  letter: boolean;
+  digit: boolean;
+};
+
 interface ValidationRule {
   type: ValidationRuleType;
   message?: string;
@@ -115,7 +121,7 @@ export function useFormValidation<T extends Record<string, unknown>>(
   /**
    * 取得密碼是否符合三條規則：長度 8-50、含英文字母、含數字
    */
-  const getPasswordRules = (password: string) => ({
+  const getPasswordRules = (password: string): PasswordRules => ({
     length: password.length >= 8 && password.length <= 50,
     letter: /[A-Za-z]/.test(password),
     digit: /\d/.test(password),
@@ -216,4 +222,4 @@ function getErrorMessage(rule: ValidationRule): string {
 }
 
 export { VALIDATION_RULE_TYPE, PASSWORD_STRENGTH };
-export type { ValidationRule, ValidationRuleType, PasswordStrength };
+export type { ValidationRule, ValidationRuleType, PasswordStrength, PasswordRules };
