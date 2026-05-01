@@ -72,6 +72,54 @@ test.describe('Auth token refresh (A6/A7/A8)', () => {
     expect(newToken).toMatch(/^eyJ/) // JWT 開頭
   })
 
+  /**
+   * A7 強化：兩個並行 401 應只觸發一次 /auth/refresh。
+   * 驗 axios interceptor 的 isRefreshing flag + failedQueue 機制。
+   * 若 src/api/apiClient.ts 重構移除 processQueue, 此 spec 預期會壞，請對應調整。
+   */
+  test('A7 強化: concurrent 401 應只觸發一次 /auth/refresh', async ({ page }) => {
+    const author = getCredentials('author');
+
+    // 先正常登入
+    await page.goto('/login');
+    await page.getByTestId('auth-login-field-email').fill(author.email);
+    await page.getByTestId('auth-login-field-password').fill(author.password);
+    await page.getByTestId('auth-login-submit').click();
+    await page.waitForURL((url) => !url.pathname.startsWith('/login'));
+
+    let refreshCount = 0;
+    let articleCallCount = 0;
+
+    // 攔截 refresh：計數但放行
+    await page.route('**/api/v1/auth/refresh', async (route) => {
+      refreshCount++;
+      await route.continue();
+    });
+
+    // 攔截目標 API：前兩次回 401（模擬兩個並行請求都遇到過期 token），後續放行
+    await page.route('**/api/v1/articles/me*', async (route) => {
+      articleCallCount++;
+      if (articleCallCount <= 2) {
+        await route.fulfill({
+          status: 401,
+          contentType: 'application/json',
+          body: JSON.stringify({ code: 'A0005', message: 'Token 已過期', data: null }),
+        });
+      } else {
+        await route.continue();
+      }
+    });
+
+    // 觸發兩個並行對 /articles/me 的請求
+    await Promise.all([page.goto('/my-articles'), page.goto('/my-articles?status=DRAFT')]);
+
+    // 等 page idle
+    await page.waitForLoadState('networkidle', { timeout: 10000 });
+
+    // 斷言 /auth/refresh 只被叫一次
+    expect(refreshCount).toBe(1);
+  });
+
   test('A8: refresh token 也過期（cookie 清空）→ redirect 到 /login', async ({ page, context }) => {
     const author = getCredentials('author')
     await loginUI(page, author.email, author.password)
