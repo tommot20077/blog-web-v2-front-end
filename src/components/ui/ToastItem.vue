@@ -30,7 +30,7 @@ const indicatorColorMap: Record<ToastType, string> = {
     />
 
     <!-- 訊息內容 -->
-    <p class="flex-1 text-sm font-medium py-0.5" style="color: var(--ink);">
+    <p data-testid="toast-message" class="flex-1 text-sm font-medium py-0.5" style="color: var(--ink);">
       {{ toast.message }}
     </p>
 
