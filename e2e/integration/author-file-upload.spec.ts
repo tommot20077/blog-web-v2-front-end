@@ -18,28 +18,37 @@ test.describe('檔案上傳邊界 API (G3/G4/G8)', () => {
     {
       ext: 'webp',
       mimeType: 'image/webp',
-      // Smallest valid lossy WebP: RIFF header + WEBP marker + VP8 chunk (1x1 pixel)
+      // Smallest valid VP8L (lossless) WebP: 1x1 pixel, 33 bytes
+      // RIFF(4) + file_size(4=25) + WEBP(4) + VP8L(4) + chunk_size(4=13) + signature(1=0x2f) + bitstream(12)
       buffer: Buffer.from(
         '52494646' + // "RIFF"
-          '24000000' + // file size (36 bytes after this)
+          '19000000' + // file_size = 25 (total file = 33 bytes)
           '57454250' + // "WEBP"
-          '56503820' + // "VP8 "
-          '18000000' + // chunk size (24 bytes)
-          '3001009d012a' + // VP8 frame tag + start code
-          '01000100' + // width=1, height=1
-          '0007c54b3da580fe3fd000fe9d00000',
+          '5650384c' + // "VP8L"
+          '0d000000' + // chunk size = 13 bytes
+          '2f000000' + // VP8L signature (0x2f) + bitstream start
+          '1007101111888808' + // VP8L bitstream: 1x1 black pixel
+          '08',
         'hex',
       ),
     },
     {
       ext: 'gif',
       mimeType: 'image/gif',
-      // Smallest valid GIF89a: 1x1 pixel, 1-color palette, single frame
+      // Smallest valid GIF89a: 1x1 pixel, 2-entry GCT (6 bytes), single frame, 35 bytes total
+      // Header(6) + LSD(7) + GCT(6) + ImageDescriptor(10) + LZW(4) + Trailer(1) + BlockTerminator(1)
+      // GCT packed=0x80: GCT flag=1, GCT size=0 => 2^(0+1)=2 entries = 6 bytes
       buffer: Buffer.from(
-        '47494638396101000100' + // GIF89a, 1x1
-          '8000000000000000' + // GCT: 1 entry (black + transparent)
-          '2c000000000100010000' + // Image descriptor
-          '02024401003b', // LZW min code size=2, compressed data, trailer
+        '474946383961' + // "GIF89a"
+          '01000100' + // LSD: width=1, height=1
+          '80' + // LSD packed = 0x80 (GCT present, 2 entries)
+          '0000' + // LSD bgcolor=0, pixel_aspect=0
+          '000000ffffff' + // GCT: entry 0 = black (000000), entry 1 = white (ffffff)
+          '2c000000000100010000' + // Image Descriptor (separator=0x2C, left=0, top=0, w=1, h=1, packed=0)
+          '02' + // LZW minimum code size = 2
+          '024c01' + // sub-block: size=2, compressed pixel data
+          '00' + // block terminator
+          '3b', // GIF trailer
         'hex',
       ),
     },
