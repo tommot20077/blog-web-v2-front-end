@@ -61,23 +61,32 @@ test.describe('Editor - edit existing article (F5/F8)', () => {
 
   test('B-5: router.push 切 /editor/{uuid} 應重新載入文章內容', async ({ page, request }) => {
     const author = (await import('../fixtures/auth')).getCredentials('author')
-    const loginResp = await request.post('http://localhost:9010/api/v1/auth/login', {
+    const loginResp = await request.post(`${BACKEND}/api/v1/auth/login`, {
       data: { identifier: author.email, password: author.password },
     })
-    const token = (await loginResp.json()).data.accessToken
+    expect(loginResp.ok()).toBeTruthy()
+    const loginBody = await loginResp.json()
+    expect(loginBody.code).toBe('00000')
+    const token = loginBody.data.accessToken
 
     // 建 A、B 兩篇 draft
-    const createA = await request.post('http://localhost:9010/api/v1/articles', {
+    const createA = await request.post(`${BACKEND}/api/v1/articles`, {
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       data: { title: 'B-5 Article A', content: 'a', summary: 's', categoryIds: [], tagNames: [] },
     })
-    const uuidA = (await createA.json()).data.uuid
+    expect(createA.ok()).toBeTruthy()
+    const createABody = await createA.json()
+    expect(createABody.code).toBe('00000')
+    const uuidA = createABody.data.uuid
 
-    const createB = await request.post('http://localhost:9010/api/v1/articles', {
+    const createB = await request.post(`${BACKEND}/api/v1/articles`, {
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       data: { title: 'B-5 Article B', content: 'b', summary: 's', categoryIds: [], tagNames: [] },
     })
-    const uuidB = (await createB.json()).data.uuid
+    expect(createB.ok()).toBeTruthy()
+    const createBBody = await createB.json()
+    expect(createBBody.code).toBe('00000')
+    const uuidB = createBBody.data.uuid
 
     try {
       await page.goto('/login')
@@ -104,10 +113,10 @@ test.describe('Editor - edit existing article (F5/F8)', () => {
       // 驗 title 變成 B（component 重 mount + reload）
       await expect(page.getByTestId('editor-title-input')).toHaveValue('B-5 Article B', { timeout: 10000 })
     } finally {
-      await request.delete(`http://localhost:9010/api/v1/articles/${uuidA}`, {
+      await request.delete(`${BACKEND}/api/v1/articles/${uuidA}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-      await request.delete(`http://localhost:9010/api/v1/articles/${uuidB}`, {
+      await request.delete(`${BACKEND}/api/v1/articles/${uuidB}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
     }

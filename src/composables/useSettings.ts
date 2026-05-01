@@ -101,30 +101,26 @@ export function useSettings() {
     linkedin.value = restored.linkedin
   }
 
+  // 從 authStore.user 同步 profile 欄位（onMounted 與 watch 共用 logic）
+  function hydrateProfile(user: typeof authStore.user) {
+    if (!user) return
+    nickname.value = user.nickname || ''
+    bio.value = user.bio || ''
+    email.value = user.email || ''
+    website.value = user.website ?? ''
+    // TODO: backend profile update endpoint does not yet accept avatarUrl
+    avatarUrl.value = user.avatarUrl || localStorage.getItem('blog.settings.avatarUrl') || null
+    hydrateSocial(user)
+  }
+
   // Initialize from auth store
   onMounted(() => {
-    if (authStore.user) {
-      nickname.value = authStore.user.nickname || ''
-      bio.value = authStore.user.bio || ''
-      email.value = authStore.user.email || ''
-      // TODO: backend profile update endpoint does not yet accept avatarUrl
-      avatarUrl.value = authStore.user.avatarUrl || localStorage.getItem('blog.settings.avatarUrl') || null
-      hydrateSocial(authStore.user)
-    }
+    hydrateProfile(authStore.user)
     location.value = localStorage.getItem('blog.settings.location') || ''
-    website.value = localStorage.getItem('blog.settings.website') || ''
   })
 
   // 若 authStore.user 在 onMounted 後才就緒（e.g. refresh token 完成），即時同步
-  watch(() => authStore.user, (user) => {
-    if (user) {
-      nickname.value = user.nickname || ''
-      bio.value = user.bio || ''
-      email.value = user.email || ''
-      avatarUrl.value = user.avatarUrl || localStorage.getItem('blog.settings.avatarUrl') || null
-      hydrateSocial(user)
-    }
-  })
+  watch(() => authStore.user, (user) => hydrateProfile(user))
 
   // Save functions
   async function saveProfile() {

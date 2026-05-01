@@ -15,6 +15,7 @@ test.describe('Tag suggest API (B-4)', () => {
 
   test('B-4: GET /tags/suggest?q=java 應 prefix match 包含 java', async ({ request }) => {
     const resp = await request.get('http://localhost:9010/api/v1/tags/suggest?q=java')
+    expect(resp.ok()).toBeTruthy()
     const body = await resp.json()
     expect(body.code).toBe('00000')
     const names = body.data.map((t: { name: string } | string) =>

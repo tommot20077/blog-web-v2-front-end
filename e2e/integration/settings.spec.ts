@@ -120,9 +120,9 @@ test.describe('Settings (B1/B2/B3/B4)', () => {
 
       await page.getByRole('button', { name: /社群連結/ }).click()
 
-      const githubInput = page.locator('input[placeholder="your-username"]').first()
-      const twitterInput = page.locator('input[placeholder="your-handle"]').first()
-      const linkedinInput = page.locator('input[placeholder="your-profile"]').first()
+      const githubInput = page.getByTestId('social-github-input')
+      const twitterInput = page.getByTestId('social-twitter-input')
+      const linkedinInput = page.getByTestId('social-linkedin-input')
 
       await githubInput.fill('myhandle')
       await twitterInput.fill('mytwitter')
@@ -131,7 +131,7 @@ test.describe('Settings (B1/B2/B3/B4)', () => {
       const patchResponse = page.waitForResponse(
         (r) => r.url().includes('/api/v1/users/me/profile') && r.request().method() === 'PATCH',
       )
-      await page.getByText('儲存連結').click()
+      await page.getByTestId('social-save-btn').click()
       const resp = await patchResponse
       expect(resp.status()).toBe(200)
       const body = await resp.json()
@@ -151,15 +151,15 @@ test.describe('Settings (B1/B2/B3/B4)', () => {
       })
       await page.waitForURL('/settings', { timeout: 5000 })
       await page.getByRole('button', { name: /社群連結/ }).click()
-      await expect(page.locator('input[placeholder="your-username"]').first()).toHaveValue('myhandle')
-      await expect(page.locator('input[placeholder="your-handle"]').first()).toHaveValue('mytwitter')
-      await expect(page.locator('input[placeholder="your-profile"]').first()).toHaveValue('mylinkedin')
+      await expect(page.getByTestId('social-github-input')).toHaveValue('myhandle')
+      await expect(page.getByTestId('social-twitter-input')).toHaveValue('mytwitter')
+      await expect(page.getByTestId('social-linkedin-input')).toHaveValue('mylinkedin')
     } finally {
       // cleanup：清空 socialLinks 並等 PATCH 完成，確保不污染其他 test
       await page.getByText('社群連結').click().catch(() => {})
-      const githubInputClean = page.locator('input[placeholder="your-username"]').first()
-      const twitterInputClean = page.locator('input[placeholder="your-handle"]').first()
-      const linkedinInputClean = page.locator('input[placeholder="your-profile"]').first()
+      const githubInputClean = page.getByTestId('social-github-input')
+      const twitterInputClean = page.getByTestId('social-twitter-input')
+      const linkedinInputClean = page.getByTestId('social-linkedin-input')
 
       await githubInputClean.fill('').catch(() => {})
       await twitterInputClean.fill('').catch(() => {})
@@ -168,7 +168,7 @@ test.describe('Settings (B1/B2/B3/B4)', () => {
         (r) => r.url().includes('/api/v1/users/me/profile') && r.request().method() === 'PATCH',
         { timeout: 5000 },
       ).catch(() => null)
-      await page.getByText('儲存連結').click().catch(() => {})
+      await page.getByTestId('social-save-btn').click({ timeout: 3000 }).catch(() => {})
       await cleanupResponse
     }
   })
