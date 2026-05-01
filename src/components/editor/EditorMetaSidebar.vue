@@ -92,9 +92,9 @@ async function onFileChange(e: Event) {
     const result = await fileService.uploadFile(file, 'ARTICLE_COVER')
     emit('update:coverImageUrl', result.url)
   } catch (err) {
-    const message = err instanceof Error ? err.message : '上傳失敗，請稍後再試'
-    uploadError.value = message
-    showToast(message, 'error')
+    const message = err instanceof Error ? err.message : '請稍後再試'
+    uploadError.value = '上傳失敗：' + message
+    showToast('上傳失敗：' + message, 'error')
   } finally {
     isUploading.value = false
     input.value = ''
