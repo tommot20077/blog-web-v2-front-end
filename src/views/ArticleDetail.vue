@@ -56,10 +56,10 @@ const goBack = () => window.history.length > 1 ? router.back() : router.push('/a
           <div data-testid="article-categories">
             <span
               v-for="cat in article.categories ?? []"
-              :key="cat"
+              :key="cat.uuid"
               class="mono"
               style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent)"
-            >{{ cat }}</span>
+            >{{ cat.name }}</span>
           </div>
           <span class="mono" style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)">
             {{ readingTimeMinutes }} MIN READ
