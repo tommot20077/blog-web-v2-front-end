@@ -75,31 +75,50 @@ test.describe('Auth token refresh (A6/A7/A8)', () => {
   /**
    * A7 強化：兩個並行 401 應只觸發一次 /auth/refresh。
    * 驗 axios interceptor 的 isRefreshing flag + failedQueue 機制。
+   *
+   * 觸發機制：透過 window.__apiClient（dev mode expose）在 page.evaluate 內
+   * Promise.all 兩個並行 axios.get，達到真實 concurrent。Mock 兩個不同 endpoint
+   * 都首次回 401，第二次放行；驗 /auth/refresh 只被叫一次。
+   *
    * 若 src/api/apiClient.ts 重構移除 processQueue, 此 spec 預期會壞，請對應調整。
    */
   test('A7 強化: concurrent 401 應只觸發一次 /auth/refresh', async ({ page }) => {
     const author = getCredentials('author');
 
-    // 先正常登入
+    // 先正常登入並等 page idle，避免 auth store 自動 fetchUser 影響後續斷言
     await page.goto('/login');
     await page.getByTestId('auth-login-field-email').fill(author.email);
     await page.getByTestId('auth-login-field-password').fill(author.password);
     await page.getByTestId('auth-login-submit').click();
     await page.waitForURL((url) => !url.pathname.startsWith('/login'));
+    await page.waitForLoadState('networkidle', { timeout: 10000 });
 
     let refreshCount = 0;
-    let articleCallCount = 0;
+    const articleFirstCalled = { fired: false };
+    const userFirstCalled = { fired: false };
 
-    // 攔截 refresh：計數但放行
+    // 攔截 refresh：計數但放行（讓真實 refresh 真的拿到新 token）
     await page.route('**/api/v1/auth/refresh', async (route) => {
       refreshCount++;
       await route.continue();
     });
 
-    // 攔截目標 API：前兩次回 401（模擬兩個並行請求都遇到過期 token），後續放行
+    // 兩個不同 endpoint：首次 401 模擬 concurrent 過期，retry 時放行
     await page.route('**/api/v1/articles/me*', async (route) => {
-      articleCallCount++;
-      if (articleCallCount <= 2) {
+      if (!articleFirstCalled.fired) {
+        articleFirstCalled.fired = true;
+        await route.fulfill({
+          status: 401,
+          contentType: 'application/json',
+          body: JSON.stringify({ code: 'A0005', message: 'Token 已過期', data: null }),
+        });
+      } else {
+        await route.continue();
+      }
+    });
+    await page.route('**/api/v1/users/me', async (route) => {
+      if (!userFirstCalled.fired) {
+        userFirstCalled.fired = true;
         await route.fulfill({
           status: 401,
           contentType: 'application/json',
@@ -110,16 +129,20 @@ test.describe('Auth token refresh (A6/A7/A8)', () => {
       }
     });
 
-    // 兩次 page.goto 對同一 page 序列執行（第二個會中斷第一個 navigation），
-    // 真實並行需在 backend 啟動後實際跑，必要時改寫為觸發兩個 router-view 元件並行 fetch。
-    // 目前期望：第一個 goto 觸發 articles/me fetch → 401 → refresh 啟動 isRefreshing flag；
-    //           第二個 goto 期間若 fetch 也命中 401，應走 failedQueue 而非再次 refresh。
-    await Promise.all([page.goto('/my-articles'), page.goto('/my-articles?status=DRAFT')]);
+    // 透過 dev backdoor __apiClient 觸發兩個真並行 axios.get
+    const result = await page.evaluate(async () => {
+      const apiClient = (window as unknown as Record<string, { get: (url: string) => Promise<unknown> }>).__apiClient;
+      const results = await Promise.allSettled([
+        apiClient.get('/api/v1/articles/me'),
+        apiClient.get('/api/v1/users/me'),
+      ]);
+      return results.map((r) => r.status);
+    });
 
-    // 等 page idle
-    await page.waitForLoadState('networkidle', { timeout: 10000 });
+    // 兩個 axios.get 都應因 retry 成功而 fulfilled
+    expect(result).toEqual(['fulfilled', 'fulfilled']);
 
-    // 斷言 /auth/refresh 只被叫一次
+    // /auth/refresh 應只被叫一次（isRefreshing flag + failedQueue 生效）
     expect(refreshCount).toBe(1);
   });
 
@@ -129,14 +152,15 @@ test.describe('Auth token refresh (A6/A7/A8)', () => {
   test('A8 強化: refresh 失敗應 logout 並 redirect /login', async ({ page, context }) => {
     const author = getCredentials('author');
 
-    // 登入
+    // 先正常登入並停在已登入頁，讓 __apiClient 有 valid access token
     await page.goto('/login');
     await page.getByTestId('auth-login-field-email').fill(author.email);
     await page.getByTestId('auth-login-field-password').fill(author.password);
     await page.getByTestId('auth-login-submit').click();
     await page.waitForURL((url) => !url.pathname.startsWith('/login'));
+    await page.waitForLoadState('networkidle', { timeout: 10000 });
 
-    // mock /auth/refresh 永遠 401
+    // mock /auth/refresh 永遠 401（模擬 refresh token 失效）
     await page.route('**/api/v1/auth/refresh', async (route) => {
       await route.fulfill({
         status: 401,
@@ -156,20 +180,41 @@ test.describe('Auth token refresh (A6/A7/A8)', () => {
       });
     });
 
-    // 觸發 API call
-    await page.goto('/my-articles');
+    // 透過 __apiClient 觸發 401，避免 page.goto full reload 重置 Pinia state
+    // 走 interceptor 完整路徑：401 → refresh → refresh 401 → authStore.logout → /auth/logout → 清 cookie
+    const logoutResponsePromise = page.waitForResponse(
+      (r) => r.url().includes('/api/v1/auth/logout'),
+      { timeout: 10000 }
+    );
+    const result = await page.evaluate(async () => {
+      const apiClient = (window as unknown as Record<string, { get: (url: string) => Promise<unknown> }>).__apiClient;
+      try {
+        await apiClient.get('/api/v1/articles/me');
+        return 'unexpected-success';
+      } catch (e) {
+        return 'rejected-as-expected';
+      }
+    });
+    expect(result).toBe('rejected-as-expected');
 
-    // 應 redirect 到 /login
-    await page.waitForURL(/\/login/, { timeout: 10000 });
-    expect(page.url()).toContain('/login');
+    // 等 /auth/logout 完成（authStore.logout 內 fire-and-forget）
+    await logoutResponsePromise;
 
-    // refreshToken cookie 應清空
+    // refreshToken cookie 應已清空
     const cookies = await context.cookies();
     const refreshCookie = cookies.find((c) => c.name === 'refreshToken');
     expect(refreshCookie?.value ?? '').toBe('');
 
     // refresh 失敗後不應再 retry articles/me
     expect(articleCallCount).toBe(1);
+
+    // 觸發 navigation 讓 router guard 看見 unauthenticated → 應導 /login
+    await page.evaluate(() => {
+      const router = (window as unknown as Record<string, { push: (p: string) => Promise<void> }>).__router;
+      return router.push('/my-articles');
+    });
+    await page.waitForURL(/\/login/, { timeout: 5000 });
+    expect(page.url()).toContain('/login');
 
     // navbar 應顯示 guest 狀態
     await expect(page.getByTestId('navbar-login-btn')).toBeVisible({ timeout: 5000 });
