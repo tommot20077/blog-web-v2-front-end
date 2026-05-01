@@ -103,16 +103,25 @@ test.describe('檔案上傳邊界 API (G3/G4/G8)', () => {
 
   /**
    * G5 follow-up: 後端 IT 待補。
-   * 位置：D:\end\workspace\java\blog-web-v2\blog-module-file (或對應模組)
-   * 做法：mock UserFacade quota 滿值 → POST /files/upload → 驗 code === 'A0405'
+   * 位置：(java repo)/blog-module-file
+   * 做法：mock UserFacade quota 滿值 → POST /files/upload → 驗 code === 'A0403'
    */
-  test('G5: 上傳遇 quota 不足應顯示 toast (mock A0405)', async ({ page }) => {
-    // mock 後端回 A0405
+  test('G5: 上傳遇 quota 不足應顯示 toast (mock A0403)', async ({ page }) => {
+    // mock quota init request（避免打真後端；total 500MB 模擬正常配額）
+    await page.route('**/api/v1/users/me/quota', (r) =>
+      r.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ code: '00000', data: { used: 0, total: 524288000 }, message: '' }),
+      }),
+    );
+
+    // mock 後端回 A0403（FileErrorCode.QUOTA_EXCEEDED）
     await page.route('**/api/v1/files/upload', (route) =>
       route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ code: 'A0405', message: '儲存空間不足', data: null }),
+        body: JSON.stringify({ code: 'A0403', message: '儲存空間配額已滿', data: null }),
       }),
     );
 
@@ -138,15 +147,12 @@ test.describe('檔案上傳邊界 API (G3/G4/G8)', () => {
       ),
     });
 
-    // toast 顯示（toast-indicator 是色條 div，訊息文字在同層的 <p>）
-    const toastIndicator = page.locator('[data-testid="toast-indicator"]').first();
-    await expect(toastIndicator).toBeVisible({ timeout: 5000 });
-    const toastText = await toastIndicator.locator('..').locator('p').first().textContent();
-    expect(toastText).toMatch(/(儲存空間|quota|配額|空間)/i);
+    // toast 顯示（使用 toast-message testid 取代脆弱的 DOM traversal）
+    await expect(page.getByTestId('toast-indicator').first()).toBeVisible({ timeout: 5000 });
+    await expect(page.getByTestId('toast-message').first()).toContainText(/儲存空間|配額/);
 
     // 封面預覽不應出現
-    const coverPreview = page.locator('[data-testid="cover-preview"]');
-    expect(await coverPreview.count()).toBe(0);
+    await expect(page.getByTestId('cover-preview')).toHaveCount(0);
   });
 
   test('G8: 上傳後 DELETE /files/{id}, /users/me/files 不再包含', async ({ request }) => {
