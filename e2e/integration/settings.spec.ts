@@ -106,4 +106,66 @@ test.describe('Settings (B1/B2/B3/B4)', () => {
       data: { oldPassword: newPw, newPassword: oldPw },
     })
   })
+
+  test('B-3: socialLinks 經 PATCH 後 reload 仍保留', async ({ page }) => {
+    const author = getCredentials('author');
+
+    await page.goto('/login');
+    await page.waitForURL(/\/login/, { timeout: 5000 });
+    await page.getByTestId('auth-login-field-email').fill(author.email);
+    await page.getByTestId('auth-login-field-password').fill(author.password);
+    await page.getByTestId('auth-login-submit').click();
+    await page.waitForURL((url) => !url.pathname.startsWith('/login'), { timeout: 5000 });
+    await page.evaluate(() => {
+      const router = (window as unknown as Record<string, { push: (p: string) => Promise<void> }>).__router
+      return router.push('/settings')
+    });
+    await page.waitForURL('/settings', { timeout: 5000 });
+
+    await page.getByRole('button', { name: /社群連結/ }).click();
+
+    const githubInput = page.locator('input[placeholder="your-username"]').first();
+    const twitterInput = page.locator('input[placeholder="your-handle"]').first();
+    const linkedinInput = page.locator('input[placeholder="your-profile"]').first();
+
+    await githubInput.fill('myhandle');
+    await twitterInput.fill('mytwitter');
+    await linkedinInput.fill('mylinkedin');
+
+    const patchResponse = page.waitForResponse(
+      (r) => r.url().includes('/api/v1/users/me/profile') && r.request().method() === 'PATCH',
+    );
+    await page.getByText('儲存連結').click();
+    const resp = await patchResponse;
+    expect(resp.status()).toBe(200);
+    const body = await resp.json();
+    expect(body.code).toBe('00000');
+
+    // reload 後 SPA 重新初始化：等 App.vue refreshToken 完成，再 SPA 導航到 /settings
+    await page.goto('/');
+    await page.waitForURL('/', { timeout: 10000 });
+    // 等待 authStore refresh token 完成（accessToken 不為 null）
+    await page.waitForFunction(() => {
+      const pinia = (window as unknown as Record<string, { state: { value: { auth?: { accessToken?: string } } } }>).__pinia
+      return !!pinia?.state?.value?.auth?.accessToken
+    }, { timeout: 10000 });
+    await page.evaluate(() => {
+      const router = (window as unknown as Record<string, { push: (p: string) => Promise<void> }>).__router
+      return router.push('/settings')
+    });
+    await page.waitForURL('/settings', { timeout: 5000 });
+    await page.getByRole('button', { name: /社群連結/ }).click();
+    await expect(page.locator('input[placeholder="your-username"]').first()).toHaveValue('myhandle');
+    await expect(page.locator('input[placeholder="your-handle"]').first()).toHaveValue('mytwitter');
+    await expect(page.locator('input[placeholder="your-profile"]').first()).toHaveValue('mylinkedin');
+
+    // cleanup
+    const githubInputClean = page.locator('input[placeholder="your-username"]').first();
+    const twitterInputClean = page.locator('input[placeholder="your-handle"]').first();
+    const linkedinInputClean = page.locator('input[placeholder="your-profile"]').first();
+    await githubInputClean.fill('');
+    await twitterInputClean.fill('');
+    await linkedinInputClean.fill('');
+    await page.getByText('儲存連結').click();
+  });
 })

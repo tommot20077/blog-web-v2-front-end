@@ -1,4 +1,4 @@
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { userService } from '../api/userService'
 import { fileService } from '../api/fileService'
 import { useAuthStore } from '../stores/auth'
@@ -58,10 +58,10 @@ export function useSettings() {
   const pwConfirm = ref('')
   const { status: accountStatus, withSave: withAccountSave } = useSaveStatus()
 
-  // ── Social (localStorage only — TODO: backend) ──
-  const github = ref(localStorage.getItem('blog.settings.github') || '')
-  const twitter = ref(localStorage.getItem('blog.settings.twitter') || '')
-  const linkedin = ref(localStorage.getItem('blog.settings.linkedin') || '')
+  // ── Social ──
+  const github = ref('')
+  const twitter = ref('')
+  const linkedin = ref('')
   const { status: socialStatus, withSave: withSocialSave } = useSaveStatus()
 
   // ── Writing Preferences (localStorage) ──
@@ -79,6 +79,28 @@ export function useSettings() {
   const nNewsletter = ref(localStorage.getItem('blog.settings.nNewsletter') !== 'false')
   const { status: notifStatus, withSave: withNotifSave } = useSaveStatus()
 
+  // Parse socialLinks JSON string from user profile
+  function parseSocialLinks(raw: string | null | undefined) {
+    if (!raw) return { github: '', twitter: '', linkedin: '' }
+    try {
+      const parsed = JSON.parse(raw)
+      return {
+        github: parsed.github ?? '',
+        twitter: parsed.twitter ?? '',
+        linkedin: parsed.linkedin ?? '',
+      }
+    } catch {
+      return { github: '', twitter: '', linkedin: '' }
+    }
+  }
+
+  function hydrateSocial(user: typeof authStore.user) {
+    const restored = parseSocialLinks(user?.socialLinks)
+    github.value = restored.github
+    twitter.value = restored.twitter
+    linkedin.value = restored.linkedin
+  }
+
   // Initialize from auth store
   onMounted(() => {
     if (authStore.user) {
@@ -87,9 +109,21 @@ export function useSettings() {
       email.value = authStore.user.email || ''
       // TODO: backend profile update endpoint does not yet accept avatarUrl
       avatarUrl.value = authStore.user.avatarUrl || localStorage.getItem('blog.settings.avatarUrl') || null
+      hydrateSocial(authStore.user)
     }
     location.value = localStorage.getItem('blog.settings.location') || ''
     website.value = localStorage.getItem('blog.settings.website') || ''
+  })
+
+  // 若 authStore.user 在 onMounted 後才就緒（e.g. refresh token 完成），即時同步
+  watch(() => authStore.user, (user) => {
+    if (user) {
+      nickname.value = user.nickname || ''
+      bio.value = user.bio || ''
+      email.value = user.email || ''
+      avatarUrl.value = user.avatarUrl || localStorage.getItem('blog.settings.avatarUrl') || null
+      hydrateSocial(user)
+    }
   })
 
   // Save functions
@@ -141,12 +175,20 @@ export function useSettings() {
   }
 
   async function saveSocial() {
+    if (!authStore.user) return
     try {
       await withSocialSave(async () => {
-        // TODO: backend social links API
-        localStorage.setItem('blog.settings.github', github.value)
-        localStorage.setItem('blog.settings.twitter', twitter.value)
-        localStorage.setItem('blog.settings.linkedin', linkedin.value)
+        const socialLinks = JSON.stringify({
+          github: github.value,
+          twitter: twitter.value,
+          linkedin: linkedin.value,
+        })
+        await userService.updateProfile({
+          nickname: authStore.user!.nickname,
+          bio: authStore.user!.bio,
+          socialLinks,
+        })
+        await authStore.fetchUser()
       })
     } catch {
       showToast('儲存社群連結失敗', 'error')
