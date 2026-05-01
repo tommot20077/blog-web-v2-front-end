@@ -58,4 +58,58 @@ test.describe('Editor - edit existing article (F5/F8)', () => {
       })
     }
   })
+
+  test('B-5: router.push 切 /editor/{uuid} 應重新載入文章內容', async ({ page, request }) => {
+    const author = (await import('../fixtures/auth')).getCredentials('author')
+    const loginResp = await request.post('http://localhost:9010/api/v1/auth/login', {
+      data: { identifier: author.email, password: author.password },
+    })
+    const token = (await loginResp.json()).data.accessToken
+
+    // 建 A、B 兩篇 draft
+    const createA = await request.post('http://localhost:9010/api/v1/articles', {
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      data: { title: 'B-5 Article A', content: 'a', summary: 's', categoryIds: [], tagNames: [] },
+    })
+    const uuidA = (await createA.json()).data.uuid
+
+    const createB = await request.post('http://localhost:9010/api/v1/articles', {
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      data: { title: 'B-5 Article B', content: 'b', summary: 's', categoryIds: [], tagNames: [] },
+    })
+    const uuidB = (await createB.json()).data.uuid
+
+    try {
+      await page.goto('/login')
+      await page.getByTestId('auth-login-field-email').fill(author.email)
+      await page.getByTestId('auth-login-field-password').fill(author.password)
+      await page.getByTestId('auth-login-submit').click()
+      await page.waitForURL((url) => !url.pathname.startsWith('/login'))
+
+      await page.evaluate((u) => {
+        const router = (window as unknown as Record<string, { push: (p: string) => Promise<void> }>).__router
+        return router.push(`/editor/${u}`)
+      }, uuidA)
+      await page.waitForURL(`/editor/${uuidA}`)
+
+      await expect(page.getByTestId('editor-title-input')).toHaveValue('B-5 Article A', { timeout: 10000 })
+
+      // router.push 切到 B
+      await page.evaluate((u) => {
+        const router = (window as unknown as Record<string, { push: (p: string) => Promise<void> }>).__router
+        return router.push(`/editor/${u}`)
+      }, uuidB)
+      await page.waitForURL(`/editor/${uuidB}`)
+
+      // 驗 title 變成 B（component 重 mount + reload）
+      await expect(page.getByTestId('editor-title-input')).toHaveValue('B-5 Article B', { timeout: 10000 })
+    } finally {
+      await request.delete(`http://localhost:9010/api/v1/articles/${uuidA}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      await request.delete(`http://localhost:9010/api/v1/articles/${uuidB}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+    }
+  })
 })
