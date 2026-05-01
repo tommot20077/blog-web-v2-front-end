@@ -123,6 +123,59 @@ test.describe('Auth token refresh (A6/A7/A8)', () => {
     expect(refreshCount).toBe(1);
   });
 
+  /**
+   * A8 強化：refresh 也回 401 時應 logout (清 store + 清 cookie) 並 redirect /login。
+   */
+  test('A8 強化: refresh 失敗應 logout 並 redirect /login', async ({ page, context }) => {
+    const author = getCredentials('author');
+
+    // 登入
+    await page.goto('/login');
+    await page.getByTestId('auth-login-field-email').fill(author.email);
+    await page.getByTestId('auth-login-field-password').fill(author.password);
+    await page.getByTestId('auth-login-submit').click();
+    await page.waitForURL((url) => !url.pathname.startsWith('/login'));
+
+    // mock /auth/refresh 永遠 401
+    await page.route('**/api/v1/auth/refresh', async (route) => {
+      await route.fulfill({
+        status: 401,
+        contentType: 'application/json',
+        body: JSON.stringify({ code: 'A0005', message: 'Refresh token invalid', data: null }),
+      });
+    });
+
+    // mock 目標 API 第一次 401（觸發 refresh 流程 → refresh 失敗 → logout）
+    let articleCallCount = 0;
+    await page.route('**/api/v1/articles/me*', async (route) => {
+      articleCallCount++;
+      if (articleCallCount === 1) {
+        await route.fulfill({
+          status: 401,
+          contentType: 'application/json',
+          body: JSON.stringify({ code: 'A0005', message: 'Token expired', data: null }),
+        });
+      } else {
+        await route.continue();
+      }
+    });
+
+    // 觸發 API call
+    await page.goto('/my-articles');
+
+    // 應 redirect 到 /login
+    await page.waitForURL(/\/login/, { timeout: 10000 });
+    expect(page.url()).toContain('/login');
+
+    // refreshToken cookie 應清空
+    const cookies = await context.cookies();
+    const refreshCookie = cookies.find((c) => c.name === 'refreshToken');
+    expect(refreshCookie?.value ?? '').toBe('');
+
+    // navbar 應顯示 guest 狀態
+    await expect(page.getByTestId('navbar-login-btn')).toBeVisible({ timeout: 5000 });
+  });
+
   test('A8: refresh token 也過期（cookie 清空）→ redirect 到 /login', async ({ page, context }) => {
     const author = getCredentials('author')
     await loginUI(page, author.email, author.password)
