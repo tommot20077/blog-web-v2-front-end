@@ -341,7 +341,7 @@ async function handleDeleteAccount() {
             <div class="st-danger-title">刪除帳號</div>
             <div class="st-danger-desc">永久刪除你的帳號及所有相關資料，此操作無法復原。</div>
           </div>
-          <button type="button" class="st-btn-danger" @click="handleDeleteAccount">刪除帳號</button>
+          <button type="button" class="st-btn-danger" data-testid="delete-account-btn" @click="handleDeleteAccount">刪除帳號</button>
         </div>
       </section>
 
