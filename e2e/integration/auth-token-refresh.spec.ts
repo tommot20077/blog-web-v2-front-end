@@ -145,19 +145,15 @@ test.describe('Auth token refresh (A6/A7/A8)', () => {
       });
     });
 
-    // mock 目標 API 第一次 401（觸發 refresh 流程 → refresh 失敗 → logout）
+    // mock 目標 API 永遠 401（refresh 失敗後不應再 retry）
     let articleCallCount = 0;
     await page.route('**/api/v1/articles/me*', async (route) => {
       articleCallCount++;
-      if (articleCallCount === 1) {
-        await route.fulfill({
-          status: 401,
-          contentType: 'application/json',
-          body: JSON.stringify({ code: 'A0005', message: 'Token expired', data: null }),
-        });
-      } else {
-        await route.continue();
-      }
+      await route.fulfill({
+        status: 401,
+        contentType: 'application/json',
+        body: JSON.stringify({ code: 'A0005', message: 'Token expired', data: null }),
+      });
     });
 
     // 觸發 API call
@@ -171,6 +167,9 @@ test.describe('Auth token refresh (A6/A7/A8)', () => {
     const cookies = await context.cookies();
     const refreshCookie = cookies.find((c) => c.name === 'refreshToken');
     expect(refreshCookie?.value ?? '').toBe('');
+
+    // refresh 失敗後不應再 retry articles/me
+    expect(articleCallCount).toBe(1);
 
     // navbar 應顯示 guest 狀態
     await expect(page.getByTestId('navbar-login-btn')).toBeVisible({ timeout: 5000 });
