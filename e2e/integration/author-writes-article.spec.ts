@@ -69,9 +69,9 @@ test.describe('作者撰寫文章 (integration)', () => {
     expect(body.code).toBe('400')
     expect(body.message).toContain('標題長度')
 
-    // toast 顯示錯誤（ToastItem 以 data-testid="toast-indicator" 標記）
-    const toast = page.locator('[data-testid="toast-indicator"]').first()
-    await expect(toast).toBeVisible({ timeout: 5000 })
+    // toast 顯示錯誤（editor saveDraft 統一顯示「儲存失敗」，後端原始訊息可從 response body 取得 — 已上方驗）
+    const toastMessage = page.getByTestId('toast-message').first()
+    await expect(toastMessage).toContainText('儲存失敗', { timeout: 5000 })
 
     // URL 應仍在編輯器（未跳走）
     expect(page.url()).toBe(startUrl)

@@ -106,53 +106,85 @@ test.describe('檔案上傳邊界 API (G3/G4/G8)', () => {
    * 位置：(java repo)/blog-module-file
    * 做法：mock UserFacade quota 滿值 → POST /files/upload → 驗 code === 'A0403'
    */
-  test('G5: 上傳遇 quota 不足應顯示 toast (mock A0403)', async ({ page }) => {
-    // mock quota init request（避免打真後端；total 500MB 模擬正常配額）
-    await page.route('**/api/v1/users/me/quota', (r) =>
-      r.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ code: '00000', data: { used: 0, total: 524288000 }, message: '' }),
-      }),
-    );
-
-    // mock 後端回 A0403（FileErrorCode.QUOTA_EXCEEDED）
-    await page.route('**/api/v1/files/upload', (route) =>
-      route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ code: 'A0403', message: '儲存空間配額已滿', data: null }),
-      }),
-    );
-
-    // 登入並進入 editor
+  test('G5: 上傳遇 quota 不足應顯示 toast (mock A0403)', async ({ page, request }) => {
     const author = getCredentials('author');
-    await page.goto('/login');
-    await page.getByTestId('auth-login-field-email').fill(author.email);
-    await page.getByTestId('auth-login-field-password').fill(author.password);
-    await page.getByTestId('auth-login-submit').click();
-    await page.waitForURL((url) => !url.pathname.startsWith('/login'));
-    await page.goto('/editor');
 
-    // 觸發封面圖上傳
-    const fileInput = page.locator('[data-testid="cover-upload-input"]');
-    await fileInput.setInputFiles({
-      name: 'quota-test.png',
-      mimeType: 'image/png',
-      buffer: Buffer.from(
-        '89504e470d0a1a0a0000000d49484452000000010000000108020000009077' +
-          '53de00000010494441545863fbff5f7e0000feff03f900050001a4d3a55a000000004945' +
-          '4e44ae426082',
-        'hex',
-      ),
+    // 先用 API 建立 draft 取得 uuid（裸 /editor 路徑不會 render EditorMetaSidebar）
+    const loginResp = await request.post('http://localhost:9010/api/v1/auth/login', {
+      data: { identifier: author.email, password: author.password },
     });
+    const token = (await loginResp.json()).data.accessToken;
+    const create = await request.post('http://localhost:9010/api/v1/articles', {
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      data: {
+        title: `G5 quota test ${Date.now()}`,
+        content: 'test',
+        summary: '',
+        coverImageUrl: null,
+        categoryIds: [],
+        tagNames: [],
+      },
+    });
+    const uuid = (await create.json()).data.uuid;
 
-    // toast 顯示（使用 toast-message testid 取代脆弱的 DOM traversal）
-    await expect(page.getByTestId('toast-indicator').first()).toBeVisible({ timeout: 5000 });
-    await expect(page.getByTestId('toast-message').first()).toContainText(/儲存空間|配額/);
+    try {
+      // mock quota init request（避免打真後端；total 500MB 模擬正常配額）
+      await page.route('**/api/v1/users/me/quota', (r) =>
+        r.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ code: '00000', data: { used: 0, total: 524288000 }, message: '' }),
+        }),
+      );
 
-    // 封面預覽不應出現
-    await expect(page.getByTestId('cover-preview')).toHaveCount(0);
+      // mock 後端回 A0403（FileErrorCode.QUOTA_EXCEEDED）
+      await page.route('**/api/v1/files/upload', (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ code: 'A0403', message: '儲存空間配額已滿', data: null }),
+        }),
+      );
+
+      // 登入並進入 editor with uuid
+      // 用 router.push 而非 page.goto，避免 full reload 導致 Pinia state 重置 → 路由 guard 誤判未登入
+      await page.goto('/login');
+      await page.getByTestId('auth-login-field-email').fill(author.email);
+      await page.getByTestId('auth-login-field-password').fill(author.password);
+      await page.getByTestId('auth-login-submit').click();
+      await page.waitForURL((url) => !url.pathname.startsWith('/login'));
+      await page.evaluate((u) => {
+        const router = (window as unknown as Record<string, { push: (p: string) => Promise<void> }>).__router;
+        return router.push(`/editor/${u}`);
+      }, uuid);
+      await page.waitForURL(`/editor/${uuid}`, { timeout: 5000 });
+      await expect(page.getByTestId('editor-title-input')).toBeVisible({ timeout: 10000 });
+
+      // 觸發封面圖上傳
+      const fileInput = page.locator('[data-testid="cover-upload-input"]');
+      await fileInput.setInputFiles({
+        name: 'quota-test.png',
+        mimeType: 'image/png',
+        buffer: Buffer.from(
+          '89504e470d0a1a0a0000000d49484452000000010000000108020000009077' +
+            '53de00000010494441545863fbff5f7e0000feff03f900050001a4d3a55a000000004945' +
+            '4e44ae426082',
+          'hex',
+        ),
+      });
+
+      // toast 文字曾出現（toContainText 自動 retry）
+      await expect(page.getByTestId('toast-message').first()).toContainText(/儲存空間|配額/, {
+        timeout: 5000,
+      });
+
+      // 封面預覽不應出現
+      await expect(page.getByTestId('cover-preview')).toHaveCount(0);
+    } finally {
+      await request.delete(`http://localhost:9010/api/v1/articles/${uuid}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    }
   });
 
   test('G8: 上傳後 DELETE /files/{id}, /users/me/files 不再包含', async ({ request }) => {
