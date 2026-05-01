@@ -69,8 +69,8 @@ test.describe('作者撰寫文章 (integration)', () => {
     expect(body.code).toBe('400')
     expect(body.message).toContain('標題長度')
 
-    // toast 顯示錯誤（ToastItem 以 data-testid="toast-indicator" 標記；fallback: role="alert"）
-    const toast = page.locator('[data-testid="toast-indicator"], [role="alert"]').first()
+    // toast 顯示錯誤（ToastItem 以 data-testid="toast-indicator" 標記）
+    const toast = page.locator('[data-testid="toast-indicator"]').first()
     await expect(toast).toBeVisible({ timeout: 5000 })
 
     // URL 應仍在編輯器（未跳走）
@@ -110,9 +110,10 @@ End.`
 
     try {
       // 發布
-      await request.post(`http://localhost:9010/api/v1/articles/${uuid}/publish`, {
+      const publishResp = await request.post(`http://localhost:9010/api/v1/articles/${uuid}/publish`, {
         headers: { Authorization: `Bearer ${token}` },
       })
+      expect(publishResp.ok()).toBeTruthy()
 
       // 監聽 dialog（如 alert 觸發 → fail）
       let dialogTriggered = false
@@ -123,7 +124,13 @@ End.`
 
       // 進公開瀏覽頁
       await page.goto(`/articles/${uuid}`)
-      await page.waitForLoadState('networkidle')
+      // 確認文章 render 成功，避免 404 偽裝成 XSS pass
+      await expect(page.locator('article')).toBeVisible({ timeout: 10000 })
+      // 等 markdown render 完，<h1>Hello</h1> 出現
+      await page.waitForFunction(
+        () => !!document.querySelector('article h1'),
+        { timeout: 10000 }
+      )
 
       // 斷言
       expect(dialogTriggered).toBe(false)
