@@ -16,6 +16,15 @@ vi.mock('../composables/useMarkdownRenderer', () => ({
 
 vi.mock('../composables/useHeadSetup', () => ({ useHeadSetup: vi.fn() }))
 
+vi.mock('../composables/useArticleLike', () => ({
+  useArticleLike: vi.fn((_uuid: unknown, initial: { liked: boolean; likeCount: number }) => ({
+    liked: { value: initial.liked },
+    likeCount: { value: initial.likeCount },
+    isPending: { value: false },
+    toggle: vi.fn(),
+  })),
+}))
+
 describe('ArticleDetail Integration', () => {
   beforeEach(() => {
     vi.mocked(articleService.getArticleByUuid).mockResolvedValue({
@@ -31,6 +40,8 @@ describe('ArticleDetail Integration', () => {
       publishedAt: '2026-01-01',
       tags: ['Vue'],
       coverImageUrl: null,
+      categories: [],
+      liked: false,
     })
   })
 

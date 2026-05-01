@@ -4,6 +4,7 @@ import { flushPromises } from '@vue/test-utils'
 import ArticleDetail from './ArticleDetail.vue'
 import { createTestRouter, createMockArticleDetail } from '../test-utils'
 import { articleService } from '../api/articleService'
+import type { ArticleCategory } from '../api/real/articleService'
 
 vi.mock('../api/articleService', () => ({
   articleService: {
@@ -24,6 +25,15 @@ vi.mock('../composables/useWordCount', () => ({
     wordCount: computed(() => 100),
     characterCount: computed(() => 500),
     readingTimeMinutes: computed(() => 3),
+  })),
+}))
+
+vi.mock('../composables/useArticleLike', () => ({
+  useArticleLike: vi.fn((_uuid: unknown, initial: { liked: boolean; likeCount: number }) => ({
+    liked: ref(initial.liked),
+    likeCount: ref(initial.likeCount),
+    isPending: ref(false),
+    toggle: vi.fn(),
   })),
 }))
 
@@ -177,7 +187,7 @@ describe('ArticleDetail 頁面', () => {
       const { container } = await renderArticleDetail()
       await flushPromises()
 
-      const likeEl = container.querySelector('[data-testid="like-count"]')
+      const likeEl = container.querySelector('[data-testid="article-like-footer-count"]')
       expect(likeEl).toBeInTheDocument()
       expect(likeEl?.textContent).toContain('42')
     })
@@ -195,7 +205,11 @@ describe('ArticleDetail 頁面', () => {
     })
 
     it('顯示分類標籤', async () => {
-      const mockArticle = createMockArticleDetail({ categories: ['Frontend', 'Vue'] })
+      const categories: ArticleCategory[] = [
+        { uuid: 'cat-1', name: 'Frontend', slug: 'frontend' },
+        { uuid: 'cat-2', name: 'Vue', slug: 'vue' },
+      ]
+      const mockArticle = createMockArticleDetail({ categories })
       vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
 
       await renderArticleDetail()

@@ -68,7 +68,7 @@ export const allMockArticles: ArticleItem[] = [
 export function getMockArticleDetail(uuid: string): ArticleDetailItem | null {
   const base = allMockArticles.find(a => a.uuid === uuid);
   if (!base) return null;
-  return { ...base, content: mockMarkdownContent };
+  return { ...base, content: mockMarkdownContent, categories: [], liked: false };
 }
 
 // 熱門標籤 mock 資料

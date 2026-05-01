@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watchEffect } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useArticleDetail } from '../composables/useArticleDetail'
+import { useArticleLike } from '../composables/useArticleLike'
 import { useMarkdownRenderer } from '../composables/useMarkdownRenderer'
 import { useWordCount } from '../composables/useWordCount'
 import { useReadingProgress } from '../composables/useReadingProgress'
+import ActionBar from '../components/article/ActionBar.vue'
+import ReactionFooter from '../components/article/ReactionFooter.vue'
 import NotFoundView from './NotFoundView.vue'
 
 const route = useRoute()
@@ -18,6 +21,18 @@ const { readingTimeMinutes } = useWordCount(markdownSource)
 
 const articleEl = ref<HTMLElement | null>(null)
 const { progress } = useReadingProgress(articleEl)
+
+// Like state — called synchronously in setup (safe for useRouter/useRoute inside useAuthWall)
+const articleUuidRef = computed(() => article.value?.uuid ?? '')
+const likeState = useArticleLike(articleUuidRef, { liked: false, likeCount: 0 })
+
+// Once article loads, sync its initial liked/count into likeState
+watchEffect(() => {
+  if (article.value) {
+    likeState.liked.value = article.value.liked
+    likeState.likeCount.value = article.value.likeCount
+  }
+})
 
 onMounted(() => window.scrollTo({ top: 0, behavior: 'auto' }))
 
@@ -92,7 +107,6 @@ const goBack = () => window.history.length > 1 ? router.back() : router.push('/a
           </div>
           <div class="art-hero-stats">
             <span>{{ article.viewCount }} 觀看次數</span>
-            <span data-testid="like-count">{{ article.likeCount }} ♡</span>
             <span data-testid="comment-count">{{ article.commentCount }} 留言</span>
           </div>
         </div>
@@ -108,19 +122,39 @@ const goBack = () => window.history.length > 1 ? router.back() : router.push('/a
       />
     </div>
 
-    <!-- Article body -->
-    <div class="wrap">
-      <div
-        class="art-body prose"
-        data-testid="article-body"
-        v-html="renderedHtml"
-      />
+    <!-- Article body + side ActionBar -->
+    <div class="art-content-layout wrap">
+      <div class="art-body-col">
+        <div
+          class="art-body prose"
+          data-testid="article-body"
+          v-html="renderedHtml"
+        />
 
-      <!-- Article end -->
-      <footer class="art-end">
-        <p class="mono" style="font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted-2)">END OF ARTICLE.</p>
-        <button @click="scrollToTop" class="back-top-btn">↑</button>
-      </footer>
+        <!-- Reaction footer (below article body) -->
+        <ReactionFooter
+          :liked="likeState.liked.value"
+          :like-count="likeState.likeCount.value"
+          :is-pending="likeState.isPending.value"
+          @toggle="likeState.toggle"
+        />
+
+        <!-- Article end -->
+        <footer class="art-end">
+          <p class="mono" style="font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted-2)">END OF ARTICLE.</p>
+          <button @click="scrollToTop" class="back-top-btn">↑</button>
+        </footer>
+      </div>
+
+      <!-- Sticky action bar (right rail) -->
+      <div class="art-action-rail">
+        <ActionBar
+          :liked="likeState.liked.value"
+          :like-count="likeState.likeCount.value"
+          :is-pending="likeState.isPending.value"
+          @toggle="likeState.toggle"
+        />
+      </div>
     </div>
 
     <!-- Side navigation dots -->
@@ -165,6 +199,14 @@ const goBack = () => window.history.length > 1 ? router.back() : router.push('/a
 .art-hero-stats { display: flex; gap: 20px; font-family: var(--f-mono); font-size: 11px; letter-spacing: .12em; color: var(--muted-2); text-transform: uppercase; }
 .art-cover { padding: 48px 0 0; }
 .art-cover img { width: 100%; border-radius: 8px; display: block; }
+.art-content-layout {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 24px;
+  align-items: start;
+}
+.art-body-col { min-width: 0; }
+.art-action-rail { position: sticky; top: 80px; }
 .art-body {
   max-width: 68ch; margin: 48px auto 0; font-family: var(--f-body);
   color: var(--ink-2); overflow-x: hidden;
