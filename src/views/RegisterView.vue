@@ -7,6 +7,7 @@ import { useToast } from '../composables/useToast';
 import AuthFormLayout from '../components/auth/AuthFormLayout.vue';
 import FormField from '../components/ui/FormField.vue';
 import PasswordStrengthMeter from '../components/auth/PasswordStrengthMeter.vue';
+import PasswordRulesChecklist from '../components/auth/PasswordRulesChecklist.vue';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -42,7 +43,11 @@ const { errors, validateForm, getPasswordStrength } = useFormValidation<{
   ],
   password: [
     { type: 'required', message: '請輸入密碼' },
-    { type: 'minLength', message: '密碼最少需要 8 個字元', params: { min: 8 } },
+    {
+      type: 'pattern',
+      message: '密碼須為 8-50 字元，且包含至少一個英文字母及一個數字',
+      params: { pattern: /^(?=.*[A-Za-z])(?=.*\d).{8,50}$/ },
+    },
   ],
 });
 
@@ -126,6 +131,7 @@ async function handleSubmit() {
         :disabled="isLoading"
       />
 
+      <PasswordRulesChecklist :password="password" />
       <PasswordStrengthMeter :strength="passwordStrength" />
 
       <button
