@@ -1,5 +1,4 @@
-import { test, expect } from '../fixtures/auth';
-import { getCredentials } from '../fixtures/auth';
+import { test, expect, getCredentials } from '../fixtures/auth';
 
 test.describe('A 域 logout (A9)', () => {
   test('A9: 登入後點 logout, cookie 清空, redirect /, 再訪 /editor 被導去 /login', async ({ page, context }) => {
@@ -15,7 +14,8 @@ test.describe('A 域 logout (A9)', () => {
     // 確認登入完成
     await expect(page.getByTestId('navbar-user-greeting')).toBeVisible();
     const cookiesBefore = await context.cookies();
-    expect(cookiesBefore.find((c) => c.name === 'refreshToken')).toBeDefined();
+    const refreshBefore = cookiesBefore.find((c) => c.name === 'refreshToken');
+    expect(refreshBefore?.value).toBeTruthy();
 
     // 點登出
     const logoutResponse = page.waitForResponse(
