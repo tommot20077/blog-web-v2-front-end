@@ -2,6 +2,7 @@
 import { ref, onUnmounted } from 'vue'
 import { fileService } from '../../api/fileService'
 import { tagSuggestService } from '../../api/tagSuggestService'
+import { useToast } from '../../composables/useToast'
 import type { CategoryOption } from '../../types/editor'
 import type { OutlineItem } from '../../composables/useEditorOutline'
 
@@ -79,6 +80,7 @@ function toggleCategory(id: string) {
 // ── 封面圖 ────────────────────────────────────────────────────────────────
 const isUploading = ref(false)
 const uploadError = ref('')
+const { showToast } = useToast()
 
 async function onFileChange(e: Event) {
   const input = e.target as HTMLInputElement
@@ -89,8 +91,10 @@ async function onFileChange(e: Event) {
   try {
     const result = await fileService.uploadFile(file, 'ARTICLE_COVER')
     emit('update:coverImageUrl', result.url)
-  } catch {
-    uploadError.value = '上傳失敗，請稍後再試'
+  } catch (err) {
+    const message = err instanceof Error ? err.message : '上傳失敗，請稍後再試'
+    uploadError.value = message
+    showToast(message, 'error')
   } finally {
     isUploading.value = false
     input.value = ''
@@ -126,7 +130,7 @@ async function onFileChange(e: Event) {
           v-if="coverImageUrl"
           class="relative rounded-xl overflow-hidden mb-2"
         >
-          <img :src="coverImageUrl" alt="封面圖預覽" class="w-full h-32 object-cover" />
+          <img data-testid="cover-preview" :src="coverImageUrl" alt="封面圖預覽" class="w-full h-32 object-cover" />
           <button
             type="button"
             class="absolute top-1 right-1 bg-black/50 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"
@@ -141,6 +145,7 @@ async function onFileChange(e: Event) {
             {{ isUploading ? '上傳中...' : '上傳封面' }}
           </span>
           <input
+            data-testid="cover-upload-input"
             type="file"
             accept="image/*"
             class="hidden"

@@ -101,6 +101,54 @@ test.describe('檔案上傳邊界 API (G3/G4/G8)', () => {
     expect(body.message).toContain('不支援')
   })
 
+  /**
+   * G5 follow-up: 後端 IT 待補。
+   * 位置：D:\end\workspace\java\blog-web-v2\blog-module-file (或對應模組)
+   * 做法：mock UserFacade quota 滿值 → POST /files/upload → 驗 code === 'A0405'
+   */
+  test('G5: 上傳遇 quota 不足應顯示 toast (mock A0405)', async ({ page }) => {
+    // mock 後端回 A0405
+    await page.route('**/api/v1/files/upload', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ code: 'A0405', message: '儲存空間不足', data: null }),
+      }),
+    );
+
+    // 登入並進入 editor
+    const author = getCredentials('author');
+    await page.goto('/login');
+    await page.getByTestId('auth-login-field-email').fill(author.email);
+    await page.getByTestId('auth-login-field-password').fill(author.password);
+    await page.getByTestId('auth-login-submit').click();
+    await page.waitForURL((url) => !url.pathname.startsWith('/login'));
+    await page.goto('/editor');
+
+    // 觸發封面圖上傳
+    const fileInput = page.locator('[data-testid="cover-upload-input"]');
+    await fileInput.setInputFiles({
+      name: 'quota-test.png',
+      mimeType: 'image/png',
+      buffer: Buffer.from(
+        '89504e470d0a1a0a0000000d49484452000000010000000108020000009077' +
+          '53de00000010494441545863fbff5f7e0000feff03f900050001a4d3a55a000000004945' +
+          '4e44ae426082',
+        'hex',
+      ),
+    });
+
+    // toast 顯示（toast-indicator 是色條 div，訊息文字在同層的 <p>）
+    const toastIndicator = page.locator('[data-testid="toast-indicator"]').first();
+    await expect(toastIndicator).toBeVisible({ timeout: 5000 });
+    const toastText = await toastIndicator.locator('..').locator('p').first().textContent();
+    expect(toastText).toMatch(/(儲存空間|quota|配額|空間)/i);
+
+    // 封面預覽不應出現
+    const coverPreview = page.locator('[data-testid="cover-preview"]');
+    expect(await coverPreview.count()).toBe(0);
+  });
+
   test('G8: 上傳後 DELETE /files/{id}, /users/me/files 不再包含', async ({ request }) => {
     const author = getCredentials('author')
     const loginResp = await request.post('http://localhost:9010/api/v1/auth/login', {
