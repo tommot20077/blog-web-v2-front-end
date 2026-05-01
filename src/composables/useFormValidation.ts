@@ -119,15 +119,6 @@ export function useFormValidation<T extends Record<string, unknown>>(
   };
 
   /**
-   * 取得密碼是否符合三條規則：長度 8-50、含英文字母、含數字
-   */
-  const getPasswordRules = (password: string): PasswordRules => ({
-    length: password.length >= 8 && password.length <= 50,
-    letter: /[A-Za-z]/.test(password),
-    digit: /\d/.test(password),
-  });
-
-  /**
    * 計算密碼強度
    */
   const getPasswordStrength = (password: string): PasswordStrength => {
@@ -160,6 +151,19 @@ export function useFormValidation<T extends Record<string, unknown>>(
     clearErrors,
     getPasswordStrength,
     getPasswordRules,
+  };
+}
+
+/**
+ * 取得密碼是否符合三條規則：長度 8-50、含英文字母、含數字
+ *
+ * <p>純函式不依賴 reactive state，可獨立 import 不需建空的 useFormValidation。</p>
+ */
+export function getPasswordRules(password: string): PasswordRules {
+  return {
+    length: password.length >= 8 && password.length <= 50,
+    letter: /[A-Za-z]/.test(password),
+    digit: /\d/.test(password),
   };
 }
 
@@ -222,4 +226,4 @@ function getErrorMessage(rule: ValidationRule): string {
 }
 
 export { VALIDATION_RULE_TYPE, PASSWORD_STRENGTH };
-export type { ValidationRule, ValidationRuleType, PasswordStrength, PasswordRules };
+export type { ValidationRule, ValidationRuleType, PasswordStrength };

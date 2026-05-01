@@ -1,12 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { useFormValidation } from '../../composables/useFormValidation';
+import { getPasswordRules } from '../../composables/useFormValidation';
 
 const props = defineProps<{
   password: string;
 }>();
-
-const { getPasswordRules } = useFormValidation<Record<string, never>>({});
 
 const rules = computed(() => getPasswordRules(props.password));
 </script>
