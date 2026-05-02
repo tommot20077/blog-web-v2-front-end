@@ -29,6 +29,8 @@ interface BackendTagDetail {
   icon: string | null | undefined
   description: string | null | undefined
   usageCount: number
+  // backend 未 deploy 帶 followed flag 的版本前可能 undefined；mapper 會 fallback false
+  followed?: boolean | null
 }
 
 function mapBackendTag(raw: BackendTag): TagDetailResponse {
@@ -44,6 +46,7 @@ function mapBackendTagDetail(raw: BackendTagDetail): TagDetail {
     icon: raw.icon ?? '',
     description: raw.description ?? '',
     usageCount: raw.usageCount,
+    followed: raw.followed ?? false,
   }
 }
 

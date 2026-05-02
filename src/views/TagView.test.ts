@@ -8,6 +8,9 @@ import { createMockArticle, createMockPageResult } from '../test-utils'
 vi.mock('../api/tagService', () => ({
   tagService: {
     getHotTags: vi.fn(),
+    getTagBySlug: vi.fn(),
+    followTag: vi.fn(),
+    unfollowTag: vi.fn(),
   },
 }))
 vi.mock('../api/articleService', () => ({
@@ -23,6 +26,10 @@ describe('TagView', () => {
     vi.mocked(articleService.getArticles).mockResolvedValue(
       createMockPageResult([createMockArticle({ tags: ['vue 3', 'frontend'] })]),
     )
+    vi.mocked(tagService.getTagBySlug).mockResolvedValue({
+      uuid: 't1', name: 'vue 3', slug: 'vue-3', color: '', icon: '',
+      description: '', usageCount: 22, followed: false,
+    })
   })
 
   it('顯示 tag 名稱標題', async () => {
@@ -43,5 +50,30 @@ describe('TagView', () => {
     const { container } = await renderWithRouterAsync(TagView, {}, '/tags/vue-3')
     await flushPromises()
     expect(container.querySelector('[data-testid="tag-related"]')).toBeInTheDocument()
+  })
+
+  it('getTagBySlug 回 followed=false → FollowButton 顯示 + Follow', async () => {
+    const { container } = await renderWithRouterAsync(TagView, {}, '/tags/vue-3')
+    await flushPromises()
+    const btn = container.querySelector('[data-testid="tag-follow-btn"]')
+    expect(btn).toBeInTheDocument()
+    expect(btn?.textContent).toContain('Follow')
+    expect(btn?.classList.contains('active')).toBe(false)
+    expect(btn?.getAttribute('aria-pressed')).toBe('false')
+  })
+
+  it('getTagBySlug 回 followed=true → FollowButton 顯示 Following + active', async () => {
+    vi.mocked(tagService.getTagBySlug).mockResolvedValue({
+      uuid: 't1', name: 'vue 3', slug: 'vue-3', color: '', icon: '',
+      description: '', usageCount: 22, followed: true,
+    })
+
+    const { container } = await renderWithRouterAsync(TagView, {}, '/tags/vue-3')
+    await flushPromises()
+    const btn = container.querySelector('[data-testid="tag-follow-btn"]')
+    expect(btn).toBeInTheDocument()
+    expect(btn?.textContent).toContain('Following')
+    expect(btn?.classList.contains('active')).toBe(true)
+    expect(btn?.getAttribute('aria-pressed')).toBe('true')
   })
 })
