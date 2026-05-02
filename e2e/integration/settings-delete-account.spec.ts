@@ -40,14 +40,22 @@ test.describe('Settings 帳號刪除 (B5)', () => {
     await page.getByRole('button', { name: /危險操作/ }).click()
 
     // 5. 處理 native confirm + prompt
-    page.once('dialog', async (dialog) => {
-      expect(dialog.type()).toBe('confirm')
-      await dialog.accept()
-    })
-    page.once('dialog', async (dialog) => {
-      expect(dialog.type()).toBe('prompt')
-      await dialog.accept(password)
-    })
+    //    注意：用 page.on + counter 而非兩個 page.once，
+    //    因為 EventEmitter 對單一 event 會 invoke 所有 listeners，
+    //    兩個 once 會同時被同一個 dialog 觸發 → 第二個 listener 在第一個 dialog 上 expect 'prompt' 失敗。
+    let dialogIdx = 0
+    const dialogHandler = async (dialog: import('@playwright/test').Dialog) => {
+      if (dialogIdx === 0) {
+        expect(dialog.type()).toBe('confirm')
+        await dialog.accept()
+      } else {
+        expect(dialog.type()).toBe('prompt')
+        await dialog.accept(password)
+        page.off('dialog', dialogHandler)
+      }
+      dialogIdx++
+    }
+    page.on('dialog', dialogHandler)
 
     // 監聽 backend DELETE response
     const deleteResponsePromise = page.waitForResponse(
