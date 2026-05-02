@@ -9,6 +9,7 @@ import { useReadingProgress } from '../composables/useReadingProgress'
 import ActionBar from '../components/article/ActionBar.vue'
 import ReactionFooter from '../components/article/ReactionFooter.vue'
 import CommentSection from '../components/article/CommentSection.vue'
+import RelatedArticlesSection from '../components/article/RelatedArticlesSection.vue'
 import NotFoundView from './NotFoundView.vue'
 
 const route = useRoute()
@@ -157,6 +158,9 @@ const goBack = () => window.history.length > 1 ? router.back() : router.push('/a
         />
       </div>
     </div>
+
+    <!-- Related articles -->
+    <RelatedArticlesSection :article-uuid="article.uuid" />
 
     <!-- Comment section -->
     <CommentSection :article-uuid="article.uuid" />

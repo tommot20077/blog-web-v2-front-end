@@ -42,6 +42,13 @@ vi.mock('../composables/useComments', () => ({
   })),
 }))
 
+vi.mock('../composables/useRelatedArticles', () => ({
+  useRelatedArticles: vi.fn(() => ({
+    articles: ref([]),
+    isLoading: ref(false),
+  })),
+}))
+
 describe('ArticleDetail Integration', () => {
   beforeEach(() => {
     vi.mocked(articleService.getArticleByUuid).mockResolvedValue({
