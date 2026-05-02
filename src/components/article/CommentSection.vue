@@ -8,11 +8,10 @@ const props = defineProps<{ articleUuid: string }>()
 
 const articleUuidRef = toRef(props, 'articleUuid')
 const {
-  list, totalCommentCount, totalTopLevels, page, isLoading,
+  list, totalCommentCount, totalTopLevels, page, size, isLoading,
   fetchPage, post, reply, edit, remove,
 } = useComments(articleUuidRef)
 
-const size = 20
 const totalPages = computed(() => Math.max(1, Math.ceil(totalTopLevels.value / size)))
 
 async function onSubmit(content: string) {
