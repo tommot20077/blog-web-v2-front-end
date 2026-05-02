@@ -53,6 +53,13 @@ vi.mock('../composables/useComments', () => ({
   })),
 }))
 
+vi.mock('../composables/useRelatedArticles', () => ({
+  useRelatedArticles: vi.fn(() => ({
+    articles: ref([]),
+    isLoading: ref(false),
+  })),
+}))
+
 async function renderArticleDetail() {
   const router = createTestRouter('/articles/test-uuid')
   await router.isReady()
