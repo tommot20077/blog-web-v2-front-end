@@ -9,10 +9,13 @@ defineEmits<{ toggle: [] }>()
 
 <template>
   <button
+    type="button"
     data-testid="tag-follow-btn"
     class="td-follow-btn"
     :class="{ active: followed }"
     :disabled="isPending"
+    :aria-pressed="followed"
+    :aria-busy="isPending"
     @click="$emit('toggle')"
   >
     {{ followed ? 'Following' : '+ Follow' }}
