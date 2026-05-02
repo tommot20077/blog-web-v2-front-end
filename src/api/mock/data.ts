@@ -68,7 +68,14 @@ export const allMockArticles: ArticleItem[] = [
 export function getMockArticleDetail(uuid: string): ArticleDetailItem | null {
   const base = allMockArticles.find(a => a.uuid === uuid);
   if (!base) return null;
-  return { ...base, content: mockMarkdownContent, categories: [], liked: false };
+  // base.categories 在 mock 是 string[]（既有結構），轉成 ArticleCategory[] 物件給 detail 用
+  const baseCategoryNames = (base as unknown as { categories?: string[] }).categories ?? [];
+  const categories = baseCategoryNames.map((name, i) => ({
+    uuid: `mock-cat-${base.uuid}-${i}`,
+    name,
+    slug: name.toLowerCase(),
+  }));
+  return { ...base, content: mockMarkdownContent, categories, liked: false };
 }
 
 // 熱門標籤 mock 資料
