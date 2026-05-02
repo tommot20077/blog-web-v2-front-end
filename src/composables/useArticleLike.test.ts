@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { ref, nextTick } from 'vue'
+import { ref } from 'vue'
 import { setActivePinia, createPinia } from 'pinia'
 import { useArticleLike } from './useArticleLike'
 import { useAuthStore } from '../stores/auth'

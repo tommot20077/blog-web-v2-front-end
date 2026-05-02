@@ -20,9 +20,9 @@ describe('CommentForm', () => {
     await textarea.setValue('hello world')
     await submit.trigger('click')
 
-    const events = wrapper.emitted('submit')
+    const events = wrapper.emitted('submit')!
     expect(events).toHaveLength(1)
-    expect(events![0][0]).toBe('hello world')
+    expect(events[0]![0]).toBe('hello world')
     expect((textarea.element as HTMLTextAreaElement).value).toBe('')
   })
 
