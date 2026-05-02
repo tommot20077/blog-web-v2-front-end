@@ -8,6 +8,9 @@ import { createMockArticle, createMockPageResult } from '../test-utils'
 vi.mock('../api/tagService', () => ({
   tagService: {
     getHotTags: vi.fn(),
+    getTagBySlug: vi.fn(),
+    followTag: vi.fn(),
+    unfollowTag: vi.fn(),
   },
 }))
 vi.mock('../api/articleService', () => ({
@@ -23,6 +26,10 @@ describe('TagView', () => {
     vi.mocked(articleService.getArticles).mockResolvedValue(
       createMockPageResult([createMockArticle({ tags: ['vue 3', 'frontend'] })]),
     )
+    vi.mocked(tagService.getTagBySlug).mockResolvedValue({
+      uuid: 't1', name: 'vue 3', slug: 'vue-3', color: '', icon: '',
+      description: '', usageCount: 22, followed: false,
+    })
   })
 
   it('顯示 tag 名稱標題', async () => {

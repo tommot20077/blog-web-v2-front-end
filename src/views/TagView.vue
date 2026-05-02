@@ -3,6 +3,9 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { articleService, type ArticleItem } from '../api/articleService'
 import { tagService, type TagDetailResponse } from '../api/tagService'
+import type { TagDetail } from '../types/editor'
+import { useTagFollow } from '../composables/useTagFollow'
+import FollowButton from '../components/tag/FollowButton.vue'
 
 const route  = useRoute()
 const router = useRouter()
@@ -10,7 +13,14 @@ const slug   = computed(() => route.params.slug as string)
 
 const articles    = ref<ArticleItem[]>([])
 const relatedTags = ref<TagDetailResponse[]>([])
+const tagDetail   = ref<TagDetail | null>(null)
 const isLoading   = ref(false)
+
+// Follow state — 用 computed wrap tagDetail.uuid，等 detail 載入後才有有效 id
+const tagId = computed(() => tagDetail.value?.uuid ?? '')
+const followState = useTagFollow(tagId, { followed: false })
+
+// 等 detail 載入後同步 followed 初始值（兼顧未登入回 false 的情況）
 
 // Tag descriptions (matches designer's DESC map)
 const DESCRIPTIONS: Record<string, string> = {
@@ -34,13 +44,19 @@ function formatDate(d: string) {
 onMounted(async () => {
   isLoading.value = true
   try {
-    const [articlesRes, tagsRes] = await Promise.allSettled([
+    const [articlesRes, tagsRes, detailRes] = await Promise.allSettled([
       articleService.getArticles(1, 100, '全部', tagName.value),
       tagService.getHotTags(20),
+      tagService.getTagBySlug(slug.value),
     ])
     if (articlesRes.status === 'fulfilled') articles.value = articlesRes.value.records
     if (tagsRes.status === 'fulfilled')
       relatedTags.value = tagsRes.value.filter(t => t.slug !== slug.value).slice(0, 8)
+    if (detailRes.status === 'fulfilled' && detailRes.value) {
+      tagDetail.value = detailRes.value
+      // 把 backend 回的 followed 同步進 follow state
+      followState.followed.value = detailRes.value.followed
+    }
   } finally {
     isLoading.value = false
   }
@@ -60,6 +76,12 @@ onMounted(async () => {
         <div class="td-eyebrow">
           <span class="td-mono">§ TAG</span>
           <span class="td-mono">{{ articles.length }} articles</span>
+          <FollowButton
+            v-if="tagDetail"
+            :followed="followState.followed.value"
+            :is-pending="followState.isPending.value"
+            @toggle="followState.toggle"
+          />
         </div>
         <h1 class="td-title" data-testid="tag-title">#{{ tagName }}</h1>
         <p class="td-desc">{{ tagDesc }}</p>

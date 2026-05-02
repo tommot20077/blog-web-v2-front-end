@@ -29,6 +29,7 @@ interface BackendTagDetail {
   icon: string | null | undefined
   description: string | null | undefined
   usageCount: number
+  followed: boolean
 }
 
 function mapBackendTag(raw: BackendTag): TagDetailResponse {
@@ -44,6 +45,7 @@ function mapBackendTagDetail(raw: BackendTagDetail): TagDetail {
     icon: raw.icon ?? '',
     description: raw.description ?? '',
     usageCount: raw.usageCount,
+    followed: raw.followed ?? false,
   }
 }
 
