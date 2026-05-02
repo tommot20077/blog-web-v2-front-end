@@ -14,6 +14,7 @@ defineEmits<{ toggle: [] }>()
       data-testid="article-like-action-bar"
       class="ab-btn"
       :class="{ active: liked, pulse: isPending }"
+      :disabled="isPending"
       @click="$emit('toggle')"
     >
       <span aria-hidden="true">{{ liked ? '♥' : '♡' }}</span>
@@ -28,9 +29,8 @@ defineEmits<{ toggle: [] }>()
 </template>
 
 <style scoped>
+/* sticky 由父層 .art-action-rail 提供，這裡不重複 */
 .action-bar {
-  position: sticky;
-  top: 80px;
   display: flex;
   flex-direction: column;
   gap: 8px;

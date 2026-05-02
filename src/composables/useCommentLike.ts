@@ -19,7 +19,7 @@ export function useCommentLike(
     isPending.value = true
     const prev = { liked: liked.value, count: likeCount.value }
     liked.value = !liked.value
-    likeCount.value += liked.value ? 1 : -1
+    likeCount.value = Math.max(0, likeCount.value + (liked.value ? 1 : -1))
     try {
       if (liked.value) await commentService.like(commentUuid.value)
       else await commentService.unlike(commentUuid.value)

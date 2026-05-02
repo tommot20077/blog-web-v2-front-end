@@ -1,3 +1,4 @@
+import { ref } from 'vue'
 import { flushPromises } from '@vue/test-utils'
 import { renderWithRouterAsync } from '../test-utils'
 import ArticleDetail from './ArticleDetail.vue'
@@ -18,23 +19,26 @@ vi.mock('../composables/useHeadSetup', () => ({ useHeadSetup: vi.fn() }))
 
 vi.mock('../composables/useArticleLike', () => ({
   useArticleLike: vi.fn((_uuid: unknown, initial: { liked: boolean; likeCount: number }) => ({
-    liked: { value: initial.liked },
-    likeCount: { value: initial.likeCount },
-    isPending: { value: false },
+    liked: ref(initial.liked),
+    likeCount: ref(initial.likeCount),
+    isPending: ref(false),
     toggle: vi.fn(),
   })),
 }))
 
 vi.mock('../composables/useComments', () => ({
   useComments: vi.fn(() => ({
-    list: { value: [] },
-    totalCommentCount: { value: 0 },
-    totalTopLevels: { value: 0 },
-    page: { value: 1 },
-    sort: { value: 'newest' },
-    isLoading: { value: false },
+    list: ref([]),
+    totalCommentCount: ref(0),
+    totalTopLevels: ref(0),
+    page: ref(1),
+    sort: ref('newest'),
+    isLoading: ref(false),
     fetchPage: vi.fn(),
     post: vi.fn(),
+    reply: vi.fn(),
+    edit: vi.fn(),
+    remove: vi.fn(),
   })),
 }))
 
