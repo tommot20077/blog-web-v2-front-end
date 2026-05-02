@@ -45,4 +45,18 @@ describe('useRelatedArticles', () => {
 
     expect(articles.value).toEqual([])
   })
+
+  it('articleUuid 變化 → watchEffect 重新 fetch', async () => {
+    vi.mocked(recommendService.getRelatedArticles).mockResolvedValue([])
+
+    const uuid = ref('uuid-1')
+    useRelatedArticles(uuid)
+    await new Promise(r => setTimeout(r, 0))
+    expect(recommendService.getRelatedArticles).toHaveBeenCalledWith('uuid-1')
+
+    uuid.value = 'uuid-2'
+    await new Promise(r => setTimeout(r, 0))
+    expect(recommendService.getRelatedArticles).toHaveBeenCalledWith('uuid-2')
+    expect(recommendService.getRelatedArticles).toHaveBeenCalledTimes(2)
+  })
 })

@@ -1,20 +1,17 @@
 <script setup lang="ts">
 import { toRef } from 'vue'
-import { useRouter } from 'vue-router'
+import { RouterLink } from 'vue-router'
 import { useRelatedArticles } from '../../composables/useRelatedArticles'
 
 const props = defineProps<{ articleUuid: string }>()
 const articleUuidRef = toRef(props, 'articleUuid')
 const { articles, isLoading } = useRelatedArticles(articleUuidRef)
-const router = useRouter()
 
+// 用 ISO 字串前 10 字（YYYY-MM-DD）避免 new Date() 跨時區 shift
 function formatDate(iso: string): string {
-  const d = new Date(iso)
-  return `${d.getFullYear()} · ${String(d.getMonth() + 1).padStart(2, '0')} · ${String(d.getDate()).padStart(2, '0')}`
-}
-
-function goToArticle(slug: string) {
-  router.push(`/articles/${slug}`)
+  const dateOnly = iso.slice(0, 10)
+  const parts = dateOnly.split('-')
+  return parts.length === 3 ? `${parts[0]} · ${parts[1]} · ${parts[2]}` : dateOnly
 }
 </script>
 
@@ -28,18 +25,17 @@ function goToArticle(slug: string) {
       <h3>繼續讀。</h3>
     </div>
     <div class="related-grid">
-      <a
+      <RouterLink
         v-for="a in articles"
         :key="a.uuid"
         class="rel-card"
-        href="#"
+        :to="`/articles/${a.uuid}`"
         :data-testid="`related-article-card-${a.uuid}`"
-        @click.prevent="goToArticle(a.slug)"
       >
         <div class="thumb" />
         <div class="meta">{{ a.tags[0] || '—' }} · {{ formatDate(a.publishedAt) }}</div>
         <h4>{{ a.title }}</h4>
-      </a>
+      </RouterLink>
     </div>
   </section>
 </template>
