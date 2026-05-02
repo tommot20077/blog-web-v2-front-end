@@ -15,10 +15,10 @@ describe('CommentForm', () => {
   it('content >= 3 字 + click submit → emit submit + clear textarea', async () => {
     const wrapper = mount(CommentForm)
     const textarea = wrapper.find('[data-testid="comment-textarea"]')
-    const submit = wrapper.find('[data-testid="comment-submit"]')
 
     await textarea.setValue('hello world')
-    await submit.trigger('click')
+    // 用 form submit 模擬「user 點 submit button」— jsdom 不會把 button click cascade 到 form submit event
+    await wrapper.find('form').trigger('submit')
 
     const events = wrapper.emitted('submit')!
     expect(events).toHaveLength(1)

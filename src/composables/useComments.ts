@@ -9,7 +9,7 @@ export function useComments(articleUuid: Ref<string>) {
   const totalCommentCount = ref(0)
   const totalTopLevels = ref(0)
   const page = ref(1)
-  const size = 20
+  const size = 20  // 單一來源，consumer 透過 return 取得
   const sort = ref<'newest' | 'oldest'>('newest')
   const isLoading = ref(false)
   const { requireAuth } = useAuthWall()
@@ -24,6 +24,9 @@ export function useComments(articleUuid: Ref<string>) {
       totalTopLevels.value = res.topLevels.total
       totalCommentCount.value = res.totalCommentCount
       page.value = p
+    } catch {
+      // 失敗時保留前一頁狀態，避免 unhandled rejection（watchEffect / template 的 click handler 都不會 await）
+      showToast('載入留言失敗，請稍後再試', 'error')
     } finally {
       isLoading.value = false
     }
@@ -56,6 +59,7 @@ export function useComments(articleUuid: Ref<string>) {
   }
 
   async function edit(uuid: string, content: string): Promise<boolean> {
+    if (!requireAuth()) return false
     try {
       await commentService.edit(uuid, { content })
       await fetchPage(page.value)
@@ -68,6 +72,7 @@ export function useComments(articleUuid: Ref<string>) {
   }
 
   async function remove(uuid: string): Promise<boolean> {
+    if (!requireAuth()) return false
     try {
       await commentService.delete(uuid)
       await fetchPage(page.value)
@@ -83,5 +88,5 @@ export function useComments(articleUuid: Ref<string>) {
     if (articleUuid.value) fetchPage(1)
   })
 
-  return { list, totalCommentCount, totalTopLevels, page, sort, isLoading, fetchPage, post, reply, edit, remove }
+  return { list, totalCommentCount, totalTopLevels, page, size, sort, isLoading, fetchPage, post, reply, edit, remove }
 }

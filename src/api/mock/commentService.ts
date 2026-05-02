@@ -17,6 +17,17 @@ function getList(articleUuid: string): CommentItem[] {
   return store.get(articleUuid)!
 }
 
+// mock 模擬後端 markdown→HTML pipeline 的最簡版：escape + 包 <p>
+// 防 mock/dev 模式下用戶輸入直接被 v-html 渲染造成 XSS
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 export const commentService = {
   async list(
     articleUuid: string,
@@ -38,6 +49,8 @@ export const commentService = {
     }))
     return {
       topLevels: { records, total: topLevels.length, page, size },
+      // 對齊 backend CommentService.countByArticle 行為：
+      // 計入所有 top-level（含 deleted tombstone）+ active reply，排除 deleted reply
       totalCommentCount: all.filter(c => !c.parentUuid || !c.deleted).length,
     }
   },
@@ -48,7 +61,7 @@ export const commentService = {
       uuid: genUuid(),
       parentUuid: req.parentUuid ?? null,
       content: req.content,
-      contentHtml: `<p>${req.content}</p>`,
+      contentHtml: `<p>${escapeHtml(req.content)}</p>`,
       author: {
         uuid: 'mock-user',
         nickname: 'Mock User',

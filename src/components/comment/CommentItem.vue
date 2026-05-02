@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import DOMPurify from 'dompurify'
 import type { CommentItem as CommentItemType } from '../../types/comment'
 import { useCommentLike } from '../../composables/useCommentLike'
 import { useCommentPermissions } from '../../composables/useCommentPermissions'
@@ -47,6 +48,9 @@ const deletedLabel = computed(() => {
   return 'unknown'
 })
 
+// 防 XSS：backend 已用 OWASP HtmlSanitizer 過濾，前端再 DOMPurify 多一層；mock 走同 path
+const sanitizedHtml = computed(() => DOMPurify.sanitize(props.comment.contentHtml ?? ''))
+
 function formatTime(iso: string): string {
   const d = new Date(iso)
   return d.toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
@@ -81,7 +85,7 @@ function formatTime(iso: string): string {
           @submit="onEditSubmit"
           @cancel="isEditing = false"
         />
-        <div v-else class="content" v-html="comment.contentHtml" />
+        <div v-else class="content" v-html="sanitizedHtml" />
 
         <div v-if="!isEditing" class="actions">
           <button

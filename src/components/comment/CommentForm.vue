@@ -65,7 +65,6 @@ function submit() {
             class="submit"
             data-testid="comment-submit"
             :disabled="text.trim().length < 3"
-            @click="submit"
           >{{ submitLabel }}</button>
         </div>
       </div>
