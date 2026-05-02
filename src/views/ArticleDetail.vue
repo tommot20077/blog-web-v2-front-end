@@ -8,6 +8,7 @@ import { useWordCount } from '../composables/useWordCount'
 import { useReadingProgress } from '../composables/useReadingProgress'
 import ActionBar from '../components/article/ActionBar.vue'
 import ReactionFooter from '../components/article/ReactionFooter.vue'
+import CommentSection from '../components/article/CommentSection.vue'
 import NotFoundView from './NotFoundView.vue'
 
 const route = useRoute()
@@ -156,6 +157,9 @@ const goBack = () => window.history.length > 1 ? router.back() : router.push('/a
         />
       </div>
     </div>
+
+    <!-- Comment section -->
+    <CommentSection :article-uuid="article.uuid" />
 
     <!-- Side navigation dots -->
     <div class="art-nav">

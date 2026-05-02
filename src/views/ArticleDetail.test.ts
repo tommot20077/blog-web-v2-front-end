@@ -37,6 +37,19 @@ vi.mock('../composables/useArticleLike', () => ({
   })),
 }))
 
+vi.mock('../composables/useComments', () => ({
+  useComments: vi.fn(() => ({
+    list: ref([]),
+    totalCommentCount: ref(0),
+    totalTopLevels: ref(0),
+    page: ref(1),
+    sort: ref('newest'),
+    isLoading: ref(false),
+    fetchPage: vi.fn(),
+    post: vi.fn(),
+  })),
+}))
+
 async function renderArticleDetail() {
   const router = createTestRouter('/articles/test-uuid')
   await router.isReady()

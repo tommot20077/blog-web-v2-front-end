@@ -25,6 +25,19 @@ vi.mock('../composables/useArticleLike', () => ({
   })),
 }))
 
+vi.mock('../composables/useComments', () => ({
+  useComments: vi.fn(() => ({
+    list: { value: [] },
+    totalCommentCount: { value: 0 },
+    totalTopLevels: { value: 0 },
+    page: { value: 1 },
+    sort: { value: 'newest' },
+    isLoading: { value: false },
+    fetchPage: vi.fn(),
+    post: vi.fn(),
+  })),
+}))
+
 describe('ArticleDetail Integration', () => {
   beforeEach(() => {
     vi.mocked(articleService.getArticleByUuid).mockResolvedValue({
