@@ -25,7 +25,7 @@ export class ArticleDetailPage {
     this.endOfArticle = page.getByText('END OF ARTICLE.')
     this.categoryPills = page.getByTestId('article-categories').locator('span')
     this.readingTimeText = page.getByText(/分鐘閱讀時間/)
-    this.likeCount = page.locator('[data-testid="like-count"]')
+    this.likeCount = page.locator('[data-testid="article-like-footer-count"]')
     this.commentCount = page.locator('[data-testid="comment-count"]')
   }
 
