@@ -32,6 +32,7 @@ interface BackendArticleBase {
 interface BackendArticleDetail extends BackendArticleBase {
   content: string
   categories: CategorySummaryResponse[]
+  liked: boolean
 }
 
 export interface ArticleCategory {
@@ -57,6 +58,7 @@ export interface ArticleItem {
 export interface ArticleDetailItem extends ArticleItem {
   content: string
   categories: ArticleCategory[]
+  liked: boolean
 }
 
 function mapArticle(raw: BackendArticleBase): ArticleItem {
@@ -80,6 +82,7 @@ function mapArticleDetail(raw: BackendArticleDetail): ArticleDetailItem {
     ...mapArticle(raw),
     content: raw.content,
     categories: (raw.categories ?? []).map((c) => ({ uuid: c.uuid, name: c.name, slug: c.slug })),
+    liked: raw.liked,
   }
 }
 
