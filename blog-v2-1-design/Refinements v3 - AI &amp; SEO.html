@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="description" content="MY BLOG WEB. — AI-readable, SEO-ready blog with command palette, structured data, and a refined reading experience." />
+<meta name="robots" content="index, follow" />
+<meta name="theme-color" content="#f4f4f4" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#0d0d0f" media="(prefers-color-scheme: dark)" />
+<title>Refinements v3 — MY BLOG WEB.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+<!-- AI-readable links -->
+<link rel="alternate" type="text/markdown" href="post.md" title="Markdown source" />
+<link rel="alternate" type="application/rss+xml" href="feed.xml" title="RSS Feed" />
+<link rel="alternate" type="application/json" href="feed.json" title="JSON Feed" />
+
+<style>
+:root {
+  --bg: #f4f4f4; --bg-sub: #ededed; --surface: #fbfbfb;
+  --ink: #0a0a0b; --ink-2: #2a2a2c; --muted: #6b6b70; --muted-2: #9a9aa0;
+  --border: rgba(10,10,11,0.10); --border-strong: rgba(10,10,11,0.18);
+  --divider: rgba(10,10,11,0.08);
+  --glass: rgba(255,255,255,0.62); --glass-border: rgba(255,255,255,0.9);
+  --accent: #5B8DEF; --accent-ink: #0a0a0b;
+  --shadow-sm: 0 1px 0 rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.04);
+  --shadow-md: 0 1px 0 rgba(0,0,0,0.04), 0 20px 40px -22px rgba(0,0,0,0.18);
+  --f-display: "Space Grotesk", "Noto Sans TC", system-ui, sans-serif;
+  --f-body: "Space Grotesk", "Noto Sans TC", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --ease: cubic-bezier(.22,1,.36,1);
+}
+[data-theme="dark"] {
+  --bg: #0d0d0f; --bg-sub: #15151a; --surface: #18181c;
+  --ink: #ededef; --ink-2: #c9c9cd; --muted: #a6a6ac; --muted-2: #7b7b82;
+  --border: rgba(255,255,255,0.10); --border-strong: rgba(255,255,255,0.18);
+  --divider: rgba(255,255,255,0.08);
+  --glass: rgba(22,22,24,0.62); --glass-border: rgba(255,255,255,0.08);
+  --accent: #7BA8F5;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); line-height: 1.7; -webkit-font-smoothing: antialiased; transition: background .4s, color .4s; }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; padding: 0; }
+::selection { background: var(--accent); color: var(--accent-ink); }
+
+/* Top bar */
+.bar { position: sticky; top: 0; z-index: 50; backdrop-filter: blur(20px); background: var(--glass); border-bottom: 1px solid var(--border); padding: 14px 28px; display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.bar .brand { display: flex; align-items: center; gap: 10px; font-family: var(--f-display); font-style: italic; font-weight: 500; font-size: 14.5px; }
+.bar .brand .mk { width: 22px; height: 22px; border-radius: 5px; background: var(--ink); position: relative; }
+.bar .brand .mk::after { content: ""; position: absolute; inset: 6px; border-radius: 50%; border: 1.5px solid var(--bg); }
+.bar .right { display: flex; gap: 6px; align-items: center; }
+.bar .pill { padding: 8px 14px; border-radius: 999px; font-size: 13px; }
+.bar .pill:hover { background: rgba(0,0,0,.05); }
+[data-theme="dark"] .bar .pill:hover { background: rgba(255,255,255,.08); }
+.cmd-trigger {
+  display: inline-flex; gap: 10px; align-items: center;
+  padding: 7px 10px 7px 14px; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--surface);
+  font-size: 12.5px; color: var(--muted);
+  transition: border-color .2s;
+}
+.cmd-trigger:hover { border-color: var(--border-strong); color: var(--ink); }
+.cmd-trigger kbd { font-family: var(--f-mono); font-size: 10.5px; padding: 3px 6px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: var(--muted); }
+.theme-tog { width: 36px; height: 36px; border-radius: 999px; border: 1px solid var(--border); display: grid; place-items: center; }
+
+.wrap { max-width: 1280px; margin: 0 auto; padding: 0 32px; }
+@media (max-width: 600px) { .wrap { padding: 0 18px; } }
+
+.hero { padding: 96px 0 56px; }
+.hero .eyebrow { font-family: var(--f-mono); font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: var(--muted); margin-bottom: 28px; display: inline-flex; align-items: center; gap: 8px; }
+.hero .eyebrow::before { content: ""; width: 6px; height: 6px; border-radius: 999px; background: var(--accent); box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent) 18%, transparent); }
+.hero h1 { font-family: var(--f-display); font-weight: 400; font-size: clamp(40px, 7vw, 88px); line-height: 1; letter-spacing: -.04em; margin: 0 0 24px; max-width: 18ch; }
+.hero h1 em { font-style: italic; font-weight: 300; color: var(--muted); }
+.hero h1 .accent { color: var(--accent); }
+.hero p { font-size: clamp(15px, 1.4vw, 17px); line-height: 1.7; color: var(--ink-2); max-width: 60ch; margin: 0; }
+.hero-cta { display: flex; gap: 10px; margin-top: 32px; flex-wrap: wrap; }
+.hero-cta button {
+  padding: 12px 22px; border-radius: 999px;
+  font-family: var(--f-mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+  transition: transform .2s;
+}
+.hero-cta .pri { background: var(--ink); color: var(--bg); display: inline-flex; align-items: center; gap: 10px; }
+.hero-cta .pri:hover { transform: translateY(-1px); }
+.hero-cta .pri kbd { background: rgba(255,255,255,.18); border: 0; padding: 3px 7px; border-radius: 5px; font-family: var(--f-mono); font-size: 10px; }
+.hero-cta .sec { border: 1px solid var(--border-strong); }
+.hero-cta .sec:hover { background: var(--bg-sub); }
+
+.section { padding: 64px 0; border-top: 1px solid var(--border-strong); }
+.section-head { display: grid; grid-template-columns: auto 1fr auto; align-items: baseline; gap: 24px; margin-bottom: 28px; }
+.section-head .num { font-family: var(--f-mono); font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: var(--muted); }
+.section-head h2 { font-family: var(--f-display); font-weight: 500; font-size: clamp(26px, 3.4vw, 38px); margin: 0; letter-spacing: -.022em; line-height: 1.1; }
+.section-head .r { text-align: right; font-family: var(--f-mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+@media (max-width: 768px) { .section-head { grid-template-columns: 1fr; gap: 6px; } .section-head .r { text-align: left; } }
+.section .intro { color: var(--ink-2); max-width: 64ch; line-height: 1.7; margin: 0 0 24px; }
+
+/* Article */
+.article-wrap { display: grid; grid-template-columns: 1fr 220px; gap: 64px; }
+@media (max-width: 1024px) { .article-wrap { grid-template-columns: 1fr; gap: 24px; } }
+.article-body p { color: var(--ink-2); line-height: 1.85; font-size: clamp(15px, 1.05vw, 16.5px); margin: 0 0 1.2em; text-wrap: pretty; }
+.article-body h2 { font-family: var(--f-display); font-weight: 500; font-size: clamp(24px, 3vw, 32px); letter-spacing: -.018em; margin: 1.6em 0 .5em; scroll-margin-top: 80px; }
+.article-body h3 { font-family: var(--f-display); font-weight: 500; font-size: 20px; margin: 1.4em 0 .4em; letter-spacing: -.012em; scroll-margin-top: 80px; }
+.article-body code { font-family: var(--f-mono); font-size: .92em; background: var(--bg-sub); padding: 2px 6px; border-radius: 4px; }
+.article-body blockquote { margin: 1.6em 0; padding: 4px 0 4px 20px; border-left: 2px solid var(--accent); font-style: italic; color: var(--ink-2); }
+.article-body img.lb { width: 100%; aspect-ratio: 16/10; object-fit: cover; border-radius: 12px; cursor: zoom-in; transition: transform .3s var(--ease); }
+.article-body img.lb:hover { transform: scale(1.01); }
+
+/* Sticky TOC */
+.toc-sticky { position: sticky; top: 90px; align-self: start; padding-left: 20px; border-left: 1px solid var(--divider); display: flex; flex-direction: column; gap: 6px; max-height: calc(100vh - 120px); overflow-y: auto; }
+.toc-sticky .head { font-family: var(--f-mono); font-size: 10px; letter-spacing: .22em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+.toc-sticky a { color: var(--muted); padding: 3px 0; line-height: 1.45; font-size: 13px; transition: color .2s, padding-left .25s var(--ease); }
+.toc-sticky a:hover { color: var(--ink); padding-left: 4px; }
+.toc-sticky a.active { color: var(--ink); font-weight: 500; }
+.toc-sticky a.active::before { content: "→ "; color: var(--accent); font-family: var(--f-mono); }
+.toc-sticky a.lvl-3 { padding-left: 14px; font-size: 12.5px; }
+@media (max-width: 1024px) { .toc-sticky { display: none; } }
+
+/* Reading progress */
+.read-progress { position: fixed; top: 0; left: 0; height: 2px; background: var(--accent); z-index: 70; transition: width .15s linear; box-shadow: 0 0 8px color-mix(in oklab, var(--accent) 50%, transparent); }
+
+.footer { padding: 48px 32px; border-top: 1px solid var(--border-strong); margin-top: 80px; display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; font-family: var(--f-mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+</style>
+
+<link rel="stylesheet" href="v3/v3.css" />
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+
+<a href="#main" class="skip-link">Skip to content</a>
+
+<div id="root"></div>
+
+<script type="text/babel" src="v3/ai-seo.jsx" data-presets="env,react"></script>
+<script type="text/babel" src="v3/command-palette.jsx" data-presets="env,react"></script>
+<script type="text/babel" src="v3/article-extras.jsx" data-presets="env,react"></script>
+
+<script type="text/babel" data-presets="env,react">
+const { useState, useEffect, useRef, useMemo } = React;
+
+const POST = {
+  title: '把整個 Blog 收斂成 800 行 tokens。',
+  slug: 'design-system-rewrite',
+  description: '三個月、兩次重寫、一個 design system。我把 1,820 行的 v1 砍成 802 行的 v2，並把「不加什麼」寫進規範。',
+  author: 'Yuan Luca',
+  publishedAt: '2026-04-15T09:00:00+08:00',
+  updated: '2026 · 04 · 15',
+  url: 'https://myblogweb.com/posts/design-system-rewrite',
+  image: 'https://myblogweb.com/og/design-system-rewrite.png',
+  tags: ['design-system', 'css', 'tokens', 'frontend'],
+  body: `三個月前的 design system 是 1,820 行。這次改完是 802 行。少了 1,000 行，可是在 Figma 上拉新頁面比之前快兩倍。
+
+這不是因為我把 token 砍掉，而是因為我把每一個 token 的存在理由都寫進了 comment。沒有理由的就刪了。
+
+## 緣起：為什麼是 800 行
+
+v1 寫於 2025 年 11 月，當時我還在用 9 個灰階、5 個藍、4 個強調紅。那時的我以為：「token 越多越好」。
+
+結果是：每次設計新頁面，我都要花 10 分鐘在 Figma 裡決定該用哪一階灰。設計越靈活，反而越慢。
+
+## 從顏色到節奏
+
+我把整套 tokens 拆成五類：color, type, space, radius, motion。每一類都遵守同一個原則：少於 8 個變體，名稱用語義（\`--ink\`），不要用尺寸（\`--gray-900\`）。
+
+### 色階只用三檔
+
+\`--ink\` 配 \`--ink-2\` 配 \`--muted\`。其他全部是 mix-in。
+
+### 字級是 clamp()，不是 8 階
+
+RWD 不是「斷點換字級」，而是「在斷點之間平滑過渡」。我用 \`clamp(min, vw, max)\` 做了 6 個字級，覆蓋 320 → 1920。
+
+> 真正的響應式不是把元件改瘦，而是讓字級自己適應。
+
+## 踩過的坑
+
+第一個坑：accent 色被當成 brand 色用。第二個坑：dark mode 用 invert 出來，結果 #5B8DEF 在深底上變成噁心的螢光紫。
+
+## 結語：把不加什麼寫進規範
+
+「禁止」比「容許」更重要。我在 v2 寫了 12 條 don'ts；它們比所有 do's 都更常被引用。`,
+};
+
+const POST_MD = `---
+title: ${POST.title}
+slug: ${POST.slug}
+author: ${POST.author}
+publishedAt: ${POST.publishedAt}
+description: ${POST.description}
+tags: [${POST.tags.join(', ')}]
+url: ${POST.url}
+---
+
+${POST.body}
+`;
+
+function TopBar({ theme, toggle, onCmd }) {
+  return (
+    <header className="bar">
+      <a href="#" className="brand"><span className="mk"></span><span>MY BLOG WEB.</span></a>
+      <div className="right">
+        <button className="cmd-trigger" onClick={onCmd}>
+          <span>Search · ⌘K</span>
+          <kbd>⌘K</kbd>
+        </button>
+        <button className="theme-tog" onClick={toggle} aria-label="Toggle theme">
+          {theme === 'dark'
+            ? <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+            : <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>}
+        </button>
+      </div>
+    </header>
+  );
+}
+
+function Hero({ onCmd, onMd }) {
+  return (
+    <section className="hero wrap">
+      <div className="eyebrow">§ refinements v3 · AI-readable · SEO-ready</div>
+      <h1>讓<em>機器</em>跟<em>人</em>都<br/><span className="accent">讀得懂</span>的 Blog。</h1>
+      <p>第三輪改稿。這次補上 AI 友善（llms.txt、Markdown 鏡像、JSON-LD）、SEO（OG、Twitter card、sitemap、RSS、JSON Feed）、Command Palette（⌘K）、自動 TOC、reading time、footnote、code block、image lightbox、a11y skip-link 與 reduced motion。</p>
+      <div className="hero-cta">
+        <button className="pri" onClick={onCmd}>Open command palette <kbd>⌘K</kbd></button>
+        <button className="sec" onClick={onMd}>View as Markdown</button>
+      </div>
+    </section>
+  );
+}
+
+function ReadingProgress() {
+  const [pct, setPct] = useState(0);
+  useEffect(() => {
+    const onScroll = () => {
+      const el = document.getElementById('article-body');
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const total = el.offsetHeight - window.innerHeight;
+      setPct(Math.max(0, Math.min(100, (-rect.top / total) * 100)));
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+  return <div className="read-progress" style={{width: pct + '%'}} />;
+}
+
+function StickyTOC({ items, active }) {
+  return (
+    <nav className="toc-sticky" aria-label="On this page">
+      <div className="head">§ on this page</div>
+      {items.map(it => (
+        <a key={it.id}
+           href={'#' + it.id}
+           className={(active === it.id ? 'active ' : '') + 'lvl-' + it.level}
+           onClick={e => { e.preventDefault(); const el = document.getElementById(it.id); if (el) window.scrollTo({top: el.offsetTop - 80, behavior: 'smooth'}); }}
+        >{it.label}</a>
+      ))}
+    </nav>
+  );
+}
+
+function ArticleSection() {
+  const { items, active } = window.useAutoTOC('#article-body');
+  const minutes = window.readingTime(POST.body, 220);
+  const words = (POST.body.match(/\b\w+\b/g) || []).length + Math.floor(POST.body.length / 2);
+
+  return (
+    <section id="main" className="section">
+      <div className="wrap">
+        <div className="section-head">
+          <span className="num">§ 01 — Article</span>
+          <h2>{POST.title}</h2>
+          <span className="r">{POST.publishedAt.slice(0,10)}</span>
+        </div>
+
+        <window.ArticleMeta
+          minutes={minutes}
+          words={words}
+          updated={POST.updated}
+          tags={POST.tags}
+        />
+
+        <div className="article-wrap">
+          <div className="article-body" id="article-body">
+            <p>三個月前的 design system 是 1,820 行。這次改完是 802 行。少了 1,000 行，可是在 Figma 上拉新頁面比之前快兩倍。</p>
+
+            <p>這不是因為我把 token 砍掉，而是因為我把<em>每一個 token 的存在理由</em>
+              <window.Footnote n={1}>「存在理由」=<code>/* WHY: 用於 caption / meta / hint */</code> 這種 comment。沒寫的就是沒理由。</window.Footnote>
+              都寫進了 comment。沒有理由的就刪了。
+            </p>
+
+            <h2>緣起：為什麼是 800 行</h2>
+            <p>v1 寫於 2025 年 11 月，當時我還在用 9 個灰階、5 個藍、4 個強調紅。那時的我以為：「token 越多越好」。</p>
+            <p>結果是：每次設計新頁面，我都要花 10 分鐘在 Figma 裡決定該用哪一階灰
+              <window.Footnote n={2}>後來我把這 10 分鐘的決策成本量化：每月 22 個工作天 × 10 分鐘 = 3.6 小時純粹的「選顏色」時間。</window.Footnote>
+              。設計越靈活，反而越慢。</p>
+
+            <h2>從顏色到節奏</h2>
+            <p>我把整套 tokens 拆成五類：color, type, space, radius, motion。每一類都遵守同一個原則：少於 8 個變體，名稱用語義（<code>--ink</code>），不要用尺寸（<code>--gray-900</code>）。</p>
+
+            <h3>色階只用三檔</h3>
+            <p><code>--ink</code> 配 <code>--ink-2</code> 配 <code>--muted</code>。其他全部是 mix-in。</p>
+
+            <window.CodeBlock lang="css" filename="tokens.css">{`:root {
+  --ink: #0a0a0b;
+  --ink-2: #2a2a2c;
+  --muted: #6b6b70;
+  --accent: #5B8DEF;
+  /* 任何中間階都用 color-mix() */
+  --line: color-mix(in oklab, var(--ink) 12%, transparent);
+}`}</window.CodeBlock>
+
+            <h3>字級是 clamp()，不是 8 階</h3>
+            <p>RWD 不是「斷點換字級」，而是「在斷點之間平滑過渡」。我用 <code>clamp(min, vw, max)</code> 做了 6 個字級，覆蓋 320 → 1920。</p>
+
+            <blockquote>真正的響應式不是把元件改瘦，而是讓字級自己適應。</blockquote>
+
+            <h2>踩過的坑</h2>
+            <p>第一個坑：accent 色被當成 brand 色用。第二個坑：dark mode 用 invert 出來，結果 #5B8DEF 在深底上變成噁心的螢光紫。</p>
+
+            <p>所以 v2 改用 OKLCH 算對應的 dark variant：</p>
+            <window.CodeBlock lang="css" filename="dark.css">{`[data-theme="dark"] {
+  --accent: oklch(from #5B8DEF calc(l + 0.1) c h);
+}`}</window.CodeBlock>
+
+            <h2>結語：把不加什麼寫進規範</h2>
+            <p>「禁止」比「容許」更重要。我在 v2 寫了 12 條 don'ts；它們比所有 do's 都更常被引用。</p>
+          </div>
+          <StickyTOC items={items} active={active} />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function AISeoSection({ onOpenMd }) {
+  return (
+    <section className="section">
+      <div className="wrap">
+        <div className="section-head">
+          <span className="num">§ 02 — AI &amp; SEO</span>
+          <h2>給機器讀的版本。</h2>
+          <span className="r">JSON-LD · RSS · llms.txt</span>
+        </div>
+        <p className="intro">每篇文章都同時提供 HTML 與 Markdown 兩種版本。HTML 給人，Markdown 給 LLM 跟爬蟲。JSON-LD 寫進 <code>&lt;head&gt;</code>，OG 與 Twitter card 自動產生。</p>
+
+        <window.AIReadableBlock onOpenMd={onOpenMd} />
+
+        <div style={{marginTop:32}}>
+          <div className="section-head" style={{marginBottom:16}}>
+            <span className="num">§ 02b — OG image</span>
+            <h2 style={{fontSize:'clamp(20px,2.4vw,26px)'}}>分享卡片自動產生器。</h2>
+            <span className="r">1200 × 630</span>
+          </div>
+          <p className="intro">在 client-side 用 canvas 渲染。換標題即時更新，可下載 PNG。或在 build 時用同一段邏輯產生靜態 OG 圖。</p>
+          <window.OGImageGenerator
+            title={POST.title}
+            subtitle={POST.description}
+            author={POST.author}
+            accent="#5B8DEF"
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function MetaPreviewSection() {
+  const head = `<!-- Auto-generated <head> tags -->
+<title>${POST.title} · MY BLOG WEB.</title>
+<meta name="description" content="${POST.description}" />
+<meta name="author" content="${POST.author}" />
+<meta name="keywords" content="${POST.tags.join(', ')}" />
+<link rel="canonical" href="${POST.url}" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="article" />
+<meta property="og:title" content="${POST.title}" />
+<meta property="og:description" content="${POST.description}" />
+<meta property="og:image" content="${POST.image}" />
+<meta property="og:url" content="${POST.url}" />
+<meta property="article:published_time" content="${POST.publishedAt}" />
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="${POST.title}" />
+<meta name="twitter:description" content="${POST.description}" />
+<meta name="twitter:image" content="${POST.image}" />
+
+<!-- AI-friendly mirrors -->
+<link rel="alternate" type="text/markdown" href="post.md" />
+<link rel="alternate" type="application/rss+xml" href="feed.xml" />
+<link rel="alternate" type="application/json" href="feed.json" />`;
+
+  const jsonLd = JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": POST.title,
+    "description": POST.description,
+    "image": POST.image,
+    "datePublished": POST.publishedAt,
+    "author": { "@type": "Person", "name": POST.author, "url": "https://myblogweb.com/about" },
+    "publisher": { "@type": "Organization", "name": "MY BLOG WEB.", "logo": { "@type": "ImageObject", "url": "https://myblogweb.com/logo.png" } },
+    "mainEntityOfPage": { "@type": "WebPage", "@id": POST.url },
+    "keywords": POST.tags.join(", "),
+  }, null, 2);
+
+  const llmsTxt = `# MY BLOG WEB.
+
+> 個人技術寫作。Design system, Vue, CSS, frontend。每月一篇深度文章。
+
+## Recent posts
+
+- [${POST.title}](${POST.url}.md): ${POST.description}
+- [灰階不是偷懶的藉口](https://myblogweb.com/posts/grayscale.md): 一個 #f4f4f4 + 一個 #0a0a0b 就足夠。
+- [我為什麼離開 Pinia](https://myblogweb.com/posts/leaving-pinia.md): 三個月後的回顧。
+
+## About
+
+- Author: ${POST.author}
+- License: CC BY-SA 4.0
+- Contact: hi@myblogweb.com`;
+
+  return (
+    <section className="section">
+      <div className="wrap">
+        <div className="section-head">
+          <span className="num">§ 03 — Generated artefacts</span>
+          <h2>SEO 與 AI 產出的三個檔案。</h2>
+          <span className="r">head · jsonld · llms.txt</span>
+        </div>
+
+        <window.CodeBlock lang="html" filename="<head> tags">{head}</window.CodeBlock>
+        <window.CodeBlock lang="json" filename="JSON-LD · schema.org/Article">{jsonLd}</window.CodeBlock>
+        <window.CodeBlock lang="markdown" filename="/llms.txt">{llmsTxt}</window.CodeBlock>
+      </div>
+    </section>
+  );
+}
+
+function App() {
+  const [theme, setTheme] = useState(() => localStorage.getItem('v3.theme') || 'light');
+  const [cpOpen, setCpOpen] = useState(false);
+  const [hkOpen, setHkOpen] = useState(false);
+  const [mdOpen, setMdOpen] = useState(false);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('v3.theme', theme);
+  }, [theme]);
+
+  // Hotkeys
+  window.useHotkeys({
+    'mod+k': () => setCpOpen(true),
+    '?':     () => setHkOpen(true),
+    'mod+m': () => setMdOpen(true),
+    'g+h':   () => window.scrollTo({top: 0, behavior: 'smooth'}),
+  });
+
+  // Command palette items
+  const cmdItems = useMemo(() => ([
+    {
+      label: 'Pages',
+      items: [
+        { id: 'home', icon: '⌂', label: 'Home', hint: '回到首頁', shortcut: 'g+h', run: () => window.scrollTo({top:0, behavior:'smooth'}) },
+        { id: 'article', icon: '§', label: 'Read article', hint: POST.title, run: () => document.getElementById('main').scrollIntoView({behavior:'smooth'}) },
+        { id: 'ai', icon: '◇', label: 'AI & SEO endpoints', hint: 'Markdown, llms.txt, RSS', run: () => document.querySelectorAll('.section')[1]?.scrollIntoView({behavior:'smooth'}) },
+        { id: 'og', icon: '▭', label: 'OG image generator', run: () => document.querySelectorAll('.section')[1]?.scrollIntoView({behavior:'smooth'}) },
+      ],
+    },
+    {
+      label: 'Actions',
+      items: [
+        { id: 'md', icon: '↓', label: 'View as Markdown', hint: '把這篇文章複製成 .md', shortcut: 'mod+m', run: () => setMdOpen(true) },
+        { id: 'theme', icon: '☾', label: 'Toggle theme', hint: theme === 'dark' ? 'switch to light' : 'switch to dark', run: () => setTheme(t => t === 'dark' ? 'light' : 'dark') },
+        { id: 'help', icon: '?', label: 'Keyboard shortcuts', shortcut: '?', run: () => setHkOpen(true) },
+        { id: 'copy-link', icon: '⌘', label: 'Copy article link', run: () => navigator.clipboard.writeText(POST.url) },
+      ],
+    },
+    {
+      label: 'Articles',
+      items: [
+        { id: 'a1', icon: '✎', label: '把整個 Blog 收斂成 800 行 tokens。', hint: '2026 · 04 · 15', run: () => null },
+        { id: 'a2', icon: '✎', label: '灰階不是偷懶的藉口。', hint: '2026 · 04 · 02', run: () => null },
+        { id: 'a3', icon: '✎', label: '我為什麼離開 Pinia。', hint: '2026 · 03 · 26', run: () => null },
+        { id: 'a4', icon: '✎', label: 'useTheme() 的第三次重構。', hint: '2026 · 04 · 08', run: () => null },
+      ],
+    },
+  ]), [theme]);
+
+  const hkGroups = [
+    { label: 'Navigation', items: [
+      { label: 'Open command palette', keys: '⌘+K' },
+      { label: 'Go home', keys: 'g+h' },
+      { label: 'Show this help', keys: '?' },
+    ]},
+    { label: 'Article', items: [
+      { label: 'View as Markdown', keys: '⌘+M' },
+      { label: 'Copy section link', keys: '⌘+L' },
+      { label: 'Toggle theme', keys: '⌘+J' },
+    ]},
+    { label: 'Editor', items: [
+      { label: 'Save draft', keys: '⌘+S' },
+      { label: 'Publish', keys: '⌘+↵' },
+      { label: 'Slash command', keys: '/' },
+    ]},
+  ];
+
+  return (
+    <window.LightboxProvider>
+      <window.SEO
+        title={POST.title + ' · MY BLOG WEB.'}
+        description={POST.description}
+        image={POST.image}
+        url={POST.url}
+        type="article"
+        author={POST.author}
+        publishedAt={POST.publishedAt}
+        tags={POST.tags}
+      />
+      <window.StructuredData data={{
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": POST.title,
+        "description": POST.description,
+        "image": POST.image,
+        "datePublished": POST.publishedAt,
+        "author": { "@type": "Person", "name": POST.author },
+        "publisher": { "@type": "Organization", "name": "MY BLOG WEB." },
+        "mainEntityOfPage": { "@type": "WebPage", "@id": POST.url },
+      }} />
+      <ReadingProgress />
+      <TopBar theme={theme} toggle={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} onCmd={() => setCpOpen(true)} />
+      <Hero onCmd={() => setCpOpen(true)} onMd={() => setMdOpen(true)} />
+      <ArticleSection />
+      <AISeoSection onOpenMd={() => setMdOpen(true)} />
+      <MetaPreviewSection />
+      <footer className="footer">
+        <span>© 2026 · MY BLOG WEB. — refinement pass v3</span>
+        <span>⌘K · ? · ⌘M</span>
+      </footer>
+
+      <window.CommandPalette open={cpOpen} onClose={() => setCpOpen(false)} items={cmdItems} />
+      <window.HotkeysHelp open={hkOpen} onClose={() => setHkOpen(false)} groups={hkGroups} />
+      <window.MarkdownView open={mdOpen} onClose={() => setMdOpen(false)} markdown={POST_MD} title={POST.title} />
+    </window.LightboxProvider>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>

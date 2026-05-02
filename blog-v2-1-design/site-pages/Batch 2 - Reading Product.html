@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Site Pages — Batch 2 · Reading Product</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --bg: #f4f4f4; --bg-sub: #ededed; --surface: #fbfbfb;
+  --ink: #0a0a0b; --ink-2: #2a2a2c; --muted: #6b6b70; --muted-2: #9a9aa0;
+  --border: rgba(10,10,11,0.10); --border-strong: rgba(10,10,11,0.18);
+  --divider: rgba(10,10,11,0.08);
+  --glass: rgba(255,255,255,0.62); --glass-border: rgba(255,255,255,0.9);
+  --accent: #5B8DEF; --accent-ink: #0a0a0b;
+  --f-display: "Space Grotesk", "Noto Sans TC", system-ui, sans-serif;
+  --f-body: "Space Grotesk", "Noto Sans TC", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --ease: cubic-bezier(.2,.8,.2,1);
+}
+[data-theme="dark"] {
+  --bg: #0d0d0f; --bg-sub: #15151a; --surface: #18181c;
+  --ink: #ededef; --ink-2: #c9c9cd; --muted: #a6a6ac; --muted-2: #7b7b82;
+  --border: rgba(255,255,255,0.10); --border-strong: rgba(255,255,255,0.18);
+  --divider: rgba(255,255,255,0.08);
+  --glass: rgba(22,22,24,0.62); --glass-border: rgba(255,255,255,0.08);
+  --accent: #7BA8F5;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); line-height: 1.7; -webkit-font-smoothing: antialiased; transition: background .4s, color .4s; }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; padding: 0; }
+::selection { background: var(--accent); color: var(--accent-ink); }
+
+.cmd-trigger { display: inline-flex; gap: 10px; align-items: center; padding: 7px 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
+.cmd-trigger:hover { border-color: var(--border-strong); color: var(--ink); }
+.theme-tog { width: 36px; height: 36px; border-radius: 999px; border: 1px solid var(--border); display: grid; place-items: center; }
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; } }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+@media (max-width: 900px) { .hl-layout, .pr-layout { grid-template-columns: 1fr !important; } }
+</style>
+<link rel="stylesheet" href="site-pages.css" />
+<link rel="stylesheet" href="batch2.css" />
+</head>
+<body>
+<a href="#main" style="position:absolute;left:-9999px;top:0;background:var(--ink);color:var(--bg);padding:8px 14px;font-family:var(--f-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;border-radius:0 0 8px 0;z-index:1000" onfocus="this.style.left='0'" onblur="this.style.left='-9999px'">Skip to content</a>
+
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="data.jsx"></script>
+<script type="text/babel" src="batch2.jsx"></script>
+
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+const PAGES = [
+  { id: 'highlight',    label: 'Highlight',      component: 'HighlightPage',     desc: '劃線 · 筆記' },
+  { id: 'last-read',    label: 'Last-read',      component: 'LastReadPage',      desc: '進度標記' },
+  { id: 'print',        label: 'Print',          component: 'PrintPage',         desc: '列印樣式' },
+  { id: 'theme',        label: 'Theme',          component: 'ThemeVariantsPage', desc: '主題 + 強調色' },
+  { id: 'i18n',         label: 'i18n',           component: 'I18nPage',          desc: '多語系' },
+];
+
+function App() {
+  const [theme, setTheme] = useState(() => localStorage.getItem('sp.theme') || 'light');
+  const [accent, setAccent] = useState(() => localStorage.getItem('sp.accent') || 'blue');
+  const [pageId, setPageId] = useState(() => {
+    const h = location.hash.replace('#', '');
+    return PAGES.find(p => p.id === h) ? h : 'highlight';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('sp.theme', theme);
+  }, [theme]);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-accent', accent);
+    localStorage.setItem('sp.accent', accent);
+  }, [accent]);
+
+  useEffect(() => {
+    location.hash = pageId;
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [pageId]);
+
+  const cycleTheme = () => {
+    const order = ['light', 'dark', 'sepia'];
+    setTheme(order[(order.indexOf(theme) + 1) % 3]);
+  };
+
+  const PageComp = window[PAGES.find(p => p.id === pageId).component];
+
+  return (
+    <>
+      <header className="sp-bar" data-screen-label={`Bar · ${pageId}`}>
+        <a href="#highlight" className="brand"><span className="mk"></span><span>MY BLOG WEB.</span></a>
+        <nav>
+          {PAGES.map(p => (
+            <a key={p.id} href={`#${p.id}`} className={pageId === p.id ? 'active' : ''} onClick={e => { e.preventDefault(); setPageId(p.id); }}>{p.label}</a>
+          ))}
+        </nav>
+        <div style={{display:'flex', gap:6, alignItems:'center'}}>
+          <button className="cmd-trigger" onClick={cycleTheme} title="Cycle theme: Light → Dark → Sepia">
+            {theme === 'sepia' ? '☕ Sepia' : theme === 'dark' ? '◐ Dark' : '☀ Light'}
+          </button>
+        </div>
+      </header>
+
+      <div className="sp-wrap" style={{paddingTop: 18}}>
+        <div style={{display:'flex',gap:6,flexWrap:'wrap',padding:'10px 14px',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:12,fontSize:12.5,alignItems:'center'}}>
+          <span style={{fontFamily:'var(--f-mono)',fontSize:10.5,letterSpacing:'.18em',textTransform:'uppercase',color:'var(--muted)',marginRight:6}}>Batch 2 ·</span>
+          {PAGES.map(p => (
+            <button key={p.id} onClick={() => setPageId(p.id)} style={{padding:'5px 10px',borderRadius:8,fontSize:12.5,color:pageId===p.id?'var(--ink)':'var(--muted)',background:pageId===p.id?'var(--bg-sub)':'transparent',fontWeight:pageId===p.id?500:400}} title={p.desc}>{p.label}</button>
+          ))}
+        </div>
+      </div>
+
+      <main id="main" data-screen-label={`Page · ${pageId}`}>
+        <PageComp theme={theme} setTheme={setTheme} accent={accent} setAccent={setAccent} />
+      </main>
+
+      <window.SitePagesFooter />
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Site Pages — Batch 3 · Author Backend</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --bg: #f4f4f4; --bg-sub: #ededed; --surface: #fbfbfb;
+  --ink: #0a0a0b; --ink-2: #2a2a2c; --muted: #6b6b70; --muted-2: #9a9aa0;
+  --border: rgba(10,10,11,0.10); --border-strong: rgba(10,10,11,0.18);
+  --divider: rgba(10,10,11,0.08);
+  --accent: #5B8DEF;
+  --f-display: "Space Grotesk", "Noto Sans TC", system-ui, sans-serif;
+  --f-body: "Space Grotesk", "Noto Sans TC", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+[data-theme="dark"] {
+  --bg: #0d0d0f; --bg-sub: #15151a; --surface: #18181c;
+  --ink: #ededef; --ink-2: #c9c9cd; --muted: #a6a6ac; --muted-2: #7b7b82;
+  --border: rgba(255,255,255,0.10); --border-strong: rgba(255,255,255,0.18);
+  --divider: rgba(255,255,255,0.08);
+  --accent: #7BA8F5;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); line-height: 1.6; -webkit-font-smoothing: antialiased; }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; padding: 0; }
+input, textarea { font-family: inherit; }
+::selection { background: var(--accent); color: white; }
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; } }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+</style>
+<link rel="stylesheet" href="batch2.css" />
+<link rel="stylesheet" href="batch3.css" />
+</head>
+<body>
+<a href="#main" style="position:absolute;left:-9999px;top:0;background:var(--ink);color:var(--bg);padding:8px 14px;font-family:var(--f-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;border-radius:0 0 8px 0;z-index:1000" onfocus="this.style.left='0'" onblur="this.style.left='-9999px'">Skip to content</a>
+
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="batch3.jsx"></script>
+
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+const PAGES = [
+  { id: 'stats',     label: 'Dashboard',  component: 'StatsPage',         num: '12.4k', group: 'overview', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12h4l3-9 4 18 3-9h4"/></svg> },
+  { id: 'drafts',    label: 'Drafts',     component: 'DraftsPage',        num: '6',     group: 'content',  icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg> },
+  { id: 'scheduled', label: 'Scheduled',  component: 'ScheduledPage',     num: '5',     group: 'content',  icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> },
+  { id: 'media',     label: 'Media',      component: 'MediaPage',         num: '8',     group: 'content',  icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg> },
+  { id: 'email',     label: 'Newsletter', component: 'EmailDigestPage',   num: '1.2k',  group: 'audience', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg> },
+  { id: 'authors',   label: 'Authors',    component: 'AuthorPage',        num: '4',     group: 'audience', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg> },
+];
+
+const GROUPS = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'content',  label: 'Content' },
+  { id: 'audience', label: 'Audience' },
+];
+
+function App() {
+  const [theme, setTheme] = useState(() => localStorage.getItem('sp.theme') || 'light');
+  const [accent, setAccent] = useState(() => localStorage.getItem('sp.accent') || 'blue');
+  const [pageId, setPageId] = useState(() => {
+    const h = location.hash.replace('#', '');
+    return PAGES.find(p => p.id === h) ? h : 'stats';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('sp.theme', theme);
+  }, [theme]);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-accent', accent);
+    localStorage.setItem('sp.accent', accent);
+  }, [accent]);
+
+  useEffect(() => {
+    location.hash = pageId;
+    const m = document.querySelector('.bk-main');
+    if (m) m.scrollTop = 0;
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [pageId]);
+
+  const cycleTheme = () => {
+    const order = ['light', 'dark', 'sepia'];
+    setTheme(order[(order.indexOf(theme) + 1) % 3]);
+  };
+
+  const ACCENTS = [
+    { id: 'blue',   c: '#5B8DEF' },
+    { id: 'green',  c: '#2f9e6e' },
+    { id: 'red',    c: '#e15554' },
+    { id: 'purple', c: '#8b5cf6' },
+    { id: 'amber',  c: '#d97706' },
+  ];
+
+  useEffect(() => {
+    location.hash = pageId;
+    const m = document.querySelector('.bk-main');
+    if (m) m.scrollTop = 0;
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [pageId]);
+
+  const PageComp = window[PAGES.find(p => p.id === pageId).component];
+
+  return (
+    <div className="bk-shell">
+      <aside className="bk-side" data-screen-label="Backend nav">
+        <div className="brand">
+          <span className="mk"></span>
+          <div>
+            <div className="name">My Blog</div>
+            <div className="role">Author Studio</div>
+          </div>
+        </div>
+
+        {GROUPS.map(g => (
+          <React.Fragment key={g.id}>
+            <div className="group">{g.label}</div>
+            {PAGES.filter(p => p.group === g.id).map(p => (
+              <a key={p.id} href={`#${p.id}`} className={pageId === p.id ? 'active' : ''} onClick={e => { e.preventDefault(); setPageId(p.id); }}>
+                {p.icon}
+                <span>{p.label}</span>
+                <span className="num">{p.num}</span>
+              </a>
+            ))}
+          </React.Fragment>
+        ))}
+
+        <div className="group" style={{marginTop:'auto'}}>Appearance</div>
+        <div style={{padding:'8px 10px'}}>
+          <div style={{fontFamily:'var(--f-mono)',fontSize:9.5,letterSpacing:'.16em',textTransform:'uppercase',color:'var(--muted-2)',marginBottom:8}}>Theme</div>
+          <div style={{display:'flex',gap:4,marginBottom:14}}>
+            {[['light','☀'],['dark','◐'],['sepia','☕']].map(([id,ic]) => (
+              <button key={id} onClick={() => setTheme(id)} title={id}
+                style={{flex:1,padding:'7px 4px',borderRadius:6,border:'1px solid var(--border)',
+                        background: theme===id ? 'var(--accent)' : 'var(--surface)',
+                        color: theme===id ? 'white' : 'var(--ink-2)',
+                        fontSize:13,fontFamily:'var(--f-mono)',cursor:'pointer'}}>{ic}</button>
+            ))}
+          </div>
+          <div style={{fontFamily:'var(--f-mono)',fontSize:9.5,letterSpacing:'.16em',textTransform:'uppercase',color:'var(--muted-2)',marginBottom:8}}>Accent</div>
+          <div style={{display:'flex',gap:6}}>
+            {ACCENTS.map(a => (
+              <button key={a.id} onClick={() => setAccent(a.id)} title={a.id}
+                style={{width:24,height:24,borderRadius:999,background:a.c,
+                        border: accent===a.id ? '2px solid var(--ink)' : '2px solid transparent',
+                        boxShadow: accent===a.id ? '0 0 0 2px var(--surface), 0 0 0 3px var(--ink)' : 'none',
+                        cursor:'pointer',padding:0}}></button>
+            ))}
+          </div>
+        </div>
+        <a href="../site-pages.html" style={{cursor:'pointer'}}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{width:15,height:15}}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>
+          <span>View Public Site</span>
+        </a>
+      </aside>
+
+      <main id="main" className="bk-main" data-screen-label={`Backend · ${pageId}`}>
+        <PageComp />
+      </main>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

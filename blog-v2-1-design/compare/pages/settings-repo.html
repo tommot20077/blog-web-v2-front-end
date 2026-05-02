@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<title>Repo Settings</title>
+<link rel="stylesheet" href="_shared.css" />
+<style>
+  body { padding: 36px 40px 60px; }
+  .ec { font-family: var(--f-mono); font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted-2); margin-bottom: 16px; }
+  .pg-h { display: flex; justify-content: space-between; align-items: flex-end; padding-bottom: 22px; border-bottom: 1px solid var(--divider); margin-bottom: 28px; }
+  h1 { font-family: var(--f-display); font-weight: 500; font-size: 44px; letter-spacing: -0.03em; line-height: 1; margin: 0; }
+  h1 .em { font-style: italic; font-weight: 300; color: var(--muted); }
+  .pg-h .save-state { font-family: var(--f-mono); font-size: 10.5px; letter-spacing: 0.14em; color: var(--muted); text-transform: uppercase; }
+
+  .layout { display: grid; grid-template-columns: 200px 1fr; gap: 36px; }
+  .nav { display: flex; flex-direction: column; gap: 2px; position: sticky; top: 20px; align-self: flex-start; }
+  .nav-item {
+    text-align: left; padding: 10px 12px; border-radius: 8px;
+    font-size: 13.5px; color: var(--ink-2); font-family: inherit;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .nav-item:hover { background: var(--bg-sub); }
+  .nav-item.active { background: var(--ink); color: var(--bg); }
+  .nav-item .ix { font-family: var(--f-mono); font-size: 10px; opacity: .7; width: 14px; }
+
+  .main { min-width: 0; }
+  .panel { padding: 24px; border: 1px solid var(--divider); border-radius: 12px; background: var(--surface); margin-bottom: 18px; }
+  .panel-h { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 18px; }
+  .panel-h h3 { font-family: var(--f-display); font-size: 22px; font-weight: 500; letter-spacing: -0.015em; margin: 0; }
+  .panel-h .sub { font-family: var(--f-mono); font-size: 10.5px; letter-spacing: 0.14em; color: var(--muted); text-transform: uppercase; }
+
+  .field { margin-bottom: 18px; }
+  .field label { display: block; font-size: 12.5px; font-family: var(--f-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .field input, .field textarea {
+    width: 100%; padding: 10px 12px; font: inherit;
+    border: 1px solid var(--border); border-radius: 8px;
+    background: var(--bg); color: var(--ink);
+  }
+  .field textarea { min-height: 70px; resize: vertical; }
+  .field-help { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .avatar-row { display: flex; gap: 18px; align-items: center; padding: 14px 0 22px; border-bottom: 1px solid var(--divider); margin-bottom: 22px; }
+  .avatar-row .avatar { width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, #5B8DEF, #7BA8F5); display: grid; place-items: center; color: white; font-family: var(--f-display); font-size: 28px; font-weight: 600; }
+  .avatar-row .info .lbl { font-family: var(--f-mono); font-size: 10px; color: var(--muted); letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 4px; }
+  .avatar-row .info .name { font-family: var(--f-display); font-size: 18px; font-weight: 500; }
+  .avatar-row .actions { margin-left: auto; display: flex; gap: 8px; }
+  .btn-sm { padding: 7px 14px; font-size: 12px; border: 1px solid var(--border); border-radius: 999px; }
+  .btn-sm.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+</style>
+</head>
+<body>
+
+<div class="ec">§ Repo · SettingsView.vue（13.3 KB · 完整功能）</div>
+
+<div class="pg-h">
+  <h1>Settings <span class="em">— current</span></h1>
+  <span class="save-state">● Saved · 2 min ago</span>
+</div>
+
+<div class="layout">
+
+  <nav class="nav">
+    <button class="nav-item active"><span class="ix">01</span>Profile</button>
+    <button class="nav-item"><span class="ix">02</span>Account</button>
+    <button class="nav-item"><span class="ix">03</span>Social</button>
+    <button class="nav-item"><span class="ix">04</span>Writing</button>
+    <button class="nav-item"><span class="ix">05</span>Notifications</button>
+    <button class="nav-item"><span class="ix">06</span>Danger zone</button>
+  </nav>
+
+  <main class="main">
+
+    <div class="panel">
+      <div class="panel-h">
+        <h3>Profile</h3>
+        <span class="sub">● Public</span>
+      </div>
+
+      <div class="avatar-row">
+        <div class="avatar">T</div>
+        <div class="info">
+          <div class="lbl">Avatar</div>
+          <div class="name">tommot</div>
+        </div>
+        <div class="actions">
+          <button class="btn-sm primary">Upload</button>
+          <button class="btn-sm">Remove</button>
+        </div>
+      </div>
+
+      <div class="row-2">
+        <div class="field">
+          <label>Display name</label>
+          <input value="tommot" />
+        </div>
+        <div class="field">
+          <label>Username</label>
+          <input value="tommot20077" />
+          <div class="field-help">tommotblog.dev/@tommot20077</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Bio</label>
+        <textarea>Full-stack engineer · Vue / Spring / Postgres · 寫一些自己想看的東西。</textarea>
+        <div class="field-help">160 字以內</div>
+      </div>
+
+      <div class="row-2">
+        <div class="field">
+          <label>Location</label>
+          <input value="Taipei" />
+        </div>
+        <div class="field">
+          <label>Website</label>
+          <input value="https://tommot.dev" />
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-h">
+        <h3>Account</h3>
+        <span class="sub">● Private</span>
+      </div>
+      <div class="row-2">
+        <div class="field"><label>Email</label><input value="me@tommot.dev" /></div>
+        <div class="field"><label>Language</label><input value="繁體中文" /></div>
+      </div>
+      <div class="field"><label>Password</label><input type="password" value="••••••••" /></div>
+    </div>
+
+  </main>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,715 @@
+<!doctype html>
+<html lang="zh-Hant" data-theme="light" data-font="space" data-cursor="off" data-accent="on">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Compare · Repo vs Prototype</title>
+
+<!-- Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+TC:wght@300;400;500;600&family=Inter+Tight:wght@400;500;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
+
+<!-- Repo design system (imported from your repo) -->
+<link rel="stylesheet" href="../src/assets/design/styles.css" />
+<link rel="stylesheet" href="../src/assets/design/views.css" />
+<link rel="stylesheet" href="../src/assets/design/search.css" />
+<link rel="stylesheet" href="../src/assets/design/settings.css" />
+
+<!-- Compare-page chrome -->
+<style>
+  /* Override the design system's "cursor:none" body rule —
+     the compare tool is a normal pointer page. */
+  html, body { cursor: auto !important; }
+  body { background: var(--bg); }
+
+  /* ── Top toolbar ── */
+  .cmp-bar {
+    position: sticky; top: 0; z-index: 200;
+    background: color-mix(in oklab, var(--bg) 92%, transparent);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 28px;
+    display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+  }
+  .cmp-bar h1 {
+    font-family: var(--f-display); font-weight: 500;
+    font-size: 17px; letter-spacing: -0.01em; margin: 0;
+  }
+  .cmp-bar h1 .em { font-style: italic; font-weight: 300; color: var(--muted); }
+  .cmp-bar .grow { flex: 1; }
+  .cmp-mono {
+    font-family: var(--f-mono); font-size: 10.5px;
+    letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted-2);
+  }
+
+  .cmp-seg {
+    display: inline-flex; gap: 2px; padding: 3px;
+    border-radius: 10px; background: var(--bg-sub);
+    border: 1px solid var(--divider);
+  }
+  .cmp-seg button {
+    padding: 6px 12px; border-radius: 7px;
+    font-family: var(--f-mono); font-size: 10.5px;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--muted); transition: all .18s; cursor: pointer;
+  }
+  .cmp-seg button:hover { color: var(--ink); }
+  .cmp-seg button.active {
+    background: var(--surface); color: var(--ink);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  [data-theme="dark"] .cmp-seg button.active { background: var(--ink); color: var(--bg); }
+
+  .cmp-theme-tog {
+    width: 34px; height: 34px; border-radius: 999px;
+    border: 1px solid var(--border); display: grid; place-items: center;
+    cursor: pointer; transition: background .18s;
+  }
+  .cmp-theme-tog:hover { background: var(--bg-sub); }
+
+  /* ── Page nav (left rail) ── */
+  .cmp-shell { display: grid; grid-template-columns: 240px 1fr; gap: 0; min-height: calc(100vh - 60px); }
+  .cmp-rail {
+    position: sticky; top: 60px;
+    height: calc(100vh - 60px);
+    border-right: 1px solid var(--divider);
+    padding: 28px 18px;
+    display: flex; flex-direction: column; gap: 4px;
+    background: var(--bg);
+    overflow-y: auto;
+  }
+  .cmp-rail-head { padding: 0 8px 14px; border-bottom: 1px solid var(--divider); margin-bottom: 12px; }
+  .cmp-rail-head .num {
+    font-family: var(--f-display); font-weight: 500;
+    font-size: 28px; letter-spacing: -0.02em; line-height: 1;
+  }
+  .cmp-rail-head .lbl {
+    font-family: var(--f-mono); font-size: 9.5px;
+    letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--muted-2); margin-top: 6px;
+  }
+  .cmp-rail-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; border-radius: 8px;
+    font-size: 13.5px; color: var(--ink-2);
+    transition: background .18s, color .18s;
+    cursor: pointer; text-align: left; border: none; background: none; font-family: inherit;
+  }
+  .cmp-rail-item:hover { background: var(--bg-sub); color: var(--ink); }
+  .cmp-rail-item.active { background: var(--ink); color: var(--bg); }
+  .cmp-rail-item .ix {
+    font-family: var(--f-mono); font-size: 10px; opacity: .7;
+    width: 18px;
+  }
+  .cmp-rail-item.active .ix { color: color-mix(in oklab, var(--bg) 70%, transparent); }
+  .cmp-rail-foot {
+    margin-top: auto; padding: 12px 8px;
+    font-family: var(--f-mono); font-size: 9.5px;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--muted-2); line-height: 1.7;
+  }
+
+  /* ── Main area ── */
+  .cmp-main { padding: 28px 28px 80px; min-width: 0; }
+  .cmp-page { display: none; }
+  .cmp-page.active { display: block; }
+
+  .cmp-page-head { margin-bottom: 28px; }
+  .cmp-page-head .crumb {
+    font-family: var(--f-mono); font-size: 10.5px;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--muted-2); margin-bottom: 10px;
+  }
+  .cmp-page-head h2 {
+    font-family: var(--f-display); font-weight: 500;
+    font-size: clamp(32px, 4vw, 56px); letter-spacing: -0.03em;
+    line-height: 1; margin: 0 0 14px;
+  }
+  .cmp-page-head h2 .em { font-style: italic; font-weight: 300; color: var(--muted); }
+  .cmp-page-head .lede {
+    font-size: 15px; line-height: 1.7; color: var(--muted);
+    max-width: 60ch;
+  }
+
+  .cmp-decision {
+    margin: 18px 0 28px; padding: 16px 20px;
+    border-left: 3px solid var(--accent); background: color-mix(in oklab, var(--accent) 6%, transparent);
+    border-radius: 0 8px 8px 0;
+    font-size: 13.5px; line-height: 1.75; color: var(--ink-2);
+  }
+  .cmp-decision b {
+    font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.2em;
+    text-transform: uppercase; color: var(--accent); display: block; margin-bottom: 4px;
+  }
+  .cmp-decision ul { margin: 6px 0 0; padding-left: 20px; }
+
+  /* ── Two-up frames ── */
+  .cmp-two {
+    display: grid; gap: 20px;
+    grid-template-columns: 1fr 1fr;
+  }
+  .cmp-two.stack { grid-template-columns: 1fr; }
+  .cmp-frame {
+    border: 1px solid var(--divider); border-radius: 12px;
+    background: var(--surface);
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.02);
+  }
+  .cmp-frame-head {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 16px; border-bottom: 1px solid var(--divider);
+    font-family: var(--f-mono); font-size: 10.5px; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--muted);
+    background: var(--bg);
+  }
+  .cmp-frame-head .pill {
+    padding: 3px 8px; border-radius: 999px;
+    font-size: 9.5px; letter-spacing: 0.14em;
+  }
+  .cmp-frame-head .pill.repo { background: var(--ink); color: var(--bg); }
+  .cmp-frame-head .pill.proto { background: color-mix(in oklab, var(--accent) 18%, transparent); color: var(--accent); }
+  .cmp-frame-head .pill.merged { background: #2E7D4E; color: white; }
+  [data-theme="dark"] .cmp-frame-head .pill.merged { background: #65D19A; color: var(--ink); }
+  .cmp-frame-head .grow { flex: 1; }
+  .cmp-frame-head .meta { color: var(--muted-2); font-size: 9.5px; }
+
+  .cmp-frame-body {
+    flex: 1; min-height: 600px; max-height: 800px;
+    overflow: auto; position: relative;
+    background: var(--bg);
+    /* scale-down container */
+    container-type: inline-size;
+  }
+  .cmp-frame-body iframe {
+    width: 100%; height: 800px; border: 0; display: block; background: var(--bg);
+  }
+  .cmp-frame-body.tall iframe { height: 1400px; }
+
+  /* mini sidebar with notes */
+  .cmp-notes {
+    margin-top: 24px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+  }
+  .cmp-note {
+    border: 1px solid var(--divider); border-radius: 10px;
+    background: var(--surface); padding: 16px 18px;
+  }
+  .cmp-note h5 {
+    font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--muted-2); margin: 0 0 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .cmp-note h5 .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ink); }
+  .cmp-note h5.proto .dot { background: var(--accent); }
+  .cmp-note ul { margin: 0; padding-left: 18px; }
+  .cmp-note li { font-size: 13px; line-height: 1.7; color: var(--ink-2); margin-bottom: 4px; }
+  .cmp-note li .tag {
+    display: inline-block; padding: 1px 6px; margin-right: 6px;
+    background: var(--bg-sub); border-radius: 4px;
+    font-family: var(--f-mono); font-size: 10px; color: var(--muted);
+  }
+
+  @media (max-width: 1100px) {
+    .cmp-two { grid-template-columns: 1fr; }
+    .cmp-shell { grid-template-columns: 1fr; }
+    .cmp-rail { position: static; height: auto; flex-direction: row; flex-wrap: wrap; }
+    .cmp-rail-head, .cmp-rail-foot { width: 100%; }
+    .cmp-notes { grid-template-columns: 1fr; }
+  }
+
+  /* ── Choice picker ── */
+  .cmp-choice {
+    margin-top: 28px; padding: 20px;
+    border: 1px dashed var(--border-strong); border-radius: 12px;
+  }
+  .cmp-choice h4 {
+    font-family: var(--f-mono); font-size: 10.5px; letter-spacing: 0.2em;
+    text-transform: uppercase; color: var(--muted); margin: 0 0 12px;
+  }
+  .cmp-choice-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .cmp-choice-btn {
+    padding: 10px 18px; border-radius: 999px;
+    border: 1px solid var(--border); background: var(--surface);
+    font-size: 13px; color: var(--ink-2); cursor: pointer;
+    font-family: inherit; transition: all .15s;
+  }
+  .cmp-choice-btn:hover { border-color: var(--ink); color: var(--ink); }
+  .cmp-choice-btn.picked {
+    background: var(--ink); color: var(--bg); border-color: var(--ink);
+  }
+  .cmp-choice-btn.picked.proto {
+    background: var(--accent); color: white; border-color: var(--accent);
+  }
+  .cmp-choice-summary {
+    margin-top: 14px; font-size: 12.5px; color: var(--muted);
+  }
+  .cmp-choice-summary b { color: var(--ink); font-weight: 500; }
+</style>
+</head>
+<body>
+
+<!-- ── Top bar ── -->
+<header class="cmp-bar">
+  <h1>Compare <span class="em">— repo vs prototype</span></h1>
+  <span class="cmp-mono">6 pages · 並排比較</span>
+  <span class="grow"></span>
+
+  <div class="cmp-seg" id="view-seg" role="tablist" aria-label="View mode">
+    <button class="active" data-view="both">Both</button>
+    <button data-view="repo">Repo only</button>
+    <button data-view="proto">Prototype only</button>
+  </div>
+
+  <button class="cmp-theme-tog" id="theme-tog" aria-label="Toggle theme">
+    <svg id="ico-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+    <svg id="ico-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+  </button>
+</header>
+
+<!-- ── Shell ── -->
+<div class="cmp-shell">
+
+  <!-- Left rail -->
+  <aside class="cmp-rail">
+    <div class="cmp-rail-head">
+      <div class="num">6</div>
+      <div class="lbl">pages to review</div>
+    </div>
+    <button class="cmp-rail-item active" data-page="search"><span class="ix">01</span>Search</button>
+    <button class="cmp-rail-item" data-page="tag"><span class="ix">02</span>Tag (single)</button>
+    <button class="cmp-rail-item" data-page="tags-index"><span class="ix">03</span>Tags Index</button>
+    <button class="cmp-rail-item" data-page="notfound"><span class="ix">04</span>404</button>
+    <button class="cmp-rail-item" data-page="settings"><span class="ix">05</span>Settings</button>
+    <button class="cmp-rail-item" data-page="article"><span class="ix">06</span>Article Detail</button>
+    <button class="cmp-rail-item" data-page="editor"><span class="ix">07</span>Editor</button>
+
+    <div class="cmp-rail-foot">
+      Note · 兩欄都用<br>
+      你 repo 的 design system<br>
+      字體與 token 完全一致
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="cmp-main">
+
+    <!-- ─── 1. Search ─── -->
+    <section class="cmp-page active" data-page="search">
+      <div class="cmp-page-head">
+        <div class="crumb">§ 01 · /search</div>
+        <h2>Search <span class="em">view</span></h2>
+        <p class="lede">你 repo 的 SearchView 已有完整 spotlight 結構（hero search bar、recent / popular / tags 三段空狀態、article + tag results）。Prototype 多了 scope filter 與 snippet 高亮。</p>
+      </div>
+
+      <div class="cmp-decision">
+        <b>建議融合</b>
+        保留你 repo 的整體版面與 hero search bar；從 prototype 借兩件事：
+        <ul>
+          <li><b>Scope filter chips</b>（All / Articles / Tags / Authors）放在 search bar 下方</li>
+          <li><b>Snippet 高亮</b>擴到 summary（你 repo 目前只在 title 高亮）</li>
+        </ul>
+      </div>
+
+      <div class="cmp-two">
+        <div class="cmp-frame">
+          <div class="cmp-frame-head">
+            <span class="pill repo">Repo</span>
+            <span class="grow">SearchView.vue</span>
+            <span class="meta">8.0 KB</span>
+          </div>
+          <div class="cmp-frame-body"><iframe src="pages/search-repo.html" loading="lazy" title="Repo Search"></iframe></div>
+        </div>
+        <div class="cmp-frame">
+          <div class="cmp-frame-head">
+            <span class="pill proto">Prototype</span>
+            <span class="grow">Batch 1 — Search</span>
+            <span class="meta">+ scope filter</span>
+          </div>
+          <div class="cmp-frame-body"><iframe src="pages/search-proto.html" loading="lazy" title="Prototype Search"></iframe></div>
+        </div>
+      </div>
+
+      <div class="cmp-notes">
+        <div class="cmp-note">
+          <h5><span class="dot"></span>Repo 強項</h5>
+          <ul>
+            <li><span class="tag">UX</span>Recent searches（localStorage）</li>
+            <li><span class="tag">UX</span>三段空狀態：recent → popular → all tags</li>
+            <li><span class="tag">UX</span>⌘K hint badge、Esc 清除、Enter 跳第一個結果</li>
+            <li><span class="tag">UI</span>巨型 38px display 字體 search input</li>
+            <li><span class="tag">DATA</span>非同步狀態管理完整（isLoading / hasResults）</li>
+          </ul>
+        </div>
+        <div class="cmp-note proto">
+          <h5 class="proto"><span class="dot"></span>Prototype 強項</h5>
+          <ul>
+            <li><span class="tag">UX</span>Scope filter chips（All / Articles / Tags / Authors）</li>
+            <li><span class="tag">UI</span>結果列表型而非 card，密度更高</li>
+            <li><span class="tag">UX</span>Summary 也做 highlight，不只 title</li>
+            <li><span class="tag">UX</span>結果項顯示 path / breadcrumb</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="cmp-choice">
+        <h4>● 你的決定</h4>
+        <div class="cmp-choice-row" data-choice="search">
+          <button class="cmp-choice-btn picked" data-pick="repo+">用 repo 為主 + 注入 scope filter（建議）</button>
+          <button class="cmp-choice-btn" data-pick="repo">維持 repo 不動</button>
+          <button class="cmp-choice-btn" data-pick="proto">改用 prototype 風格</button>
+        </div>
+        <div class="cmp-choice-summary"></div>
+      </div>
+    </section>
+
+    <!-- ─── 2. Tag (single) ─── -->
+    <section class="cmp-page" data-page="tag">
+      <div class="cmp-page-head">
+        <div class="crumb">§ 02 · /tags/:slug</div>
+        <h2>Tag <span class="em">— single tag detail</span></h2>
+        <p class="lede">你 repo 的 TagView 是「某個 tag 的詳情頁」。Prototype 的 Batch 1 Tags & Series 是「所有 tag 的索引頁」—— 它們不是同一頁，所以這裡只展示你 repo。索引頁會放在下一節。</p>
+      </div>
+
+      <div class="cmp-decision">
+        <b>不衝突</b>
+        這頁沒有重複問題。Repo 設計很完整（hero header + related tags + 文章列表），<b>原樣保留</b>。Prototype 的 Tag/Series 是另一個東西，新增 route 即可。
+      </div>
+
+      <div class="cmp-two stack">
+        <div class="cmp-frame">
+          <div class="cmp-frame-head">
+            <span class="pill repo">Repo</span>
+            <span class="grow">TagView.vue</span>
+            <span class="meta">7.4 KB · 保留</span>
+          </div>
+          <div class="cmp-frame-body tall"><iframe src="pages/tag-repo.html" loading="lazy" title="Repo Tag"></iframe></div>
+        </div>
+      </div>
+
+      <div class="cmp-choice">
+        <h4>● 你的決定</h4>
+        <div class="cmp-choice-row" data-choice="tag">
+          <button class="cmp-choice-btn picked" data-pick="repo">維持 repo 不動（建議）</button>
+          <button class="cmp-choice-btn" data-pick="redesign">想要重新設計這頁</button>
+        </div>
+        <div class="cmp-choice-summary"></div>
+      </div>
+    </section>
+
+    <!-- ─── 3. Tags Index ─── -->
+    <section class="cmp-page" data-page="tags-index">
+      <div class="cmp-page-head">
+        <div class="crumb">§ 03 · /tags（新 route）</div>
+        <h2>Tags <span class="em">index</span></h2>
+        <p class="lede">這是 prototype 有、你 repo 沒有的頁面 — 「所有標籤的探索頁」（cloud + series）。建議新增 <code>/tags</code> route 承載這個視圖。</p>
+      </div>
+
+      <div class="cmp-decision">
+        <b>新增頁面</b>
+        Repo 沒有對應頁面 → 純粹評估 prototype 是否要納入。Series（一系列文 1/N 進度）是 repo 沒有的<b>新功能概念</b>，需先確認你想不想做。
+      </div>
+
+      <div class="cmp-two stack">
+        <div class="cmp-frame">
+          <div class="cmp-frame-head">
+            <span class="pill proto">Prototype</span>
+            <span class="grow">Batch 1 — Tags & Series Index</span>
+            <span class="meta">新 route</span>
+          </div>
+          <div class="cmp-frame-body tall"><iframe src="pages/tags-index-proto.html" loading="lazy" title="Prototype Tags Index"></iframe></div>
+        </div>
+      </div>
+
+      <div class="cmp-choice">
+        <h4>● 你的決定</h4>
+        <div class="cmp-choice-row" data-choice="tags-index">
+          <button class="cmp-choice-btn" data-pick="full">採用：cloud + series（含新功能 Series）</button>
+          <button class="cmp-choice-btn picked" data-pick="cloud">只採用 tag cloud（不做 series）</button>
+          <button class="cmp-choice-btn" data-pick="skip">不需要這頁</button>
+        </div>
+        <div class="cmp-choice-summary"></div>
+      </div>
+    </section>
+
+    <!-- ─── 4. 404 ─── -->
+    <section class="cmp-page" data-page="notfound">
+      <div class="cmp-page-head">
+        <div class="crumb">§ 04 · 404</div>
+        <h2>Not <span class="em">found</span></h2>
+        <p class="lede">你 repo 的 NotFoundView 用了 monumental 大數字 + editorial 排版。Prototype 一樣風格但多了推薦文章區塊。</p>
+      </div>
+
+      <div class="cmp-decision">
+        <b>建議融合</b>
+        保留 repo 視覺骨架（巨大 404 背景 + 標題 + sub + CTA），加上 prototype 的 <b>4 篇推薦文章</b>區塊讓使用者有出口。Glitch 動畫可選（要尊重 prefers-reduced-motion）。
+      </div>
+
+      <div class="cmp-two">
+        <div class="cmp-frame">
+          <div class="cmp-frame-head">
+            <span class="pill repo">Repo</span>
+            <span class="grow">NotFoundView.vue</span>
+            <span class="meta">0.5 KB</span>
+          </div>
+          <div class="cmp-frame-body"><iframe src="pages/notfound-repo.html" loading="lazy" title="Repo 404"></iframe></div>
+        </div>
+        <div class="cmp-frame">
+          <div class="cmp-frame-head">
+            <span class="pill proto">Prototype</span>
+            <span class="grow">Batch 1 — 404 with rec.</span>
+            <span class="meta">+ recommendations</span>
+          </div>
+          <div class="cmp-frame-body"><iframe src="pages/notfound-proto.html" loading="lazy" title="Prototype 404"></iframe></div>
+        </div>
+      </div>
+
+      <div class="cmp-choice">
+        <h4>● 你的決定</h4>
+        <div class="cmp-choice-row" data-choice="notfound">
+          <button class="cmp-choice-btn picked" data-pick="repo+rec">repo + 加推薦文章區（建議）</button>
+          <button class="cmp-choice-btn" data-pick="repo">維持 repo 不動</button>
+          <button class="cmp-choice-btn" data-pick="proto">完全改用 prototype</button>
+        </div>
+        <div class="cmp-choice-summary"></div>
+      </div>
+    </section>
+
+    <!-- ─── 5. Settings ─── -->
+    <section class="cmp-page" data-page="settings">
+      <div class="cmp-page-head">
+        <div class="crumb">§ 05 · /settings</div>
+        <h2>Settings <span class="em">— with new Appearance tab</span></h2>
+        <p class="lede">你 repo 的 SettingsView 完整度極高（Profile / Account / Social / Writing / Notifications / Danger 六分頁，含拖曳頭像）。Batch 2 的 sepia / color picker 提案以「新增 Appearance 分頁」方式注入，不破壞現有結構。</p>
+      </div>
+
+      <div class="cmp-decision">
+        <b>建議擴充</b>
+        Repo 完整保留，<b>新增 Appearance 分頁</b>承載：light / dark / sepia 主題、accent color picker、font / cursor 切換、字級 slider、reading list 偏好。位置建議在 Profile 之後。
+      </div>
+
+      <div class="cmp-two">
+        <div class="cmp-frame">
+          <div class="cmp-frame-head">
+            <span class="pill repo">Repo</span>
+            <span class="grow">SettingsView.vue · 現況</span>
+            <span class="meta">13.3 KB</span>
+          </div>
+          <div class="cmp-frame-body tall"><iframe src="pages/settings-repo.html" loading="lazy" title="Repo Settings"></iframe></div>
+        </div>
+        <div class="cmp-frame">
+          <div class="cmp-frame-head">
+            <span class="pill merged">Repo + Appearance</span>
+            <span class="grow">提案：新增 Appearance 分頁</span>
+            <span class="meta">注入</span>
+          </div>
+          <div class="cmp-frame-body tall"><iframe src="pages/settings-proposal.html" loading="lazy" title="Settings + Appearance"></iframe></div>
+        </div>
+      </div>
+
+      <div class="cmp-choice">
+        <h4>● 你的決定</h4>
+        <div class="cmp-choice-row" data-choice="settings">
+          <button class="cmp-choice-btn picked" data-pick="add-appearance">採用：新增 Appearance 分頁（建議）</button>
+          <button class="cmp-choice-btn" data-pick="merge-writing">合併進 Writing 分頁</button>
+          <button class="cmp-choice-btn" data-pick="skip">先不加，只做 Batch 2 其他項</button>
+        </div>
+        <div class="cmp-choice-summary"></div>
+      </div>
+    </section>
+
+    <!-- ─── 6. Article Detail ─── -->
+    <section class="cmp-page" data-page="article">
+      <div class="cmp-page-head">
+        <div class="crumb">§ 06 · /articles/:uuid</div>
+        <h2>Article <span class="em">detail — with injection points</span></h2>
+        <p class="lede">你 repo 的 ArticleDetail 已有 progress bar、hero、cover、shiki 程式碼高亮、prose、end footer、side nav dots。下表展示 Batch 2 要注入的元件位置。</p>
+      </div>
+
+      <div class="cmp-decision">
+        <b>建議擴充</b>
+        Repo 整體保留。Batch 2 用「新元件 + 條件渲染」方式注入：
+        <ul>
+          <li><code>ArticleTOC.vue</code>（左側浮動 TOC，IntersectionObserver 同步）</li>
+          <li><code>ArticleActions.vue</code>（bookmark / share / view as Markdown）</li>
+          <li><code>HighlightLayer.vue</code>（選取文字後浮出 highlight + note）</li>
+          <li><code>useReadingProgress</code> 升級：紀錄 last-read 位置</li>
+        </ul>
+      </div>
+
+      <div class="cmp-two stack">
+        <div class="cmp-frame">
+          <div class="cmp-frame-head">
+            <span class="pill merged">Repo + injection points</span>
+            <span class="grow">ArticleDetail + TOC / Highlight / Bookmark</span>
+            <span class="meta">註解標示注入位置</span>
+          </div>
+          <div class="cmp-frame-body tall"><iframe src="pages/article-injection.html" loading="lazy" title="Article injection"></iframe></div>
+        </div>
+      </div>
+
+      <div class="cmp-choice">
+        <h4>● 你的決定（複選）</h4>
+        <div class="cmp-choice-row" data-choice="article" data-multi="true">
+          <button class="cmp-choice-btn picked" data-pick="toc">Auto TOC</button>
+          <button class="cmp-choice-btn picked" data-pick="bookmark">Bookmark</button>
+          <button class="cmp-choice-btn picked" data-pick="highlight">Highlight & note</button>
+          <button class="cmp-choice-btn picked" data-pick="lastread">Last-read indicator</button>
+          <button class="cmp-choice-btn" data-pick="lightbox">Image lightbox</button>
+          <button class="cmp-choice-btn" data-pick="footnote">Footnotes popover</button>
+          <button class="cmp-choice-btn" data-pick="share">Share buttons</button>
+          <button class="cmp-choice-btn" data-pick="viewmd">View as Markdown</button>
+        </div>
+        <div class="cmp-choice-summary"></div>
+      </div>
+    </section>
+
+    <!-- ─── 7. Editor ─── -->
+    <section class="cmp-page" data-page="editor">
+      <div class="cmp-page-head">
+        <div class="crumb">§ 07 · /editor</div>
+        <h2>Editor <span class="em">— with injection points</span></h2>
+        <p class="lede">你 repo 的 EditorView 完整度極高（CodeMirror + preview + meta sidebar + outline + focus mode + autosave）。Batch 3 的擴充全部以「附加元件」方式注入。</p>
+      </div>
+
+      <div class="cmp-decision">
+        <b>建議擴充（Batch 3）</b>
+        Repo 整體保留，附加：
+        <ul>
+          <li><code>EditorSlashMenu.vue</code> — 輸入 <code>/</code> 浮出 block 選單</li>
+          <li><code>EditorBubbleMenu.vue</code> — 選取文字浮出 markdown toolbar</li>
+          <li><code>EditorAutosaveBadge.vue</code> — 「已儲存於 12:34」</li>
+          <li><code>DraftHistoryDrawer.vue</code> — 版本歷史側拉抽屜</li>
+        </ul>
+      </div>
+
+      <div class="cmp-two stack">
+        <div class="cmp-frame">
+          <div class="cmp-frame-head">
+            <span class="pill merged">Repo + injection points</span>
+            <span class="grow">EditorView + Slash / Bubble / Autosave / History</span>
+            <span class="meta">註解標示注入位置</span>
+          </div>
+          <div class="cmp-frame-body tall"><iframe src="pages/editor-injection.html" loading="lazy" title="Editor injection"></iframe></div>
+        </div>
+      </div>
+
+      <div class="cmp-choice">
+        <h4>● 你的決定（複選）</h4>
+        <div class="cmp-choice-row" data-choice="editor" data-multi="true">
+          <button class="cmp-choice-btn picked" data-pick="slash">Slash menu</button>
+          <button class="cmp-choice-btn picked" data-pick="bubble">Bubble toolbar</button>
+          <button class="cmp-choice-btn picked" data-pick="autosave">Autosave badge</button>
+          <button class="cmp-choice-btn" data-pick="history">Draft history</button>
+          <button class="cmp-choice-btn" data-pick="medialib">Media library</button>
+        </div>
+        <div class="cmp-choice-summary"></div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+  // ── Page nav ──
+  const railItems = document.querySelectorAll('.cmp-rail-item');
+  const pages = document.querySelectorAll('.cmp-page');
+  function showPage(name) {
+    railItems.forEach(b => b.classList.toggle('active', b.dataset.page === name));
+    pages.forEach(p => p.classList.toggle('active', p.dataset.page === name));
+    try { localStorage.setItem('cmp:page', name); } catch (e) {}
+    window.scrollTo({ top: 0 });
+  }
+  railItems.forEach(b => b.addEventListener('click', () => showPage(b.dataset.page)));
+  // restore
+  try {
+    const saved = localStorage.getItem('cmp:page');
+    if (saved && document.querySelector(`.cmp-rail-item[data-page="${saved}"]`)) showPage(saved);
+  } catch (e) {}
+
+  // ── View mode (both / repo / proto) ──
+  const viewSeg = document.getElementById('view-seg');
+  function applyViewMode(mode) {
+    document.querySelectorAll('.cmp-two').forEach(two => {
+      const frames = two.querySelectorAll('.cmp-frame');
+      if (frames.length < 2) return; // single-frame pages not affected
+      const [first, second] = frames;
+      if (mode === 'both') {
+        two.style.gridTemplateColumns = '1fr 1fr';
+        first.style.display = ''; second.style.display = '';
+      } else if (mode === 'repo') {
+        two.style.gridTemplateColumns = '1fr';
+        first.style.display = ''; second.style.display = 'none';
+      } else if (mode === 'proto') {
+        two.style.gridTemplateColumns = '1fr';
+        first.style.display = 'none'; second.style.display = '';
+      }
+    });
+  }
+  viewSeg.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      viewSeg.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      applyViewMode(btn.dataset.view);
+    });
+  });
+
+  // ── Theme toggle ──
+  const themeTog = document.getElementById('theme-tog');
+  const icoSun = document.getElementById('ico-sun');
+  const icoMoon = document.getElementById('ico-moon');
+  function applyTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    icoSun.style.display  = t === 'dark' ? 'none'  : '';
+    icoMoon.style.display = t === 'dark' ? ''     : 'none';
+    // forward to all iframes
+    document.querySelectorAll('iframe').forEach(f => {
+      try { f.contentDocument?.documentElement.setAttribute('data-theme', t); } catch (e) {}
+    });
+    try { localStorage.setItem('cmp:theme', t); } catch (e) {}
+  }
+  themeTog.addEventListener('click', () => {
+    const cur = document.documentElement.getAttribute('data-theme');
+    applyTheme(cur === 'dark' ? 'light' : 'dark');
+  });
+  try {
+    const t = localStorage.getItem('cmp:theme');
+    if (t) applyTheme(t);
+  } catch (e) {}
+  // re-apply after iframes load
+  document.querySelectorAll('iframe').forEach(f => {
+    f.addEventListener('load', () => {
+      const t = document.documentElement.getAttribute('data-theme');
+      try { f.contentDocument?.documentElement.setAttribute('data-theme', t); } catch (e) {}
+    });
+  });
+
+  // ── Choice picker ──
+  document.querySelectorAll('[data-choice]').forEach(row => {
+    const isMulti = row.dataset.multi === 'true';
+    const summary = row.parentElement.querySelector('.cmp-choice-summary');
+    const update = () => {
+      const picked = [...row.querySelectorAll('.picked')].map(b => b.textContent.trim());
+      summary.innerHTML = picked.length
+        ? `已選: <b>${picked.join(' · ')}</b>`
+        : '尚未選擇';
+      try { localStorage.setItem('cmp:choice:' + row.dataset.choice, JSON.stringify(picked.map(p=>p))); } catch (e) {}
+    };
+    row.querySelectorAll('.cmp-choice-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (isMulti) {
+          btn.classList.toggle('picked');
+        } else {
+          row.querySelectorAll('.cmp-choice-btn').forEach(b => b.classList.remove('picked'));
+          btn.classList.add('picked');
+        }
+        update();
+      });
+    });
+    update();
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<title>Repo Tag</title>
+<link rel="stylesheet" href="_shared.css" />
+<style>
+  body { padding: 36px 40px 60px; }
+  .ec { font-family: var(--f-mono); font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted-2); margin-bottom: 16px; }
+  .crumb { font-family: var(--f-mono); font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); margin-bottom: 18px; }
+  .crumb a { color: var(--muted-2); }
+  .tag-hero { padding-bottom: 36px; border-bottom: 1px solid var(--divider); margin-bottom: 36px; }
+  .tag-mark {
+    display: inline-block; padding: 5px 12px;
+    background: var(--ink); color: var(--bg); border-radius: 999px;
+    font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.18em;
+    text-transform: uppercase; margin-bottom: 18px;
+  }
+  .tag-name {
+    font-family: var(--f-display); font-weight: 500;
+    font-size: clamp(48px, 7vw, 96px); letter-spacing: -0.04em;
+    line-height: 0.95; margin: 0 0 22px;
+  }
+  .tag-name .em { font-style: italic; font-weight: 300; color: var(--muted); }
+  .tag-desc { font-size: 16px; line-height: 1.75; color: var(--ink-2); max-width: 60ch; margin-bottom: 22px; }
+  .tag-stats { display: flex; gap: 32px; }
+  .tag-stat .n { font-family: var(--f-display); font-size: 32px; font-weight: 500; letter-spacing: -0.02em; line-height: 1; }
+  .tag-stat .l { font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); margin-top: 6px; }
+
+  .related-row {
+    display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 36px;
+  }
+  .related-row .lbl { font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted-2); align-self: center; margin-right: 8px; }
+  .rel-chip {
+    padding: 6px 12px; border: 1px solid var(--border); border-radius: 999px;
+    font-size: 12.5px; color: var(--ink-2);
+  }
+  .rel-chip:hover { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+  .sec-h {
+    display: flex; align-items: baseline; gap: 14px;
+    font-family: var(--f-mono); font-size: 10.5px; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--muted-2); margin: 0 0 18px;
+  }
+  .sec-h::after { content: ""; flex: 1; height: 1px; background: var(--divider); }
+  .sec-h .ct { font-family: var(--f-display); font-size: 14px; color: var(--ink); letter-spacing: 0; text-transform: none; }
+
+  .articles { display: flex; flex-direction: column; }
+  .art {
+    display: grid; grid-template-columns: 80px 1fr 120px 28px;
+    gap: 16px; padding: 22px 0; align-items: baseline;
+    border-bottom: 1px solid var(--divider);
+  }
+  .art:hover .art-ttl { color: var(--accent); }
+  .art .no { font-family: var(--f-mono); font-size: 11px; color: var(--muted-2); letter-spacing: 0.12em; }
+  .art-ttl { font-family: var(--f-display); font-size: 22px; font-weight: 500; letter-spacing: -0.01em; line-height: 1.3; transition: color .15s; }
+  .art-meta { font-family: var(--f-mono); font-size: 10.5px; color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; text-align: right; }
+  .art-arr { font-family: var(--f-mono); color: var(--muted-2); text-align: right; }
+  .art:hover .art-arr { color: var(--ink); }
+</style>
+</head>
+<body>
+
+<div class="ec">§ Repo · TagView.vue</div>
+
+<div class="crumb"><a>Tags</a> / vue</div>
+
+<div class="tag-hero">
+  <div class="tag-mark">● Tag</div>
+  <h1 class="tag-name">vue<span class="em">— 42 篇文章</span></h1>
+  <p class="tag-desc">Vue 3 + Composition API 相關內容，包含 composables、響應式系統內部、Pinia 狀態管理、SSR 與整合 CodeMirror、Shiki 等實作經驗。</p>
+  <div class="tag-stats">
+    <div class="tag-stat"><div class="n">42</div><div class="l">articles</div></div>
+    <div class="tag-stat"><div class="n">128k</div><div class="l">total reads</div></div>
+    <div class="tag-stat"><div class="n">2024.03</div><div class="l">first post</div></div>
+  </div>
+</div>
+
+<div class="related-row">
+  <span class="lbl">Related ›</span>
+  <a class="rel-chip">typescript</a>
+  <a class="rel-chip">composables</a>
+  <a class="rel-chip">pinia</a>
+  <a class="rel-chip">vite</a>
+  <a class="rel-chip">codemirror</a>
+  <a class="rel-chip">shiki</a>
+</div>
+
+<h3 class="sec-h">Articles <span class="ct">42 total</span></h3>
+
+<div class="articles">
+  <div class="art"><span class="no">N° 01</span><div class="art-ttl">在 Vue 3 中設計可組合的 Composables</div><span class="art-meta">2025.08.12 · 12 MIN</span><span class="art-arr">↗</span></div>
+  <div class="art"><span class="no">N° 02</span><div class="art-ttl">從 mixin 到 composable：一次重構 12k 行的歷程</div><span class="art-meta">2025.06.04 · 22 MIN</span><span class="art-arr">↗</span></div>
+  <div class="art"><span class="no">N° 03</span><div class="art-ttl">Composables 的命名與 ref 暴露慣例</div><span class="art-meta">2025.03.18 · 8 MIN</span><span class="art-arr">↗</span></div>
+  <div class="art"><span class="no">N° 04</span><div class="art-ttl">Pinia + setup store：把 store 寫成 composable</div><span class="art-meta">2025.02.02 · 14 MIN</span><span class="art-arr">↗</span></div>
+  <div class="art"><span class="no">N° 05</span><div class="art-ttl">Vue 3 響應式系統：proxy / track / trigger 從零理解</div><span class="art-meta">2024.12.21 · 28 MIN</span><span class="art-arr">↗</span></div>
+  <div class="art"><span class="no">N° 06</span><div class="art-ttl">用 Vue 3 + CodeMirror 6 打造 Markdown 編輯器</div><span class="art-meta">2024.11.09 · 18 MIN</span><span class="art-arr">↗</span></div>
+  <div class="art"><span class="no">N° 07</span><div class="art-ttl">Vue Router 4 的非同步 guard 與資料載入</div><span class="art-meta">2024.09.27 · 11 MIN</span><span class="art-arr">↗</span></div>
+  <div class="art"><span class="no">N° 08</span><div class="art-ttl">Vue 3 SSR：解決 hydration 不一致的 9 種情境</div><span class="art-meta">2024.08.15 · 24 MIN</span><span class="art-arr">↗</span></div>
+</div>
+
+</body>
+</html>
