@@ -9,7 +9,7 @@ const props = defineProps<{ articleUuid: string }>()
 const articleUuidRef = toRef(props, 'articleUuid')
 const {
   list, totalCommentCount, totalTopLevels, page, isLoading,
-  fetchPage, post,
+  fetchPage, post, reply, edit, remove,
 } = useComments(articleUuidRef)
 
 const size = 20
@@ -17,6 +17,15 @@ const totalPages = computed(() => Math.max(1, Math.ceil(totalTopLevels.value / s
 
 async function onSubmit(content: string) {
   await post(content)
+}
+async function onReply(parentUuid: string, content: string) {
+  await reply(parentUuid, content)
+}
+async function onEdit(uuid: string, content: string) {
+  await edit(uuid, content)
+}
+async function onDelete(uuid: string) {
+  await remove(uuid)
 }
 </script>
 
@@ -36,21 +45,16 @@ async function onSubmit(content: string) {
         v-for="c in list"
         :key="c.uuid"
         :comment="c"
+        @reply="onReply"
+        @edit="onEdit"
+        @delete="onDelete"
       />
     </div>
 
     <div v-if="totalPages > 1" class="cm-pagination">
-      <button
-        :disabled="page <= 1"
-        data-testid="comment-prev-page"
-        @click="fetchPage(page - 1)"
-      >Prev</button>
+      <button :disabled="page <= 1" data-testid="comment-prev-page" @click="fetchPage(page - 1)">Prev</button>
       <span>{{ page }} / {{ totalPages }}</span>
-      <button
-        :disabled="page >= totalPages"
-        data-testid="comment-next-page"
-        @click="fetchPage(page + 1)"
-      >Next</button>
+      <button :disabled="page >= totalPages" data-testid="comment-next-page" @click="fetchPage(page + 1)">Next</button>
     </div>
   </section>
 </template>

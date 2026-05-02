@@ -47,6 +47,9 @@ vi.mock('../composables/useComments', () => ({
     isLoading: ref(false),
     fetchPage: vi.fn(),
     post: vi.fn(),
+    reply: vi.fn(),
+    edit: vi.fn(),
+    remove: vi.fn(),
   })),
 }))
 

@@ -42,9 +42,46 @@ export function useComments(articleUuid: Ref<string>) {
     }
   }
 
+  async function reply(parentUuid: string, content: string): Promise<boolean> {
+    if (!requireAuth()) return false
+    try {
+      await commentService.create(articleUuid.value, { content, parentUuid })
+      await fetchPage(page.value)
+      showToast('回覆已送出', 'success')
+      return true
+    } catch {
+      showToast('回覆失敗，請稍後再試', 'error')
+      return false
+    }
+  }
+
+  async function edit(uuid: string, content: string): Promise<boolean> {
+    try {
+      await commentService.edit(uuid, { content })
+      await fetchPage(page.value)
+      showToast('已更新', 'success')
+      return true
+    } catch {
+      showToast('更新失敗', 'error')
+      return false
+    }
+  }
+
+  async function remove(uuid: string): Promise<boolean> {
+    try {
+      await commentService.delete(uuid)
+      await fetchPage(page.value)
+      showToast('留言已刪除', 'success')
+      return true
+    } catch {
+      showToast('刪除失敗', 'error')
+      return false
+    }
+  }
+
   watchEffect(() => {
     if (articleUuid.value) fetchPage(1)
   })
 
-  return { list, totalCommentCount, totalTopLevels, page, sort, isLoading, fetchPage, post }
+  return { list, totalCommentCount, totalTopLevels, page, sort, isLoading, fetchPage, post, reply, edit, remove }
 }

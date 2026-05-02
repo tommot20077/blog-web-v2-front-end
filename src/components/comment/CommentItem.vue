@@ -1,10 +1,18 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import type { CommentItem as CommentItemType } from '../../types/comment'
 import { useCommentLike } from '../../composables/useCommentLike'
+import { useCommentPermissions } from '../../composables/useCommentPermissions'
+import CommentForm from './CommentForm.vue'
 
 const props = defineProps<{
   comment: CommentItemType
+}>()
+
+const emit = defineEmits<{
+  reply: [parentUuid: string, content: string]
+  edit: [uuid: string, content: string]
+  delete: [uuid: string]
 }>()
 
 const commentUuid = computed(() => props.comment.uuid)
@@ -12,6 +20,26 @@ const { liked, likeCount, isPending, toggle } = useCommentLike(
   commentUuid,
   { liked: props.comment.liked, likeCount: props.comment.likeCount },
 )
+
+const { canEdit, canDelete, canReply } = useCommentPermissions()
+
+const showReplyForm = ref(false)
+const isEditing = ref(false)
+
+async function onReplySubmit(content: string) {
+  emit('reply', props.comment.uuid, content)
+  showReplyForm.value = false
+}
+
+async function onEditSubmit(content: string) {
+  emit('edit', props.comment.uuid, content)
+  isEditing.value = false
+}
+
+function onDelete() {
+  if (!window.confirm('確定刪除此留言？此操作無法復原。')) return
+  emit('delete', props.comment.uuid)
+}
 
 const deletedLabel = computed(() => {
   if (props.comment.deletedByRole === 'AUTHOR') return '作者'
@@ -42,25 +70,70 @@ function formatTime(iso: string): string {
       <div v-if="comment.deleted" class="tombstone">
         此留言已被{{ deletedLabel }}刪除
       </div>
-      <div v-else class="content" v-html="comment.contentHtml" />
 
-      <div v-if="!comment.deleted" class="actions">
-        <button
-          class="like"
-          data-testid="comment-like-btn"
-          :disabled="isPending"
-          @click="toggle"
-        >
-          <span aria-hidden="true">{{ liked ? '♥' : '♡' }}</span>
-          <span data-testid="comment-like-count">{{ likeCount }}</span>
-        </button>
-      </div>
+      <template v-else>
+        <CommentForm
+          v-if="isEditing"
+          data-testid="comment-edit-form"
+          :initial-content="comment.content"
+          submit-label="Save"
+          :show-cancel="true"
+          @submit="onEditSubmit"
+          @cancel="isEditing = false"
+        />
+        <div v-else class="content" v-html="comment.contentHtml" />
+
+        <div v-if="!isEditing" class="actions">
+          <button
+            class="like"
+            data-testid="comment-like-btn"
+            :disabled="isPending"
+            @click="toggle"
+          >
+            <span aria-hidden="true">{{ liked ? '♥' : '♡' }}</span>
+            <span data-testid="comment-like-count">{{ likeCount }}</span>
+          </button>
+
+          <button
+            v-if="canReply(comment)"
+            class="reply"
+            data-testid="comment-reply-btn"
+            @click="showReplyForm = !showReplyForm"
+          >Reply</button>
+
+          <button
+            v-if="canEdit(comment)"
+            class="edit"
+            data-testid="comment-edit-btn"
+            @click="isEditing = true"
+          >Edit</button>
+
+          <button
+            v-if="canDelete(comment)"
+            class="delete"
+            data-testid="comment-delete-btn"
+            @click="onDelete"
+          >Delete</button>
+        </div>
+
+        <CommentForm
+          v-if="showReplyForm"
+          data-testid="comment-reply-form"
+          submit-label="Reply"
+          :show-cancel="true"
+          @submit="onReplySubmit"
+          @cancel="showReplyForm = false"
+        />
+      </template>
 
       <div v-if="comment.replies?.length" class="replies">
         <CommentItem
           v-for="r in comment.replies"
           :key="r.uuid"
           :comment="r"
+          @reply="(uuid, content) => emit('reply', uuid, content)"
+          @edit="(uuid, content) => emit('edit', uuid, content)"
+          @delete="uuid => emit('delete', uuid)"
         />
       </div>
     </div>
@@ -115,16 +188,25 @@ function formatTime(iso: string): string {
   display: flex;
   gap: 12px;
   margin-top: 8px;
+  font-size: 12px;
 }
-.like {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+.actions button {
   padding: 4px 8px;
   border: 1px solid var(--border, rgba(0,0,0,0.1));
   border-radius: 999px;
+  background: var(--surface, #fbfbfb);
   cursor: pointer;
-  font-size: 12px;
+}
+.actions button:hover:not(:disabled) {
+  background: var(--bg-sub, #ededed);
+}
+.actions button.like {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.delete {
+  color: #e15554;
 }
 .replies {
   margin-top: 12px;

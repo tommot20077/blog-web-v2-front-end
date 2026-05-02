@@ -71,4 +71,49 @@ describe('useComments', () => {
     expect(commentService.create).not.toHaveBeenCalled()
     expect(pushMock).toHaveBeenCalledWith('/login')
   })
+
+  it('reply 呼叫 commentService.create with parentUuid', async () => {
+    vi.mocked(commentService.list).mockResolvedValue({
+      topLevels: { records: [], total: 0, page: 1, size: 20 },
+      totalCommentCount: 0,
+    })
+    vi.mocked(commentService.create).mockResolvedValue({ uuid: 'c2' } as never)
+    const uuid = ref('a-uuid')
+    const c = useComments(uuid)
+    await new Promise(r => setTimeout(r, 0))
+
+    const ok = await c.reply('parent-uuid', 'reply text')
+    expect(ok).toBe(true)
+    expect(commentService.create).toHaveBeenCalledWith('a-uuid', { content: 'reply text', parentUuid: 'parent-uuid' })
+  })
+
+  it('edit 呼叫 commentService.edit + refetch', async () => {
+    vi.mocked(commentService.list).mockResolvedValue({
+      topLevels: { records: [], total: 0, page: 1, size: 20 },
+      totalCommentCount: 0,
+    })
+    vi.mocked(commentService.edit).mockResolvedValue({ uuid: 'c1' } as never)
+    const uuid = ref('a-uuid')
+    const c = useComments(uuid)
+    await new Promise(r => setTimeout(r, 0))
+
+    const ok = await c.edit('c1', 'updated')
+    expect(ok).toBe(true)
+    expect(commentService.edit).toHaveBeenCalledWith('c1', { content: 'updated' })
+  })
+
+  it('remove 呼叫 commentService.delete + refetch', async () => {
+    vi.mocked(commentService.list).mockResolvedValue({
+      topLevels: { records: [], total: 0, page: 1, size: 20 },
+      totalCommentCount: 0,
+    })
+    vi.mocked(commentService.delete).mockResolvedValue()
+    const uuid = ref('a-uuid')
+    const c = useComments(uuid)
+    await new Promise(r => setTimeout(r, 0))
+
+    const ok = await c.remove('c1')
+    expect(ok).toBe(true)
+    expect(commentService.delete).toHaveBeenCalledWith('c1')
+  })
 })

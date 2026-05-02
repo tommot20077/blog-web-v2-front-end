@@ -3,6 +3,7 @@ import { mount } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 import CommentItem from './CommentItem.vue'
 import type { CommentItem as CommentItemType } from '../../types/comment'
+import { useAuthStore } from '../../stores/auth'
 
 vi.mock('vue-router', () => ({
   useRouter: () => ({ push: vi.fn() }),
@@ -20,7 +21,7 @@ const baseComment: CommentItemType = {
   author: { uuid: 'u1', nickname: 'Alice', avatarUrl: null },
   likeCount: 3,
   liked: false,
-  createdAt: '2026-05-01T10:00:00Z',
+  createdAt: new Date().toISOString(),
   editedAt: null,
   deleted: false,
   deletedByRole: null,
@@ -54,5 +55,61 @@ describe('CommentItem (Stage B)', () => {
     const withReply = { ...baseComment, replies: [reply] }
     const wrapper = mount(CommentItem, { props: { comment: withReply } })
     expect(wrapper.findAll('[data-testid="comment-item"]')).toHaveLength(2)
+  })
+
+  it('canEdit / canDelete / canReply 全 true → 顯示 3 個按鈕', async () => {
+    const auth = useAuthStore()
+    auth.user = {
+      uuid: 'u1', email: '', nickname: '', avatarUrl: null,
+      role: 'ADMIN', emailVerified: true, createdAt: '',
+    }
+    auth.accessToken = 't'
+
+    const wrapper = mount(CommentItem, { props: { comment: baseComment } })
+    expect(wrapper.find('[data-testid="comment-edit-btn"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="comment-delete-btn"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="comment-reply-btn"]').exists()).toBe(true)
+  })
+
+  it('non-owner non-admin → 不顯示 edit/delete', () => {
+    const auth = useAuthStore()
+    auth.user = {
+      uuid: 'other', email: '', nickname: '', avatarUrl: null,
+      role: 'USER', emailVerified: true, createdAt: '',
+    }
+    auth.accessToken = 't'
+
+    const wrapper = mount(CommentItem, { props: { comment: baseComment } })
+    expect(wrapper.find('[data-testid="comment-edit-btn"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="comment-delete-btn"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="comment-reply-btn"]').exists()).toBe(true)  // 已登入可 reply
+  })
+
+  it('click reply button → 顯示 reply form; cancel → 隱藏', async () => {
+    const auth = useAuthStore()
+    auth.user = {
+      uuid: 'u1', email: '', nickname: '', avatarUrl: null,
+      role: 'USER', emailVerified: true, createdAt: '',
+    }
+    auth.accessToken = 't'
+
+    const wrapper = mount(CommentItem, { props: { comment: baseComment } })
+    await wrapper.find('[data-testid="comment-reply-btn"]').trigger('click')
+    expect(wrapper.find('[data-testid="comment-reply-form"]').exists()).toBe(true)
+  })
+
+  it('click edit button → 顯示 edit form 並 prefill content', async () => {
+    const auth = useAuthStore()
+    auth.user = {
+      uuid: 'u1', email: '', nickname: '', avatarUrl: null,
+      role: 'USER', emailVerified: true, createdAt: '',
+    }
+    auth.accessToken = 't'
+
+    const wrapper = mount(CommentItem, { props: { comment: baseComment } })
+    await wrapper.find('[data-testid="comment-edit-btn"]').trigger('click')
+    expect(wrapper.find('[data-testid="comment-edit-form"]').exists()).toBe(true)
+    const textarea = wrapper.find('[data-testid="comment-edit-form"] textarea')
+    expect((textarea.element as HTMLTextAreaElement).value).toBe('hello')
   })
 })
