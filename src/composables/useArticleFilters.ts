@@ -45,7 +45,11 @@ export function useArticleFilters() {
       r = r.filter(a => selTags.value.every(t => a.tags.includes(t)))
 
     if (selCats.value.length)
-      r = r.filter(a => a.tags.some(t => selCats.value.some(c => c.toLowerCase() === t.toLowerCase())))
+      r = r.filter(a => {
+        // ArticleItem 介面未宣告 categories，但 mock data 與 backend 詳情都帶此欄位
+        const cats = (a as ArticleItem & { categories?: string[] }).categories ?? []
+        return cats.some(cat => selCats.value.some(c => c.toLowerCase() === cat.toLowerCase()))
+      })
 
     if (selAuthors.value.length)
       r = r.filter(a => selAuthors.value.includes(a.authorNickname))
