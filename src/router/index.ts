@@ -102,10 +102,31 @@ const router = createRouter({
       meta: { requiresAuth: true, requiredRole: 'ADMIN' as UserRole }
     },
     {
+      path: '/tags',
+      name: 'tags-index',
+      component: () => import('../views/TagsIndexView.vue')
+    },
+    {
       path: '/tags/:slug',
       name: 'tag',
       component: () => import('../views/TagView.vue'),
       props: true
+    },
+    {
+      path: '/archive',
+      name: 'archive',
+      component: () => import('../views/ArchiveView.vue')
+    },
+    {
+      path: '/500',
+      name: 'server-error',
+      component: () => import('../views/ServerErrorView.vue')
+    },
+    {
+      path: '/my-stats',
+      name: 'my-stats',
+      component: () => import('../views/StatsView.vue'),
+      meta: { requiresAuth: true, requiredRole: 'AUTHOR' as UserRole, layout: 'shell' as const }
     },
     {
       path: '/author/:handle',
