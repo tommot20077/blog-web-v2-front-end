@@ -81,6 +81,10 @@ function reload() {
   49%        { opacity: 0; clip-path: inset(100% 0 0 0); transform: translate(0); }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .se-glitch { animation: none; }
+}
+
 /* CTAs */
 .se-actions {
   display: flex;

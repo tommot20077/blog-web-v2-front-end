@@ -2,7 +2,9 @@
 import { RouterLink } from 'vue-router'
 import { allMockArticles } from '../api/mock/data'
 
-const suggestions = allMockArticles.slice(0, 4)
+const suggestions = [...allMockArticles]
+  .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt))
+  .slice(0, 4)
 
 function fmtDate(d: string) {
   const p = d.slice(0, 10).split('-')
@@ -97,6 +99,10 @@ function fmtDate(d: string) {
   48%        { opacity: 0; clip-path: inset(100% 0 0 0); }
   50%        { opacity: 0.7; clip-path: inset(15% 0 70% 0); transform: translate(3px); }
   52%        { opacity: 0; clip-path: inset(100% 0 0 0); transform: translate(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nf-glitch { animation: none; }
 }
 
 /* CTAs */

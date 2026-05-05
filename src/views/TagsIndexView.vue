@@ -1,35 +1,23 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
+import { allMockArticles } from '../api/mock/data'
 
 interface Tag { name: string; slug: string; count: number }
 interface Series { id: string; badge: string; title: string; desc: string; done: number; total: number }
 
-const TAGS: Tag[] = [
-  { name: 'Vue 3',         slug: 'vue-3',         count: 18 },
-  { name: 'TypeScript',    slug: 'typescript',    count: 14 },
-  { name: 'Java',          slug: 'java',          count: 12 },
-  { name: 'PostgreSQL',    slug: 'postgresql',    count: 10 },
-  { name: 'Spring',        slug: 'spring',        count: 9  },
-  { name: 'Testing',       slug: 'testing',       count: 8  },
-  { name: 'Design System', slug: 'design-system', count: 7  },
-  { name: 'CI/CD',         slug: 'ci-cd',         count: 6  },
-  { name: 'CSS',           slug: 'css',           count: 6  },
-  { name: 'TDD',           slug: 'tdd',           count: 5  },
-  { name: 'Animation',     slug: 'animation',     count: 5  },
-  { name: 'Redis',         slug: 'redis',         count: 4  },
-  { name: 'Docker',        slug: 'docker',        count: 4  },
-  { name: 'Pinia',         slug: 'pinia',         count: 3  },
-  { name: 'Vite',          slug: 'vite',          count: 3  },
-  { name: 'Shiki',         slug: 'shiki',         count: 2  },
-  { name: 'Vitest',        slug: 'vitest',        count: 2  },
-  { name: 'Playwright',    slug: 'playwright',    count: 2  },
-  { name: 'Tailwind',      slug: 'tailwind',      count: 2  },
-  { name: 'A11y',          slug: 'a11y',          count: 2  },
-  { name: 'ESLint',        slug: 'eslint',        count: 1  },
-  { name: 'Prettier',      slug: 'prettier',      count: 1  },
-  { name: 'Husky',         slug: 'husky',         count: 1  },
-]
+function toSlug(name: string): string {
+  return name.toLowerCase().replace(/\s+/g, '-')
+}
+
+// 從 mock article 動態算 tag 頻次，避免 hard-coded list 與資料脫節
+const TAGS: Tag[] = (() => {
+  const counter = new Map<string, number>()
+  allMockArticles.forEach(a => a.tags.forEach(t => counter.set(t, (counter.get(t) ?? 0) + 1)))
+  return [...counter.entries()]
+    .map(([name, count]) => ({ name, slug: toSlug(name), count }))
+    .sort((a, b) => b.count - a.count)
+})()
 
 const SERIES: Series[] = [
   {
@@ -62,8 +50,6 @@ const SERIES: Series[] = [
   },
 ]
 
-const activeTag = ref<string | null>(null)
-
 function chipSize(count: number) {
   if (count >= 14) return 's5'
   if (count >= 8)  return 's4'
@@ -72,12 +58,9 @@ function chipSize(count: number) {
   return 's1'
 }
 
-function toggleTag(slug: string) {
-  activeTag.value = activeTag.value === slug ? null : slug
-}
-
 const totalTags = computed(() => TAGS.length)
 const totalSeries = computed(() => SERIES.length)
+const ongoingSeries = computed(() => SERIES.filter(s => s.done < s.total).length)
 </script>
 
 <template>
@@ -114,8 +97,7 @@ const totalSeries = computed(() => SERIES.length)
           :key="tag.slug"
           :to="'/tags/' + tag.slug"
           class="tg-chip"
-          :class="[chipSize(tag.count), { active: activeTag === tag.slug }]"
-          @click.prevent="toggleTag(tag.slug)"
+          :class="chipSize(tag.count)"
         >
           #{{ tag.name }}
           <span class="tg-chip-count">{{ tag.count }}</span>
@@ -125,10 +107,10 @@ const totalSeries = computed(() => SERIES.length)
 
     <!-- Series -->
     <section class="tg-section wrap">
-      <div class="tg-sec-h">
+      <div class="tg-sec-h" data-testid="tags-series-header">
         <span class="mono tg-sec-label" style="color:var(--muted-2)">Series · 連載</span>
         <div class="tg-sec-line" />
-        <span class="mono tg-sec-meta" style="color:var(--muted)">{{ totalSeries }} ongoing</span>
+        <span class="mono tg-sec-meta" style="color:var(--muted)">{{ ongoingSeries }} ongoing</span>
       </div>
       <div class="tg-series-grid" data-testid="tags-series">
         <div v-for="s in SERIES" :key="s.id" class="tg-series-card">

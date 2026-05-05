@@ -1,9 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { RouterLink } from 'vue-router'
 import { allMockArticles } from '../api/mock/data'
-
-const router = useRouter()
 
 interface YearGroup {
   year: string
@@ -19,7 +17,11 @@ const byYear = computed<YearGroup[]>(() => {
   })
   return [...map.entries()]
     .sort((a, b) => b[0].localeCompare(a[0]))
-    .map(([year, articles]) => ({ year, articles }))
+    .map(([year, articles]) => ({
+      year,
+      // 同一年內依 publishedAt desc 排序，避免 mock 種子順序造成時間倒亂
+      articles: [...articles].sort((a, b) => b.publishedAt.localeCompare(a.publishedAt)),
+    }))
 })
 
 const stats = computed(() => {
@@ -71,18 +73,18 @@ function fmtDate(d: string) {
         </header>
 
         <div class="ar-year-list">
-          <article
+          <RouterLink
             v-for="a in group.articles"
             :key="a.uuid"
+            :to="'/articles/' + a.uuid"
             class="ar-row"
-            @click="router.push('/articles/' + a.uuid)"
           >
             <span class="ar-date">{{ fmtDate(a.publishedAt) }}</span>
-            <h3 class="ar-row-title"><a>{{ a.title }}</a></h3>
+            <h3 class="ar-row-title">{{ a.title }}</h3>
             <div class="ar-row-tags">
               <span v-for="tag in a.tags.slice(0, 2)" :key="tag" class="ar-tag">{{ tag }}</span>
             </div>
-          </article>
+          </RouterLink>
         </div>
       </section>
     </main>
@@ -129,14 +131,20 @@ function fmtDate(d: string) {
   border-bottom: 1px solid var(--divider);
   cursor: pointer;
   transition: opacity 0.15s;
+  text-decoration: none;
+  color: inherit;
 }
 .ar-row:hover { opacity: 0.7; }
+.ar-row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
 
 .ar-date { font-family: var(--f-mono); font-size: 10px; color: var(--muted-2); letter-spacing: 0.06em; white-space: nowrap; }
 
-.ar-row-title { margin: 0; }
-.ar-row-title a { font-family: var(--f-display); font-size: 14.5px; font-weight: 500; color: var(--ink); }
-.ar-row:hover .ar-row-title a { color: var(--accent); }
+.ar-row-title { margin: 0; font-family: var(--f-display); font-size: 14.5px; font-weight: 500; color: var(--ink); }
+.ar-row:hover .ar-row-title { color: var(--accent); }
 
 .ar-row-tags { display: flex; gap: 6px; }
 .ar-tag { font-family: var(--f-mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted-2); white-space: nowrap; }

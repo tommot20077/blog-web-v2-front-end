@@ -1,18 +1,39 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { RouterLink } from 'vue-router'
 
 type Period = '7d' | '30d' | '90d'
 const selectedPeriod = ref<Period>('30d')
 
-const STAT_CARDS = [
-  { lbl: 'PAGE VIEWS',  n: '12.4k', delta: '+18%', dir: 'up',   sub: '近 30 天' },
-  { lbl: 'VISITORS',    n: '4,082', delta: '+12%', dir: 'up',   sub: 'estimated' },
-  { lbl: 'AVG READ',    n: '4:32',  delta: '+0:38', dir: 'up',   sub: 'min:sec' },
-  { lbl: 'SUBSCRIBERS', n: '1,247', delta: '+34',  dir: 'up',   sub: 'this month' },
-  { lbl: 'COMMENTS',    n: '89',    delta: '-12',  dir: 'down', sub: '較上月' },
-  { lbl: 'BOUNCE RATE', n: '38%',   delta: '-4%',  dir: 'up',   sub: '越低越好' },
-] as const
+// 三組 mock 數據對應 7d / 30d / 90d，避免切 period 只變 label
+const STAT_CARDS_BY_PERIOD: Record<Period, ReadonlyArray<{ lbl: string; n: string; delta: string; dir: 'up' | 'down'; sub: string }>> = {
+  '7d': [
+    { lbl: 'PAGE VIEWS',  n: '2.8k',  delta: '+9%',   dir: 'up',   sub: '近 7 天' },
+    { lbl: 'VISITORS',    n: '961',   delta: '+6%',   dir: 'up',   sub: 'estimated' },
+    { lbl: 'AVG READ',    n: '4:18',  delta: '+0:12', dir: 'up',   sub: 'min:sec' },
+    { lbl: 'SUBSCRIBERS', n: '1,247', delta: '+8',    dir: 'up',   sub: 'this week' },
+    { lbl: 'COMMENTS',    n: '21',    delta: '-3',    dir: 'down', sub: '較上週' },
+    { lbl: 'BOUNCE RATE', n: '36%',   delta: '-2%',   dir: 'up',   sub: '越低越好' },
+  ],
+  '30d': [
+    { lbl: 'PAGE VIEWS',  n: '12.4k', delta: '+18%',  dir: 'up',   sub: '近 30 天' },
+    { lbl: 'VISITORS',    n: '4,082', delta: '+12%',  dir: 'up',   sub: 'estimated' },
+    { lbl: 'AVG READ',    n: '4:32',  delta: '+0:38', dir: 'up',   sub: 'min:sec' },
+    { lbl: 'SUBSCRIBERS', n: '1,247', delta: '+34',   dir: 'up',   sub: 'this month' },
+    { lbl: 'COMMENTS',    n: '89',    delta: '-12',   dir: 'down', sub: '較上月' },
+    { lbl: 'BOUNCE RATE', n: '38%',   delta: '-4%',   dir: 'up',   sub: '越低越好' },
+  ],
+  '90d': [
+    { lbl: 'PAGE VIEWS',  n: '38.1k', delta: '+27%',  dir: 'up',   sub: '近 90 天' },
+    { lbl: 'VISITORS',    n: '11.6k', delta: '+22%',  dir: 'up',   sub: 'estimated' },
+    { lbl: 'AVG READ',    n: '4:48',  delta: '+0:54', dir: 'up',   sub: 'min:sec' },
+    { lbl: 'SUBSCRIBERS', n: '1,213', delta: '+102',  dir: 'up',   sub: 'last 90d' },
+    { lbl: 'COMMENTS',    n: '274',   delta: '+18',   dir: 'up',   sub: '較上一季' },
+    { lbl: 'BOUNCE RATE', n: '41%',   delta: '+1%',   dir: 'down', sub: '越低越好' },
+  ],
+}
+
+const STAT_CARDS = computed(() => STAT_CARDS_BY_PERIOD[selectedPeriod.value])
 
 const TOP_ARTICLES = [
   { title: '把整個 Blog 收斂成 800 行 tokens。', views: 3421, delta: '+22%', neg: false },
@@ -31,11 +52,16 @@ const REFERRERS = [
   { src: 'Other',                pct:  6 },
 ]
 
-// 30-day sparkline mock
-const DAILY_VIEWS = Array.from({ length: 30 }, (_, i) =>
-  Math.round(300 + Math.sin(i / 3) * 140 + (i % 7) * 20)
-)
-const PEAK = Math.max(...DAILY_VIEWS)
+// sparkline 數據隨 period 改變長度與 base
+const PERIOD_DAYS: Record<Period, number> = { '7d': 7, '30d': 30, '90d': 90 }
+const DAILY_VIEWS = computed(() => {
+  const days = PERIOD_DAYS[selectedPeriod.value]
+  const base = selectedPeriod.value === '7d' ? 380 : selectedPeriod.value === '90d' ? 420 : 320
+  return Array.from({ length: days }, (_, i) =>
+    Math.round(base + Math.sin(i / 3) * 140 + (i % 7) * 20)
+  )
+})
+const PEAK = computed(() => Math.max(...DAILY_VIEWS.value))
 </script>
 
 <template>
