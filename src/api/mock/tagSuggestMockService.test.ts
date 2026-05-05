@@ -9,8 +9,7 @@ describe('tagSuggestMockService', () => {
 
   it('prefix 匹配回傳符合的標籤', async () => {
     const result = await suggestTagsMock('Vu')
-    expect(result.some(t => t.name === 'Vue')).toBe(true)
-    expect(result.some(t => t.name === 'Vue Router')).toBe(true)
+    expect(result.some(t => t.name === 'Vue 3')).toBe(true)
   })
 
   it('大小寫不敏感', async () => {

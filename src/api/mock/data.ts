@@ -259,11 +259,10 @@ export const mockCategories: MockCategoryOption[] = [
   { id: 'cat-7', uuid: 'cat-7', name: 'Life', slug: 'life' },
 ];
 
-export const mockTagPool: TagSuggestion[] = [
-  { name: 'Vue', articleCount: 18 },
-  { name: 'Vue Router', articleCount: 8 },
-  ...allMockTags.map(tag => ({ name: tag.name, articleCount: tag.articleCount })),
-];
+export const mockTagPool: TagSuggestion[] = allMockTags.map(tag => ({
+  name: tag.name,
+  articleCount: tag.articleCount,
+}));
 
 export const mockQuota: QuotaInfo = {
   usedBytes: 52_428_800,
