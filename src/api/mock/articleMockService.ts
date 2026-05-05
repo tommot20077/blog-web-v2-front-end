@@ -6,7 +6,7 @@ import { allMockArticles, getMockArticleDetail } from './data';
 export function getArticlesMock(page: number, size: number, category: string, keyword: string): Promise<PageResult<ArticleItem>> {
   return new Promise((resolve) => {
     setTimeout(() => {
-      let filtered: ArticleItem[] = allMockArticles;
+      let filtered = allMockArticles;
 
       // 1. 關鍵字過濾（大小寫不分，查 title / summary / tags）
       if (keyword && keyword.trim() !== '') {

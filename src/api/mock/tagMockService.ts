@@ -13,13 +13,16 @@ export function getHotTagsMock(limit: number): Promise<TagDetailResponse[]> {
 }
 
 // 模擬標籤詳情資料（TagDetail 完整結構）
-const mockTagDetails: TagDetail[] = [
-  { uuid: 'tag-1', name: 'Vue', slug: 'vue', color: '#42b883', icon: 'vue-icon', description: 'Vue.js 前端框架', usageCount: 18, followed: false },
-  { uuid: 'tag-2', name: 'React', slug: 'react', color: '#61dafb', icon: 'react-icon', description: 'React 前端框架', usageCount: 12, followed: false },
-  { uuid: 'tag-3', name: 'TypeScript', slug: 'typescript', color: '#3178c6', icon: 'ts-icon', description: 'TypeScript 程式語言', usageCount: 15, followed: false },
-  { uuid: 'tag-4', name: 'Tailwind CSS', slug: 'tailwind-css', color: '#38bdf8', icon: 'tailwind-icon', description: 'Utility-first CSS 框架', usageCount: 9, followed: false },
-  { uuid: 'tag-5', name: 'Node.js', slug: 'nodejs', color: '#339933', icon: 'node-icon', description: 'Node.js 後端執行環境', usageCount: 11, followed: false },
-];
+const mockTagDetails: TagDetail[] = allMockTags.map((tag) => ({
+  uuid: tag.uuid,
+  name: tag.name,
+  slug: tag.slug,
+  color: '#64748b',
+  icon: 'tag',
+  description: `關於 #${tag.name} 的所有文章與紀錄。`,
+  usageCount: tag.articleCount,
+  followed: false,
+}));
 
 // 根據 slug 取得標籤詳情
 export function getTagBySlugMock(slug: string): Promise<TagDetail | null> {

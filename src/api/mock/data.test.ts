@@ -1,149 +1,107 @@
-import { allMockArticles, getMockArticleDetail, allMockTags, mockZoneEntries } from './data';
+import { describe, it, expect } from 'vitest';
+import { allMockArticles } from './data';
+import { MOCK_AUTHOR_PROFILES, AUTHOR_KEYS } from './profiles';
+import { ALL_MOCK_TAGS } from './tagRegistry';
 
-describe('Mock 種子資料', () => {
-  describe('allMockArticles', () => {
-    it('應有文章（總數 = baseMockArticles + lifeMockArticles）', () => {
-      // 確保 base(50) + life(2) 文章都在，防止種子遺漏時測試仍通過
-      expect(allMockArticles.length).toBeGreaterThanOrEqual(52);
-      expect(
-        allMockArticles.some(
-          (article) =>
-            Array.isArray(article.categories) && article.categories.includes('Life'),
-        ),
-      ).toBe(true);
-    });
-
-    it('每筆文章包含所有必要欄位', () => {
-      for (const article of allMockArticles) {
-        expect(article).toHaveProperty('uuid');
-        expect(article).toHaveProperty('title');
-        expect(article).toHaveProperty('summary');
-        expect(article).toHaveProperty('coverImageUrl');
-        expect(article).toHaveProperty('authorNickname');
-        expect(article).toHaveProperty('viewCount');
-        expect(article).toHaveProperty('likeCount');
-        expect(article).toHaveProperty('commentCount');
-        expect(article).toHaveProperty('publishedAt');
-        expect(article).toHaveProperty('tags');
-        expect(article).toHaveProperty('categories');
-        expect(article).toHaveProperty('slug');
-      }
-    });
-
-    it('coverImageUrl 為非空字串', () => {
-      for (const article of allMockArticles) {
-        expect(typeof article.coverImageUrl).toBe('string');
-        expect((article.coverImageUrl as string).length).toBeGreaterThan(0);
-      }
-    });
-
-    it('authorNickname 為非空字串', () => {
-      for (const article of allMockArticles) {
-        expect(typeof article.authorNickname).toBe('string');
-        expect(article.authorNickname.length).toBeGreaterThan(0);
-      }
-    });
-
-    it('likeCount 和 commentCount 為非負數字', () => {
-      for (const article of allMockArticles) {
-        expect(article.likeCount).toBeGreaterThanOrEqual(0);
-        expect(article.commentCount).toBeGreaterThanOrEqual(0);
-      }
-    });
-
-    it('categories 為非空陣列', () => {
-      for (const article of allMockArticles) {
-        expect(Array.isArray(article.categories)).toBe(true);
-        expect(article.categories.length).toBeGreaterThan(0);
-      }
-    });
-
-    it('slug 為非空字串', () => {
-      for (const article of allMockArticles) {
-        expect(typeof article.slug).toBe('string');
-        expect(article.slug.length).toBeGreaterThan(0);
-      }
-    });
-
-    it('偶數索引文章為前端主題（含 Vue tag），奇數為後端主題（含 Backend tag）', () => {
-      expect(allMockArticles[0].tags).toContain('Vue');
-      expect(allMockArticles[0].tags).toContain('Frontend');
-      expect(allMockArticles[1].tags).toContain('Backend');
-      expect(allMockArticles[1].tags).toContain('Microservices');
-    });
-
-    it('uuid 格式為 article-{n}，從 1 開始', () => {
-      expect(allMockArticles[0].uuid).toBe('article-1');
-      expect(allMockArticles[49].uuid).toBe('article-50');
-    });
+describe('allMockArticles (Phase 1)', () => {
+  it('共 30 篇文章', () => {
+    expect(allMockArticles).toHaveLength(30);
   });
 
-  describe('getMockArticleDetail', () => {
-    it('對存在的 uuid 回傳含 content 的 ArticleDetailItem', () => {
-      const detail = getMockArticleDetail('article-1');
+  describe('作者分布', () => {
+    function countByNickname(nickname: string) {
+      return allMockArticles.filter(a => a.authorNickname === nickname).length;
+    }
 
-      expect(detail).not.toBeNull();
-      expect(detail!.uuid).toBe('article-1');
-      expect(detail!.content).toBeDefined();
-      expect(typeof detail!.content).toBe('string');
-      expect(detail!.content.length).toBeGreaterThan(0);
+    it('Yuan 寫 19 篇', () => {
+      expect(countByNickname('Yuan')).toBe(19);
     });
 
-    it('對不存在的 uuid 回傳 null', () => {
-      const detail = getMockArticleDetail('non-existent');
-      expect(detail).toBeNull();
+    it('Han 寫 6 篇', () => {
+      expect(countByNickname('Han')).toBe(6);
     });
 
-    it('回傳的 detail 保留原始文章的所有欄位', () => {
-      const detail = getMockArticleDetail('article-1');
-      const base = allMockArticles[0];
-
-      expect(detail!.uuid).toBe(base.uuid);
-      expect(detail!.title).toBe(base.title);
-      expect(detail!.summary).toBe(base.summary);
-      expect(detail!.tags).toEqual(base.tags);
-      expect(detail!.coverImageUrl).toBe(base.coverImageUrl);
-      expect(detail!.authorNickname).toBe(base.authorNickname);
-    });
-  });
-
-  describe('allMockTags', () => {
-    it('應有 20 個標籤', () => {
-      expect(allMockTags).toHaveLength(20);
+    it('Mira 寫 3 篇', () => {
+      expect(countByNickname('Mira')).toBe(3);
     });
 
-    it('每個標籤包含必要欄位', () => {
-      for (const tag of allMockTags) {
-        expect(tag).toHaveProperty('uuid');
-        expect(tag).toHaveProperty('name');
-        expect(tag).toHaveProperty('slug');
-        expect(tag).toHaveProperty('articleCount');
-        expect(tag.articleCount).toBeGreaterThan(0);
+    it('Chen 寫 2 篇', () => {
+      expect(countByNickname('Chen')).toBe(2);
+    });
+
+    it('所有作者 nickname 都來自 MOCK_AUTHOR_PROFILES', () => {
+      const validNicknames = AUTHOR_KEYS.map(k => MOCK_AUTHOR_PROFILES[k].nickname);
+      for (const a of allMockArticles) {
+        expect(validNicknames).toContain(a.authorNickname);
       }
     });
   });
 
-  describe('mockZoneEntries', () => {
-    it('應有 3 個主題專區', () => {
-      expect(mockZoneEntries).toHaveLength(3);
+  describe('時間分布', () => {
+    function countByYear(year: string) {
+      return allMockArticles.filter(a => a.publishedAt.startsWith(year)).length;
+    }
+
+    it('2023 共 12 篇', () => {
+      expect(countByYear('2023')).toBe(12);
     });
 
-    it('包含技術、旅遊、攝影三個專區', () => {
-      const slugs = mockZoneEntries.map(z => z.slug);
-      expect(slugs).toContain('tech');
-      expect(slugs).toContain('travel');
-      expect(slugs).toContain('photography');
+    it('2024 共 10 篇', () => {
+      expect(countByYear('2024')).toBe(10);
     });
 
-    it('每個專區包含必要欄位', () => {
-      for (const zone of mockZoneEntries) {
-        expect(zone).toHaveProperty('slug');
-        expect(zone).toHaveProperty('name');
-        expect(zone).toHaveProperty('description');
-        expect(zone).toHaveProperty('iconName');
-        expect(zone).toHaveProperty('articleCount');
-        expect(zone).toHaveProperty('coverImageUrl');
+    it('2025 + 2026 共 8 篇', () => {
+      expect(countByYear('2025') + countByYear('2026')).toBe(8);
+    });
+
+    it('publishedAt 在 [2023-04-01, 2026-04-30] 區間', () => {
+      for (const a of allMockArticles) {
+        expect(a.publishedAt >= '2023-04-01').toBe(true);
+        expect(a.publishedAt <= '2026-04-30').toBe(true);
       }
+    });
+  });
+
+  describe('Tag 規則', () => {
+    it('每篇文章帶 1~3 個 tag', () => {
+      for (const a of allMockArticles) {
+        expect(a.tags.length).toBeGreaterThanOrEqual(1);
+        expect(a.tags.length).toBeLessThanOrEqual(3);
+      }
+    });
+
+    it('所有 tag 都來自 ALL_MOCK_TAGS', () => {
+      for (const a of allMockArticles) {
+        for (const tag of a.tags) {
+          expect(ALL_MOCK_TAGS).toContain(tag);
+        }
+      }
+    });
+
+    it('24 個 tag 每個都至少出現 1 次（Phase 1 全覆蓋）', () => {
+      const used = new Set(allMockArticles.flatMap(a => a.tags));
+      for (const tag of ALL_MOCK_TAGS) {
+        expect(used.has(tag)).toBe(true);
+      }
+    });
+  });
+
+  describe('每篇文章基本欄位', () => {
+    it('title 不為空', () => {
+      for (const a of allMockArticles) {
+        expect(a.title.length).toBeGreaterThan(0);
+      }
+    });
+
+    it('summary 不為空且長度 > 20', () => {
+      for (const a of allMockArticles) {
+        expect(a.summary.length).toBeGreaterThan(20);
+      }
+    });
+
+    it('uuid 唯一', () => {
+      const uuids = allMockArticles.map(a => a.uuid);
+      expect(new Set(uuids).size).toBe(uuids.length);
     });
   });
 });

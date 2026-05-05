@@ -18,7 +18,7 @@ describe('tagMockService', () => {
   });
 
   it('回傳結果按 articleCount 降序排列', async () => {
-    const promise = getHotTagsMock(20);
+    const promise = getHotTagsMock(24);
     vi.advanceTimersByTime(300);
     const result = await promise;
 
@@ -45,6 +45,6 @@ describe('tagMockService', () => {
     vi.advanceTimersByTime(300);
     const result = await promise;
 
-    expect(result).toHaveLength(20);
+    expect(result).toHaveLength(24);
   });
 });

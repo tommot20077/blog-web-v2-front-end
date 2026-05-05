@@ -35,18 +35,18 @@ describe('articleService', () => {
     });
 
     it('getArticleByUuid 委派給 mock module 並回傳正確結果', async () => {
-      const result = await articleService.getArticleByUuid('article-1');
+      const result = await articleService.getArticleByUuid('a-2023-01');
 
       expect(result).not.toBeNull();
-      expect(result!.uuid).toBe('article-1');
+      expect(result!.uuid).toBe('a-2023-01');
       expect(result!.content).toBeDefined();
     });
 
     it('getArticleBySlug 委派給 mock module 並回傳正確結果', async () => {
-      const result = await articleService.getArticleBySlug('article-slug-1');
+      const result = await articleService.getArticleBySlug('rewriting-use-theme');
 
       expect(result).not.toBeNull();
-      expect(result!.slug).toBe('article-slug-1');
+      expect(result!.slug).toBe('rewriting-use-theme');
       expect(result!.content).toBeDefined();
     });
 

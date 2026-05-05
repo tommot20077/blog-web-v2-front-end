@@ -54,8 +54,11 @@ describe('articleMockService', () => {
 
       expect(result.records.length).toBeGreaterThan(0);
       for (const article of result.records) {
+        const kw = 'vue';
         const matchesKeyword =
-          article.title.includes('Vue') || article.summary.includes('Vue');
+          article.title.toLowerCase().includes(kw) ||
+          article.summary.toLowerCase().includes(kw) ||
+          article.tags.some(t => t.toLowerCase().includes(kw));
         expect(matchesKeyword).toBe(true);
       }
     });
@@ -67,7 +70,7 @@ describe('articleMockService', () => {
 
       expect(result.records.length).toBeGreaterThan(0);
       for (const article of result.records) {
-        expect(article.categories).toContain('Frontend');
+        expect((article as typeof allMockArticles[number]).categories).toContain('Frontend');
       }
     });
 
@@ -94,7 +97,7 @@ describe('articleMockService', () => {
 
       expect(result.records.length).toBeGreaterThan(0);
       for (const article of result.records) {
-        expect(article.categories).toContain('Life');
+        expect((article as typeof allMockArticles[number]).categories).toContain('Life');
       }
     });
 
@@ -112,13 +115,13 @@ describe('articleMockService', () => {
   // --- getArticleByUuidMock ---
   describe('getArticleByUuidMock', () => {
     it('存在的文章 → 回傳含 content 的 ArticleDetailItem', async () => {
-      const promise = getArticleByUuidMock('article-1');
+      const promise = getArticleByUuidMock('a-2023-01');
       await vi.advanceTimersByTimeAsync(500);
       const result = await promise;
 
       expect(result).not.toBeNull();
-      expect(result!.uuid).toBe('article-1');
-      expect(result!.title).toContain('Vue');
+      expect(result!.uuid).toBe('a-2023-01');
+      expect(result!.title.length).toBeGreaterThan(0);
       expect(result!.content).toBeDefined();
       expect(typeof result!.content).toBe('string');
       expect(result!.content.length).toBeGreaterThan(0);
