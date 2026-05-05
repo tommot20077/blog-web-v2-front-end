@@ -43,7 +43,7 @@ function handleTabClick(tab: typeof tabs[number]) {
 <template>
   <nav
     data-testid="mobile-bottom-nav"
-    class="fixed bottom-0 left-0 right-0 z-50 md:hidden border-t"
+    class="fixed bottom-0 left-0 right-0 z-50 border-t"
     style="background: var(--glass); border-color: var(--glass-border); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);"
   >
     <div class="absolute top-1 right-2">
@@ -79,3 +79,11 @@ function handleTabClick(tab: typeof tabs[number]) {
     </div>
   </nav>
 </template>
+
+<style scoped>
+@media (min-width: 769px) {
+  nav {
+    display: none;
+  }
+}
+</style>
