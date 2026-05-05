@@ -32,7 +32,14 @@ function formatDate(iso: string): string {
         :to="`/articles/${a.uuid}`"
         :data-testid="`related-article-card-${a.uuid}`"
       >
-        <div class="thumb" />
+        <div
+          class="thumb"
+          :style="a.coverImageUrl ? {
+            backgroundImage: `url(${a.coverImageUrl})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          } : {}"
+        />
         <div class="meta">{{ a.tags[0] || '—' }} · {{ formatDate(a.publishedAt) }}</div>
         <h4>{{ a.title }}</h4>
       </RouterLink>

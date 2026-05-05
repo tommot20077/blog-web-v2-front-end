@@ -251,7 +251,15 @@ function formatDate(d: string) {
               :to="`/articles/${article.uuid}`"
             >
               <article class="art-card-g" :data-testid="'articles-card-' + i">
-                <span class="art-card-thumb" :data-tag="article.tags?.[0] ?? ''" />
+                <span
+                  class="art-card-thumb"
+                  :data-tag="article.coverImageUrl ? '' : (article.tags?.[0] ?? '')"
+                  :style="article.coverImageUrl ? {
+                    backgroundImage: `url(${article.coverImageUrl})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                  } : {}"
+                />
                 <div class="art-card-body">
                   <div class="art-card-meta">
                     <span>{{ article.tags?.[0] ?? 'Article' }}</span>
@@ -288,7 +296,15 @@ function formatDate(d: string) {
               class="art-row"
             >
               <span class="art-row-n">{{ String(i + 1).padStart(2, '0') }}</span>
-              <span class="art-row-thumb" :data-tag="article.tags?.[0] ?? ''" />
+              <span
+                class="art-row-thumb"
+                :data-tag="article.coverImageUrl ? '' : (article.tags?.[0] ?? '')"
+                :style="article.coverImageUrl ? {
+                  backgroundImage: `url(${article.coverImageUrl})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                } : {}"
+              />
               <article class="art-row-body" :data-testid="'articles-card-' + i">
                 <div class="art-row-meta">
                   <span>{{ article.tags?.[0] ?? 'Article' }}</span>

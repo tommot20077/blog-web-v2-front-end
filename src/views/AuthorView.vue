@@ -101,7 +101,15 @@ onMounted(async () => {
           class="art-card-g ap-card reveal"
           @click="router.push('/articles/' + article.uuid)"
         >
-          <span class="art-card-thumb" :data-tag="article.tags?.[0] ?? ''" />
+          <span
+            class="art-card-thumb"
+            :data-tag="article.coverImageUrl ? '' : (article.tags?.[0] ?? '')"
+            :style="article.coverImageUrl ? {
+              backgroundImage: `url(${article.coverImageUrl})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            } : {}"
+          />
           <div class="art-card-body">
             <div class="art-card-meta">
               <span>{{ article.tags?.[0] ?? 'Article' }}</span>

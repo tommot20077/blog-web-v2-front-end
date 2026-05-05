@@ -33,7 +33,15 @@ function formatDate(dateStr: string): string {
           class="l-card reveal"
           :data-testid="'latest-card-' + index"
         >
-          <div class="thumb" :data-tag="'IMG · 0' + (index + 1)" />
+          <div
+            class="thumb"
+            :data-tag="article.coverImageUrl ? '' : 'IMG · 0' + (index + 1)"
+            :style="article.coverImageUrl ? {
+              backgroundImage: `url(${article.coverImageUrl})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            } : {}"
+          />
           <div class="meta">
             <span>{{ article.tags[0] }}</span>
             <span>·</span>
