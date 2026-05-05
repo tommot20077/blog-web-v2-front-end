@@ -81,7 +81,8 @@ function handleTabClick(tab: typeof tabs[number]) {
 </template>
 
 <style scoped>
-@media (min-width: 769px) {
+/* 對齊 Tailwind 預設 md breakpoint (768px)：與 md:hidden 行為一致 */
+@media (min-width: 768px) {
   nav {
     display: none;
   }
