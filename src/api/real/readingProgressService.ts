@@ -12,8 +12,8 @@ export interface UpdateReadingProgressRequest {
 }
 
 export const readingProgressService = {
-  async get(articleUuid: string): Promise<ReadingProgress | null> {
-    return apiClient.get<unknown, ReadingProgress | null>(`/api/v1/articles/${articleUuid}/progress`)
+  async get(articleUuid: string): Promise<ReadingProgress> {
+    return apiClient.get<unknown, ReadingProgress>(`/api/v1/articles/${articleUuid}/progress`)
   },
 
   async update(articleUuid: string, request: UpdateReadingProgressRequest): Promise<void> {

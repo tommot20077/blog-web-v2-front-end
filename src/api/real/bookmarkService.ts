@@ -1,5 +1,12 @@
 import apiClient from '../apiClient'
 import type { BackendPageResult } from '../utils'
+import type { ArticleStatus } from '../../types/editor'
+
+export interface BookmarkTagSummary {
+  id: string
+  name: string
+  slug: string
+}
 
 export interface BookmarkArticleSummary {
   uuid: string
@@ -8,14 +15,22 @@ export interface BookmarkArticleSummary {
   coverImageUrl?: string | null
   authorUuid?: string
   authorNickname?: string
-  status?: string
-  viewCount?: number
-  likeCount?: number
-  commentCount?: number
+  status: ArticleStatus
+  viewCount: number
+  createdAt: string
+  updatedAt: string
+  slug: string
+  likeCount: number
+  commentCount: number
   publishedAt?: string | null
-  slug?: string
+  tags?: BookmarkTagSummary[]
+  rejectReason?: string | null
+  liked?: boolean
   bookmarked?: boolean
   lastReadProgress?: number | null
+  seriesUuid?: string | null
+  seriesTitle?: string | null
+  seriesPosition?: number | null
 }
 
 export const bookmarkService = {

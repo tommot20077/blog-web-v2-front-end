@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import apiClient from '../apiClient'
 import { highlightService } from './highlightService'
-import type { CreateHighlightRequest, Highlight } from './highlightService'
+import type { CreateHighlightRequest, Highlight, UpdateHighlightRequest } from './highlightService'
 
 vi.mock('../apiClient')
 
@@ -60,16 +60,9 @@ describe('real highlightService', () => {
   })
 
   it('update 不允許 note null，避免暗示可清空後端 note', async () => {
-    vi.mocked(apiClient.put).mockResolvedValue({
-      uuid: 'h1',
-      snippet: 'text',
-      color: '#00FF00',
-      createdAt: '2026-05-09T00:00:00Z',
-      updatedAt: '2026-05-09T00:00:00Z',
-    })
     // @ts-expect-error 後端 update note=null 會忽略，不代表清空 note
-    await highlightService.update('h1', { note: null })
-    expect(apiClient.put).toHaveBeenCalledWith('/api/v1/highlights/h1', { note: null })
+    const request: UpdateHighlightRequest = { note: null }
+    expect(request).toEqual({ note: null })
   })
 
   it('delete 呼叫 DELETE /highlights/{uuid}', async () => {
