@@ -55,7 +55,14 @@ function padIndex(i: number): string {
 
     <!-- Featured card (first article) -->
     <div v-if="articles[0]" class="featured reveal">
-      <div class="hero-art">
+      <div
+        class="hero-art"
+        :style="articles[0].coverImageUrl ? {
+          backgroundImage: `url(${articles[0].coverImageUrl})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        } : {}"
+      >
         <span class="tag-art">FEATURED · ESSAY</span>
         <span class="big-n">№001</span>
         <span class="tag-art r">{{ articles[0].tags?.[0] }}</span>

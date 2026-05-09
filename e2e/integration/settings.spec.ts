@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { getCredentials } from '../fixtures/auth'
 
-const BACKEND = 'http://localhost:9010'
+const BACKEND = process.env.VITE_API_BASE_URL || 'http://localhost:8080'
 
 async function loginUI(page: import('@playwright/test').Page, email: string, password: string) {
   await page.goto('/login')

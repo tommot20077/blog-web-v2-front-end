@@ -2,6 +2,8 @@
 import { test, expect } from '@playwright/test'
 import { getCredentials } from '../fixtures/auth'
 
+const BACKEND = process.env.VITE_API_BASE_URL || 'http://localhost:8080'
+
 test.describe('檔案上傳邊界 API (G3/G4/G8)', () => {
   // Minimal hex bytes for 1x1 images
   const FORMATS = [
@@ -57,12 +59,12 @@ test.describe('檔案上傳邊界 API (G3/G4/G8)', () => {
   for (const { ext, mimeType, buffer } of FORMATS) {
     test(`G3: 上傳 ${ext} 應成功並回 FileUploadResponse`, async ({ request }) => {
       const author = getCredentials('author')
-      const loginResp = await request.post('http://localhost:9010/api/v1/auth/login', {
+      const loginResp = await request.post(`${BACKEND}/api/v1/auth/login`, {
         data: { identifier: author.email, password: author.password },
       })
       const token = (await loginResp.json()).data.accessToken
 
-      const resp = await request.post('http://localhost:9010/api/v1/files/upload', {
+      const resp = await request.post(`${BACKEND}/api/v1/files/upload`, {
         headers: { Authorization: `Bearer ${token}` },
         multipart: {
           file: { name: `g3-test.${ext}`, mimeType, buffer: Buffer.from(buffer) },
@@ -76,7 +78,7 @@ test.describe('檔案上傳邊界 API (G3/G4/G8)', () => {
       expect(body.data.url).toBeTruthy()
 
       // cleanup
-      await request.delete(`http://localhost:9010/api/v1/files/${body.data.id}`, {
+      await request.delete(`${BACKEND}/api/v1/files/${body.data.id}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
     })
@@ -84,12 +86,12 @@ test.describe('檔案上傳邊界 API (G3/G4/G8)', () => {
 
   test('G4: 上傳 .txt 應拒絕 (A0404 不支援的檔案類型)', async ({ request }) => {
     const author = getCredentials('author')
-    const loginResp = await request.post('http://localhost:9010/api/v1/auth/login', {
+    const loginResp = await request.post(`${BACKEND}/api/v1/auth/login`, {
       data: { identifier: author.email, password: author.password },
     })
     const token = (await loginResp.json()).data.accessToken
 
-    const resp = await request.post('http://localhost:9010/api/v1/files/upload', {
+    const resp = await request.post(`${BACKEND}/api/v1/files/upload`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: {
         file: { name: 'g4-test.txt', mimeType: 'text/plain', buffer: Buffer.from('hello') },
@@ -110,11 +112,11 @@ test.describe('檔案上傳邊界 API (G3/G4/G8)', () => {
     const author = getCredentials('author');
 
     // 先用 API 建立 draft 取得 uuid（裸 /editor 路徑不會 render EditorMetaSidebar）
-    const loginResp = await request.post('http://localhost:9010/api/v1/auth/login', {
+    const loginResp = await request.post(`${BACKEND}/api/v1/auth/login`, {
       data: { identifier: author.email, password: author.password },
     });
     const token = (await loginResp.json()).data.accessToken;
-    const create = await request.post('http://localhost:9010/api/v1/articles', {
+    const create = await request.post(`${BACKEND}/api/v1/articles`, {
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       data: {
         title: `G5 quota test ${Date.now()}`,
@@ -181,7 +183,7 @@ test.describe('檔案上傳邊界 API (G3/G4/G8)', () => {
       // 封面預覽不應出現
       await expect(page.getByTestId('cover-preview')).toHaveCount(0);
     } finally {
-      await request.delete(`http://localhost:9010/api/v1/articles/${uuid}`, {
+      await request.delete(`${BACKEND}/api/v1/articles/${uuid}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
     }
@@ -189,7 +191,7 @@ test.describe('檔案上傳邊界 API (G3/G4/G8)', () => {
 
   test('G8: 上傳後 DELETE /files/{id}, /users/me/files 不再包含', async ({ request }) => {
     const author = getCredentials('author')
-    const loginResp = await request.post('http://localhost:9010/api/v1/auth/login', {
+    const loginResp = await request.post(`${BACKEND}/api/v1/auth/login`, {
       data: { identifier: author.email, password: author.password },
     })
     const token = (await loginResp.json()).data.accessToken
@@ -199,7 +201,7 @@ test.describe('檔案上傳邊界 API (G3/G4/G8)', () => {
       '4e44ae426082',
       'hex',
     )
-    const upload = await request.post('http://localhost:9010/api/v1/files/upload', {
+    const upload = await request.post(`${BACKEND}/api/v1/files/upload`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: {
         file: { name: 'g8-test.png', mimeType: 'image/png', buffer: png },
@@ -208,12 +210,12 @@ test.describe('檔案上傳邊界 API (G3/G4/G8)', () => {
     })
     const fileId = (await upload.json()).data.id
 
-    const del = await request.delete(`http://localhost:9010/api/v1/files/${fileId}`, {
+    const del = await request.delete(`${BACKEND}/api/v1/files/${fileId}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
     expect((await del.json()).code).toBe('00000')
 
-    const list = await request.get('http://localhost:9010/api/v1/users/me/files', {
+    const list = await request.get(`${BACKEND}/api/v1/users/me/files`, {
       headers: { Authorization: `Bearer ${token}` },
     })
     const files = (await list.json()).data as Array<{ id: string }>

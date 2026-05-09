@@ -45,7 +45,7 @@ npm run dev
 
 Verify in the browser DevTools Network tab:
 - `GET /api/v1/articles?page=1&size=6` (not `pageNum`)
-- `GET /api/admin/articles/pending` (no `/v1/` prefix)
+- `GET /api/v1/admin/articles/pending?page=1&size=1`; pending count comes from the paged response `total`
 
 ## 5. Run E2E tests against real backend
 
@@ -96,6 +96,6 @@ After `npm run dev`:
 ## Known limitations / deferred items
 
 - `GET /api/v1/articles/{uuid}/edit` does not exist on backend; frontend calls `GET /api/v1/articles/{uuid}` instead (§2.8 workaround).
-- Backend `/api/v1/admin/*` paths are `/api/admin/*` (no `v1`); frontend adjusted in §2.1.
+- Admin paths use `/api/v1/admin/*`; pending count is derived from the pending articles page `total`.
 - `website` / `socialLinks` profile fields removed from frontend (§2.5A); backend still accepts them — follow-up when UI is re-added.
 - Token-dependent E2E tests (`auth-verify-email.spec.ts`, `auth-reset-password.spec.ts`) run only in mock mode (`npm run test:e2e:mock`).

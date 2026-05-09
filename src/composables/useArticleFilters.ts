@@ -45,7 +45,10 @@ export function useArticleFilters() {
       r = r.filter(a => selTags.value.every(t => a.tags.includes(t)))
 
     if (selCats.value.length)
-      r = r.filter(a => a.tags.some(t => selCats.value.some(c => c.toLowerCase() === t.toLowerCase())))
+      r = r.filter(a => {
+        const cats = a.categories ?? []
+        return cats.some(cat => selCats.value.some(c => c.toLowerCase() === cat.toLowerCase()))
+      })
 
     if (selAuthors.value.length)
       r = r.filter(a => selAuthors.value.includes(a.authorNickname))

@@ -45,6 +45,7 @@ function fmtDate(d: string) {
             :key="a.uuid"
             :to="'/articles/' + a.uuid"
             class="nf-suggest-row"
+            :data-pub-date="a.publishedAt"
           >
             <span class="nf-d">{{ fmtDate(a.publishedAt) }}</span>
             <span class="nf-t">{{ a.title }}</span>

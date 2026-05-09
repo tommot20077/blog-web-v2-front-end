@@ -16,11 +16,15 @@ test.describe('NotFoundView 升級 — 推薦文章與多 CTA', () => {
   test('推薦文章為最新發佈的 4 篇（依 publishedAt desc 排序）', async ({ page }) => {
     await page.goto('/this-route-definitely-does-not-exist')
     await expect(page.locator('[data-testid="notfound-suggestions"]')).toBeVisible({ timeout: 5000 })
-    const dates = await page.locator('[data-testid="notfound-suggestions"] .nf-d').allTextContents()
-    expect(dates.length).toBe(4)
-    // 第一篇日期應 >= 第二篇（MM.DD 字典排序在同年內 == 時間排序）
-    expect(dates[0].localeCompare(dates[1])).toBeGreaterThanOrEqual(0)
-    expect(dates[1].localeCompare(dates[2])).toBeGreaterThanOrEqual(0)
+    // 用 data-pub-date attribute 取完整 publishedAt（YYYY-MM-DD）做 desc 比較
+    const rows = page.locator('[data-testid="notfound-suggestions"] .nf-suggest-row')
+    expect(await rows.count()).toBe(4)
+    const dates = await rows.evaluateAll(els =>
+      els.map(el => (el as HTMLElement).dataset.pubDate ?? '')
+    )
+    for (let i = 0; i < dates.length - 1; i++) {
+      expect(dates[i] >= dates[i + 1]).toBe(true)
+    }
   })
 
   test('prefers-reduced-motion: glitch 動畫應停止', async ({ page }) => {
@@ -60,14 +64,12 @@ test.describe('Tags Index — /tags', () => {
     const chipTexts = await page.locator('[data-testid="tags-cloud"] a').allTextContents()
     // 應該至少含這些 mock data 必有的 tag
     const joined = chipTexts.join(' ')
-    expect(joined).toContain('Vue')
-    expect(joined).toContain('Frontend')
-    expect(joined).toContain('Backend')
-    expect(joined).toContain('Life')
+    expect(joined).toContain('Vue 3')
+    expect(joined).toContain('Spring')
+    expect(joined).toContain('Books')
+    expect(joined).toContain('Design System')
     // 不應該再出現 mock data 沒有的 hard-coded tag
     expect(joined).not.toContain('Java')
-    expect(joined).not.toContain('Spring')
-    expect(joined).not.toContain('Design System')
   })
 
   test('Series 區塊 ONGOING count 排除已完結的 series', async ({ page }) => {
@@ -93,9 +95,14 @@ test.describe('Archive — /archive', () => {
   test('每個 year group 內文章依 publishedAt desc 排序', async ({ page }) => {
     await page.goto('/archive')
     await expect(page.locator('[data-testid="archive-year"]').first()).toBeVisible({ timeout: 5000 })
-    const firstYear = page.locator('[data-testid="archive-year"]').first()
-    const dates = await firstYear.locator('.ar-date').allTextContents()
-    expect(dates.length).toBeGreaterThan(1)
+    // 找第一個有多篇文章的 year group（最早的年份，篇數最多）
+    const groups = await page.locator('[data-testid="archive-year"]').all()
+    let multiGroup = null
+    for (const g of groups) {
+      if ((await g.locator('.ar-date').count()) > 1) { multiGroup = g; break }
+    }
+    expect(multiGroup, '應至少有一個 year group 含多篇文章').not.toBeNull()
+    const dates = await multiGroup!.locator('.ar-date').allTextContents()
     // 同年內 MM.DD 字典序 desc 即為時間 desc
     for (let i = 0; i < dates.length - 1; i++) {
       expect(dates[i].localeCompare(dates[i + 1])).toBeGreaterThanOrEqual(0)

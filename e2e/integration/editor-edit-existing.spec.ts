@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { getCredentials } from '../fixtures/auth'
 
-const BACKEND = 'http://localhost:9010'
+const BACKEND = process.env.VITE_API_BASE_URL || 'http://localhost:8080'
 
 test.describe('Editor - edit existing article (F5/F8)', () => {
   test('載入既有 draft 應正確帶入 title 與 content', async ({ page, request }) => {

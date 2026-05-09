@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { getCredentials } from '../fixtures/auth'
 
-const BACKEND = 'http://localhost:9010'
+const BACKEND = process.env.VITE_API_BASE_URL || 'http://localhost:8080'
 
 test.describe('Comment CRUD (Stage C)', () => {
   test('post → edit → save → 顯示 (edited)', async ({ page, request }) => {

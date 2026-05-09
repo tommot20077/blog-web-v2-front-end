@@ -10,6 +10,8 @@ export interface RecommendArticleResponse {
   likeCount: number
   publishedAt: string
   tags: string[]
+  // backend 尚未提供，先在 interface 上保留為 optional；mock 會給 picsum URL
+  coverImageUrl?: string | null
 }
 
 interface BackendRecommend {
@@ -35,6 +37,7 @@ function mapBackendRecommend(raw: BackendRecommend): RecommendArticleResponse {
     likeCount: raw.likeCount,
     publishedAt: raw.publishedAt,
     tags: raw.tagNames,
+    coverImageUrl: null,
   }
 }
 

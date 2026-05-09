@@ -16,6 +16,7 @@ export function getTrendingMock(limit: number): Promise<RecommendArticleResponse
         likeCount: a.likeCount,
         publishedAt: a.publishedAt,
         tags: a.tags,
+        coverImageUrl: a.coverImageUrl,
       }));
       resolve(trending);
     }, 400);
@@ -39,6 +40,7 @@ export function getRelatedArticlesMock(_articleUuid: string): Promise<RecommendA
           likeCount: a.likeCount,
           publishedAt: a.publishedAt,
           tags: a.tags,
+          coverImageUrl: a.coverImageUrl,
         }));
       resolve(related);
     }, 300);

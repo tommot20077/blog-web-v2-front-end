@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url'
 import { test, expect, type Page } from '@playwright/test'
 import { getCredentials } from '../fixtures/auth'
 
-const BACKEND = 'http://localhost:9010'
+const BACKEND = process.env.VITE_API_BASE_URL || 'http://localhost:8080'
 const IS_CI = process.env.E2E_CI === '1'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)

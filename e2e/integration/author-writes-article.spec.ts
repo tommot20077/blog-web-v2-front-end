@@ -1,5 +1,7 @@
 import { test, expect } from '../fixtures/auth'
 
+const BACKEND = process.env.VITE_API_BASE_URL || 'http://localhost:8080'
+
 test.describe('作者撰寫文章 (integration)', () => {
   test.beforeEach(async ({ loginAsAuthorAndGoToEditor }) => {
     await loginAsAuthorAndGoToEditor()
@@ -25,12 +27,12 @@ test.describe('作者撰寫文章 (integration)', () => {
 
   test('F10: 特殊字元 (emoji + 中文 + 全形) 標題能 round-trip 正常存讀', async ({ request }) => {
     const author = (await import('../fixtures/auth')).getCredentials('author')
-    const loginResp = await request.post('http://localhost:9010/api/v1/auth/login', {
+    const loginResp = await request.post(`${BACKEND}/api/v1/auth/login`, {
       data: { identifier: author.email, password: author.password },
     })
     const token = (await loginResp.json()).data.accessToken
     const specialTitle = `🚀 測試「邊界」字元 ${Date.now()} ＡＢＣ`
-    const create = await request.post('http://localhost:9010/api/v1/articles', {
+    const create = await request.post(`${BACKEND}/api/v1/articles`, {
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       data: { title: specialTitle, summary: 's', content: 'c', coverImageUrl: null, categoryIds: [], tagNames: [] },
     })
@@ -39,13 +41,13 @@ test.describe('作者撰寫文章 (integration)', () => {
     const uuid = createBody.data.uuid
 
     try {
-      const get = await request.get(`http://localhost:9010/api/v1/articles/${uuid}/edit`, {
+      const get = await request.get(`${BACKEND}/api/v1/articles/${uuid}/edit`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       const getBody = await get.json()
       expect(getBody.data.title).toBe(specialTitle)
     } finally {
-      await request.delete(`http://localhost:9010/api/v1/articles/${uuid}`, {
+      await request.delete(`${BACKEND}/api/v1/articles/${uuid}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
     }
@@ -80,7 +82,7 @@ test.describe('作者撰寫文章 (integration)', () => {
   test('F10: markdown 內容含 XSS payload, DOMPurify 應攔截', async ({ page, editorPage, request }) => {
     // 用 API 直接建草稿（避免 editor 對 raw markdown 的處理影響測試）
     const author = (await import('../fixtures/auth')).getCredentials('author')
-    const loginResp = await request.post('http://localhost:9010/api/v1/auth/login', {
+    const loginResp = await request.post(`${BACKEND}/api/v1/auth/login`, {
       data: { identifier: author.email, password: author.password },
     })
     const token = (await loginResp.json()).data.accessToken
@@ -93,7 +95,7 @@ test.describe('作者撰寫文章 (integration)', () => {
 
 End.`
 
-    const create = await request.post('http://localhost:9010/api/v1/articles', {
+    const create = await request.post(`${BACKEND}/api/v1/articles`, {
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       data: {
         title: `XSS test ${Date.now()}`,
@@ -110,7 +112,7 @@ End.`
 
     try {
       // 發布
-      const publishResp = await request.post(`http://localhost:9010/api/v1/articles/${uuid}/publish`, {
+      const publishResp = await request.post(`${BACKEND}/api/v1/articles/${uuid}/publish`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       expect(publishResp.ok()).toBeTruthy()
@@ -148,7 +150,7 @@ End.`
       const imgWithOnError = await page.locator('article img[onerror]').count()
       expect(imgWithOnError).toBe(0)
     } finally {
-      await request.delete(`http://localhost:9010/api/v1/articles/${uuid}`, {
+      await request.delete(`${BACKEND}/api/v1/articles/${uuid}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
     }

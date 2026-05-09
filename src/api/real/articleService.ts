@@ -53,9 +53,12 @@ export interface ArticleItem {
   publishedAt: string
   tags: string[]
   slug: string
+  // List response 的分類名稱陣列；real backend list 尚未提供（mapper 設 []），
+  // mock data 與 client-side category filter (useArticleFilters) 依賴此欄位
+  categories?: string[]
 }
 
-export interface ArticleDetailItem extends ArticleItem {
+export interface ArticleDetailItem extends Omit<ArticleItem, 'categories'> {
   content: string
   categories: ArticleCategory[]
   liked: boolean
@@ -74,6 +77,8 @@ function mapArticle(raw: BackendArticleBase): ArticleItem {
     publishedAt: raw.publishedAt,
     tags: raw.tags.map((t) => t.name),
     slug: raw.slug,
+    // backend list response 尚未提供 categories；待後端補上後改 raw.categories.map(...)
+    categories: [],
   }
 }
 

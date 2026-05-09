@@ -1,7 +1,7 @@
 import { execSync } from 'child_process'
 import { activateUser } from './fixtures/admin-helpers'
 
-const BACKEND = process.env.VITE_API_BASE_URL || 'http://localhost:9010'
+const BACKEND = process.env.VITE_API_BASE_URL || 'http://localhost:8080'
 const IS_CI = process.env.E2E_CI === '1'
 
 interface SeedUser {
