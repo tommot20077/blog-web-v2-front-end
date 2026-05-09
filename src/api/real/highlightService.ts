@@ -34,7 +34,11 @@ export const highlightService = {
   },
 
   async update(uuid: string, request: UpdateHighlightRequest): Promise<Highlight> {
-    return apiClient.put<unknown, Highlight>(`/api/v1/highlights/${uuid}`, request)
+    const payload = { ...request }
+    if (payload.note === null) {
+      delete payload.note
+    }
+    return apiClient.put<unknown, Highlight>(`/api/v1/highlights/${uuid}`, payload)
   },
 
   async delete(uuid: string): Promise<void> {

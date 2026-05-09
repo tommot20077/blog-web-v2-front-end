@@ -65,6 +65,21 @@ describe('real highlightService', () => {
     expect(request).toEqual({ note: null })
   })
 
+  it('update 過濾 note null，避免未跑 typecheck 時送出無效請求', async () => {
+    const response: Highlight = {
+      uuid: 'h1',
+      snippet: 'text',
+      color: '#00FF00',
+      createdAt: '2026-05-09T00:00:00Z',
+      updatedAt: '2026-05-09T00:00:00Z',
+    }
+    vi.mocked(apiClient.put).mockResolvedValue(response)
+
+    await highlightService.update('h1', { color: '#00FF00', note: null } as unknown as UpdateHighlightRequest)
+
+    expect(apiClient.put).toHaveBeenCalledWith('/api/v1/highlights/h1', { color: '#00FF00' })
+  })
+
   it('delete 呼叫 DELETE /highlights/{uuid}', async () => {
     vi.mocked(apiClient.delete).mockResolvedValue(undefined)
     await highlightService.delete('h1')
