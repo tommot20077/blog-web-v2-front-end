@@ -117,6 +117,7 @@ jobs:
         run: npm run test:e2e:ci
         env:
           CI: true
+          VITE_API_BASE_URL: http://localhost:9010
 
       - name: Upload Playwright report
         if: ${{ !cancelled() }}
