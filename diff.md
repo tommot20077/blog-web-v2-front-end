@@ -28,7 +28,7 @@
 **後端 Base path 約定（OpenAPI + SecurityConfig 確認）**：
 - `/api/v1/auth/**` — 不需登入
 - `/api/v1/{articles,categories,tags,users,recommend,search,files}/**` GET — 公開（含部分 POST，詳見 SecurityConfig）
-- `/api/admin/**` — **需 `ROLE_ADMIN`**（注意：**沒有 `/v1`**）
+- `/api/v1/admin/**` — **需 `ROLE_ADMIN`**
 - `/actuator/health/**`, `/actuator/info` — 公開
 
 ---
@@ -131,12 +131,12 @@
 
 ## 2. ⚠️ 規格不一致（要修）
 
-### 2.1 Admin path 前綴不一致
+### 2.1 Admin path 前綴已對齊
 | 前端 | 後端 | 影響 |
 |---|---|---|
-| `GET /api/v1/admin/articles/pending` `adminService.ts:11` | `GET /api/admin/articles/pending` (無 `/v1`) | 404 |
+| `GET /api/v1/admin/articles/pending` `adminService.ts:11` | `GET /api/v1/admin/articles/pending` | 對齊 |
 
-修法：前端單點修改 `/api/v1/admin/...` → `/api/admin/...`。（「先討論」所以這裡只記錄，不直接修。）
+待審數量不使用獨立 count 端點；前端以 `GET /api/v1/admin/articles/pending?page=1&size=1` 的分頁回應 `total` 推導。
 
 ### 2.2 `verify-email` method + 參數位置不一致
 | 前端 | 後端 |
@@ -195,10 +195,9 @@
 
 | 後端 op | 路徑 | 用途 |
 |---|---|---|
-| `getPendingArticleCount` | `GET /api/admin/articles/pending/count` | 快速取得待審數（前端 `adminService.getPendingCount` 目前是拉 1 筆分頁再讀 `.total`，可改用這個） |
-| `createCategory` / `updateCategory` / `deleteCategory` | `POST/PUT/DELETE /api/admin/categories(/{uuid})?` | Admin category CRUD — 前端還沒管理分類的 UI |
-| `updateTag` / `deleteTag` | `PUT/DELETE /api/admin/tags/{id}` | Admin tag CRUD — 前端還沒管理 tag 的 UI |
-| `reindex` | `POST /api/admin/search/reindex` | Admin 手動重建搜尋索引 — 維運用 |
+| `createCategory` / `updateCategory` / `deleteCategory` | `POST/PUT/DELETE /api/v1/admin/categories(/{uuid})?` | Admin category CRUD — 前端還沒管理分類的 UI |
+| `updateTag` / `deleteTag` | `PUT/DELETE /api/v1/admin/tags/{id}` | Admin tag CRUD — 前端還沒管理 tag 的 UI |
+| `reindex` | `POST /api/v1/admin/search/reindex` | Admin 手動重建搜尋索引 — 維運用 |
 
 ---
 
@@ -208,9 +207,8 @@
 2. **Refresh 失敗路徑**：仍要確認 `POST /api/v1/auth/refresh` 失敗時是回 HTTP 401 還是 HTTP 200 + code `A0104`。前端 interceptor 只對 HTTP 401 觸發登出；若回 200，要在 `apiClient.ts:71` 加 `code === 'A0104'` 的特判。
 3. **CORS** 目前 dev 應該直接可跑（`:5500` 已在 allowedOrigins），但若切換到別的 frontend port（例如 Playwright 的 `:5501` / `:5502`）要同時更新 `APP_CORS_ALLOWED_ORIGINS`。
 4. **Frontend `utils.ts` 只是 shape 對映**：§2.3 修完後，可以把 `BackendPageResult` 整個移除，直接回傳 `PageResult<T>`；多個 service 的 `mapPageResult(data, mapItem)` 要改寫成 `{ ...data, records: data.records.map(mapItem) }`。
-5. **Admin operation 權限**：OpenAPI spec 每個 op 的 `security` 仍是空陣列（SpringDoc 沒反映 `SecurityFilterChain`）；實際權限看 `SecurityConfig.java`。`/api/admin/**` 需 `ROLE_ADMIN`；公開 GET 範圍比上版廣（ `/api/v1/users/**`, `/api/v1/categories/**`, `/api/v1/recommend/**`, `/api/v1/search/**` 等的 GET 也 permitAll）— 整合時要逐端點確認前端是否在「未登入」狀態也該呼叫。
+5. **Admin operation 權限**：OpenAPI spec 每個 op 的 `security` 仍是空陣列（SpringDoc 沒反映 `SecurityFilterChain`）；實際權限看 `SecurityConfig.java`。Admin operation 需 `ROLE_ADMIN`；公開 GET 範圍比上版廣（ `/api/v1/users/**`, `/api/v1/categories/**`, `/api/v1/recommend/**`, `/api/v1/search/**` 等的 GET 也 permitAll）— 整合時要逐端點確認前端是否在「未登入」狀態也該呼叫。
 6. **`POST /api/v1/tags/suggest`**：後端 `suggest` operation 回傳結構（array of `Tag`? `TagSuggestion`?）需要再核對；OpenAPI schema 顯示為 `ApiResponseListTag`，但前端 `TagSuggestion` 只需要 `{name, articleCount}`，可以從 `Tag.name` / `Tag.usageCount` 映射。非關鍵。
-7. **Backend admin 路徑無 `/v1`**：§2.1 修法直接，但如果未來想統一到 `/api/v1/admin`，需要 backend 端改動；記為 follow-up。
 
 ---
 

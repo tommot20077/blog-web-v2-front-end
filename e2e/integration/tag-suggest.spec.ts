@@ -1,8 +1,10 @@
 import { test, expect } from '@playwright/test'
 
+const BACKEND = process.env.VITE_API_BASE_URL || 'http://localhost:8080'
+
 test.describe('Tag suggest API (B-4)', () => {
   test('B-4: GET /tags/suggest?q=vu 應 prefix match 包含 vue', async ({ request }) => {
-    const resp = await request.get('http://localhost:9010/api/v1/tags/suggest?q=vu')
+    const resp = await request.get(`${BACKEND}/api/v1/tags/suggest?q=vu`)
     expect(resp.ok()).toBeTruthy()
     const body = await resp.json()
     expect(body.code).toBe('00000')
@@ -14,7 +16,7 @@ test.describe('Tag suggest API (B-4)', () => {
   })
 
   test('B-4: GET /tags/suggest?q=java 應 prefix match 包含 java', async ({ request }) => {
-    const resp = await request.get('http://localhost:9010/api/v1/tags/suggest?q=java')
+    const resp = await request.get(`${BACKEND}/api/v1/tags/suggest?q=java`)
     expect(resp.ok()).toBeTruthy()
     const body = await resp.json()
     expect(body.code).toBe('00000')
@@ -25,7 +27,7 @@ test.describe('Tag suggest API (B-4)', () => {
   })
 
   test('B-4: GET /tags/suggest?q=zzz 不存在 prefix 應回空陣列', async ({ request }) => {
-    const resp = await request.get('http://localhost:9010/api/v1/tags/suggest?q=zzz')
+    const resp = await request.get(`${BACKEND}/api/v1/tags/suggest?q=zzz`)
     expect(resp.ok()).toBeTruthy()
     const body = await resp.json()
     expect(body.code).toBe('00000')

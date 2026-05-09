@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test'
 import { activateUser } from '../fixtures/admin-helpers'
 
+const BACKEND = process.env.VITE_API_BASE_URL || 'http://localhost:8080'
+
 test.describe('Settings 帳號刪除 (B5)', () => {
   test('B5: 註冊臨時 user → 刪除 → 該帳號無法再登入', async ({ request, page }) => {
     // 此 spec 需要 user activation 機制（kubectl/docker compose exec psql），
@@ -15,7 +17,7 @@ test.describe('Settings 帳號刪除 (B5)', () => {
     const password = 'Test1234!'
 
     // 1. 註冊
-    const regResp = await request.post('http://localhost:9010/api/v1/auth/register', {
+    const regResp = await request.post(`${BACKEND}/api/v1/auth/register`, {
       data: { email, password, username, nickname: `B5User${ts}` },
     })
     expect((await regResp.json()).code).toBe('00000')
@@ -68,7 +70,7 @@ test.describe('Settings 帳號刪除 (B5)', () => {
     expect(deleteResp.status()).toBeLessThan(400)
 
     // 6. 驗該帳號已刪：用同 credentials 登入應失敗
-    const reLoginResp = await request.post('http://localhost:9010/api/v1/auth/login', {
+    const reLoginResp = await request.post(`${BACKEND}/api/v1/auth/login`, {
       data: { identifier: email, password },
     })
     const reLoginBody = await reLoginResp.json()
