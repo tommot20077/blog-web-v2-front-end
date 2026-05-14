@@ -16,7 +16,7 @@ test.describe('註冊流程', () => {
     )
 
     await expect(page.getByText('註冊成功！請至信箱驗證您的帳號')).toBeVisible({ timeout: 5000 })
-    await expect(page).toHaveURL('/login', { timeout: 5000 })
+    await expect(page).toHaveURL(/\/check-email/, { timeout: 5000 })
   })
 
   test('使用已存在的 Email 註冊顯示錯誤 toast', async ({ page }) => {
