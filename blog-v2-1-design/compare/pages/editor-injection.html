@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<title>Editor injection</title>
+<link rel="stylesheet" href="_shared.css" />
+<style>
+  body { padding: 0; }
+  .ec-bar {
+    padding: 16px 32px; border-bottom: 1px solid var(--divider);
+    font-family: var(--f-mono); font-size: 10.5px; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--muted-2);
+    background: var(--surface);
+  }
+
+  /* Top toolbar */
+  .top-bar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 24px; border-bottom: 1px solid var(--divider);
+    background: var(--surface);
+  }
+  .top-bar .title {
+    flex: 1; font-family: var(--f-display); font-size: 18px; font-weight: 500;
+    background: none; border: 0; outline: 0; padding: 4px 0;
+  }
+  /* Autosave badge — INJECTED */
+  .autosave-badge {
+    padding: 5px 12px; border-radius: 999px;
+    border: 1px dashed var(--accent);
+    background: color-mix(in oklab, var(--accent) 8%, var(--bg));
+    font-family: var(--f-mono); font-size: 10.5px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--accent);
+    display: inline-flex; align-items: center; gap: 8px;
+    position: relative;
+  }
+  .autosave-badge::after {
+    content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 25%, transparent);
+  }
+  .autosave-badge .anno-tip {
+    position: absolute; top: 100%; left: 0; margin-top: 6px;
+    font-size: 9.5px; letter-spacing: 0.14em; color: var(--accent);
+    white-space: nowrap;
+  }
+
+  .top-bar .btn { padding: 7px 14px; border: 1px solid var(--border); border-radius: 999px; font-size: 12.5px; }
+  .top-bar .btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+  /* Layout */
+  .stage { display: grid; grid-template-columns: 1fr 1fr 240px; gap: 0; min-height: 760px; }
+
+  /* Editor column */
+  .editor {
+    border-right: 1px solid var(--divider);
+    padding: 24px 28px; position: relative; overflow: hidden;
+  }
+  .gutter-row { display: flex; gap: 12px; padding: 6px 0; align-items: baseline; }
+  .gutter { font-family: var(--f-mono); font-size: 11.5px; color: var(--muted-2); width: 24px; text-align: right; user-select: none; }
+  .line-c { flex: 1; font-family: var(--f-mono); font-size: 13.5px; line-height: 1.7; color: var(--ink); white-space: pre; }
+  .line-c .h { color: var(--accent); font-weight: 600; }
+  .line-c .em { color: var(--muted); }
+  .line-c .sel {
+    background: color-mix(in oklab, var(--accent) 22%, transparent);
+    border-radius: 2px; padding: 0 2px;
+  }
+
+  /* Slash menu — INJECTED */
+  .slash-menu {
+    position: absolute; left: 70px; top: 240px; width: 220px;
+    background: var(--surface); border: 1.5px dashed var(--accent);
+    border-radius: 10px; box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+    padding: 6px; z-index: 5;
+  }
+  .slash-menu::before {
+    content: "INJECTION · EditorSlashMenu.vue";
+    position: absolute; bottom: 100%; left: 0; margin-bottom: 6px;
+    font-family: var(--f-mono); font-size: 9.5px; letter-spacing: 0.16em;
+    color: var(--accent); text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .slash-head {
+    padding: 6px 10px; font-family: var(--f-mono); font-size: 9.5px;
+    letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted-2);
+  }
+  .slash-item {
+    padding: 8px 10px; border-radius: 6px;
+    display: flex; gap: 10px; align-items: center;
+    font-size: 13px; color: var(--ink-2); cursor: pointer;
+  }
+  .slash-item.active { background: var(--bg-sub); color: var(--ink); }
+  .slash-item .ico { font-family: var(--f-mono); width: 22px; color: var(--muted); }
+  .slash-item .kbd {
+    margin-left: auto; font-family: var(--f-mono); font-size: 10px;
+    color: var(--muted-2);
+    border: 1px solid var(--border); border-radius: 3px; padding: 1px 5px;
+  }
+
+  /* Bubble menu — INJECTED */
+  .bubble {
+    position: absolute; left: 100px; top: 480px;
+    background: var(--ink); color: var(--bg);
+    padding: 4px; border-radius: 8px;
+    display: flex; gap: 2px; z-index: 5;
+    border: 1.5px dashed var(--accent);
+  }
+  .bubble::before {
+    content: "INJECTION · EditorBubbleMenu.vue";
+    position: absolute; bottom: 100%; left: 0; margin-bottom: 6px;
+    font-family: var(--f-mono); font-size: 9.5px; letter-spacing: 0.16em;
+    color: var(--accent); text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .bubble button {
+    padding: 6px 10px; font-family: var(--f-mono); font-size: 11px;
+    color: var(--bg); border-radius: 4px;
+  }
+  .bubble button:hover, .bubble button.active { background: rgba(255,255,255,0.15); }
+
+  /* Preview column */
+  .preview {
+    border-right: 1px solid var(--divider);
+    padding: 28px 32px; background: var(--bg);
+    overflow-y: auto;
+  }
+  .preview h1 { font-family: var(--f-display); font-size: 28px; font-weight: 500; letter-spacing: -0.02em; margin: 0 0 14px; }
+  .preview h2 { font-family: var(--f-display); font-size: 20px; font-weight: 500; margin: 22px 0 10px; }
+  .preview p { font-size: 14.5px; line-height: 1.75; color: var(--ink-2); }
+  .preview pre { background: #1a1a1c; color: #ededef; padding: 14px; border-radius: 8px; font-family: var(--f-mono); font-size: 12px; }
+
+  /* Right meta sidebar */
+  .meta-rail { padding: 24px 18px; }
+  .meta-rail h5 {
+    font-family: var(--f-mono); font-size: 9.5px; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--muted-2); margin: 0 0 10px;
+  }
+  .meta-card { padding: 12px; border: 1px solid var(--divider); border-radius: 8px; background: var(--surface); margin-bottom: 14px; font-size: 12.5px; line-height: 1.6; }
+  .meta-card .row { display: flex; justify-content: space-between; padding: 4px 0; }
+  .meta-card .row .k { color: var(--muted); font-family: var(--f-mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; }
+  .meta-card.injected { border: 1.5px dashed var(--accent); background: color-mix(in oklab, var(--accent) 4%, var(--surface)); position: relative; }
+  .meta-card.injected::before {
+    content: "INJECTION · DraftHistoryDrawer.vue";
+    position: absolute; bottom: 100%; left: 0; margin-bottom: 6px;
+    font-family: var(--f-mono); font-size: 9px; letter-spacing: 0.14em;
+    color: var(--accent); text-transform: uppercase;
+  }
+  .draft-item {
+    display: flex; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--divider);
+    font-size: 12px; color: var(--ink-2);
+  }
+  .draft-item:last-child { border-bottom: 0; }
+  .draft-item .ts { font-family: var(--f-mono); font-size: 10px; color: var(--muted-2); width: 60px; }
+  .draft-item .body { flex: 1; }
+  .draft-item .body .ttl { font-weight: 500; color: var(--ink); }
+  .draft-item .body .desc { color: var(--muted); font-size: 11px; }
+</style>
+</head>
+<body>
+
+<div class="ec-bar">§ Repo · EditorView.vue + Slash / Bubble / Autosave / History 注入點</div>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <input class="title" value="在 Vue 3 中設計可組合的 Composables" />
+  <span class="autosave-badge">
+    Saved · 12:34
+    <span class="anno-tip"></span>
+  </span>
+  <button class="btn">Preview</button>
+  <button class="btn primary">Publish</button>
+</div>
+
+<!-- LAYOUT -->
+<div class="stage">
+
+  <!-- EDITOR -->
+  <section class="editor">
+    <div class="gutter-row"><span class="gutter">1</span><span class="line-c"><span class="h"># 在 Vue 3 中設計可組合的 Composables</span></span></div>
+    <div class="gutter-row"><span class="gutter">2</span><span class="line-c"></span></div>
+    <div class="gutter-row"><span class="gutter">3</span><span class="line-c"><span class="em">> 從零理解 composable 的設計模式</span></span></div>
+    <div class="gutter-row"><span class="gutter">4</span><span class="line-c"></span></div>
+    <div class="gutter-row"><span class="gutter">5</span><span class="line-c"><span class="h">## 命名與檔案結構</span></span></div>
+    <div class="gutter-row"><span class="gutter">6</span><span class="line-c"></span></div>
+    <div class="gutter-row"><span class="gutter">7</span><span class="line-c">一個 composable 就是把 reactive 邏輯包進函數，</span></div>
+    <div class="gutter-row"><span class="gutter">8</span><span class="line-c">並回傳 ref / computed / 方法。</span></div>
+    <div class="gutter-row"><span class="gutter">9</span><span class="line-c"></span></div>
+    <div class="gutter-row"><span class="gutter">10</span><span class="line-c"><span style="color:var(--accent)">/</span></span></div>
+    <div class="gutter-row"><span class="gutter">11</span><span class="line-c"></span></div>
+    <div class="gutter-row"><span class="gutter">12</span><span class="line-c"></span></div>
+    <div class="gutter-row"><span class="gutter">13</span><span class="line-c"></span></div>
+    <div class="gutter-row"><span class="gutter">14</span><span class="line-c"><span class="h">## Ref 暴露模式</span></span></div>
+    <div class="gutter-row"><span class="gutter">15</span><span class="line-c"></span></div>
+    <div class="gutter-row"><span class="gutter">16</span><span class="line-c"><span class="sel">回傳 ref 還是 readonly(ref)？我的判斷</span>是預設都 readonly。</span></div>
+    <div class="gutter-row"><span class="gutter">17</span><span class="line-c"></span></div>
+
+    <!-- SLASH MENU -->
+    <div class="slash-menu">
+      <div class="slash-head">● Block · type to filter</div>
+      <div class="slash-item active"><span class="ico">H1</span>Heading 1<span class="kbd">#</span></div>
+      <div class="slash-item"><span class="ico">H2</span>Heading 2<span class="kbd">##</span></div>
+      <div class="slash-item"><span class="ico">¶</span>Paragraph</div>
+      <div class="slash-item"><span class="ico">{}</span>Code block<span class="kbd">```</span></div>
+      <div class="slash-item"><span class="ico">▤</span>Table</div>
+      <div class="slash-item"><span class="ico">⚑</span>Callout</div>
+      <div class="slash-item"><span class="ico">▭</span>Image</div>
+    </div>
+
+    <!-- BUBBLE MENU -->
+    <div class="bubble">
+      <button class="active"><b>B</b></button>
+      <button><i>I</i></button>
+      <button><u>U</u></button>
+      <button>S</button>
+      <button>{ }</button>
+      <button>↗ Link</button>
+      <button>” Quote</button>
+    </div>
+  </section>
+
+  <!-- PREVIEW -->
+  <section class="preview">
+    <h1>在 Vue 3 中設計可組合的 Composables</h1>
+    <p style="font-style:italic; color:var(--muted)">從零理解 composable 的設計模式</p>
+    <h2>命名與檔案結構</h2>
+    <p>一個 composable 就是把 reactive 邏輯包進函數，並回傳 ref / computed / 方法。</p>
+    <h2>Ref 暴露模式</h2>
+    <p>回傳 ref 還是 readonly(ref)？我的判斷是預設都 readonly。</p>
+    <pre>// composables/useCounter.ts
+export function useCounter(initial = 0) {
+  const count = ref(initial)
+  return { count }
+}</pre>
+  </section>
+
+  <!-- META RAIL -->
+  <aside class="meta-rail">
+    <h5>● Meta</h5>
+    <div class="meta-card">
+      <div class="row"><span class="k">status</span><span>Draft</span></div>
+      <div class="row"><span class="k">words</span><span>1,284</span></div>
+      <div class="row"><span class="k">read</span><span>~ 6 min</span></div>
+      <div class="row"><span class="k">slug</span><span style="font-family:var(--f-mono);font-size:11px">vue3-composable</span></div>
+    </div>
+
+    <h5>● Tags</h5>
+    <div class="meta-card" style="display:flex;gap:6px;flex-wrap:wrap">
+      <span style="padding:2px 8px;border:1px solid var(--border);border-radius:999px;font-size:11px">vue</span>
+      <span style="padding:2px 8px;border:1px solid var(--border);border-radius:999px;font-size:11px">composable</span>
+      <span style="padding:2px 8px;border:1px solid var(--border);border-radius:999px;font-size:11px">+ Add</span>
+    </div>
+
+    <h5>● Outline</h5>
+    <div class="meta-card" style="font-size:11.5px;line-height:1.7">
+      <div>命名與檔案結構</div>
+      <div style="padding-left:12px;color:var(--muted)">use 開頭的慣例</div>
+      <div style="padding-left:12px;color:var(--muted)">檔案放在哪</div>
+      <div>Ref 暴露模式</div>
+    </div>
+
+    <!-- DRAFT HISTORY — INJECTED -->
+    <div style="margin-top:26px;"></div>
+    <h5>● Draft history <span style="color:var(--accent)">· NEW</span></h5>
+    <div class="meta-card injected">
+      <div class="draft-item">
+        <span class="ts">12:34</span>
+        <div class="body"><div class="ttl">Auto · current</div><div class="desc">+ 184 字</div></div>
+      </div>
+      <div class="draft-item">
+        <span class="ts">12:18</span>
+        <div class="body"><div class="ttl">Auto</div><div class="desc">改寫 Ref 暴露段</div></div>
+      </div>
+      <div class="draft-item">
+        <span class="ts">11:42</span>
+        <div class="body"><div class="ttl">Manual</div><div class="desc">大綱 v2</div></div>
+      </div>
+      <div class="draft-item">
+        <span class="ts">昨天</span>
+        <div class="body"><div class="ttl">Manual</div><div class="desc">初稿</div></div>
+      </div>
+    </div>
+  </aside>
+
+</div>
+
+</body>
+</html>

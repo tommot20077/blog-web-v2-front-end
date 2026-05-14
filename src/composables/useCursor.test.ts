@@ -27,6 +27,18 @@ describe('useCursor', () => {
     expect(document.querySelector('.cursor-ring')).not.toBeNull()
   })
 
+  it('自訂游標圖層高於驗證彈窗 overlay', async () => {
+    await mountWithCursor()
+
+    const dot = document.querySelector<HTMLElement>('.cursor-dot')
+    const ring = document.querySelector<HTMLElement>('.cursor-ring')
+
+    expect(dot).not.toBeNull()
+    expect(ring).not.toBeNull()
+    expect(Number(dot!.style.zIndex)).toBeGreaterThan(10000)
+    expect(Number(ring!.style.zIndex)).toBeGreaterThan(10000)
+  })
+
   it('mousemove 時 cursor-dot 的 transform 更新為滑鼠座標', async () => {
     await mountWithCursor()
     window.dispatchEvent(new MouseEvent('mousemove', { clientX: 100, clientY: 200 }))

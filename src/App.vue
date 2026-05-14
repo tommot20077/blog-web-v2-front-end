@@ -42,11 +42,7 @@ const onGlobalKeyDown = (e: KeyboardEvent) => {
 
 onMounted(async () => {
   window.addEventListener('keydown', onGlobalKeyDown)
-  try {
-    await authStore.refreshToken()
-  } catch {
-    // silent fail — user not logged in
-  }
+  await authStore.initialize()
 })
 
 onUnmounted(() => window.removeEventListener('keydown', onGlobalKeyDown))
@@ -58,7 +54,7 @@ onUnmounted(() => window.removeEventListener('keydown', onGlobalKeyDown))
 
   <!-- Shell / Full-screen pages (my-articles, settings, editor) -->
   <template v-if="isShellOrFull">
-    <router-view />
+    <router-view :key="route.path" />
   </template>
 
   <!-- Default public layout (navbar + content + footer) -->

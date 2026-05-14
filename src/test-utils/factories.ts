@@ -1,4 +1,6 @@
-import type { ArticleItem, ArticleDetailItem, PageResult } from '../api/articleService'
+import type { ArticleItem, ArticleDetailItem } from '../api/articleService'
+import type { ArticleCategory } from '../api/real/articleService'
+import type { PageResult } from '../types/editor'
 import type { User } from '../types/auth'
 import type { EditorArticle, MyArticle, CategoryOption, QuotaInfo } from '../types/editor'
 
@@ -23,6 +25,8 @@ export function createMockArticleDetail(overrides: Partial<ArticleDetailItem> = 
   return {
     ...createMockArticle(),
     content: '# Test\n\nHello world',
+    categories: [] as ArticleCategory[],
+    liked: false,
     ...overrides,
   }
 }

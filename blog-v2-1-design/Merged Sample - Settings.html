@@ -1,0 +1,724 @@
+<!doctype html>
+<html lang="zh-Hant" data-theme="light" data-font="space" data-cursor="off" data-accent="on">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Merged Sample · Settings + Appearance — MY BLOG</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+TC:wght@300;400;500;600&family=Inter+Tight:wght@400;500;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
+
+<!-- Repo's design system, untouched -->
+<link rel="stylesheet" href="src/assets/design/styles.css" />
+<link rel="stylesheet" href="src/assets/design/views.css" />
+<link rel="stylesheet" href="src/assets/design/settings.css" />
+
+<style>
+  /* ── Override repo's body cursor:none + slow color transition.
+     The 0.5s color transition on var() changes can leave stale
+     computed colors during theme flip — strip transition on color.
+     Also force body color to follow --ink so dark theme actually shows. ── */
+  html, body { cursor: auto !important; }
+  body { transition: background 0.3s linear !important; color: var(--ink) !important; }
+
+  /* Repo's design system uses cursor:none liberally (custom cursor land).
+     This sample is a normal-pointer preview, so undo all of them. */
+  html[data-cursor="off"] *,
+  html[data-cursor="off"] *::before,
+  html[data-cursor="off"] *::after { cursor: auto; }
+  html[data-cursor="off"] a,
+  html[data-cursor="off"] button,
+  html[data-cursor="off"] [role="button"],
+  html[data-cursor="off"] select,
+  html[data-cursor="off"] .ap-card,
+  html[data-cursor="off"] .ap-accent-chip,
+  html[data-cursor="off"] .ap-rsize-btn,
+  html[data-cursor="off"] .st-toggle,
+  html[data-cursor="off"] .st-toggle-track,
+  html[data-cursor="off"] .st-nav-item,
+  html[data-cursor="off"] .st-avatar-box { cursor: pointer; }
+  html[data-cursor="off"] input,
+  html[data-cursor="off"] textarea { cursor: text; }
+
+  /* ── Sepia theme (NEW — match repo's [data-theme="x"] selector style,
+     no :root prefix, so specificity matches repo's dark rules) ── */
+  [data-theme="sepia"] {
+    --bg: #f4ecd8;
+    --bg-sub: #ecdfc1;
+    --surface: #fbf4e0;
+    --ink: #3a2e1a;
+    --ink-2: #4d3f29;
+    --muted: #7a6a4f;
+    --muted-2: #998769;
+    --border: rgba(58,46,26,0.18);
+    --border-strong: rgba(58,46,26,0.32);
+    --divider: rgba(58,46,26,0.10);
+  }
+
+  /* ── Accent palette switcher (NEW) ── */
+  [data-accent-color="blue"]   { --accent: #5B8DEF; }
+  [data-accent-color="green"]  { --accent: #47B881; }
+  [data-accent-color="red"]    { --accent: #E0524A; }
+  [data-accent-color="purple"] { --accent: #8E6BD8; }
+  [data-accent-color="orange"] { --accent: #E58A3F; }
+
+  /* ── Reading-size scale (NEW) ── */
+  [data-rsize="s"]  { --reading-scale: 0.92; }
+  [data-rsize="m"]  { --reading-scale: 1.00; }
+  [data-rsize="l"]  { --reading-scale: 1.10; }
+  [data-rsize="xl"] { --reading-scale: 1.22; }
+
+  /* ── Belt-and-suspenders: force certain text containers to follow tokens.
+     Sidebar/headings inherit body color, but if cascading goes wonky on theme
+     flip, these explicit declarations guarantee they update. ── */
+  .st-rail-brand div { color: var(--ink); }
+  .st-section-head h2 { color: var(--ink); }
+  .st-nav-item:not(.danger):not(.active) { color: var(--ink-2); }
+  .nav-mock .brand { color: var(--ink); }
+
+  /* ── Sample-page chrome (the banner explaining what this is) ── */
+  .sample-banner {
+    position: sticky; top: 0; z-index: 200;
+    background: color-mix(in oklab, var(--ink) 96%, transparent);
+    color: var(--bg);
+    padding: 14px 32px;
+    display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+    font-family: var(--f-mono);
+  }
+  .sample-banner .ttl {
+    font-family: var(--f-display); font-weight: 500; font-size: 16px;
+    letter-spacing: -0.01em; color: var(--bg);
+  }
+  .sample-banner .ttl em { font-style: italic; font-weight: 300; opacity: 0.7; }
+  .sample-banner .grow { flex: 1; }
+  .sample-banner .meta {
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    opacity: 0.6;
+  }
+  .sample-banner .legend {
+    display: inline-flex; gap: 14px; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+  }
+  .sample-banner .legend span { display: inline-flex; align-items: center; gap: 6px; opacity: 0.85; }
+  .sample-banner .legend .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .sample-banner .legend .dot.repo { background: #c8c8c8; }
+  .sample-banner .legend .dot.new  { background: var(--accent); }
+
+  /* "NEW" pill that marks added fields */
+  .new-pill {
+    display: inline-block; vertical-align: middle; margin-left: 8px;
+    padding: 1.5px 7px; border-radius: 999px;
+    background: color-mix(in oklch, var(--accent) 18%, transparent);
+    color: var(--accent);
+    font-family: var(--f-mono); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; font-weight: 500;
+  }
+  [data-theme="dark"] .new-pill { background: color-mix(in oklch, var(--accent) 26%, transparent); }
+
+  /* Top app bar (mimics repo's nav minimally) */
+  .nav-mock {
+    background: var(--bg);
+    border-bottom: 1px solid var(--divider);
+    padding: 14px 32px;
+    display: flex; align-items: center; gap: 20px;
+    height: 64px;
+  }
+  .nav-mock .brand {
+    font-family: var(--f-display); font-weight: 500; font-size: 16px;
+    letter-spacing: -0.005em; color: var(--ink);
+  }
+  .nav-mock .brand em { font-style: italic; font-weight: 300; color: var(--muted); }
+  .nav-mock .links { display: flex; gap: 18px; margin-left: 16px; }
+  .nav-mock .links a {
+    font-size: 13.5px; color: var(--muted-2); transition: color .15s;
+  }
+  .nav-mock .links a:hover { color: var(--ink); }
+  .nav-mock .links a.cur { color: var(--ink); }
+  .nav-mock .grow { flex: 1; }
+  .nav-mock .avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--ink); color: var(--bg);
+    display: grid; place-items: center;
+    font-family: var(--f-display); font-size: 13px; font-weight: 500;
+  }
+
+  /* Settings page tweaks for hosting it standalone */
+  .st-page { padding-top: 0; }
+  .st-rail { top: 0; }
+
+  /* ── Appearance tab specific ── */
+  .ap-grid {
+    display: grid; gap: 20px;
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .ap-card {
+    border: 1px solid var(--border); border-radius: 12px;
+    padding: 0; background: var(--surface);
+    cursor: pointer; transition: border-color .18s, transform .15s;
+    overflow: hidden;
+    text-align: left;
+    font-family: inherit;
+    color: var(--ink);
+  }
+  .ap-card:hover { border-color: var(--ink); transform: translateY(-1px); }
+  .ap-card.active {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent), 0 4px 18px color-mix(in oklch, var(--accent) 18%, transparent);
+  }
+  .ap-card-preview {
+    height: 110px; padding: 14px;
+    border-bottom: 1px solid var(--divider);
+    display: flex; flex-direction: column; gap: 6px;
+    position: relative;
+  }
+  .ap-card-preview .pv-h {
+    height: 8px; border-radius: 3px; width: 60%;
+    background: currentColor; opacity: .85;
+  }
+  .ap-card-preview .pv-l {
+    height: 5px; border-radius: 3px; width: 90%;
+    background: currentColor; opacity: .35;
+  }
+  .ap-card-preview .pv-l.short { width: 70%; }
+  .ap-card-preview .pv-accent {
+    position: absolute; right: 14px; top: 14px;
+    width: 14px; height: 14px; border-radius: 999px;
+  }
+
+  .ap-card[data-theme-pv="light"] .ap-card-preview { background: #f4f4f4; color: #0a0a0b; }
+  .ap-card[data-theme-pv="dark"]  .ap-card-preview { background: #0a0a0b; color: #f5f5f5; }
+  .ap-card[data-theme-pv="sepia"] .ap-card-preview { background: #f4ecd8; color: #3a2e1a; }
+
+  .ap-card-foot {
+    padding: 12px 14px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .ap-card-name {
+    font-family: var(--f-display); font-weight: 500; font-size: 14px; color: var(--ink);
+  }
+  .ap-card-tag {
+    margin-left: auto;
+    font-family: var(--f-mono); font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--muted-2);
+  }
+  .ap-card.active .ap-card-tag { color: var(--accent); }
+
+  /* Accent picker */
+  .ap-accent-row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .ap-accent-chip {
+    width: 36px; height: 36px; border-radius: 999px;
+    border: 2px solid transparent;
+    transition: transform .15s, border-color .15s;
+    position: relative;
+    cursor: pointer;
+  }
+  .ap-accent-chip:hover { transform: scale(1.08); }
+  .ap-accent-chip.active {
+    border-color: var(--ink);
+    box-shadow: 0 0 0 1.5px var(--bg) inset;
+  }
+  .ap-accent-chip[data-c="blue"]   { background: #5B8DEF; }
+  .ap-accent-chip[data-c="green"]  { background: #47B881; }
+  .ap-accent-chip[data-c="red"]    { background: #E0524A; }
+  .ap-accent-chip[data-c="purple"] { background: #8E6BD8; }
+  .ap-accent-chip[data-c="orange"] { background: #E58A3F; }
+
+  /* Reading-size slider preview */
+  .ap-rsize-row {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+  }
+  .ap-rsize-btn {
+    border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px 10px;
+    text-align: center;
+    background: var(--surface);
+    cursor: pointer; transition: border-color .15s, background .15s;
+    font-family: inherit; color: var(--ink);
+  }
+  .ap-rsize-btn:hover { border-color: var(--ink); }
+  .ap-rsize-btn.active { border-color: var(--accent); background: color-mix(in oklch, var(--accent) 6%, var(--surface)); }
+  .ap-rsize-btn .glyph {
+    font-family: var(--f-display); font-weight: 500;
+    line-height: 1; letter-spacing: -0.02em;
+    color: var(--ink); display: block; margin-bottom: 6px;
+  }
+  .ap-rsize-btn[data-s="s"]  .glyph { font-size: 18px; }
+  .ap-rsize-btn[data-s="m"]  .glyph { font-size: 22px; }
+  .ap-rsize-btn[data-s="l"]  .glyph { font-size: 26px; }
+  .ap-rsize-btn[data-s="xl"] .glyph { font-size: 32px; }
+  .ap-rsize-btn .lbl {
+    font-family: var(--f-mono); font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--muted);
+  }
+  .ap-rsize-btn.active .lbl { color: var(--accent); }
+
+  /* Reading preview pane */
+  .ap-preview {
+    margin-top: 8px; padding: 24px 28px;
+    border: 1px solid var(--divider); border-radius: 12px;
+    background: var(--bg-sub);
+  }
+  .ap-preview .pv-meta {
+    font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--muted-2); margin-bottom: 14px;
+  }
+  .ap-preview h3 {
+    font-family: var(--f-display); font-weight: 500;
+    font-size: calc(28px * var(--reading-scale, 1));
+    line-height: 1.15; letter-spacing: -0.022em;
+    margin: 0 0 14px;
+    color: var(--ink);
+  }
+  .ap-preview p {
+    font-size: calc(15px * var(--reading-scale, 1));
+    line-height: 1.75; color: var(--ink-2);
+    margin: 0 0 12px;
+    max-width: 56ch;
+  }
+  .ap-preview p .accent { color: var(--accent); }
+
+  /* Mini select */
+  .ap-select {
+    padding: 9px 14px;
+    border: 1px solid var(--border); border-radius: 8px;
+    background: var(--surface); color: var(--ink);
+    font-family: var(--f-body); font-size: 13.5px;
+    outline: none; cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='none' stroke='%23999' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' d='M1 1l4 4 4-4'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 32px;
+    min-width: 200px;
+  }
+  .ap-select:focus { border-color: var(--accent); }
+
+  /* Save bar — fixed to viewport so it never gets stuck inside a section */
+  .save-bar {
+    position: fixed; left: 240px; right: 0; bottom: 0;
+    padding: 16px 56px;
+    background: color-mix(in oklab, var(--bg) 92%, transparent);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center; gap: 14px;
+    transform: translateY(120%); transition: transform .25s var(--ease);
+    z-index: 80;
+    pointer-events: none;
+  }
+  .save-bar.show { transform: translateY(0); pointer-events: auto; }
+  .save-bar .msg {
+    font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--muted);
+  }
+  .save-bar .grow { flex: 1; }
+
+  /* Diff annotation — small note next to fields */
+  .field-note {
+    margin-top: 10px;
+    padding: 9px 12px;
+    border-left: 2px solid var(--accent);
+    font-family: var(--f-mono); font-size: 10.5px; letter-spacing: 0.04em;
+    color: var(--muted); line-height: 1.6;
+    background: color-mix(in oklch, var(--accent) 5%, transparent);
+    border-radius: 0 6px 6px 0;
+  }
+
+  @media (max-width: 900px) {
+    .st-page { padding-top: 0; }
+    .save-bar { left: 0; padding: 14px 20px; }
+    .ap-grid { grid-template-columns: 1fr; }
+    .st-main { padding-bottom: 140px; }
+  }
+  @media (max-width: 600px) {
+    .ap-rsize-row { grid-template-columns: repeat(2, 1fr); }
+    .nav-mock .links { display: none; }
+    .sample-banner { padding: 12px 16px; }
+    .sample-banner .legend { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Banner explaining what this is ── -->
+<div class="sample-banner">
+  <span class="ttl">Merged Sample <em>— Settings + Appearance</em></span>
+  <span class="meta">repo SettingsView.vue 完整保留 · Appearance 為新增分頁</span>
+  <span class="grow"></span>
+  <span class="legend">
+    <span><span class="dot repo"></span>Repo 原樣</span>
+    <span><span class="dot new"></span>新增 / NEW</span>
+  </span>
+</div>
+
+<!-- ── Mocked nav so the page feels like the real app ── -->
+<header class="nav-mock">
+  <span class="brand">MY BLOG <em>WEB.</em></span>
+  <nav class="links">
+    <a href="#">Home</a>
+    <a href="#">Articles</a>
+    <a href="#">Tags</a>
+    <a href="#">About</a>
+    <a href="#" class="cur">Settings</a>
+  </nav>
+  <span class="grow"></span>
+  <div class="avatar">T</div>
+</header>
+
+<!-- ── The actual settings page ── -->
+<div class="st-page">
+
+  <!-- Rail (matches repo's SettingsView nav) -->
+  <aside class="st-rail">
+    <div class="st-rail-brand">
+      <div style="font-family:var(--f-display);font-weight:500;font-size:18px;letter-spacing:-0.01em;">Settings</div>
+      <div style="font-family:var(--f-mono);font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted-2);margin-top:4px;">tommot · @tommot</div>
+    </div>
+
+    <nav class="st-nav">
+      <div class="st-nav-head">Account</div>
+      <button class="st-nav-item" data-tab="profile"><span class="st-nav-icon">◉</span>Profile</button>
+      <button class="st-nav-item active" data-tab="appearance">
+        <span class="st-nav-icon">◐</span>Appearance
+        <span class="new-pill" style="margin-left:auto">New</span>
+      </button>
+      <button class="st-nav-item" data-tab="account"><span class="st-nav-icon">⌂</span>Account</button>
+      <button class="st-nav-item" data-tab="social"><span class="st-nav-icon">∞</span>Social</button>
+
+      <div class="st-nav-head">Writing</div>
+      <button class="st-nav-item" data-tab="writing"><span class="st-nav-icon">✎</span>Editor</button>
+      <button class="st-nav-item" data-tab="notifications"><span class="st-nav-icon">◯</span>Notifications</button>
+
+      <div class="st-nav-head">Danger</div>
+      <button class="st-nav-item danger" data-tab="danger"><span class="st-nav-icon">!</span>Delete account</button>
+    </nav>
+  </aside>
+
+  <!-- Main: Appearance is the active tab -->
+  <main class="st-main">
+
+    <!-- ── APPEARANCE TAB (the new merged content) ── -->
+    <section class="st-section" data-tab-content="appearance">
+      <header class="st-section-head">
+        <div style="display:flex;align-items:baseline;gap:10px;">
+          <h2>Appearance</h2>
+          <span class="new-pill">New tab</span>
+        </div>
+        <p>調整你看 blog 的方式 — 主題、配色、字級、閱讀偏好。所有變更即時預覽，存到本機 localStorage（之後可同步到 server）。</p>
+      </header>
+
+      <!-- ── Theme ── -->
+      <div class="st-field-group">
+        <div class="st-field-label">
+          Theme
+          <span class="st-field-hint">深色更省眼力，Sepia 適合長時間閱讀</span>
+        </div>
+        <div class="st-field-body">
+          <div class="ap-grid" data-group="theme">
+            <button type="button" class="ap-card active" data-theme-pv="light" data-val="light">
+              <div class="ap-card-preview">
+                <div class="pv-accent" style="background:var(--accent)"></div>
+                <div class="pv-h"></div>
+                <div class="pv-l"></div>
+                <div class="pv-l short"></div>
+              </div>
+              <div class="ap-card-foot">
+                <span class="ap-card-name">Light</span>
+                <span class="ap-card-tag">Default</span>
+              </div>
+            </button>
+
+            <button type="button" class="ap-card" data-theme-pv="dark" data-val="dark">
+              <div class="ap-card-preview">
+                <div class="pv-accent" style="background:var(--accent)"></div>
+                <div class="pv-h"></div>
+                <div class="pv-l"></div>
+                <div class="pv-l short"></div>
+              </div>
+              <div class="ap-card-foot">
+                <span class="ap-card-name">Dark</span>
+                <span class="ap-card-tag">Auto-dim</span>
+              </div>
+            </button>
+
+            <button type="button" class="ap-card" data-theme-pv="sepia" data-val="sepia">
+              <div class="ap-card-preview">
+                <div class="pv-accent" style="background:#9b6b3a"></div>
+                <div class="pv-h"></div>
+                <div class="pv-l"></div>
+                <div class="pv-l short"></div>
+              </div>
+              <div class="ap-card-foot">
+                <span class="ap-card-name">Sepia</span>
+                <span class="ap-card-tag">Reading</span>
+              </div>
+            </button>
+          </div>
+          <div class="field-note">→ NEW · Sepia 主題從 Batch 2 帶進來，新增到 :root[data-theme="sepia"] tokens</div>
+        </div>
+      </div>
+
+      <div class="st-divider"></div>
+
+      <!-- ── Accent ── -->
+      <div class="st-field-group">
+        <div class="st-field-label">
+          Accent color
+          <span class="st-field-hint">套用在連結、按鈕、focus ring</span>
+        </div>
+        <div class="st-field-body">
+          <div class="ap-accent-row" data-group="accent">
+            <button type="button" class="ap-accent-chip active" data-c="blue"   data-val="blue"   aria-label="Blue"></button>
+            <button type="button" class="ap-accent-chip"        data-c="green"  data-val="green"  aria-label="Green"></button>
+            <button type="button" class="ap-accent-chip"        data-c="red"    data-val="red"    aria-label="Red"></button>
+            <button type="button" class="ap-accent-chip"        data-c="purple" data-val="purple" aria-label="Purple"></button>
+            <button type="button" class="ap-accent-chip"        data-c="orange" data-val="orange" aria-label="Orange"></button>
+          </div>
+          <div class="field-note">→ NEW · Accent picker（5 色）— 從 Batch 2 帶進來，覆寫 --accent token</div>
+        </div>
+      </div>
+
+      <div class="st-divider"></div>
+
+      <!-- ── Reading size ── -->
+      <div class="st-field-group">
+        <div class="st-field-label">
+          Reading size
+          <span class="st-field-hint">影響文章內文字級，UI 不變</span>
+        </div>
+        <div class="st-field-body">
+          <div class="ap-rsize-row" data-group="rsize">
+            <button type="button" class="ap-rsize-btn"        data-s="s"  data-val="s"><span class="glyph">Aa</span><span class="lbl">Small</span></button>
+            <button type="button" class="ap-rsize-btn active" data-s="m"  data-val="m"><span class="glyph">Aa</span><span class="lbl">Medium</span></button>
+            <button type="button" class="ap-rsize-btn"        data-s="l"  data-val="l"><span class="glyph">Aa</span><span class="lbl">Large</span></button>
+            <button type="button" class="ap-rsize-btn"        data-s="xl" data-val="xl"><span class="glyph">Aa</span><span class="lbl">X-Large</span></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="st-divider"></div>
+
+      <!-- ── Font family ── -->
+      <div class="st-field-group">
+        <div class="st-field-label">
+          Display font
+          <span class="st-field-hint">標題用字體，body 永遠用系統字</span>
+        </div>
+        <div class="st-field-body">
+          <select class="ap-select" id="font-select">
+            <option value="space"  selected>Space Grotesk · Geometric (Default)</option>
+            <option value="inter">Inter Tight · Neutral</option>
+            <option value="geist">Geist · Modern</option>
+          </select>
+          <div class="field-note">→ Repo 已有 data-font 機制（useAppearance.ts），這裡接上 UI</div>
+        </div>
+      </div>
+
+      <div class="st-divider"></div>
+
+      <!-- ── Toggles ── -->
+      <div class="st-field-group">
+        <div class="st-field-label">
+          Reading preferences
+          <span class="st-field-hint">閱讀體驗微調</span>
+        </div>
+        <div class="st-field-body">
+          <div class="st-toggle-list">
+            <div class="st-toggle" data-toggle="progress">
+              <div>
+                <div class="st-toggle-label">Reading progress bar</div>
+                <div class="st-field-hint">頁首 1px 進度條</div>
+              </div>
+              <div class="st-toggle-track on"><div class="st-toggle-thumb"></div></div>
+            </div>
+            <div class="st-toggle" data-toggle="lastread">
+              <div>
+                <div class="st-toggle-label">Last-read indicator <span class="new-pill">New</span></div>
+                <div class="st-field-hint">記得你上次讀到哪，回來時自動標記</div>
+              </div>
+              <div class="st-toggle-track on"><div class="st-toggle-thumb"></div></div>
+            </div>
+            <div class="st-toggle" data-toggle="autoplay">
+              <div>
+                <div class="st-toggle-label">Reduce motion</div>
+                <div class="st-field-hint">關閉非必要動畫（系統設定優先）</div>
+              </div>
+              <div class="st-toggle-track"><div class="st-toggle-thumb"></div></div>
+            </div>
+            <div class="st-toggle" data-toggle="cursor">
+              <div>
+                <div class="st-toggle-label">Custom cursor ring</div>
+                <div class="st-field-hint">桌面瀏覽器才會生效</div>
+              </div>
+              <div class="st-toggle-track"><div class="st-toggle-thumb"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="st-divider"></div>
+
+      <!-- ── Live preview ── -->
+      <div class="st-field-group">
+        <div class="st-field-label">
+          Live preview
+          <span class="st-field-hint">所有變更即時反映</span>
+        </div>
+        <div class="st-field-body">
+          <div class="ap-preview">
+            <div class="pv-meta">2026 · 04 · 30 · Reading · 6 min</div>
+            <h3>關於把 prototype 注入到 repo 的折衷美學</h3>
+            <p>當設計團隊跟工程團隊各自迭代到一個段落，會出現一種<span class="accent">「我們的不是同一個東西」</span>的錯覺。但其實只要 token 對齊、字體對齊，剩下的差異都只是版面選擇 — 這是可以慢慢收斂的。</p>
+            <p>這個 sample 想證明的就是這件事：repo 的 SettingsView 一行不動，新增一個 Appearance tab 就能把 Batch 2 的 sepia / accent picker / reading size 全部接進來，使用者不會察覺這是不同人做的。</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sticky save bar appears when something changes -->
+      <div class="save-bar" id="save-bar">
+        <span class="msg">● 你有未儲存的變更</span>
+        <span class="grow"></span>
+        <button class="st-btn-ghost" id="reset-btn">重設</button>
+        <button class="st-btn-primary" id="save-btn">儲存變更</button>
+      </div>
+    </section>
+
+    <!-- ── PROFILE TAB (placeholder, only shows when clicked) ── -->
+    <section class="st-section" data-tab-content="profile" hidden>
+      <header class="st-section-head">
+        <h2>Profile</h2>
+        <p>Repo 已實作 — 此 sample 不重複展示。實際內容含 avatar 拖曳、display name、bio、social links。</p>
+      </header>
+      <div style="padding:80px;border:1px dashed var(--border);border-radius:12px;text-align:center;color:var(--muted);font-family:var(--f-mono);font-size:11px;letter-spacing:0.18em;text-transform:uppercase;">
+        Repo 原樣 — 略
+      </div>
+    </section>
+
+    <!-- Same placeholder pattern for the rest -->
+    <section class="st-section" data-tab-content="account"        hidden><header class="st-section-head"><h2>Account</h2><p>Email / password / sessions — repo 原樣。</p></header><div style="padding:80px;border:1px dashed var(--border);border-radius:12px;text-align:center;color:var(--muted);font-family:var(--f-mono);font-size:11px;letter-spacing:0.18em;text-transform:uppercase;">Repo 原樣 — 略</div></section>
+    <section class="st-section" data-tab-content="social"         hidden><header class="st-section-head"><h2>Social</h2><p>Twitter / GitHub / website — repo 原樣。</p></header><div style="padding:80px;border:1px dashed var(--border);border-radius:12px;text-align:center;color:var(--muted);font-family:var(--f-mono);font-size:11px;letter-spacing:0.18em;text-transform:uppercase;">Repo 原樣 — 略</div></section>
+    <section class="st-section" data-tab-content="writing"        hidden><header class="st-section-head"><h2>Editor</h2><p>Default mode / preview pane / autosave interval — repo 原樣。</p></header><div style="padding:80px;border:1px dashed var(--border);border-radius:12px;text-align:center;color:var(--muted);font-family:var(--f-mono);font-size:11px;letter-spacing:0.18em;text-transform:uppercase;">Repo 原樣 — 略</div></section>
+    <section class="st-section" data-tab-content="notifications"  hidden><header class="st-section-head"><h2>Notifications</h2><p>Comments / mentions / weekly digest — repo 原樣。</p></header><div style="padding:80px;border:1px dashed var(--border);border-radius:12px;text-align:center;color:var(--muted);font-family:var(--f-mono);font-size:11px;letter-spacing:0.18em;text-transform:uppercase;">Repo 原樣 — 略</div></section>
+    <section class="st-section" data-tab-content="danger"         hidden><header class="st-section-head"><h2>Delete account</h2><p>Repo 原樣。</p></header><div style="padding:80px;border:1px dashed var(--border);border-radius:12px;text-align:center;color:var(--muted);font-family:var(--f-mono);font-size:11px;letter-spacing:0.18em;text-transform:uppercase;">Repo 原樣 — 略</div></section>
+
+  </main>
+</div>
+
+<script>
+  // ───────────────────────────────────────────────────
+  // Tab switching (rail nav)
+  // ───────────────────────────────────────────────────
+  const navItems = document.querySelectorAll('.st-nav-item');
+  const tabs = document.querySelectorAll('[data-tab-content]');
+  navItems.forEach(b => {
+    b.addEventListener('click', () => {
+      const t = b.dataset.tab;
+      navItems.forEach(n => n.classList.toggle('active', n === b));
+      tabs.forEach(s => s.hidden = s.dataset.tabContent !== t);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
+
+  // ───────────────────────────────────────────────────
+  // Live preview state — applies to <html> immediately
+  // ───────────────────────────────────────────────────
+  const initial = {
+    theme:  document.documentElement.getAttribute('data-theme')        || 'light',
+    accent: document.documentElement.getAttribute('data-accent-color') || 'blue',
+    rsize:  document.documentElement.getAttribute('data-rsize')        || 'm',
+    font:   document.documentElement.getAttribute('data-font')         || 'space',
+    progress: true, lastread: true, motion: false, cursor: false,
+  };
+  let current = { ...initial };
+  const saveBar = document.getElementById('save-bar');
+  function refreshSaveBar() {
+    const dirty = Object.keys(initial).some(k => initial[k] !== current[k]);
+    saveBar.classList.toggle('show', dirty);
+  }
+  function applyAll() {
+    document.documentElement.setAttribute('data-theme', current.theme);
+    document.documentElement.setAttribute('data-accent-color', current.accent);
+    document.documentElement.setAttribute('data-rsize', current.rsize);
+    document.documentElement.setAttribute('data-font', current.font);
+    // Force a repaint so cascading var() changes propagate immediately
+    // — works around occasional stale-color hangs after data-theme flip.
+    requestAnimationFrame(() => {
+      document.body.style.color = '';
+      void document.body.offsetHeight;
+    });
+    refreshSaveBar();
+  }
+  applyAll();
+
+  // ── Theme cards ──
+  document.querySelectorAll('[data-group="theme"] .ap-card').forEach(card => {
+    card.addEventListener('click', () => {
+      document.querySelectorAll('[data-group="theme"] .ap-card').forEach(c => c.classList.toggle('active', c === card));
+      current.theme = card.dataset.val;
+      applyAll();
+    });
+  });
+
+  // ── Accent chips ──
+  document.querySelectorAll('[data-group="accent"] .ap-accent-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('[data-group="accent"] .ap-accent-chip').forEach(c => c.classList.toggle('active', c === chip));
+      current.accent = chip.dataset.val;
+      applyAll();
+    });
+  });
+
+  // ── Reading size ──
+  document.querySelectorAll('[data-group="rsize"] .ap-rsize-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-group="rsize"] .ap-rsize-btn').forEach(b => b.classList.toggle('active', b === btn));
+      current.rsize = btn.dataset.val;
+      applyAll();
+    });
+  });
+
+  // ── Font select ──
+  document.getElementById('font-select').addEventListener('change', e => {
+    current.font = e.target.value;
+    applyAll();
+  });
+
+  // ── Toggles ──
+  document.querySelectorAll('.st-toggle').forEach(row => {
+    row.addEventListener('click', () => {
+      const track = row.querySelector('.st-toggle-track');
+      const isOn = track.classList.toggle('on');
+      const key = row.dataset.toggle;
+      current[key] = isOn;
+      refreshSaveBar();
+    });
+  });
+
+  // ── Save / reset ──
+  document.getElementById('save-btn').addEventListener('click', () => {
+    Object.assign(initial, current);
+    refreshSaveBar();
+    // mimic the repo's existing "saved" toast pattern
+    const toast = document.createElement('div');
+    toast.className = 'st-toast saved';
+    toast.style.cssText = 'position:fixed;bottom:96px;right:32px;z-index:300;';
+    toast.innerHTML = '<span class="st-toast-dot saved"></span>已儲存';
+    document.body.appendChild(toast);
+    setTimeout(() => { toast.style.animation = 'st-toast-out .25s forwards'; }, 1400);
+    setTimeout(() => toast.remove(), 1700);
+  });
+  document.getElementById('reset-btn').addEventListener('click', () => {
+    Object.assign(current, initial);
+    // reflect in UI
+    document.querySelectorAll('[data-group="theme"] .ap-card').forEach(c => c.classList.toggle('active', c.dataset.val === current.theme));
+    document.querySelectorAll('[data-group="accent"] .ap-accent-chip').forEach(c => c.classList.toggle('active', c.dataset.val === current.accent));
+    document.querySelectorAll('[data-group="rsize"] .ap-rsize-btn').forEach(b => b.classList.toggle('active', b.dataset.val === current.rsize));
+    document.getElementById('font-select').value = current.font;
+    document.querySelectorAll('.st-toggle').forEach(row => {
+      const track = row.querySelector('.st-toggle-track');
+      track.classList.toggle('on', !!current[row.dataset.toggle]);
+    });
+    applyAll();
+  });
+</script>
+
+</body>
+</html>

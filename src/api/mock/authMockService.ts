@@ -35,6 +35,9 @@ export function loginMock(payload: LoginPayload): Promise<AuthTokens> {
     if (!user) {
       throw new Error('帳號或密碼錯誤');
     }
+    if (!user.emailVerified) {
+      throw new Error('請先驗證您的信箱');
+    }
     setCurrentLoggedInUserId(user.uuid);
     setRefreshTokenValid(true);
     return generateTokens();
@@ -98,6 +101,19 @@ export function verifyEmailMock(token: string): Promise<void> {
       throw new Error('無效的信箱驗證 token');
     }
     console.log('[Mock] 信箱已驗證');
+  });
+}
+
+export function verifyEmailCodeMock(email: string, code: string): Promise<void> {
+  return mockDelay(() => {
+    if (!/^\d{6}$/.test(code)) {
+      throw new Error('驗證碼格式不正確');
+    }
+    const user = registeredUsers.find((u) => u.email === email);
+    if (!user) {
+      throw new Error('驗證碼無效或已過期');
+    }
+    user.emailVerified = true;
   });
 }
 

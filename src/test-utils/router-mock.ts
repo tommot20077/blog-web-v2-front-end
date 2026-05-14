@@ -12,6 +12,7 @@ export function createTestRouter(initialRoute = '/') {
       { path: '/login', name: 'login', component: StubComponent, meta: { guestOnly: true } },
       { path: '/register', name: 'register', component: StubComponent, meta: { guestOnly: true } },
       { path: '/forgot-password', name: 'forgot-password', component: StubComponent, meta: { guestOnly: true } },
+      { path: '/check-email', name: 'check-email', component: StubComponent, meta: { guestOnly: true } },
       { path: '/reset-password', name: 'reset-password', component: StubComponent, meta: { guestOnly: true } },
       { path: '/verify-email', name: 'verify-email', component: StubComponent },
       { path: '/editor', name: 'editor-new', component: StubComponent },

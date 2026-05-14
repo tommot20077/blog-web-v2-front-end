@@ -40,6 +40,7 @@ function createTestRouter() {
       { path: '/login', name: 'login', component: StubComponent, meta: { guestOnly: true } },
       { path: '/register', name: 'register', component: StubComponent, meta: { guestOnly: true } },
       { path: '/forgot-password', name: 'forgot-password', component: StubComponent, meta: { guestOnly: true } },
+      { path: '/check-email', name: 'check-email', component: StubComponent, meta: { guestOnly: true } },
       { path: '/reset-password', name: 'reset-password', component: StubComponent, meta: { guestOnly: true } },
       { path: '/verify-email', name: 'verify-email', component: StubComponent },
       // 測試用：需要認證的路由
@@ -138,6 +139,12 @@ describe('Auth 路由解析', () => {
     const router = createTestRouter()
     await router.push('/forgot-password')
     expect(router.currentRoute.value.name).toBe('forgot-password')
+  })
+
+  it('/check-email 路由正確匹配 name: check-email', async () => {
+    const router = createTestRouter()
+    await router.push('/check-email')
+    expect(router.currentRoute.value.name).toBe('check-email')
   })
 
   it('/reset-password 路由正確匹配 name: reset-password', async () => {

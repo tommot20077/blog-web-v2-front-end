@@ -23,13 +23,13 @@ test.describe('Tag 頁面導航', () => {
   })
 
   test('TagView 顯示文章列表容器', async ({ page }) => {
-    await page.goto('/tags/vue')
+    await page.goto('/tags/vue-3')
     await page.waitForTimeout(600)
     await expect(page.locator('[data-testid="tag-articles"]')).toBeVisible()
   })
 
   test('TagView 顯示相關標籤（若有資料）', async ({ page }) => {
-    await page.goto('/tags/vue')
+    await page.goto('/tags/vue-3')
     await page.waitForTimeout(600)
     // tag 標題存在
     await expect(page.locator('[data-testid="tag-title"]')).toBeVisible()

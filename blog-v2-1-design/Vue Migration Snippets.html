@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Vue 3 Migration Snippets — MY BLOG WEB.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+TC:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --bg: #f4f4f4; --bg-sub: #ededed; --surface: #fbfbfb;
+  --ink: #0a0a0b; --ink-2: #2a2a2c; --muted: #6b6b70; --muted-2: #9a9aa0;
+  --border: rgba(10,10,11,0.10); --border-strong: rgba(10,10,11,0.18);
+  --divider: rgba(10,10,11,0.08);
+  --accent: #5B8DEF; --vue: #42b883; --vue-2: #35495e;
+  --f-display: "Space Grotesk", "Noto Sans TC", system-ui, sans-serif;
+  --f-body: "Space Grotesk", "Noto Sans TC", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+[data-theme="dark"] {
+  --bg: #0d0d0f; --bg-sub: #15151a; --surface: #18181c;
+  --ink: #ededef; --ink-2: #c9c9cd; --muted: #a6a6ac; --muted-2: #7b7b82;
+  --border: rgba(255,255,255,0.10); --border-strong: rgba(255,255,255,0.18);
+  --divider: rgba(255,255,255,0.08);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); line-height: 1.7; -webkit-font-smoothing: antialiased; }
+::selection { background: var(--vue); color: white; }
+
+.bar {
+  position: sticky; top: 0; z-index: 50;
+  backdrop-filter: blur(20px); background: color-mix(in oklab, var(--bg) 70%, transparent);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 28px; display: flex; justify-content: space-between; align-items: center;
+}
+.bar .brand { display: flex; align-items: center; gap: 10px; font-family: var(--f-display); font-style: italic; font-weight: 500; }
+.bar .brand .mk { width: 22px; height: 22px; border-radius: 5px; background: var(--vue); position: relative; }
+.bar .brand .mk::after { content: ""; position: absolute; inset: 5px; clip-path: polygon(50% 0, 100% 0, 50% 80%, 0 0); background: var(--vue-2); }
+.bar a.lnk { padding: 8px 14px; border-radius: 999px; font-family: var(--f-mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.bar a.lnk:hover { color: var(--ink); background: var(--bg-sub); }
+
+.wrap { max-width: 1240px; margin: 0 auto; padding: 0 28px; }
+@media (max-width: 600px) { .wrap { padding: 0 18px; } }
+
+.hero { padding: 96px 0 56px; border-bottom: 1px solid var(--border-strong); }
+.hero .eyebrow {
+  font-family: var(--f-mono); font-size: 11px; letter-spacing: .22em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 24px; display: inline-flex; align-items: center; gap: 8px;
+}
+.hero .eyebrow::before { content: ""; width: 6px; height: 6px; border-radius: 999px; background: var(--vue); box-shadow: 0 0 0 4px color-mix(in oklab, var(--vue) 18%, transparent); }
+.hero h1 {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: clamp(36px, 6vw, 76px); line-height: 1; letter-spacing: -.04em;
+  margin: 0 0 18px; max-width: 22ch;
+}
+.hero h1 em { font-style: italic; font-weight: 300; color: var(--muted); }
+.hero h1 .v { color: var(--vue); }
+.hero p { font-size: clamp(15px, 1.3vw, 17px); color: var(--ink-2); max-width: 60ch; margin: 0; line-height: 1.7; }
+
+.section { padding: 56px 0; border-bottom: 1px solid var(--border); }
+.sect-head {
+  display: grid; grid-template-columns: auto 1fr auto;
+  align-items: baseline; gap: 24px; margin-bottom: 28px;
+}
+.sect-head .num { font-family: var(--f-mono); font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: var(--muted); }
+.sect-head h2 { font-family: var(--f-display); font-weight: 500; font-size: clamp(24px, 3.4vw, 36px); margin: 0; letter-spacing: -.022em; line-height: 1.1; }
+.sect-head .r { text-align: right; font-family: var(--f-mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+@media (max-width: 768px) { .sect-head { grid-template-columns: 1fr; gap: 6px; } .sect-head .r { text-align: left; } }
+
+.intro { color: var(--ink-2); max-width: 68ch; margin: 0 0 28px; line-height: 1.7; }
+
+.code-card {
+  border: 1px solid var(--border-strong); border-radius: 12px; overflow: hidden;
+  background: var(--surface); margin-bottom: 18px;
+}
+.code-card .head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 16px;
+  background: var(--bg-sub);
+  border-bottom: 1px solid var(--divider);
+  font-family: var(--f-mono); font-size: 11px; letter-spacing: .12em;
+}
+.code-card .head .name { color: var(--ink); }
+.code-card .head .name .ext { color: var(--vue); font-weight: 600; }
+.code-card .head .copy {
+  padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--muted);
+  font-family: var(--f-mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; cursor: pointer;
+  transition: all .2s;
+}
+.code-card .head .copy:hover { color: var(--ink); border-color: var(--border-strong); }
+.code-card .head .copy.copied { background: var(--vue); color: white; border-color: var(--vue); }
+.code-card pre {
+  margin: 0; padding: 18px 20px; overflow-x: auto;
+  font-family: var(--f-mono); font-size: 12.5px; line-height: 1.7;
+  color: var(--ink-2);
+  tab-size: 2;
+}
+.code-card pre .tk-tag { color: #d05a72; }
+.code-card pre .tk-attr { color: #7b6cd9; }
+.code-card pre .tk-str { color: #2d8a4e; }
+.code-card pre .tk-kw { color: #c0397f; font-weight: 500; }
+.code-card pre .tk-fn { color: #2563b8; }
+.code-card pre .tk-cm { color: var(--muted-2); font-style: italic; }
+.code-card pre .tk-num { color: #b45c14; }
+[data-theme="dark"] .code-card pre {
+  color: #e2e2e8;
+}
+[data-theme="dark"] .code-card pre .tk-tag { color: #ff8aa3; }
+[data-theme="dark"] .code-card pre .tk-attr { color: #a795f5; }
+[data-theme="dark"] .code-card pre .tk-str { color: #6cd29a; }
+[data-theme="dark"] .code-card pre .tk-kw { color: #f06fa5; }
+[data-theme="dark"] .code-card pre .tk-fn { color: #6fb1f5; }
+[data-theme="dark"] .code-card pre .tk-num { color: #f0a060; }
+
+.cheat-table {
+  width: 100%; border-collapse: collapse;
+  font-size: 13.5px;
+}
+.cheat-table th {
+  text-align: left; padding: 12px 16px;
+  font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .18em;
+  text-transform: uppercase; color: var(--muted);
+  border-bottom: 1px solid var(--border-strong);
+  background: var(--bg-sub);
+}
+.cheat-table td {
+  padding: 14px 16px; border-bottom: 1px solid var(--divider);
+  vertical-align: top; line-height: 1.55;
+}
+.cheat-table td code, .cheat-table th code {
+  font-family: var(--f-mono); font-size: 12px;
+  background: var(--bg-sub); padding: 2px 6px; border-radius: 4px;
+}
+.cheat-table tr:hover td { background: color-mix(in oklab, var(--vue) 4%, transparent); }
+.cheat-table .arrow { color: var(--muted-2); font-family: var(--f-mono); }
+
+.callout {
+  padding: 16px 20px; border-left: 2px solid var(--vue);
+  background: color-mix(in oklab, var(--vue) 6%, var(--surface));
+  border-radius: 0 12px 12px 0;
+  margin: 18px 0;
+  font-size: 13.5px; line-height: 1.7;
+}
+.callout b { color: var(--vue-2); }
+[data-theme="dark"] .callout b { color: var(--vue); }
+.callout .lbl {
+  font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .18em;
+  text-transform: uppercase; color: var(--vue); margin-bottom: 4px; display: block;
+}
+
+.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 24px; }
+.step {
+  padding: 18px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface);
+  display: flex; flex-direction: column; gap: 8px;
+}
+.step .n { font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .22em; text-transform: uppercase; color: var(--vue); }
+.step h4 { font-family: var(--f-display); font-weight: 500; font-size: 16px; margin: 0; letter-spacing: -.008em; }
+.step p { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.55; }
+
+.footer {
+  padding: 40px 28px; border-top: 1px solid var(--border-strong);
+  font-family: var(--f-mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted);
+  display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap;
+}
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <a href="#" class="brand"><span class="mk"></span><span>Vue 3 · Migration Snippets</span></a>
+  <nav style="display:flex; gap:4px;">
+    <a href="#composables" class="lnk">Composables</a>
+    <a href="#sfc" class="lnk">SFC</a>
+    <a href="#cheat" class="lnk">Cheatsheet</a>
+    <a href="#steps" class="lnk">Steps</a>
+  </nav>
+</header>
+
+<section class="hero wrap">
+  <div class="eyebrow">§ React → Vue 3 · 用 &lt;script setup&gt; 寫</div>
+  <h1>同樣的設計系統，<em>換一套</em><br><span class="v">框架</span>住進去。</h1>
+  <p>把 prototype 裡的 hooks 改寫成 Vue 3 composables、把 context provider 換成 provide/inject、把 className 換成 class。其實移動的東西不多，因為設計 token 都寫在 CSS。</p>
+</section>
+
+<section id="composables" class="section">
+  <div class="wrap">
+    <div class="sect-head">
+      <span class="num">§ 01 — Composables</span>
+      <h2>useToast / useTheme / useReadingProgress</h2>
+      <span class="r">3 files</span>
+    </div>
+    <p class="intro">React 裡的 Provider + Hook 模式，在 Vue 3 用 <code style="font-family:var(--f-mono);background:var(--bg-sub);padding:2px 6px;border-radius:4px;">provide</code> + <code style="font-family:var(--f-mono);background:var(--bg-sub);padding:2px 6px;border-radius:4px;">inject</code> 加一個 composable 就能對應。下方三個檔案是實際可用的版本。</p>
+
+    <div class="code-card">
+      <div class="head">
+        <span class="name">composables/useTheme<span class="ext">.ts</span></span>
+        <button class="copy" data-copy>Copy</button>
+      </div>
+<pre><span class="tk-kw">import</span> { ref, watchEffect } <span class="tk-kw">from</span> <span class="tk-str">'vue'</span>
+
+<span class="tk-cm">// 全域單例 — 不需要 provide/inject，直接 import 即可</span>
+<span class="tk-kw">const</span> theme = ref&lt;<span class="tk-str">'light'</span> | <span class="tk-str">'dark'</span>&gt;(
+  (<span class="tk-kw">typeof</span> localStorage !== <span class="tk-str">'undefined'</span> &amp;&amp; localStorage.getItem(<span class="tk-str">'theme'</span>) <span class="tk-kw">as</span> <span class="tk-kw">any</span>) || <span class="tk-str">'light'</span>
+)
+
+watchEffect(() =&gt; {
+  document.documentElement.<span class="tk-fn">setAttribute</span>(<span class="tk-str">'data-theme'</span>, theme.value)
+  localStorage.<span class="tk-fn">setItem</span>(<span class="tk-str">'theme'</span>, theme.value)
+})
+
+<span class="tk-kw">export function</span> <span class="tk-fn">useTheme</span>() {
+  <span class="tk-kw">const</span> toggle = () =&gt; { theme.value = theme.value === <span class="tk-str">'dark'</span> ? <span class="tk-str">'light'</span> : <span class="tk-str">'dark'</span> }
+  <span class="tk-kw">return</span> { theme, toggle }
+}</pre>
+    </div>
+
+    <div class="code-card">
+      <div class="head">
+        <span class="name">composables/useToast<span class="ext">.ts</span></span>
+        <button class="copy" data-copy>Copy</button>
+      </div>
+<pre><span class="tk-kw">import</span> { ref } <span class="tk-kw">from</span> <span class="tk-str">'vue'</span>
+
+<span class="tk-kw">type</span> Toast = { id: <span class="tk-kw">number</span>; type: <span class="tk-str">'success'</span> | <span class="tk-str">'error'</span> | <span class="tk-str">'info'</span>; title: <span class="tk-kw">string</span>; msg?: <span class="tk-kw">string</span>; state: <span class="tk-str">'in'</span> | <span class="tk-str">'out'</span> }
+
+<span class="tk-kw">const</span> toasts = ref&lt;Toast[]&gt;([])
+<span class="tk-kw">let</span> seq = <span class="tk-num">1</span>
+
+<span class="tk-kw">function</span> <span class="tk-fn">push</span>(type: Toast[<span class="tk-str">'type'</span>], title: <span class="tk-kw">string</span>, msg?: <span class="tk-kw">string</span>) {
+  <span class="tk-kw">const</span> id = seq++
+  toasts.value.<span class="tk-fn">push</span>({ id, type, title, msg, state: <span class="tk-str">'in'</span> })
+  <span class="tk-fn">setTimeout</span>(() =&gt; {
+    <span class="tk-kw">const</span> t = toasts.value.<span class="tk-fn">find</span>(x =&gt; x.id === id)
+    <span class="tk-kw">if</span> (t) t.state = <span class="tk-str">'out'</span>
+    <span class="tk-fn">setTimeout</span>(() =&gt; { toasts.value = toasts.value.<span class="tk-fn">filter</span>(x =&gt; x.id !== id) }, <span class="tk-num">400</span>)
+  }, <span class="tk-num">3600</span>)
+}
+
+<span class="tk-kw">export function</span> <span class="tk-fn">useToast</span>() {
+  <span class="tk-kw">return</span> {
+    toasts,
+    success: (t: <span class="tk-kw">string</span>, m?: <span class="tk-kw">string</span>) =&gt; <span class="tk-fn">push</span>(<span class="tk-str">'success'</span>, t, m),
+    error:   (t: <span class="tk-kw">string</span>, m?: <span class="tk-kw">string</span>) =&gt; <span class="tk-fn">push</span>(<span class="tk-str">'error'</span>, t, m),
+    info:    (t: <span class="tk-kw">string</span>, m?: <span class="tk-kw">string</span>) =&gt; <span class="tk-fn">push</span>(<span class="tk-str">'info'</span>, t, m),
+  }
+}</pre>
+    </div>
+
+    <div class="code-card">
+      <div class="head">
+        <span class="name">composables/useReadingProgress<span class="ext">.ts</span></span>
+        <button class="copy" data-copy>Copy</button>
+      </div>
+<pre><span class="tk-kw">import</span> { ref, onMounted, onBeforeUnmount } <span class="tk-kw">from</span> <span class="tk-str">'vue'</span>
+
+<span class="tk-kw">export function</span> <span class="tk-fn">useReadingProgress</span>(target?: () =&gt; HTMLElement | <span class="tk-kw">null</span>) {
+  <span class="tk-kw">const</span> pct = ref(<span class="tk-num">0</span>)
+
+  <span class="tk-kw">const</span> onScroll = () =&gt; {
+    <span class="tk-kw">const</span> el = target?.() ?? <span class="tk-kw">null</span>
+    <span class="tk-kw">if</span> (el) {
+      <span class="tk-kw">const</span> rect = el.<span class="tk-fn">getBoundingClientRect</span>()
+      <span class="tk-kw">const</span> total = el.offsetHeight - window.innerHeight
+      pct.value = Math.<span class="tk-fn">max</span>(<span class="tk-num">0</span>, Math.<span class="tk-fn">min</span>(<span class="tk-num">100</span>, (-rect.top / total) * <span class="tk-num">100</span>))
+    } <span class="tk-kw">else</span> {
+      <span class="tk-kw">const</span> total = document.documentElement.scrollHeight - window.innerHeight
+      pct.value = Math.<span class="tk-fn">max</span>(<span class="tk-num">0</span>, Math.<span class="tk-fn">min</span>(<span class="tk-num">100</span>, (window.scrollY / total) * <span class="tk-num">100</span>))
+    }
+  }
+
+  <span class="tk-fn">onMounted</span>(() =&gt; { window.<span class="tk-fn">addEventListener</span>(<span class="tk-str">'scroll'</span>, onScroll, { passive: <span class="tk-kw">true</span> }); <span class="tk-fn">onScroll</span>() })
+  <span class="tk-fn">onBeforeUnmount</span>(() =&gt; window.<span class="tk-fn">removeEventListener</span>(<span class="tk-str">'scroll'</span>, onScroll))
+
+  <span class="tk-kw">return</span> { pct }
+}</pre>
+    </div>
+
+    <div class="callout">
+      <span class="lbl">§ tip</span>
+      <b>關於響應式</b>：Vue 的 <code style="font-family:var(--f-mono);background:var(--bg-sub);padding:1px 5px;border-radius:3px;">ref()</code> 取代 React 的 <code style="font-family:var(--f-mono);background:var(--bg-sub);padding:1px 5px;border-radius:3px;">useState</code>。讀寫時要加 <code style="font-family:var(--f-mono);background:var(--bg-sub);padding:1px 5px;border-radius:3px;">.value</code>，但在 template 裡會自動展開。
+    </div>
+  </div>
+</section>
+
+<section id="sfc" class="section">
+  <div class="wrap">
+    <div class="sect-head">
+      <span class="num">§ 02 — SFC</span>
+      <h2>三個 Single-File Component。</h2>
+      <span class="r">Toast / Progress / Drawer</span>
+    </div>
+
+    <div class="code-card">
+      <div class="head">
+        <span class="name">components/ToastStack<span class="ext">.vue</span></span>
+        <button class="copy" data-copy>Copy</button>
+      </div>
+<pre><span class="tk-tag">&lt;script setup lang=</span><span class="tk-str">"ts"</span><span class="tk-tag">&gt;</span>
+<span class="tk-kw">import</span> { useToast } <span class="tk-kw">from</span> <span class="tk-str">'@/composables/useToast'</span>
+<span class="tk-kw">const</span> { toasts } = <span class="tk-fn">useToast</span>()
+<span class="tk-tag">&lt;/script&gt;</span>
+
+<span class="tk-tag">&lt;template&gt;</span>
+  <span class="tk-tag">&lt;Teleport</span> <span class="tk-attr">to=</span><span class="tk-str">"body"</span><span class="tk-tag">&gt;</span>
+    <span class="tk-tag">&lt;div</span> <span class="tk-attr">class=</span><span class="tk-str">"toast-stack"</span><span class="tk-tag">&gt;</span>
+      <span class="tk-tag">&lt;TransitionGroup</span> <span class="tk-attr">name=</span><span class="tk-str">"toast"</span><span class="tk-tag">&gt;</span>
+        <span class="tk-tag">&lt;div</span>
+          <span class="tk-attr">v-for=</span><span class="tk-str">"t in toasts"</span>
+          <span class="tk-attr">:key=</span><span class="tk-str">"t.id"</span>
+          <span class="tk-attr">class=</span><span class="tk-str">"toast"</span>
+          <span class="tk-attr">:class=</span><span class="tk-str">"[t.type, t.state]"</span>
+        <span class="tk-tag">&gt;</span>
+          <span class="tk-tag">&lt;span</span> <span class="tk-attr">class=</span><span class="tk-str">"ic"</span><span class="tk-tag">&gt;</span>{{ t.type === <span class="tk-str">'success'</span> ? <span class="tk-str">'✓'</span> : t.type === <span class="tk-str">'error'</span> ? <span class="tk-str">'!'</span> : <span class="tk-str">'i'</span> }}<span class="tk-tag">&lt;/span&gt;</span>
+          <span class="tk-tag">&lt;div</span> <span class="tk-attr">class=</span><span class="tk-str">"msg"</span><span class="tk-tag">&gt;</span>
+            <span class="tk-tag">&lt;b&gt;</span>{{ t.title }}<span class="tk-tag">&lt;/b&gt;</span>
+            <span class="tk-tag">&lt;span</span> <span class="tk-attr">v-if=</span><span class="tk-str">"t.msg"</span><span class="tk-tag">&gt;</span>{{ t.msg }}<span class="tk-tag">&lt;/span&gt;</span>
+          <span class="tk-tag">&lt;/div&gt;</span>
+        <span class="tk-tag">&lt;/div&gt;</span>
+      <span class="tk-tag">&lt;/TransitionGroup&gt;</span>
+    <span class="tk-tag">&lt;/div&gt;</span>
+  <span class="tk-tag">&lt;/Teleport&gt;</span>
+<span class="tk-tag">&lt;/template&gt;</span>
+
+<span class="tk-tag">&lt;style scoped&gt;</span>
+<span class="tk-cm">/* 樣式直接複用 enhancements.css 裡的 .toast / .toast-stack */</span>
+.toast-enter-from, .toast-leave-to { opacity: <span class="tk-num">0</span>; transform: translateY(<span class="tk-num">8</span>px); }
+.toast-enter-active, .toast-leave-active { transition: all .35s var(--ease); }
+<span class="tk-tag">&lt;/style&gt;</span></pre>
+    </div>
+
+    <div class="code-card">
+      <div class="head">
+        <span class="name">components/ReadingProgress<span class="ext">.vue</span></span>
+        <button class="copy" data-copy>Copy</button>
+      </div>
+<pre><span class="tk-tag">&lt;script setup lang=</span><span class="tk-str">"ts"</span><span class="tk-tag">&gt;</span>
+<span class="tk-kw">import</span> { useReadingProgress } <span class="tk-kw">from</span> <span class="tk-str">'@/composables/useReadingProgress'</span>
+
+<span class="tk-kw">const</span> props = <span class="tk-fn">defineProps</span>&lt;{ targetSelector?: <span class="tk-kw">string</span> }&gt;()
+
+<span class="tk-kw">const</span> { pct } = <span class="tk-fn">useReadingProgress</span>(
+  () =&gt; props.targetSelector ? document.<span class="tk-fn">querySelector</span>(props.targetSelector) : <span class="tk-kw">null</span>
+)
+<span class="tk-tag">&lt;/script&gt;</span>
+
+<span class="tk-tag">&lt;template&gt;</span>
+  <span class="tk-tag">&lt;div</span> <span class="tk-attr">class=</span><span class="tk-str">"read-progress"</span> <span class="tk-attr">:style=</span><span class="tk-str">"{ width: pct + '%' }"</span> <span class="tk-tag">/&gt;</span>
+<span class="tk-tag">&lt;/template&gt;</span></pre>
+    </div>
+
+    <div class="code-card">
+      <div class="head">
+        <span class="name">components/MobileDrawer<span class="ext">.vue</span></span>
+        <button class="copy" data-copy>Copy</button>
+      </div>
+<pre><span class="tk-tag">&lt;script setup lang=</span><span class="tk-str">"ts"</span><span class="tk-tag">&gt;</span>
+<span class="tk-kw">import</span> { watch, onBeforeUnmount } <span class="tk-kw">from</span> <span class="tk-str">'vue'</span>
+
+<span class="tk-kw">const</span> props = <span class="tk-fn">defineProps</span>&lt;{ open: <span class="tk-kw">boolean</span> }&gt;()
+<span class="tk-kw">const</span> emit = <span class="tk-fn">defineEmits</span>&lt;{ (e: <span class="tk-str">'close'</span>): <span class="tk-kw">void</span>; (e: <span class="tk-str">'navigate'</span>, view: <span class="tk-kw">string</span>): <span class="tk-kw">void</span> }&gt;()
+
+<span class="tk-kw">const</span> onKey = (e: KeyboardEvent) =&gt; { <span class="tk-kw">if</span> (e.key === <span class="tk-str">'Escape'</span>) emit(<span class="tk-str">'close'</span>) }
+
+<span class="tk-fn">watch</span>(() =&gt; props.open, (v) =&gt; {
+  document.body.style.overflow = v ? <span class="tk-str">'hidden'</span> : <span class="tk-str">''</span>
+  v ? window.<span class="tk-fn">addEventListener</span>(<span class="tk-str">'keydown'</span>, onKey)
+    : window.<span class="tk-fn">removeEventListener</span>(<span class="tk-str">'keydown'</span>, onKey)
+})
+<span class="tk-fn">onBeforeUnmount</span>(() =&gt; { document.body.style.overflow = <span class="tk-str">''</span>; window.<span class="tk-fn">removeEventListener</span>(<span class="tk-str">'keydown'</span>, onKey) })
+
+<span class="tk-kw">const</span> go = (view: <span class="tk-kw">string</span>) =&gt; { emit(<span class="tk-str">'navigate'</span>, view); emit(<span class="tk-str">'close'</span>) }
+<span class="tk-tag">&lt;/script&gt;</span>
+
+<span class="tk-tag">&lt;template&gt;</span>
+  <span class="tk-tag">&lt;Teleport</span> <span class="tk-attr">to=</span><span class="tk-str">"body"</span><span class="tk-tag">&gt;</span>
+    <span class="tk-tag">&lt;div</span> <span class="tk-attr">class=</span><span class="tk-str">"drawer-overlay"</span> <span class="tk-attr">:class=</span><span class="tk-str">"{ open }"</span> <span class="tk-attr">@click=</span><span class="tk-str">"emit('close')"</span> <span class="tk-tag">/&gt;</span>
+    <span class="tk-tag">&lt;aside</span> <span class="tk-attr">class=</span><span class="tk-str">"drawer"</span> <span class="tk-attr">:class=</span><span class="tk-str">"{ open }"</span> <span class="tk-attr">:aria-hidden=</span><span class="tk-str">"!open"</span><span class="tk-tag">&gt;</span>
+      <span class="tk-tag">&lt;div</span> <span class="tk-attr">class=</span><span class="tk-str">"drawer-head"</span><span class="tk-tag">&gt;</span>
+        <span class="tk-tag">&lt;span&gt;</span>MY BLOG WEB.<span class="tk-tag">&lt;/span&gt;</span>
+        <span class="tk-tag">&lt;button</span> <span class="tk-attr">class=</span><span class="tk-str">"drawer-close"</span> <span class="tk-attr">@click=</span><span class="tk-str">"emit('close')"</span><span class="tk-tag">&gt;</span>✕<span class="tk-tag">&lt;/button&gt;</span>
+      <span class="tk-tag">&lt;/div&gt;</span>
+      <span class="tk-tag">&lt;nav</span> <span class="tk-attr">class=</span><span class="tk-str">"drawer-list"</span><span class="tk-tag">&gt;</span>
+        <span class="tk-tag">&lt;a</span> <span class="tk-attr">v-for=</span><span class="tk-str">"v in ['home','articles','search','my']"</span>
+           <span class="tk-attr">:key=</span><span class="tk-str">"v"</span>
+           <span class="tk-attr">href=</span><span class="tk-str">"#"</span>
+           <span class="tk-attr">class=</span><span class="tk-str">"drawer-link"</span>
+           <span class="tk-attr">@click.prevent=</span><span class="tk-str">"go(v)"</span><span class="tk-tag">&gt;</span>
+          {{ v }} <span class="tk-tag">&lt;span</span> <span class="tk-attr">class=</span><span class="tk-str">"arr"</span><span class="tk-tag">&gt;</span>→<span class="tk-tag">&lt;/span&gt;</span>
+        <span class="tk-tag">&lt;/a&gt;</span>
+      <span class="tk-tag">&lt;/nav&gt;</span>
+    <span class="tk-tag">&lt;/aside&gt;</span>
+  <span class="tk-tag">&lt;/Teleport&gt;</span>
+<span class="tk-tag">&lt;/template&gt;</span></pre>
+    </div>
+  </div>
+</section>
+
+<section id="cheat" class="section">
+  <div class="wrap">
+    <div class="sect-head">
+      <span class="num">§ 03 — Cheatsheet</span>
+      <h2>React → Vue 3 對照表。</h2>
+      <span class="r">15 mappings</span>
+    </div>
+    <table class="cheat-table">
+      <thead>
+        <tr><th>React</th><th></th><th>Vue 3</th><th>備註</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>useState</code></td><td class="arrow">→</td><td><code>ref</code> / <code>reactive</code></td><td>讀寫加 <code>.value</code>；template 自動 unwrap</td></tr>
+        <tr><td><code>useEffect</code></td><td class="arrow">→</td><td><code>watchEffect</code> / <code>watch</code></td><td>沒有 dependency array，自動追蹤</td></tr>
+        <tr><td><code>useMemo</code></td><td class="arrow">→</td><td><code>computed</code></td><td>lazy + cache，行為一致</td></tr>
+        <tr><td><code>useCallback</code></td><td class="arrow">→</td><td>不需要</td><td>Vue 模板不會 re-render 整顆 tree</td></tr>
+        <tr><td><code>useRef</code> (DOM)</td><td class="arrow">→</td><td><code>ref(null)</code> + <code>:ref</code></td><td>直接 <code>elRef.value</code> 取得 DOM</td></tr>
+        <tr><td><code>useContext</code></td><td class="arrow">→</td><td><code>provide</code> / <code>inject</code></td><td>需要傳 InjectionKey 才有完整型別</td></tr>
+        <tr><td><code>className</code></td><td class="arrow">→</td><td><code>class</code></td><td>支援陣列與物件語法</td></tr>
+        <tr><td><code>onClick</code></td><td class="arrow">→</td><td><code>@click</code></td><td>修飾子 <code>.stop</code> / <code>.prevent</code> 很好用</td></tr>
+        <tr><td><code>{cond && &lt;X/&gt;}</code></td><td class="arrow">→</td><td><code>v-if=</code><code>"cond"</code></td><td>另有 <code>v-show</code>（display:none）</td></tr>
+        <tr><td><code>arr.map(...)</code></td><td class="arrow">→</td><td><code>v-for</code> + <code>:key</code></td><td><code>:key</code> 必填</td></tr>
+        <tr><td><code>style=</code><code>{{...}}</code></td><td class="arrow">→</td><td><code>:style=</code><code>"{...}"</code></td><td>支援物件、陣列、字串</td></tr>
+        <tr><td><code>children</code> prop</td><td class="arrow">→</td><td><code>&lt;slot/&gt;</code></td><td>多個 named slot 直接 <code>name=</code> 區分</td></tr>
+        <tr><td>Portal</td><td class="arrow">→</td><td><code>&lt;Teleport to=</code><code>"body"&gt;</code></td><td>內建，不用第三方</td></tr>
+        <tr><td>React.lazy</td><td class="arrow">→</td><td><code>defineAsyncComponent</code></td><td>Vite 有自動 chunk split</td></tr>
+        <tr><td>CSS Modules</td><td class="arrow">→</td><td><code>&lt;style scoped&gt;</code></td><td>用 attribute selector 自動 scope</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="steps" class="section">
+  <div class="wrap">
+    <div class="sect-head">
+      <span class="num">§ 04 — Migration plan</span>
+      <h2>四步搬家。</h2>
+      <span class="r">~2 weeks</span>
+    </div>
+    <p class="intro">用這個順序最不會踩坑。重點是先把 token 與 layout 搬過去，行為層級的東西放最後。</p>
+    <div class="steps">
+      <div class="step">
+        <span class="n">§ 01 · Day 1–2</span>
+        <h4>Tokens 與 reset</h4>
+        <p>把 enhancements.css + 設計系統的 root 變數整包丟進 <code>src/styles/tokens.css</code>。Vue 完全不碰，純 CSS。</p>
+      </div>
+      <div class="step">
+        <span class="n">§ 02 · Day 3–5</span>
+        <h4>Layout components</h4>
+        <p>先做 <code>TopBar</code> / <code>Footer</code> / <code>SectionFrame</code>。沒互動，純 props + slots。</p>
+      </div>
+      <div class="step">
+        <span class="n">§ 03 · Day 6–9</span>
+        <h4>Composables</h4>
+        <p>useToast / useTheme / useReadingProgress / useDrawer。每個都附上單元測試。</p>
+      </div>
+      <div class="step">
+        <span class="n">§ 04 · Day 10–14</span>
+        <h4>Pages 與路由</h4>
+        <p>用 Vue Router 把 prototype 的 7 個 view 拆成 7 個 page。最後做 SSR 與 sitemap。</p>
+      </div>
+    </div>
+
+    <div class="callout" style="margin-top:32px;">
+      <span class="lbl">§ 別做的事</span>
+      <b>不要一次到位。</b>先讓網站可以 ship，再回頭做 a11y、SEO、performance。每次 refactor 都要有 commit 可以 revert。Migration 最常見的失敗是「重寫太多」。
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <span>© 2026 · MY BLOG WEB. — Vue 3 migration kit</span>
+  <a href="#">Back to top ↑</a>
+</footer>
+
+<script>
+document.querySelectorAll('[data-copy]').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const pre = btn.closest('.code-card').querySelector('pre');
+    try {
+      await navigator.clipboard.writeText(pre.innerText);
+      btn.classList.add('copied');
+      btn.textContent = 'Copied';
+      setTimeout(() => { btn.classList.remove('copied'); btn.textContent = 'Copy'; }, 1400);
+    } catch {
+      btn.textContent = 'Failed';
+      setTimeout(() => { btn.textContent = 'Copy'; }, 1400);
+    }
+  });
+});
+</script>
+
+</body>
+</html>

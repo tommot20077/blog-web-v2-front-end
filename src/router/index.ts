@@ -60,6 +60,12 @@ const router = createRouter({
       meta: { guestOnly: true }
     },
     {
+      path: '/check-email',
+      name: 'check-email',
+      component: () => import('../views/CheckEmailView.vue'),
+      meta: { guestOnly: true }
+    },
+    {
       path: '/reset-password',
       name: 'reset-password',
       component: () => import('../views/ResetPasswordView.vue'),
@@ -102,10 +108,31 @@ const router = createRouter({
       meta: { requiresAuth: true, requiredRole: 'ADMIN' as UserRole }
     },
     {
+      path: '/tags',
+      name: 'tags-index',
+      component: () => import('../views/TagsIndexView.vue')
+    },
+    {
       path: '/tags/:slug',
       name: 'tag',
       component: () => import('../views/TagView.vue'),
       props: true
+    },
+    {
+      path: '/archive',
+      name: 'archive',
+      component: () => import('../views/ArchiveView.vue')
+    },
+    {
+      path: '/500',
+      name: 'server-error',
+      component: () => import('../views/ServerErrorView.vue')
+    },
+    {
+      path: '/my-stats',
+      name: 'my-stats',
+      component: () => import('../views/StatsView.vue'),
+      meta: { requiresAuth: true, requiredRole: 'AUTHOR' as UserRole, layout: 'shell' as const }
     },
     {
       path: '/author/:handle',
@@ -134,9 +161,12 @@ const router = createRouter({
  * 4. 其餘 → 正常通過
  */
 export function setupGuards(targetRouter: Router) {
-  targetRouter.beforeEach((to) => {
+  targetRouter.beforeEach(async (to) => {
     const authStore = useAuthStore()
     const { showToast } = useToast()
+
+    // 等待初始 refresh token 嘗試完成，防止 hard reload 時 accessToken 尚未還原就被踢出
+    await authStore.initialize()
 
     // 需要認證但未登入
     if (to.meta.requiresAuth && !authStore.isAuthenticated) {

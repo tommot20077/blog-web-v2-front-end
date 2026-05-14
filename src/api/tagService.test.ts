@@ -153,10 +153,10 @@ describe('tagService — getTagBySlug / followTag / unfollowTag', () => {
     });
 
     it('getTagBySlug 找到已存在的 slug → 回傳 TagDetail 物件', async () => {
-      const result = await tagService.getTagBySlug('vue');
+      const result = await tagService.getTagBySlug('vue-3');
 
       expect(result).not.toBeNull();
-      expect(result?.slug).toBe('vue');
+      expect(result?.slug).toBe('vue-3');
       expect(result).toHaveProperty('uuid');
       expect(result).toHaveProperty('name');
       expect(result).toHaveProperty('color');

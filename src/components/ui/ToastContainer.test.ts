@@ -23,8 +23,8 @@ describe('ToastContainer', () => {
     expect(wrapper.findAll('[data-testid="toast-indicator"]')).toHaveLength(2);
   });
 
-  it('具備 fixed 定位', () => {
+  it('容器套用 toast-stack class', () => {
     const wrapper = mount(ToastContainer);
-    expect(wrapper.classes()).toContain('fixed');
+    expect(wrapper.classes()).toContain('toast-stack');
   });
 });

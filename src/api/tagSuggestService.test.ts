@@ -12,7 +12,7 @@ describe('tagSuggestService', () => {
 
     it('suggestTags 委派 mock 並回傳匹配標籤', async () => {
       const result = await tagSuggestService.suggestTags('Vu')
-      expect(result.some(t => t.name === 'Vue')).toBe(true)
+      expect(result.some(t => t.name === 'Vue 3')).toBe(true)
     })
 
     it('空 query 回傳空陣列', async () => {

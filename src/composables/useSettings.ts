@@ -1,8 +1,9 @@
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { userService } from '../api/userService'
 import { fileService } from '../api/fileService'
 import { useAuthStore } from '../stores/auth'
 import { useToast } from './useToast'
+import { getPasswordRules } from './useFormValidation'
 
 type SaveStatus = 'idle' | 'saving' | 'saved'
 
@@ -57,10 +58,10 @@ export function useSettings() {
   const pwConfirm = ref('')
   const { status: accountStatus, withSave: withAccountSave } = useSaveStatus()
 
-  // ── Social (localStorage only — TODO: backend) ──
-  const github = ref(localStorage.getItem('blog.settings.github') || '')
-  const twitter = ref(localStorage.getItem('blog.settings.twitter') || '')
-  const linkedin = ref(localStorage.getItem('blog.settings.linkedin') || '')
+  // ── Social ──
+  const github = ref('')
+  const twitter = ref('')
+  const linkedin = ref('')
   const { status: socialStatus, withSave: withSocialSave } = useSaveStatus()
 
   // ── Writing Preferences (localStorage) ──
@@ -78,18 +79,48 @@ export function useSettings() {
   const nNewsletter = ref(localStorage.getItem('blog.settings.nNewsletter') !== 'false')
   const { status: notifStatus, withSave: withNotifSave } = useSaveStatus()
 
+  // Parse socialLinks JSON string from user profile
+  function parseSocialLinks(raw: string | null | undefined) {
+    if (!raw) return { github: '', twitter: '', linkedin: '' }
+    try {
+      const parsed = JSON.parse(raw)
+      return {
+        github: parsed.github ?? '',
+        twitter: parsed.twitter ?? '',
+        linkedin: parsed.linkedin ?? '',
+      }
+    } catch {
+      return { github: '', twitter: '', linkedin: '' }
+    }
+  }
+
+  function hydrateSocial(user: typeof authStore.user) {
+    const restored = parseSocialLinks(user?.socialLinks)
+    github.value = restored.github
+    twitter.value = restored.twitter
+    linkedin.value = restored.linkedin
+  }
+
+  // 從 authStore.user 同步 profile 欄位（onMounted 與 watch 共用 logic）
+  function hydrateProfile(user: typeof authStore.user) {
+    if (!user) return
+    nickname.value = user.nickname || ''
+    bio.value = user.bio || ''
+    email.value = user.email || ''
+    website.value = user.website ?? ''
+    // TODO: backend profile update endpoint does not yet accept avatarUrl
+    avatarUrl.value = user.avatarUrl || localStorage.getItem('blog.settings.avatarUrl') || null
+    hydrateSocial(user)
+  }
+
   // Initialize from auth store
   onMounted(() => {
-    if (authStore.user) {
-      nickname.value = authStore.user.nickname || ''
-      bio.value = authStore.user.bio || ''
-      email.value = authStore.user.email || ''
-      // TODO: backend profile update endpoint does not yet accept avatarUrl
-      avatarUrl.value = authStore.user.avatarUrl || localStorage.getItem('blog.settings.avatarUrl') || null
-    }
+    hydrateProfile(authStore.user)
     location.value = localStorage.getItem('blog.settings.location') || ''
-    website.value = localStorage.getItem('blog.settings.website') || ''
   })
+
+  // 若 authStore.user 在 onMounted 後才就緒（e.g. refresh token 完成），即時同步
+  watch(() => authStore.user, (user) => hydrateProfile(user))
 
   // Save functions
   async function saveProfile() {
@@ -103,12 +134,19 @@ export function useSettings() {
           // TODO: backend profile update endpoint does not yet accept avatarUrl
           localStorage.setItem('blog.settings.avatarUrl', resp.url)
         }
-        await userService.updateProfile({ nickname: nickname.value, bio: bio.value || undefined })
+        // 帶上 socialLinks 現值，避免後端 setWebsite(null) 模式的反向問題：
+        // 若不送 socialLinks，後端 updateProfile 會把它清成 null
+        const socialLinks = authStore.user?.socialLinks ?? undefined
+        await userService.updateProfile({
+          nickname: nickname.value,
+          bio: bio.value || undefined,
+          website: website.value || undefined,
+          socialLinks,
+        })
         // Refresh the auth store user object so the rest of the app sees updated data
         await authStore.fetchUser()
         // Persist remaining fields locally (TODO: backend support)
         localStorage.setItem('blog.settings.location', location.value)
-        localStorage.setItem('blog.settings.website', website.value)
       })
     } catch {
       showToast('儲存個人資料失敗', 'error')
@@ -119,6 +157,12 @@ export function useSettings() {
     if (!pwCurrent.value || !pwNew.value) return
     if (pwNew.value !== pwConfirm.value) {
       showToast('新密碼不一致', 'error')
+      return
+    }
+    // client-side 對齊後端 PasswordPolicy（min 8、含字母+數字）
+    const passwordRules = getPasswordRules(pwNew.value)
+    if (!passwordRules.length || !passwordRules.letter || !passwordRules.digit) {
+      showToast('新密碼須為 8-50 字元，且包含至少一個英文字母及一個數字', 'error')
       return
     }
     try {
@@ -134,12 +178,23 @@ export function useSettings() {
   }
 
   async function saveSocial() {
+    if (!authStore.user) return
     try {
       await withSocialSave(async () => {
-        // TODO: backend social links API
-        localStorage.setItem('blog.settings.github', github.value)
-        localStorage.setItem('blog.settings.twitter', twitter.value)
-        localStorage.setItem('blog.settings.linkedin', linkedin.value)
+        const socialLinks = JSON.stringify({
+          github: github.value,
+          twitter: twitter.value,
+          linkedin: linkedin.value,
+        })
+        // 解構帶上 website 現值，避免後端無條件 setWebsite(null) 抹掉既有值
+        const { nickname, bio, website: currentWebsite } = authStore.user!
+        await userService.updateProfile({
+          nickname,
+          bio,
+          website: currentWebsite ?? undefined,
+          socialLinks,
+        })
+        await authStore.fetchUser()
       })
     } catch {
       showToast('儲存社群連結失敗', 'error')

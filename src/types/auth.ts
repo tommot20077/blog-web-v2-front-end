@@ -26,6 +26,8 @@ export interface User {
   email: string;
   nickname: string;
   bio?: string;
+  website?: string | null;
+  socialLinks?: string | null;
   avatarUrl: string | null;
   role: UserRole;
   emailVerified: boolean;

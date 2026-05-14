@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<title>Repo Search</title>
+<link rel="stylesheet" href="_shared.css" />
+<style>
+  body { padding: 32px 36px; }
+  .ec { font-family: var(--f-mono); font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted-2); margin-bottom: 16px; }
+  .search-hero { padding: 24px 0 28px; border-bottom: 1px solid var(--divider); margin-bottom: 24px; }
+  .search-input-wrap { display: flex; align-items: baseline; gap: 14px; padding-bottom: 14px; border-bottom: 2px solid var(--ink); }
+  .search-input-wrap .ico { font-family: var(--f-mono); font-size: 22px; color: var(--muted); }
+  .search-input {
+    flex: 1; font-family: var(--f-display); font-weight: 400;
+    font-size: 38px; letter-spacing: -0.02em; line-height: 1.1;
+    background: none; border: 0; outline: 0; color: var(--ink);
+    padding: 4px 0;
+  }
+  .kbd-hint {
+    font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.14em;
+    color: var(--muted-2); padding: 4px 8px; border: 1px solid var(--border);
+    border-radius: 4px;
+  }
+  .search-meta { display: flex; justify-content: space-between; margin-top: 14px; font-family: var(--f-mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+
+  .empty-section { margin-bottom: 32px; }
+  .empty-section h4 {
+    font-family: var(--f-mono); font-size: 10.5px; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--muted-2);
+    display: flex; align-items: center; gap: 10px;
+    margin: 0 0 14px;
+  }
+  .empty-section h4::after { content: ""; flex: 1; height: 1px; background: var(--divider); }
+
+  .recent-list { display: flex; flex-direction: column; gap: 0; }
+  .recent-item {
+    display: flex; align-items: center; gap: 14px; padding: 12px 0;
+    border-bottom: 1px solid var(--divider);
+    font-size: 14px; color: var(--ink-2); cursor: pointer;
+  }
+  .recent-item:hover { color: var(--ink); }
+  .recent-item .ix { font-family: var(--f-mono); font-size: 10px; color: var(--muted-2); width: 24px; }
+  .recent-item .grow { flex: 1; }
+  .recent-item .arr { color: var(--muted-2); }
+
+  .pop-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .pop-card {
+    padding: 16px; border: 1px solid var(--divider); border-radius: 8px;
+    background: var(--surface); display: flex; gap: 12px; align-items: flex-start;
+  }
+  .pop-card .num {
+    font-family: var(--f-display); font-size: 28px; font-weight: 500;
+    line-height: 1; color: var(--muted-2); letter-spacing: -0.02em;
+  }
+  .pop-card .ttl { font-family: var(--f-display); font-size: 16px; font-weight: 500; line-height: 1.35; margin-bottom: 4px; }
+  .pop-card .meta { font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.12em; color: var(--muted); text-transform: uppercase; }
+
+  .tag-cloud { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tag-chip {
+    padding: 6px 12px; border: 1px solid var(--border);
+    border-radius: 999px; font-size: 12.5px; color: var(--ink-2);
+    cursor: pointer; transition: all .15s;
+  }
+  .tag-chip:hover { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .tag-chip .n { font-family: var(--f-mono); font-size: 10px; color: var(--muted-2); margin-left: 4px; }
+  .tag-chip:hover .n { color: color-mix(in oklab, var(--bg) 70%, transparent); }
+</style>
+</head>
+<body>
+
+<div class="ec">§ Search · /search</div>
+
+<div class="search-hero">
+  <div class="search-input-wrap">
+    <span class="ico">⌕</span>
+    <input class="search-input" placeholder="搜尋文章、標籤、作者…" />
+    <span class="kbd-hint">⌘ K</span>
+    <span class="kbd-hint">ESC</span>
+  </div>
+  <div class="search-meta">
+    <span>0 個結果</span>
+    <span>輸入後即時搜尋 · Enter 跳第一個結果</span>
+  </div>
+</div>
+
+<div class="empty-section">
+  <h4>● Recent searches</h4>
+  <div class="recent-list">
+    <div class="recent-item"><span class="ix">01</span><span class="grow">vue 3 composables 設計模式</span><span class="arr">↗</span></div>
+    <div class="recent-item"><span class="ix">02</span><span class="grow">codemirror 6 整合</span><span class="arr">↗</span></div>
+    <div class="recent-item"><span class="ix">03</span><span class="grow">spring webflux backpressure</span><span class="arr">↗</span></div>
+    <div class="recent-item"><span class="ix">04</span><span class="grow">postgres index types</span><span class="arr">↗</span></div>
+  </div>
+</div>
+
+<div class="empty-section">
+  <h4>● Popular this week</h4>
+  <div class="pop-grid">
+    <div class="pop-card">
+      <div class="num">01</div>
+      <div>
+        <div class="ttl">在 Vue 3 中設計可組合的 Composables</div>
+        <div class="meta">VUE · 12 MIN</div>
+      </div>
+    </div>
+    <div class="pop-card">
+      <div class="num">02</div>
+      <div>
+        <div class="ttl">PostgreSQL Index 全攻略：B-tree、GIN、BRIN</div>
+        <div class="meta">DB · 18 MIN</div>
+      </div>
+    </div>
+    <div class="pop-card">
+      <div class="num">03</div>
+      <div>
+        <div class="ttl">用 IntersectionObserver 做 lazy reveal</div>
+        <div class="meta">FRONT · 8 MIN</div>
+      </div>
+    </div>
+    <div class="pop-card">
+      <div class="num">04</div>
+      <div>
+        <div class="ttl">Spring WebFlux 與 backpressure 實務</div>
+        <div class="meta">JAVA · 22 MIN</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="empty-section">
+  <h4>● Browse all tags</h4>
+  <div class="tag-cloud">
+    <span class="tag-chip">vue<span class="n">42</span></span>
+    <span class="tag-chip">typescript<span class="n">38</span></span>
+    <span class="tag-chip">java<span class="n">31</span></span>
+    <span class="tag-chip">postgres<span class="n">24</span></span>
+    <span class="tag-chip">spring<span class="n">22</span></span>
+    <span class="tag-chip">codemirror<span class="n">9</span></span>
+    <span class="tag-chip">design-system<span class="n">14</span></span>
+    <span class="tag-chip">animation<span class="n">11</span></span>
+    <span class="tag-chip">a11y<span class="n">8</span></span>
+    <span class="tag-chip">testing<span class="n">17</span></span>
+    <span class="tag-chip">ci/cd<span class="n">12</span></span>
+    <span class="tag-chip">redis<span class="n">7</span></span>
+  </div>
+</div>
+
+</body>
+</html>

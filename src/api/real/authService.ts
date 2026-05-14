@@ -30,6 +30,10 @@ export const authService = {
     return apiClient.get('/api/v1/auth/verify-email', { params: { token } })
   },
 
+  async verifyEmailCode(email: string, code: string): Promise<void> {
+    return apiClient.post('/api/v1/auth/verify-email-code', { email, code })
+  },
+
   async getMe(): Promise<User> {
     return apiClient.get('/api/v1/users/me')
   },

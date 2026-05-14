@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="zh-Hant" data-theme="light" data-font="space" data-accent="on">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Refinements — MY BLOG WEB.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600&family=Space+Grotesk:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --bg: #f4f4f4; --bg-sub: #ededed; --surface: #fbfbfb;
+  --ink: #0a0a0b; --ink-2: #2a2a2c; --muted: #6b6b70; --muted-2: #9a9aa0;
+  --border: rgba(10,10,11,0.10); --border-strong: rgba(10,10,11,0.18);
+  --divider: rgba(10,10,11,0.08);
+  --glass: rgba(255,255,255,0.62); --glass-border: rgba(255,255,255,0.9);
+  --accent: #5B8DEF; --accent-ink: #0a0a0b;
+  --shadow-sm: 0 1px 0 rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.04);
+  --shadow-md: 0 1px 0 rgba(0,0,0,0.04), 0 20px 40px -22px rgba(0,0,0,0.18);
+  --f-display: "Space Grotesk", "Noto Sans TC", system-ui, sans-serif;
+  --f-body: "Space Grotesk", "Noto Sans TC", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --ease: cubic-bezier(.22,1,.36,1);
+}
+[data-theme="dark"] {
+  --bg: #0d0d0f; --bg-sub: #111113; --surface: #141416;
+  --ink: #ededef; --ink-2: #c9c9cd; --muted: #a6a6ac; --muted-2: #7b7b82;
+  --border: rgba(255,255,255,0.10); --border-strong: rgba(255,255,255,0.18);
+  --divider: rgba(255,255,255,0.08);
+  --glass: rgba(22,22,24,0.62); --glass-border: rgba(255,255,255,0.08);
+  --accent: #7BA8F5;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); line-height: 1.7; -webkit-font-smoothing: antialiased; transition: background .4s, color .4s; }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; padding: 0; }
+::selection { background: var(--accent); color: var(--accent-ink); }
+
+/* Top bar */
+.bar { position: sticky; top: 0; z-index: 50; backdrop-filter: blur(20px); background: var(--glass); border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.bar .brand { display: flex; align-items: center; gap: 10px; font-family: var(--f-display); font-style: italic; font-weight: 500; font-size: 14.5px; }
+.bar .brand .mk { width: 22px; height: 22px; border-radius: 5px; background: var(--ink); position: relative; }
+.bar .brand .mk::after { content: ""; position: absolute; inset: 6px; border-radius: 50%; border: 1.5px solid var(--bg); }
+.bar .right { display: flex; gap: 8px; align-items: center; }
+.bar .pill-link { padding: 8px 14px; border-radius: 999px; font-size: 13px; }
+.bar .pill-link:hover { background: rgba(0,0,0,.05); }
+[data-theme="dark"] .bar .pill-link:hover { background: rgba(255,255,255,.08); }
+.theme-tog { width: 36px; height: 36px; border-radius: 999px; border: 1px solid var(--border); display: grid; place-items: center; }
+.theme-tog:hover { background: rgba(0,0,0,.04); }
+[data-theme="dark"] .theme-tog:hover { background: rgba(255,255,255,.06); }
+
+/* Section frame */
+.wrap { max-width: 1280px; margin: 0 auto; padding: 0 32px; }
+@media (max-width: 600px) { .wrap { padding: 0 18px; } }
+.frame { padding: 56px 0 24px; border-top: 1px solid var(--border-strong); }
+.frame:first-of-type { border-top: 0; padding-top: 80px; }
+.frame-head { display: grid; grid-template-columns: auto 1fr auto; align-items: baseline; gap: 24px; margin-bottom: 28px; }
+.frame-head .tag { font-family: var(--f-mono); font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); }
+.frame-head h2 { font-family: var(--f-display); font-weight: 500; font-size: clamp(24px, 3.4vw, 36px); letter-spacing: -.022em; margin: 0; line-height: 1.1; }
+.frame-head .r { text-align: right; font-family: var(--f-mono); font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); }
+@media (max-width: 768px) { .frame-head { grid-template-columns: 1fr; gap: 6px; } .frame-head .r { text-align: left; } }
+
+/* Hero */
+.hero { padding: 80px 0 40px; }
+.hero h1 { font-family: var(--f-display); font-weight: 400; font-size: clamp(40px, 7vw, 88px); line-height: 1; letter-spacing: -.04em; margin: 0 0 24px; max-width: 18ch; }
+.hero h1 .em { font-style: italic; font-weight: 300; color: var(--muted); }
+.hero h1 .accent { color: var(--accent); }
+.hero p { font-size: clamp(15px, 1.4vw, 17px); line-height: 1.7; color: var(--ink-2); max-width: 60ch; margin: 0; }
+.hero .eyebrow { font-family: var(--f-mono); font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: var(--muted); margin-bottom: 24px; display: inline-flex; align-items: center; gap: 8px; }
+.hero .eyebrow::before { content: ""; width: 6px; height: 6px; border-radius: 999px; background: var(--accent); box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent) 18%, transparent); }
+
+/* Grid of demo cards */
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.card { padding: 20px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); display: flex; flex-direction: column; gap: 12px; }
+.card .lbl { font-family: var(--f-mono); font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); }
+.card h4 { font-family: var(--f-display); font-weight: 500; font-size: 17px; margin: 0; letter-spacing: -.005em; }
+.card p { margin: 0; font-size: 13.5px; color: var(--muted); line-height: 1.6; }
+.card .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: auto; }
+
+/* Buttons */
+.btn { padding: 9px 16px; border-radius: 999px; font-family: var(--f-mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; transition: transform .2s, background .2s, border-color .2s; }
+.btn-ink { background: var(--ink); color: var(--bg); }
+.btn-ink:hover { transform: translateY(-1px); }
+.btn-ghost { border: 1px solid var(--border-strong); }
+.btn-ghost:hover { background: var(--bg-sub); }
+.btn-accent { background: var(--accent); color: var(--accent-ink); }
+.btn-danger { background: #E45C44; color: white; }
+
+/* RWD demo viewport simulator */
+.rwd-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; align-items: start; }
+.rwd-frame { border: 1px solid var(--border); border-radius: 14px; overflow: hidden; background: var(--surface); display: flex; flex-direction: column; }
+.rwd-frame .cap { padding: 10px 14px; font-family: var(--f-mono); font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--divider); background: var(--bg-sub); display: flex; justify-content: space-between; }
+.rwd-frame .body { padding: 14px; min-height: 220px; }
+.rwd-frame .body h5 { font-family: var(--f-display); font-weight: 500; margin: 0 0 6px; line-height: 1.2; letter-spacing: -.012em; }
+.rwd-frame .body p { margin: 0 0 10px; color: var(--muted); font-size: 12.5px; line-height: 1.55; }
+.rwd-frame .body .meta { font-family: var(--f-mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted-2); }
+.rwd-frame .body .thumb { aspect-ratio: 16/10; background: repeating-linear-gradient(135deg, rgba(0,0,0,.04) 0 2px, transparent 2px 12px), var(--bg-sub); border: 1px solid var(--divider); border-radius: 6px; margin-bottom: 12px; }
+[data-theme="dark"] .rwd-frame .body .thumb { background: repeating-linear-gradient(135deg, rgba(255,255,255,.04) 0 2px, transparent 2px 12px), var(--bg-sub); }
+.rwd-frame[data-size="mobile"] .body { font-size: 12px; }
+.rwd-frame[data-size="mobile"] .body h5 { font-size: 16px; }
+.rwd-frame[data-size="tablet"] .body h5 { font-size: 19px; }
+.rwd-frame[data-size="desktop"] .body h5 { font-size: 22px; }
+
+/* Type scale demo */
+.type-row { display: grid; grid-template-columns: 120px 1fr; gap: 24px; padding: 16px 0; border-bottom: 1px solid var(--divider); align-items: baseline; }
+.type-row .name { font-family: var(--f-mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.type-row .specimen { font-family: var(--f-display); font-weight: 500; letter-spacing: -.022em; line-height: 1.05; }
+.type-row .meta { font-family: var(--f-mono); font-size: 10.5px; color: var(--muted-2); margin-top: 4px; letter-spacing: .1em; text-transform: uppercase; }
+
+/* Article preview block */
+.article-preview { display: grid; grid-template-columns: 1fr 220px; gap: 48px; padding: 24px 0; }
+@media (max-width: 1024px) { .article-preview { grid-template-columns: 1fr; } }
+.article-preview .body p { color: var(--ink-2); margin: 0 0 1.2em; line-height: 1.8; font-size: clamp(15px, 1.05vw, 16.5px); text-wrap: pretty; }
+.article-preview .body h2 { font-family: var(--f-display); font-weight: 500; font-size: clamp(24px, 3vw, 32px); letter-spacing: -.018em; margin: 1.5em 0 .5em; }
+.article-preview .body h3 { font-family: var(--f-display); font-weight: 500; font-size: 20px; margin: 1.4em 0 .4em; letter-spacing: -.012em; }
+.article-preview .body code { font-family: var(--f-mono); font-size: .92em; background: var(--bg-sub); padding: 2px 6px; border-radius: 4px; }
+.article-preview .body blockquote { margin: 1.6em 0; padding: 4px 0 4px 20px; border-left: 2px solid var(--accent); font-style: italic; color: var(--ink-2); }
+
+/* Footer */
+.footer { padding: 40px 32px; border-top: 1px solid var(--border-strong); margin-top: 80px; display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; font-family: var(--f-mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+
+</style>
+<link rel="stylesheet" href="enhancements.css" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="enhancements.jsx" data-presets="env,react"></script>
+
+<script type="text/babel" data-presets="env,react">
+const { useState, useEffect } = React;
+
+function TopBar({ theme, toggle, openDrawer }) {
+  return (
+    <header className="bar">
+      <a href="#" className="brand"><span className="mk"></span><span>MY BLOG WEB.</span></a>
+      <div className="right">
+        <a href="#hero" className="pill-link nav-link-keep">Refinements</a>
+        <a href="#rwd" className="pill-link">RWD</a>
+        <a href="#components" className="pill-link">Components</a>
+        <a href="#article" className="pill-link">Article</a>
+        <button className="theme-tog" onClick={toggle} aria-label="Theme">
+          {theme === 'dark'
+            ? <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+            : <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>}
+        </button>
+        <button className="nav-burger" onClick={openDrawer} aria-label="Menu">
+          <span className="bars"><span></span></span>
+        </button>
+      </div>
+    </header>
+  );
+}
+
+function Hero() {
+  return (
+    <section id="hero" className="hero wrap">
+      <div className="eyebrow">§ refinement pass · 2026 · Q2</div>
+      <h1>把粗稿，<span className="em">慢慢</span>改成<br/><span className="accent">完整</span>的東西。</h1>
+      <p style={{marginTop:24}}>把原本的 prototype 補上 RWD 完整支援、Toast / Modal / Drawer 系統、Reading progress、Sticky TOC、Share rail、Newsletter、Comments、Related — 並把字級改成流體 clamp() 讓它在手機到桌機都好看。所有元件都是 stateless / hook-driven 的小組合，能直接搬進 Vue 3 的 composables。</p>
+    </section>
+  );
+}
+
+function RWDDemo() {
+  return (
+    <section id="rwd" className="frame wrap">
+      <div className="frame-head">
+        <span className="tag">§ 01 — Responsive</span>
+        <h2>同一張卡片，三種尺寸。</h2>
+        <span className="r">Mobile / Tablet / Desktop</span>
+      </div>
+      <div className="rwd-row">
+        {[
+          { size: 'mobile', label: '375 px', w: 320 },
+          { size: 'tablet', label: '768 px', w: 360 },
+          { size: 'desktop', label: '1280 px', w: '100%' },
+        ].map(s => (
+          <div key={s.size} className="rwd-frame" data-size={s.size}>
+            <div className="cap"><span>{s.size}</span><span>{s.label}</span></div>
+            <div className="body">
+              <div className="thumb"></div>
+              <div className="meta">CSS · 2026 · 04 · 02</div>
+              <h5>灰階不是偷懶的藉口。</h5>
+              <p>一個 #f4f4f4 的背景，配 #0a0a0b 的文字，就足以撐起整個站。秘訣在差異，不在顏色。</p>
+            </div>
+          </div>
+        ))}
+      </div>
+      <p style={{color:'var(--muted)',fontSize:13,marginTop:18,maxWidth:'62ch'}}>
+        所有字級採 <code style={{fontFamily:'var(--f-mono)'}}>clamp()</code>；圖片固定 aspect-ratio；超過 768px 才顯示完整列；小於 768px 改顯漢堡選單 + drawer。
+      </p>
+    </section>
+  );
+}
+
+function TypeScale() {
+  const rows = [
+    { name: 'display-2xl', specimen: '慢慢說清楚', meta: 'clamp(44px, 9vw, 128px)', size: 'clamp(44px, 9vw, 128px)' },
+    { name: 'display-xl',  specimen: '把一件事',   meta: 'clamp(36px, 6.5vw, 84px)', size: 'clamp(36px, 6.5vw, 84px)' },
+    { name: 'h1',          specimen: '歡迎回來。',   meta: 'clamp(32px, 5vw, 56px)', size: 'clamp(32px, 5vw, 56px)' },
+    { name: 'h2',          specimen: '本週最多人讀的五篇。', meta: 'clamp(24px, 3.4vw, 36px)', size: 'clamp(24px, 3.4vw, 36px)' },
+    { name: 'h3',          specimen: '繼續讀。', meta: 'clamp(20px, 2.4vw, 26px)', size: 'clamp(20px, 2.4vw, 26px)' },
+    { name: 'body',        specimen: '把整個 Blog 收斂成 800 行 tokens。', meta: 'clamp(15px, 1.05vw, 16.5px)', size: 'clamp(15px, 1.05vw, 16.5px)' },
+  ];
+  return (
+    <section className="frame wrap">
+      <div className="frame-head">
+        <span className="tag">§ 02 — Fluid type</span>
+        <h2>一套字級，從 320 到 1920。</h2>
+        <span className="r">clamp(min, vw, max)</span>
+      </div>
+      {rows.map(r => (
+        <div className="type-row" key={r.name}>
+          <div>
+            <div className="name">{r.name}</div>
+            <div className="meta">{r.meta}</div>
+          </div>
+          <div className="specimen" style={{fontSize: r.size}}>{r.specimen}</div>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+function ComponentsDemo({ openDrawer }) {
+  const toast = window.useToast();
+  const confirm = window.useConfirm();
+  const onDelete = async () => {
+    const ok = await confirm({
+      eyebrow: '§ destructive',
+      title: '要刪除這篇草稿嗎？',
+      message: '草稿一旦刪除無法救回。確定？',
+      confirmLabel: 'Delete',
+      cancelLabel: '再想想',
+      danger: true,
+    });
+    if (ok) toast.success('Deleted', '草稿已移到垃圾桶。');
+  };
+  return (
+    <section id="components" className="frame wrap">
+      <div className="frame-head">
+        <span className="tag">§ 03 — Components</span>
+        <h2>新增的互動元件。</h2>
+        <span className="r">8 modules</span>
+      </div>
+      <div className="cards">
+        <div className="card">
+          <div className="lbl">Toast</div>
+          <h4>非阻塞通知</h4>
+          <p>三種 type、自動消失、右下角堆疊；行動裝置自動避開底部 view-switcher。</p>
+          <div className="row">
+            <button className="btn btn-ink" onClick={()=>toast.success('Saved', '草稿已儲存')}>Success</button>
+            <button className="btn btn-ghost" onClick={()=>toast.info('Hint', '⌘K 開啟搜尋')}>Info</button>
+            <button className="btn btn-danger" onClick={()=>toast.error('Network', '連線中斷')}>Error</button>
+          </div>
+        </div>
+        <div className="card">
+          <div className="lbl">Confirm Modal</div>
+          <h4>Promise-based 對話框</h4>
+          <p>用 <code style={{fontFamily:'var(--f-mono)'}}>await confirm(opts)</code> 取得 boolean，含危險樣式變體。</p>
+          <div className="row">
+            <button className="btn btn-danger" onClick={onDelete}>Delete draft…</button>
+            <button className="btn btn-ghost" onClick={async()=>{ const ok = await confirm({title:'發佈這篇？',message:'發佈後會公開於首頁。',confirmLabel:'Publish'}); if(ok) toast.success('Published'); }}>Publish…</button>
+          </div>
+        </div>
+        <div className="card">
+          <div className="lbl">Mobile Drawer</div>
+          <h4>抽屜式選單</h4>
+          <p>768px 以下顯示漢堡按鈕；點擊滑入；ESC / 遮罩關閉；body 鎖定捲動。</p>
+          <div className="row">
+            <button className="btn btn-ink" onClick={openDrawer}>Open drawer</button>
+          </div>
+        </div>
+        <div className="card">
+          <div className="lbl">Newsletter</div>
+          <h4>訂閱表單</h4>
+          <p>含 email 驗證、loading state、成功 toast。直接展示如下 ↓</p>
+        </div>
+        <div className="card">
+          <div className="lbl">Skeleton + Empty</div>
+          <h4>讀取與空狀態</h4>
+          <p>Shimmer 骨架、虛線藝術空態，皆透過設計系統 token 實現。</p>
+          <div className="row">
+            <button className="btn btn-ghost" onClick={()=>{
+              const el = document.getElementById('sk-demo');
+              el.style.display = el.style.display === 'none' ? 'block' : 'none';
+            }}>Toggle skeleton</button>
+          </div>
+        </div>
+        <div className="card">
+          <div className="lbl">Lazy Image</div>
+          <h4>圖片漸入載入</h4>
+          <p>blur-up + opacity 淡入；瀏覽器原生 <code style={{fontFamily:'var(--f-mono)'}}>loading="lazy"</code>。</p>
+        </div>
+      </div>
+
+      <div id="sk-demo" style={{display:'none', marginTop:24, padding:18, border:'1px dashed var(--border-strong)', borderRadius:12}}>
+        <window.SkeletonBlock rows={3} />
+      </div>
+
+      <div style={{marginTop:32}}>
+        <window.NewsletterBlock />
+      </div>
+    </section>
+  );
+}
+
+const ARTICLE_TOC = [
+  { id: 'a-intro', label: '緣起：為什麼是 800 行', level: 2 },
+  { id: 'a-tokens', label: '從顏色到節奏', level: 2 },
+  { id: 'a-tokens-color', label: '色階只用三檔', level: 3 },
+  { id: 'a-tokens-type', label: '字級是 clamp()，不是 8 階', level: 3 },
+  { id: 'a-pitfalls', label: '踩過的坑', level: 2 },
+  { id: 'a-end', label: '結語：把不加什麼寫進規範', level: 2 },
+];
+
+const RELATED = [
+  { id: 'r1', tag: 'Vue', date: '2026 · 04 · 08', title: 'useTheme() 的第三次重構。' },
+  { id: 'r2', tag: 'CSS', date: '2026 · 04 · 02', title: '灰階不是偷懶的藉口。' },
+  { id: 'r3', tag: 'Frontend', date: '2026 · 03 · 26', title: '我為什麼離開 Pinia。' },
+];
+
+const COMMENTS = [
+  { id: 1, name: 'Lin', when: '2026 · 04 · 13 · 21:42', body: '這篇看完真的有種「整理過後」的舒服感。請問你的 tokens.css 有公開嗎？', likes: 4,
+    replies: [{ id: 11, name: 'Yuan Luca', when: '2026 · 04 · 14 · 08:10', body: '謝謝！還沒，等我寫完 v2 再放上來。', likes: 2, replies: [] }] },
+  { id: 2, name: 'C', when: '2026 · 04 · 12 · 18:03', body: '把「不加什麼」寫進規範這句話超棒。我自己最大的問題就是一直加東西⋯⋯', likes: 8, replies: [] },
+  { id: 3, name: 'Sam', when: '2026 · 04 · 11 · 11:27', body: 'Vue 3 + TDD 的部分有空可以多寫嗎？', likes: 3, replies: [] },
+];
+
+function ArticleDemo() {
+  return (
+    <article id="article" className="frame wrap">
+      <div className="frame-head">
+        <span className="tag">§ 04 — Article</span>
+        <h2>閱讀體驗整合範例。</h2>
+        <span className="r">progress · TOC · share · related · comments</span>
+      </div>
+
+      <div className="article-preview">
+        <div className="body" id="article-body">
+          <h2 id="a-intro">緣起：為什麼是 800 行</h2>
+          <p>三個月前的 design system 是 1,820 行。這次改完是 802 行。少了 1,000 行，可是在 Figma 上拉新頁面比之前快兩倍。</p>
+          <p>這不是因為我把 token 砍掉，而是因為我把<em>每一個 token 的存在理由</em>都寫進了 comment。沒有理由的就刪了。</p>
+
+          <h2 id="a-tokens">從顏色到節奏</h2>
+          <p>我把整套 tokens 拆成五類：color, type, space, radius, motion。每一類都遵守同一個原則：少於 8 個變體，名稱用語義（<code>--ink</code>），不要用尺寸（<code>--gray-900</code>）。</p>
+
+          <h3 id="a-tokens-color">色階只用三檔</h3>
+          <p><code>--ink</code> 配 <code>--ink-2</code> 配 <code>--muted</code>。其他全部是 mix-in。</p>
+
+          <h3 id="a-tokens-type">字級是 clamp()，不是 8 階</h3>
+          <p>RWD 不是「斷點換字級」，而是「在斷點之間平滑過渡」。我用 <code>clamp(min, vw, max)</code> 做了 6 個字級，覆蓋 320 → 1920。</p>
+
+          <blockquote>真正的響應式不是把元件改瘦，而是讓字級自己適應。</blockquote>
+
+          <h2 id="a-pitfalls">踩過的坑</h2>
+          <p>第一個坑：accent 色被當成 brand 色用。第二個坑：dark mode 用 invert 出來，結果 #5B8DEF 在深底上變成噁心的螢光紫。</p>
+
+          <h2 id="a-end">結語：把不加什麼寫進規範</h2>
+          <p>「禁止」比「容許」更重要。我在 v2 寫了 12 條 don'ts；它們比所有 do's 都更常被引用。</p>
+        </div>
+        <window.StickyTOC items={ARTICLE_TOC} />
+      </div>
+
+      <window.RelatedBlock items={RELATED} onOpen={() => null} />
+      <window.CommentsBlock comments={COMMENTS} />
+    </article>
+  );
+}
+
+function App() {
+  const [theme, setTheme] = useState(() => localStorage.getItem('demo.theme') || 'light');
+  const [drawerOpen, setDrawer] = useState(false);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('demo.theme', theme);
+  }, [theme]);
+
+  // edit-mode protocol opt-in (toolbar toggle stays inactive — no Tweaks panel here)
+  return (
+    <window.ToastProvider>
+      <window.ConfirmProvider>
+        <window.ReadingProgress targetSelector="#article-body" />
+        <TopBar theme={theme} toggle={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} openDrawer={() => setDrawer(true)} />
+        <Hero />
+        <RWDDemo />
+        <TypeScale />
+        <ComponentsDemo openDrawer={() => setDrawer(true)} />
+        <ArticleDemo />
+        <footer className="footer">
+          <span>© 2026 · MY BLOG WEB. — refinement pass v2</span>
+          <a href="#" onClick={e=>{e.preventDefault();window.scrollTo({top:0,behavior:'smooth'});}}>Back to top ↑</a>
+        </footer>
+        <window.MobileDrawer
+          open={drawerOpen}
+          onClose={() => setDrawer(false)}
+          view="home"
+          setView={() => {}}
+          go={() => {}}
+        />
+      </window.ConfirmProvider>
+    </window.ToastProvider>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>

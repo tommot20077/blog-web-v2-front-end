@@ -24,6 +24,7 @@ function createTestSetup() {
       { path: '/', component: { template: '<div>Home</div>' } },
       { path: '/register', component: RegisterView },
       { path: '/login', name: 'login', component: { template: '<div>Login</div>' } },
+      { path: '/check-email', name: 'check-email', component: { template: '<div>Check Email</div>' } },
     ],
   });
   router.push('/register');
@@ -87,7 +88,7 @@ describe('RegisterView', () => {
     expect(screen.getByTestId('password-strength')).toBeTruthy();
   });
 
-  it('註冊成功顯示成功 toast 並導向 /login', async () => {
+  it('註冊成功顯示成功 toast 並導向驗證信提示頁', async () => {
     const { router, pinia } = renderRegisterView();
     setActivePinia(pinia);
 
@@ -116,7 +117,8 @@ describe('RegisterView', () => {
     });
 
     await waitFor(() => {
-      expect(router.currentRoute.value.path).toBe('/login');
+      expect(router.currentRoute.value.path).toBe('/check-email');
+      expect(router.currentRoute.value.query.email).toBe('test@example.com');
     });
   });
 

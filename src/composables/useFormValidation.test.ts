@@ -368,4 +368,68 @@ describe('useFormValidation', () => {
       expect(getPasswordStrength('')).toBe('weak');
     });
   });
+
+  describe('pattern 規則', () => {
+    it('值符合 regex 應驗證通過', () => {
+      const { validateField, errors } = useFormValidation<TestForm>({
+        password: [
+          {
+            type: 'pattern',
+            params: { pattern: /^(?=.*[A-Za-z])(?=.*\d).{8,50}$/ },
+            message: '密碼須為 8-50 字元，且包含至少一個英文字母及一個數字',
+          },
+        ],
+      });
+
+      expect(validateField('password', 'Test1234')).toBe(true);
+      expect(errors.password).toBeNull();
+    });
+
+    it('值不符合 regex 應驗證失敗並回傳自訂訊息', () => {
+      const { validateField, errors } = useFormValidation<TestForm>({
+        password: [
+          {
+            type: 'pattern',
+            params: { pattern: /^(?=.*[A-Za-z])(?=.*\d).{8,50}$/ },
+            message: '密碼須為 8-50 字元，且包含至少一個英文字母及一個數字',
+          },
+        ],
+      });
+
+      expect(validateField('password', 'abcdefgh')).toBe(false);
+      expect(errors.password).toBe('密碼須為 8-50 字元，且包含至少一個英文字母及一個數字');
+
+      expect(validateField('password', 'Ab1')).toBe(false);
+      expect(validateField('password', '12345678')).toBe(false);
+    });
+
+    it('未指定 pattern 應視為通過', () => {
+      const { validateField } = useFormValidation<TestForm>({
+        password: [{ type: 'pattern' }],
+      });
+      expect(validateField('password', 'anything')).toBe(true);
+    });
+  });
+
+  describe('getPasswordRules helper', () => {
+    it('空字串三條規則皆 false', () => {
+      const { getPasswordRules } = useFormValidation<TestForm>({});
+      expect(getPasswordRules('')).toEqual({ length: false, letter: false, digit: false });
+    });
+
+    it('"abcdefgh" length+letter true, digit false', () => {
+      const { getPasswordRules } = useFormValidation<TestForm>({});
+      expect(getPasswordRules('abcdefgh')).toEqual({ length: true, letter: true, digit: false });
+    });
+
+    it('"Test1234" 三條規則皆 true', () => {
+      const { getPasswordRules } = useFormValidation<TestForm>({});
+      expect(getPasswordRules('Test1234')).toEqual({ length: true, letter: true, digit: true });
+    });
+
+    it('"Ab1" 長度不足，length false 但 letter+digit true', () => {
+      const { getPasswordRules } = useFormValidation<TestForm>({});
+      expect(getPasswordRules('Ab1')).toEqual({ length: false, letter: true, digit: true });
+    });
+  });
 });

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<title>Repo 404</title>
+<link rel="stylesheet" href="_shared.css" />
+<style>
+  body { padding: 60px 40px; min-height: 700px; display: flex; flex-direction: column; justify-content: center; position: relative; overflow: hidden; }
+  .bg-404 {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    font-family: var(--f-display); font-weight: 500;
+    font-size: clamp(280px, 45vw, 540px); line-height: 0.85; letter-spacing: -0.06em;
+    color: var(--ink); opacity: 0.05; pointer-events: none; z-index: 0;
+    user-select: none;
+  }
+  .ec { font-family: var(--f-mono); font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted-2); margin-bottom: 60px; position: relative; z-index: 2; }
+  .body-wrap { position: relative; z-index: 2; max-width: 580px; margin: 0 auto; text-align: center; }
+  .crumb { font-family: var(--f-mono); font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); margin-bottom: 22px; }
+  h1 {
+    font-family: var(--f-display); font-weight: 500;
+    font-size: clamp(48px, 6vw, 84px); letter-spacing: -0.035em; line-height: 1; margin: 0 0 24px;
+  }
+  h1 .em { font-style: italic; font-weight: 300; color: var(--muted); }
+  p { font-size: 16px; line-height: 1.75; color: var(--muted); margin: 0 0 36px; }
+  .ctas { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .btn-pri {
+    padding: 12px 22px; background: var(--ink); color: var(--bg);
+    border-radius: 999px; font-size: 13px; letter-spacing: 0.04em;
+  }
+  .btn-sec {
+    padding: 12px 22px; border: 1px solid var(--border); border-radius: 999px;
+    font-size: 13px; color: var(--ink-2);
+  }
+</style>
+</head>
+<body>
+  <div class="bg-404">404</div>
+  <div class="ec">§ Repo · NotFoundView.vue</div>
+  <div class="body-wrap">
+    <div class="crumb">● 404 · Page not found</div>
+    <h1>頁面<span class="em">不見了</span></h1>
+    <p>你要找的這頁可能已被移除、改名，或從未存在過。<br>讓我們把你帶回首頁，或瀏覽其他內容。</p>
+    <div class="ctas">
+      <a class="btn-pri">← 回首頁</a>
+      <a class="btn-sec">瀏覽全部文章</a>
+    </div>
+  </div>
+</body>
+</html>

@@ -44,11 +44,12 @@ describe('MobileBottomNav', () => {
     expect(tabs[1].classes()).toContain('text-[var(--accent)]');
   });
 
-  it('具備 fixed bottom-0 定位與 md:hidden', () => {
+  it('具備 fixed bottom-0 定位，且不依賴 md:hidden class（改用 scoped CSS media query 隱藏）', () => {
     const { wrapper } = mountWithPlugins();
     expect(wrapper.classes()).toContain('fixed');
     expect(wrapper.classes()).toContain('bottom-0');
-    expect(wrapper.classes()).toContain('md:hidden');
+    expect(wrapper.classes()).toContain('z-50');
+    expect(wrapper.classes()).not.toContain('md:hidden');
   });
 
   it('包含主題切換按鈕（ThemeSwitcher）', () => {

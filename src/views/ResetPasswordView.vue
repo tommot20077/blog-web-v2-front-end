@@ -10,8 +10,9 @@ import { useToast } from '../composables/useToast'
 import { authService } from '../api/authService'
 import AuthFormLayout from '../components/auth/AuthFormLayout.vue'
 import FormField from '../components/ui/FormField.vue'
+import PasswordRulesChecklist from '../components/auth/PasswordRulesChecklist.vue'
 
-interface ResetPasswordForm {
+interface ResetPasswordForm extends Record<string, unknown> {
   password: string
   confirmPassword: string
 }
@@ -35,7 +36,11 @@ const isSubmitting = ref(false)
 const { errors, validateForm } = useFormValidation<ResetPasswordForm>({
   password: [
     { type: 'required', message: '請輸入新密碼' },
-    { type: 'minLength', message: '密碼至少需要 8 個字元', params: { min: 8 } },
+    {
+      type: 'pattern',
+      message: '密碼須為 8-50 字元，且包含至少一個英文字母及一個數字',
+      params: { pattern: /^(?=.*[A-Za-z])(?=.*\d).{8,50}$/ },
+    },
   ],
   confirmPassword: [
     { type: 'required', message: '請確認密碼' },
@@ -92,6 +97,7 @@ const handleSubmit = async () => {
         :error="errors.password"
         :disabled="isSubmitting"
       />
+      <PasswordRulesChecklist :password="form.password" />
 
       <FormField
         data-testid="auth-reset-field-confirm"

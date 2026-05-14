@@ -1,0 +1,608 @@
+<!doctype html>
+<html lang="zh-Hant" data-theme="light" data-cursor="off" data-accent-color="blue">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Merged Sample · Editor — MY BLOG</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+TC:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="src/assets/design/styles.css" />
+<link rel="stylesheet" href="src/assets/design/views.css" />
+
+<style>
+  html, body { cursor: auto !important; }
+  body { transition: background 0.3s linear !important; color: var(--ink) !important; }
+  html[data-cursor="off"] *, html[data-cursor="off"] *::before, html[data-cursor="off"] *::after { cursor: auto; }
+  html[data-cursor="off"] a, html[data-cursor="off"] button, html[data-cursor="off"] [role="button"] { cursor: pointer; }
+  html[data-cursor="off"] input, html[data-cursor="off"] textarea { cursor: text; }
+
+  /* Sample banner (same vocabulary as Merged Sample · Search) */
+  .sample-banner {
+    position: sticky; top: 0; z-index: 250;
+    background: color-mix(in oklab, var(--ink) 96%, transparent);
+    color: var(--bg);
+    padding: 12px 32px; display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+    font-family: var(--f-mono);
+  }
+  .sample-banner .ttl { font-family: var(--f-display); font-weight: 500; font-size: 15px; letter-spacing: -0.01em; color: var(--bg); }
+  .sample-banner .ttl em { font-style: italic; font-weight: 300; opacity: 0.7; }
+  .sample-banner .grow { flex: 1; }
+  .sample-banner .legend { display: inline-flex; gap: 14px; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; }
+  .sample-banner .legend span { display: inline-flex; align-items: center; gap: 6px; opacity: 0.85; }
+  .sample-banner .legend .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .sample-banner .legend .dot.repo { background: #c8c8c8; }
+  .sample-banner .legend .dot.new  { background: var(--accent); }
+
+  .new-pill {
+    display: inline-block; vertical-align: middle;
+    padding: 1.5px 7px; border-radius: 999px;
+    background: color-mix(in oklch, var(--accent) 18%, transparent);
+    color: var(--accent);
+    font-family: var(--f-mono); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; font-weight: 500;
+  }
+
+  /* Force the editor shell to take height even with banner */
+  .ed-shell { min-height: calc(100vh - 56px); }
+
+  /* ── NEW · Autosave badge in topbar (replaces simple .ed-status) ── */
+  .ed-status.autosave-rich {
+    gap: 10px;
+    padding: 5px 10px 5px 9px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    font-size: 10.5px;
+  }
+  .ed-status.autosave-rich .dot {
+    background: #47B881;
+    box-shadow: 0 0 0 3px color-mix(in oklab, #47B881 22%, transparent);
+  }
+  .ed-status.autosave-rich .save-state {
+    color: var(--ink-2);
+  }
+  .ed-status.autosave-rich .ts {
+    color: var(--muted-2);
+    font-weight: 400;
+  }
+  .ed-status.autosave-rich .pill {
+    margin-left: 2px;
+  }
+
+  /* ── NEW · Slash menu (positioned over the editor pane) ── */
+  .ed-cm { position: relative; }
+  .slash-menu {
+    position: absolute;
+    left: 96px; top: 220px;
+    width: 260px;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    box-shadow: 0 12px 36px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.06);
+    padding: 6px;
+    z-index: 5;
+    font-family: var(--f-body);
+  }
+  [data-theme="dark"] .slash-menu { box-shadow: 0 12px 36px rgba(0,0,0,0.5); }
+  .slash-menu .head {
+    padding: 7px 10px 6px;
+    font-family: var(--f-mono); font-size: 9.5px;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--muted-2);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .slash-menu .head .q {
+    margin-left: auto;
+    color: var(--ink-2);
+    text-transform: none;
+    letter-spacing: 0.04em;
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .slash-item {
+    padding: 8px 10px;
+    border-radius: 7px;
+    display: flex; gap: 12px; align-items: center;
+    font-size: 13px;
+    color: var(--ink-2);
+    width: 100%;
+    text-align: left;
+  }
+  .slash-item:hover { background: var(--bg-sub); color: var(--ink); }
+  .slash-item.active {
+    background: color-mix(in oklch, var(--accent) 12%, transparent);
+    color: var(--ink);
+  }
+  .slash-item .ico {
+    width: 28px; height: 28px;
+    display: grid; place-items: center;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    font-family: var(--f-mono); font-size: 11px;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+  .slash-item.active .ico { border-color: var(--accent); color: var(--accent); }
+  .slash-item .lbl { flex: 1; min-width: 0; }
+  .slash-item .lbl .nm { font-weight: 500; color: inherit; }
+  .slash-item .lbl .ds { font-size: 11px; color: var(--muted-2); margin-top: 1px; }
+  .slash-item .kbd {
+    font-family: var(--f-mono); font-size: 10px;
+    color: var(--muted-2);
+    border: 1px solid var(--border); border-radius: 4px;
+    padding: 1px 5px;
+    background: var(--bg);
+  }
+
+  /* ── NEW · Bubble menu over selection ── */
+  .bubble-menu {
+    position: absolute;
+    left: 140px; top: 470px;
+    background: var(--ink);
+    color: var(--bg);
+    padding: 4px;
+    border-radius: 8px;
+    display: inline-flex;
+    gap: 1px;
+    z-index: 5;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+  }
+  .bubble-menu::before {
+    content: ""; position: absolute; bottom: 100%; left: 22px;
+    border: 6px solid transparent; border-bottom: 0;
+    border-top: 6px solid var(--ink);
+    top: 100%;
+  }
+  .bubble-menu button {
+    padding: 5px 9px;
+    border-radius: 4px;
+    color: var(--bg);
+    font-size: 12px;
+    min-width: 28px;
+    height: 28px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: var(--f-body);
+  }
+  .bubble-menu button:hover { background: rgba(255,255,255,0.12); }
+  .bubble-menu button.on { background: rgba(255,255,255,0.18); }
+  .bubble-menu .sep { width: 1px; background: rgba(255,255,255,0.16); margin: 4px 2px; }
+  .bubble-menu b { font-weight: 700; }
+  .bubble-menu i { font-style: italic; font-family: serif; }
+  .bubble-menu u { text-decoration: underline; }
+
+  /* selection highlight on the textarea-emulating div */
+  .sel-mock {
+    background: color-mix(in oklch, var(--accent) 24%, transparent);
+    padding: 0 2px;
+    border-radius: 2px;
+  }
+
+  /* ── NEW · Draft history section in meta sidebar ── */
+  .ed-meta h5.with-pill { display: flex; align-items: baseline; gap: 8px; }
+  .draft-history {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    overflow: hidden;
+  }
+  .draft-row {
+    display: grid;
+    grid-template-columns: 60px 1fr auto;
+    gap: 10px;
+    align-items: baseline;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--divider);
+    font-size: 12.5px;
+    transition: background .15s;
+  }
+  .draft-row:last-child { border-bottom: 0; }
+  .draft-row:hover { background: var(--bg-sub); }
+  .draft-row.current {
+    background: color-mix(in oklch, var(--accent) 8%, var(--surface));
+  }
+  .draft-row .ts {
+    font-family: var(--f-mono); font-size: 10px;
+    letter-spacing: 0.06em;
+    color: var(--muted-2);
+    text-transform: uppercase;
+  }
+  .draft-row.current .ts { color: var(--accent); }
+  .draft-row .body { min-width: 0; }
+  .draft-row .body .nm { font-weight: 500; color: var(--ink); font-size: 12.5px; }
+  .draft-row .body .ds { color: var(--muted); font-size: 11px; margin-top: 1px; }
+  .draft-row .restore {
+    font-family: var(--f-mono); font-size: 9.5px;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--muted-2);
+    padding: 3px 7px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    opacity: 0;
+    transition: opacity .15s;
+  }
+  .draft-row:hover .restore { opacity: 1; }
+  .draft-row .restore:hover { color: var(--accent); border-color: var(--accent); }
+
+  /* Editor textarea-mock — using the same gutter pattern as repo */
+  .cm-mock {
+    font-family: var(--f-mono);
+    font-size: 14px;
+    line-height: 1.75;
+    color: var(--ink);
+    padding: 36px 0;
+  }
+  .cm-mock-inner {
+    display: grid;
+    grid-template-columns: 56px 1fr;
+    max-width: 880px;
+    margin: 0 auto;
+  }
+  .cm-mock-gutter {
+    text-align: right;
+    color: var(--muted-2);
+    user-select: none;
+    font-size: 12px;
+  }
+  .cm-mock-gutter div { line-height: 1.75; padding-right: 14px; }
+  .cm-mock-text { padding-right: 24px; white-space: pre-wrap; }
+  .cm-mock-text .h { color: var(--accent); font-weight: 600; }
+  .cm-mock-text .em { color: var(--muted); font-style: italic; }
+  .cm-mock-text .cursor {
+    display: inline-block;
+    width: 1.5px;
+    height: 1.1em;
+    background: var(--accent);
+    vertical-align: text-bottom;
+    animation: blink 1.06s infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* Preview pane */
+  .ed-preview .prose h1 { margin-top: 0; }
+
+  /* Footer status (already exists in repo as .ed-cm-footer) — add small hint */
+  .ed-cm-footer .hint {
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  @media (max-width: 1100px) {
+    .ed-body { grid-template-columns: 1fr 1fr; }
+    .ed-meta { display: none; }
+    .slash-menu { left: 60px; top: 180px; }
+  }
+  @media (max-width: 760px) {
+    .ed-body { grid-template-columns: 1fr; }
+    .ed-pane.preview-pane { display: none; }
+    .sample-banner { padding: 10px 16px; }
+    .sample-banner .legend { display: none; }
+  }
+</style>
+</head>
+
+<body>
+
+<div class="sample-banner">
+  <span class="ttl">Merged Sample <em>— Editor</em></span>
+  <span class="grow"></span>
+  <span class="legend">
+    <span><span class="dot repo"></span>Repo 原樣</span>
+    <span><span class="dot new"></span>新增 / NEW</span>
+  </span>
+</div>
+
+<div class="ed-shell">
+
+  <!-- ============ TOPBAR (repo) ============ -->
+  <header class="ed-topbar">
+    <a class="ed-back" href="#">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+      Back
+    </a>
+    <input class="ed-title-input" value="在 Vue 3 中設計可組合的 Composables" />
+
+    <!-- NEW · richer autosave badge -->
+    <div class="ed-status autosave-rich" title="Autosaved 2 seconds ago">
+      <span class="dot"></span>
+      <span class="save-state">Saved</span>
+      <span class="ts">· 12:34:08</span>
+      <span class="new-pill pill">New</span>
+    </div>
+
+    <div class="ed-actions">
+      <!-- mode segmented (repo) -->
+      <div class="ed-mode">
+        <button>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 113 3L7 19l-4 1 1-4z"/></svg>
+          Write
+        </button>
+        <button class="active">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="8" height="18" rx="1"/><rect x="13" y="3" width="8" height="18" rx="1"/></svg>
+          Split
+        </button>
+        <button>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+          Preview
+        </button>
+      </div>
+      <button class="ed-btn">Save draft</button>
+      <button class="ed-btn primary">Publish</button>
+    </div>
+  </header>
+
+  <!-- ============ BODY (repo split layout) ============ -->
+  <div class="ed-body mode-split">
+
+    <!-- WRITE PANE (repo) -->
+    <section class="ed-pane">
+      <div class="ed-pane-head">
+        <span>● Markdown</span>
+        <div class="r">
+          <span>1,284 words</span>
+          <span>~ 6 min</span>
+        </div>
+      </div>
+
+      <div class="ed-cm">
+        <div class="cm-mock">
+          <div class="cm-mock-inner">
+            <div class="cm-mock-gutter">
+              <div>1</div><div>2</div><div>3</div><div>4</div><div>5</div>
+              <div>6</div><div>7</div><div>8</div><div>9</div><div>10</div>
+              <div>11</div><div>12</div><div>13</div><div>14</div><div>15</div>
+              <div>16</div><div>17</div><div>18</div>
+            </div>
+            <div class="cm-mock-text"><span class="h"># 在 Vue 3 中設計可組合的 Composables</span>
+
+<span class="em">> 從零理解 composable 的設計模式</span>
+
+<span class="h">## 命名與檔案結構</span>
+
+一個 composable 就是把 reactive 邏輯包進函數，
+並回傳 ref / computed / 方法。
+
+<span style="color:var(--accent)">/</span><span class="cursor"></span>
+
+
+<span class="h">## Ref 暴露模式</span>
+
+<span class="sel-mock">回傳 ref 還是 readonly(ref)？我的判斷</span>是預設都 readonly。
+</div>
+          </div>
+        </div>
+
+        <!-- ── NEW · Slash menu over editor ── -->
+        <div class="slash-menu">
+          <div class="head">
+            <span>Insert block</span>
+            <span class="q">/</span>
+            <span class="new-pill">New</span>
+          </div>
+          <button class="slash-item active">
+            <span class="ico">H1</span>
+            <span class="lbl">
+              <div class="nm">Heading 1</div>
+              <div class="ds">Top-level section title</div>
+            </span>
+            <span class="kbd">#</span>
+          </button>
+          <button class="slash-item">
+            <span class="ico">H2</span>
+            <span class="lbl">
+              <div class="nm">Heading 2</div>
+              <div class="ds">Subsection</div>
+            </span>
+            <span class="kbd">##</span>
+          </button>
+          <button class="slash-item">
+            <span class="ico">{ }</span>
+            <span class="lbl">
+              <div class="nm">Code block</div>
+              <div class="ds">Syntax-highlighted snippet</div>
+            </span>
+            <span class="kbd">```</span>
+          </button>
+          <button class="slash-item">
+            <span class="ico">⚑</span>
+            <span class="lbl">
+              <div class="nm">Callout</div>
+              <div class="ds">Note · tip · warning</div>
+            </span>
+            <span class="kbd">:::</span>
+          </button>
+          <button class="slash-item">
+            <span class="ico">▭</span>
+            <span class="lbl">
+              <div class="nm">Image</div>
+              <div class="ds">Drop or paste from clipboard</div>
+            </span>
+          </button>
+          <button class="slash-item">
+            <span class="ico">▤</span>
+            <span class="lbl">
+              <div class="nm">Table</div>
+              <div class="ds">Markdown table generator</div>
+            </span>
+          </button>
+        </div>
+
+        <!-- ── NEW · Bubble menu (selection toolbar) ── -->
+        <div class="bubble-menu">
+          <button class="on" title="Bold (⌘B)"><b>B</b></button>
+          <button title="Italic (⌘I)"><i>I</i></button>
+          <button title="Underline"><u>U</u></button>
+          <button title="Strike"><s>S</s></button>
+          <span class="sep"></span>
+          <button title="Inline code">{ }</button>
+          <button title="Link">↗ Link</button>
+          <button title="Quote">" Quote</button>
+        </div>
+      </div>
+
+      <div class="ed-cm-footer">
+        <span>Ln 10 · Col 2</span>
+        <span class="hint">Type <span style="font-family:var(--f-mono); padding: 0 4px; background: color-mix(in oklch, var(--accent) 14%, transparent); border-radius: 3px;">/</span> for blocks <span class="new-pill" style="margin-left:6px">New</span></span>
+        <span>Markdown</span>
+      </div>
+    </section>
+
+    <!-- PREVIEW PANE (repo) -->
+    <section class="ed-pane preview-pane">
+      <div class="ed-pane-head">
+        <span>● Preview</span>
+        <div class="r">
+          <span>Reading mode</span>
+        </div>
+      </div>
+      <div class="ed-preview">
+        <article class="prose">
+          <h1>在 Vue 3 中設計可組合的 Composables</h1>
+          <blockquote style="border-left:3px solid var(--border-strong); padding-left:14px; color: var(--muted); font-style: italic; margin: 0 0 22px;">
+            從零理解 composable 的設計模式
+          </blockquote>
+          <h2>命名與檔案結構</h2>
+          <p>一個 composable 就是把 reactive 邏輯包進函數，並回傳 <code>ref</code> / <code>computed</code> / 方法。慣例是用 <code>use</code> 開頭的命名。</p>
+          <h2>Ref 暴露模式</h2>
+          <p>回傳 <code>ref</code> 還是 <code>readonly(ref)</code>？我的判斷是預設都 readonly，需要改值就提供 method。</p>
+          <pre style="background: #1a1a1c; color: #ededef; padding: 16px; border-radius: 8px; font-family: var(--f-mono); font-size: 12.5px; line-height: 1.7; overflow-x: auto;"><code>// composables/useCounter.ts
+export function useCounter(initial = 0) {
+  const count = ref(initial)
+  const inc = () => count.value++
+  return { count: readonly(count), inc }
+}</code></pre>
+        </article>
+      </div>
+    </section>
+
+    <!-- META SIDEBAR (repo) + NEW Draft history -->
+    <aside class="ed-meta">
+      <!-- meta tabs (repo) -->
+      <div class="ed-meta-tabs">
+        <button class="ed-meta-tab active">Meta</button>
+        <button class="ed-meta-tab">Outline</button>
+        <button class="ed-meta-tab">History <span class="new-pill" style="margin-left:4px">N</span></button>
+      </div>
+
+      <!-- existing meta (repo) -->
+      <div>
+        <h5>● Cover</h5>
+        <div class="cover-upload" style="aspect-ratio:16/9; border:1px dashed var(--border-strong); border-radius:10px; display:grid; place-items:center; color: var(--muted); font-size:12px;">
+          Drop image · or click to upload
+        </div>
+      </div>
+
+      <div>
+        <h5>● Slug</h5>
+        <input type="text" value="vue3-composables" />
+      </div>
+
+      <div>
+        <h5>● Excerpt</h5>
+        <textarea rows="3" placeholder="Short summary for cards & SEO…">用一篇文整理我把 composable 設計成可組合單元的習慣與原則。</textarea>
+      </div>
+
+      <div>
+        <h5>● Tags</h5>
+        <div class="ed-cats">
+          <span class="ed-cat" style="padding:6px 11px; border:1px solid var(--border); border-radius:999px; font-size:12px;">vue</span>
+          <span class="ed-cat" style="padding:6px 11px; border:1px solid var(--border); border-radius:999px; font-size:12px;">composable</span>
+          <span class="ed-cat" style="padding:6px 11px; border:1px dashed var(--border-strong); border-radius:999px; font-size:12px; color: var(--muted-2);">+ Add</span>
+        </div>
+      </div>
+
+      <!-- ── NEW · Draft history block ── -->
+      <div>
+        <h5 class="with-pill">● Draft history <span class="new-pill">New</span></h5>
+        <div class="draft-history">
+          <div class="draft-row current">
+            <span class="ts">12:34</span>
+            <div class="body">
+              <div class="nm">Auto · current</div>
+              <div class="ds">+ 184 字 · Ref 暴露段</div>
+            </div>
+            <span class="restore">Now</span>
+          </div>
+          <div class="draft-row">
+            <span class="ts">12:18</span>
+            <div class="body">
+              <div class="nm">Auto</div>
+              <div class="ds">改寫第二段</div>
+            </div>
+            <button class="restore">Restore</button>
+          </div>
+          <div class="draft-row">
+            <span class="ts">11:42</span>
+            <div class="body">
+              <div class="nm">Manual · 大綱 v2</div>
+              <div class="ds">新增「Ref 暴露模式」</div>
+            </div>
+            <button class="restore">Restore</button>
+          </div>
+          <div class="draft-row">
+            <span class="ts">昨天</span>
+            <div class="body">
+              <div class="nm">Manual · 初稿</div>
+              <div class="ds">736 字</div>
+            </div>
+            <button class="restore">Restore</button>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+</div>
+
+<script>
+  // Slash menu: arrow up/down navigates, click activates
+  const slashItems = document.querySelectorAll('.slash-item');
+  slashItems.forEach((it, i) => {
+    it.addEventListener('click', () => {
+      slashItems.forEach(x => x.classList.toggle('active', x === it));
+    });
+  });
+
+  // Bubble menu buttons toggle
+  document.querySelectorAll('.bubble-menu button').forEach(b => {
+    b.addEventListener('click', () => b.classList.toggle('on'));
+  });
+
+  // Mode buttons (write/split/preview) — visual only
+  document.querySelectorAll('.ed-mode button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.ed-mode button').forEach(b => b.classList.toggle('active', b === btn));
+    });
+  });
+
+  // Meta tabs — visual only
+  document.querySelectorAll('.ed-meta-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.ed-meta-tab').forEach(t => t.classList.toggle('active', t === tab));
+    });
+  });
+
+  // Autosave fake tick
+  let n = 0;
+  setInterval(() => {
+    n++;
+    const ts = document.querySelector('.autosave-rich .ts');
+    const ss = document.querySelector('.autosave-rich .save-state');
+    if (!ts || !ss) return;
+    if (n % 8 === 0) {
+      ss.textContent = 'Saving';
+      ss.style.color = 'var(--accent)';
+      setTimeout(() => {
+        ss.textContent = 'Saved';
+        ss.style.color = '';
+        const d = new Date();
+        ts.textContent = `· ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+      }, 600);
+    }
+  }, 1000);
+</script>
+
+</body>
+</html>

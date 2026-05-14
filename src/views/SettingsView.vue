@@ -4,6 +4,7 @@ import { useSettings } from '../composables/useSettings'
 import SettingToggle from '../components/settings/SettingToggle.vue'
 import SettingFieldGroup from '../components/settings/SettingFieldGroup.vue'
 import SettingSaveToast from '../components/settings/SettingSaveToast.vue'
+import PasswordRulesChecklist from '../components/auth/PasswordRulesChecklist.vue'
 
 const {
   activeSection, setSection,
@@ -195,6 +196,7 @@ async function handleDeleteAccount() {
 
         <SettingFieldGroup label="新密碼">
           <input class="st-input" type="password" v-model="pwNew" placeholder="輸入新密碼" autocomplete="new-password" />
+          <PasswordRulesChecklist :password="pwNew" />
         </SettingFieldGroup>
 
         <SettingFieldGroup label="確認新密碼">
@@ -217,27 +219,27 @@ async function handleDeleteAccount() {
         <SettingFieldGroup label="GitHub">
           <div class="st-prefix-input">
             <span class="st-prefix">github.com/</span>
-            <input class="st-input" v-model="github" placeholder="your-username" />
+            <input class="st-input" data-testid="social-github-input" v-model="github" placeholder="your-username" />
           </div>
         </SettingFieldGroup>
 
         <SettingFieldGroup label="Twitter / X">
           <div class="st-prefix-input">
             <span class="st-prefix">@</span>
-            <input class="st-input" v-model="twitter" placeholder="your-handle" />
+            <input class="st-input" data-testid="social-twitter-input" v-model="twitter" placeholder="your-handle" />
           </div>
         </SettingFieldGroup>
 
         <SettingFieldGroup label="LinkedIn">
           <div class="st-prefix-input">
             <span class="st-prefix">linkedin.com/in/</span>
-            <input class="st-input" v-model="linkedin" placeholder="your-profile" />
+            <input class="st-input" data-testid="social-linkedin-input" v-model="linkedin" placeholder="your-profile" />
           </div>
         </SettingFieldGroup>
 
         <div class="st-footer-row">
           <SettingSaveToast :status="socialStatus" />
-          <button type="button" class="st-btn-primary" @click="saveSocial">儲存連結</button>
+          <button type="button" class="st-btn-primary" data-testid="social-save-btn" @click="saveSocial">儲存連結</button>
         </div>
       </section>
 
@@ -339,7 +341,7 @@ async function handleDeleteAccount() {
             <div class="st-danger-title">刪除帳號</div>
             <div class="st-danger-desc">永久刪除你的帳號及所有相關資料，此操作無法復原。</div>
           </div>
-          <button type="button" class="st-btn-danger" @click="handleDeleteAccount">刪除帳號</button>
+          <button type="button" class="st-btn-danger" data-testid="delete-account-btn" @click="handleDeleteAccount">刪除帳號</button>
         </div>
       </section>
 

@@ -129,6 +129,8 @@ export interface TagDetail {
   icon: string;
   description: string;
   usageCount: number;
+  /** 當前使用者是否已追蹤此標籤；未認證時 false */
+  followed: boolean;
 }
 
 // ── 管理員操作 requests ────────────────────────────────────────────────────────

@@ -92,7 +92,7 @@ html[data-cursor="off"] { cursor: auto; }
 html:not([data-cursor="off"]) { cursor: none; }
 html:not([data-cursor="off"]) a, html:not([data-cursor="off"]) button, html:not([data-cursor="off"]) input, html:not([data-cursor="off"]) textarea { cursor: none; }
 
-.cursor-dot, .cursor-ring { position: fixed; top: 0; left: 0; pointer-events: none; z-index: 9999; will-change: transform; }
+.cursor-dot, .cursor-ring { position: fixed; top: 0; left: 0; pointer-events: none; z-index: 11000; will-change: transform; }
 
 /* VARIANT 1 — ring + dot (default), high contrast */
 html[data-cursor="ring"] .cursor-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ink); box-shadow: 0 0 0 2px var(--bg); transition: width 0.2s, height 0.2s, background 0.3s; }

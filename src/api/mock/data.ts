@@ -1,101 +1,239 @@
 import type { ArticleItem, ArticleDetailItem } from '../articleService';
-import type { RecommendArticleResponse } from '../recommendService';
 import type { TagDetailResponse } from '../tagService';
 import { mockMarkdownContent } from './mockArticleContent';
 import type { CategoryOption, TagSuggestion, QuotaInfo, EditorArticle, MyArticle, PendingArticle } from '../../types/editor';
+import { MOCK_AUTHOR_PROFILES } from './profiles';
+import { ALL_MOCK_TAGS } from './tagRegistry';
 
-// 模擬作者名稱池
-const MOCK_AUTHORS = ['Yuan', '小明', 'TechLead', '旅行者', 'DevGuru'] as const;
+type MockCategoryOption = CategoryOption & { uuid: string };
+type MockArticleItem = ArticleItem & { categories: string[] };
 
-// 產生 50 篇 Frontend / Backend 交替的模擬文章
-const baseMockArticles: ArticleItem[] = Array.from({ length: 50 }).map((_, i) => {
-  const isFrontend = i % 2 === 0;
-  return {
-    uuid: `article-${i + 1}`,
-    title: isFrontend ? `深入理解 Vue 3 Reactivity 的底層原理 - 篇章 ${i + 1}` : `微服務架構下的 API Gateway 設計 - 實踐 ${i + 1}`,
-    summary: '在這篇文章中，我們將探討現代前端與後端的架構演進，並深入探討如何在實務應用中發揮技術的最大效益。這裡是一段詳細的摘要內容來填補版面。',
-    coverImageUrl: `https://picsum.photos/seed/article-${i + 1}/800/400`,
-    authorNickname: MOCK_AUTHORS[i % MOCK_AUTHORS.length],
-    viewCount: Math.floor(Math.random() * 5000),
-    likeCount: Math.floor(Math.random() * 200),
-    commentCount: Math.floor(Math.random() * 50),
-    publishedAt: `2026-03-${String((i % 30) + 1).padStart(2, '0')}`,
-    tags: isFrontend ? ['Vue', 'Frontend'] : ['Backend', 'Microservices', 'DevOps'],
-    categories: isFrontend ? ['Frontend'] : ['Backend'],
-    slug: `article-slug-${i + 1}`,
-  };
-});
+const yuan = MOCK_AUTHOR_PROFILES.yuan.nickname;
+const han = MOCK_AUTHOR_PROFILES.han.nickname;
+const mira = MOCK_AUTHOR_PROFILES.mira.nickname;
+const chen = MOCK_AUTHOR_PROFILES.chen.nickname;
 
-// Life 分類補充文章
-const lifeMockArticles: ArticleItem[] = [
+function img(seed: string): string {
+  return `https://picsum.photos/seed/${seed}/800/400`;
+}
+
+function slugifyTag(tag: string): string {
+  return tag.toLowerCase().replace(/\s+/g, '-').replace(/\//g, '-');
+}
+
+const articles2023: MockArticleItem[] = [
   {
-    uuid: 'life-article-1',
-    title: '工程師的旅行日記 — 峇里島遠端工作體驗',
-    summary: '分享在峇里島一邊寫程式一邊享受海景的生活日記，以及如何在異鄉保持工作效率。',
-    coverImageUrl: 'https://picsum.photos/seed/life-1/800/400',
-    authorNickname: '旅行者',
-    viewCount: 3200,
-    likeCount: 156,
-    commentCount: 28,
-    publishedAt: '2026-04-01',
-    tags: ['Life', 'Remote Work', 'Travel'],
-    categories: ['Life'],
-    slug: 'life-bali-remote-work',
+    uuid: 'a-2023-01', title: '為什麼我又重寫了一次 useTheme()',
+    summary: '從 v-bind:class 到 CSS variables，再到 useTheme composable，兩年內的第三次重構，這次我終於想清楚了。',
+    coverImageUrl: img('a-2023-01'), authorNickname: yuan, viewCount: 4120, likeCount: 168, commentCount: 24,
+    publishedAt: '2023-04-08', tags: ['Vue 3', 'CSS'], categories: ['Frontend'], slug: 'rewriting-use-theme',
   },
   {
-    uuid: 'life-article-2',
-    title: '技術人讀書筆記 — 原子習慣改變了我的開發習慣',
-    summary: '用《原子習慣》的框架重新設計每日 coding 例行公事，養成穩定輸出的寫作習慣。',
-    coverImageUrl: 'https://picsum.photos/seed/life-2/800/400',
-    authorNickname: 'Yuan',
-    viewCount: 1800,
-    likeCount: 92,
-    commentCount: 15,
-    publishedAt: '2026-04-03',
-    tags: ['Life', 'Productivity', 'Books'],
-    categories: ['Life'],
-    slug: 'life-atomic-habits',
+    uuid: 'a-2023-02', title: 'TypeScript 的 const generic 解開了我半年的 prop type 苦惱',
+    summary: '從 Vue 3.4 開始，type T extends readonly any[] 終於可以推導出 literal tuple，再也不用手動 as const。',
+    coverImageUrl: img('a-2023-02'), authorNickname: yuan, viewCount: 2890, likeCount: 142, commentCount: 18,
+    publishedAt: '2023-04-21', tags: ['TypeScript', 'Vue 3'], categories: ['Frontend'], slug: 'const-generic-saved-me',
+  },
+  {
+    uuid: 'a-2023-03', title: 'CSS subgrid 終於可以用了，但我發現它解不了我以為的問題',
+    summary: '原本期待 subgrid 能讓 card grid 內的元素垂直對齊，實際試了才發現問題在我的 design system，不在 CSS。',
+    coverImageUrl: img('a-2023-03'), authorNickname: yuan, viewCount: 3340, likeCount: 156, commentCount: 31,
+    publishedAt: '2023-05-12', tags: ['CSS'], categories: ['Frontend'], slug: 'subgrid-not-the-answer',
+  },
+  {
+    uuid: 'a-2023-04', title: 'Vite 5 升上去之後，我終於拿掉了三個 polyfill',
+    summary: '原本為了 IE11 留的舊 plugin、為 Safari 14 留的 ResizeObserver polyfill，Vite 5 之後這些可以乾淨拔掉。',
+    coverImageUrl: img('a-2023-04'), authorNickname: yuan, viewCount: 2110, likeCount: 89, commentCount: 12,
+    publishedAt: '2023-06-03', tags: ['Vite', 'Vue 3'], categories: ['Frontend'], slug: 'vite-5-polyfill-cleanup',
+  },
+  {
+    uuid: 'a-2023-05', title: 'CSS 動畫的時間曲線，我不再用 ease-in-out',
+    summary: 'cubic-bezier(0.16, 1, 0.3, 1) 才是我這一年來最常用的 easing，因為它讓互動的感覺更乾淨。',
+    coverImageUrl: img('a-2023-05'), authorNickname: yuan, viewCount: 5210, likeCount: 248, commentCount: 42,
+    publishedAt: '2023-07-09', tags: ['Animation', 'CSS'], categories: ['Frontend'], slug: 'easing-i-actually-use',
+  },
+  {
+    uuid: 'a-2023-06', title: '我們的 e2e 從 Cypress 搬到 Playwright 之後',
+    summary: '速度快了 3 倍、flake 從每週 5 次降到每月 1 次。但我們也踩到三個沒人講的雷。',
+    coverImageUrl: img('a-2023-06'), authorNickname: yuan, viewCount: 6480, likeCount: 312, commentCount: 58,
+    publishedAt: '2023-08-19', tags: ['Testing', 'CI/CD'], categories: ['Practice'], slug: 'cypress-to-playwright',
+  },
+  {
+    uuid: 'a-2023-07', title: 'TDD 在前端到底做不做得起來：我做了一年的觀察',
+    summary: '我以為前端 TDD 是某種烏托邦，做了一年發現可以但條件很挑，元件純不純、storybook 在不在都會影響。',
+    coverImageUrl: img('a-2023-07'), authorNickname: yuan, viewCount: 4720, likeCount: 198, commentCount: 67,
+    publishedAt: '2023-10-04', tags: ['TDD', 'Testing'], categories: ['Practice'], slug: 'frontend-tdd-one-year-in',
+  },
+  {
+    uuid: 'a-2023-08', title: '我為什麼想搞懂自己 API 的 N+1 問題',
+    summary: '前端工程師不該只丟 issue 給後端。某天 Han 提醒我看 console 之後，我學會看 PostgreSQL 的 EXPLAIN ANALYZE。',
+    coverImageUrl: img('a-2023-08'), authorNickname: yuan, viewCount: 3160, likeCount: 134, commentCount: 28,
+    publishedAt: '2023-11-15', tags: ['PostgreSQL', 'Performance'], categories: ['Backend'], slug: 'frontend-cares-about-n-plus-one',
+  },
+  {
+    uuid: 'a-2023-09', title: '從工程師轉去做技術 lead 的第一年我學到什麼',
+    summary: '不是技術判斷，不是溝通，而是忍住不寫 code。我用了一整年才學會把鍵盤交給隊友。',
+    coverImageUrl: img('a-2023-09'), authorNickname: yuan, viewCount: 8120, likeCount: 421, commentCount: 89,
+    publishedAt: '2023-12-22', tags: ['Career'], categories: ['Life'], slug: 'first-year-as-tech-lead',
+  },
+  {
+    uuid: 'a-2023-10', title: 'Spring Boot 3.2 的 Virtual Threads 真的可以用了嗎',
+    summary: '生產環境跑了三個月，QPS 提升 4 倍但有兩個 pinning 雷。整理我們踩到的所有問題。',
+    coverImageUrl: img('a-2023-10'), authorNickname: han, viewCount: 5890, likeCount: 287, commentCount: 51,
+    publishedAt: '2023-09-02', tags: ['Spring', 'Performance'], categories: ['Backend'], slug: 'virtual-threads-in-production',
+  },
+  {
+    uuid: 'a-2023-11', title: 'PostgreSQL 14 的 SEARCH 跟 CYCLE 子句真的不夠看',
+    summary: '為了組織樹遞迴查詢，我們從 hard-coded recursive CTE 改成 SEARCH BREADTH，結果 plan 反而變糟。',
+    coverImageUrl: img('a-2023-11'), authorNickname: han, viewCount: 2340, likeCount: 98, commentCount: 19,
+    publishedAt: '2023-10-18', tags: ['PostgreSQL'], categories: ['Backend'], slug: 'pg-recursive-cte-pitfall',
+  },
+  {
+    uuid: 'a-2023-12', title: 'Redis Streams 取代 Kafka 的三個適用場景',
+    summary: '不是每個 event-driven system 都需要 Kafka 的 partitioning。當 throughput 小於 10k/s，Redis Streams 是更便宜的選擇。',
+    coverImageUrl: img('a-2023-12'), authorNickname: han, viewCount: 4180, likeCount: 211, commentCount: 36,
+    publishedAt: '2023-12-05', tags: ['Redis', 'Microservices'], categories: ['Backend'], slug: 'redis-streams-vs-kafka',
   },
 ];
 
-// 完整母體 = 50 篇基礎文章 + Life 分類文章
-export const allMockArticles: ArticleItem[] = [
-  ...baseMockArticles,
-  ...lifeMockArticles,
+const articles2024: MockArticleItem[] = [
+  {
+    uuid: 'a-2024-01', title: '我把 React 加進原本純 Vue 的專案，後悔了三件事',
+    summary: '為了 hire 而引入 React，預期省的時間都被吃掉了。寫給想 hybrid 的 lead 看的決策後悔錄。',
+    coverImageUrl: img('a-2024-01'), authorNickname: yuan, viewCount: 9210, likeCount: 487, commentCount: 124,
+    publishedAt: '2024-01-14', tags: ['React', 'Vue 3'], categories: ['Frontend'], slug: 'mixing-react-into-vue',
+  },
+  {
+    uuid: 'a-2024-02', title: 'Tailwind v4 的 oklch 配色，我終於理解 design token 該怎麼設計',
+    summary: '從 hex 到 hsl 到 oklch，每換一次都覺得是工具進步。實際是我的色彩思維在被工具教育。',
+    coverImageUrl: img('a-2024-02'), authorNickname: yuan, viewCount: 6420, likeCount: 318, commentCount: 47,
+    publishedAt: '2024-03-22', tags: ['Tailwind', 'Design System', 'Color'], categories: ['Frontend'], slug: 'tailwind-v4-oklch',
+  },
+  {
+    uuid: 'a-2024-03', title: '我的 design token 命名規則第三次大改',
+    summary: 'color.brand.primary 到 color.action.primary，再到 semantic.action，這次重命名讓元件語意終於穩定。',
+    coverImageUrl: img('a-2024-03'), authorNickname: yuan, viewCount: 3890, likeCount: 187, commentCount: 26,
+    publishedAt: '2024-06-08', tags: ['Design System', 'CSS'], categories: ['Design'], slug: 'design-token-naming-v3',
+  },
+  {
+    uuid: 'a-2024-04', title: 'GitHub Actions 裡 cache vue 的 .vite 整整省了 8 分鐘',
+    summary: 'cache key 設計這件事很容易做錯。我們的 CI 從 12 分鐘降到 4 分鐘，主要靠正確的 hash 來源。',
+    coverImageUrl: img('a-2024-04'), authorNickname: yuan, viewCount: 2780, likeCount: 124, commentCount: 19,
+    publishedAt: '2024-08-30', tags: ['CI/CD', 'Vite'], categories: ['Practice'], slug: 'gha-vite-cache-saved-8min',
+  },
+  {
+    uuid: 'a-2024-05', title: '《Working in Public》看完之後我重新想了一遍 open source',
+    summary: '我以為 open source 是給予，看完才知道大部分時間是 housekeeping。maintainer 的累被寫得很準。',
+    coverImageUrl: img('a-2024-05'), authorNickname: yuan, viewCount: 4310, likeCount: 234, commentCount: 38,
+    publishedAt: '2024-11-17', tags: ['Books'], categories: ['Life'], slug: 'working-in-public-rereading',
+  },
+  {
+    uuid: 'a-2024-06', title: '微服務拆分的時候，我們做錯的三件事',
+    summary: '把 monolith 拆成 12 個 service 之後，我們花了 8 個月把它縮回 5 個。寫給想拆的團隊看。',
+    coverImageUrl: img('a-2024-06'), authorNickname: han, viewCount: 7240, likeCount: 389, commentCount: 92,
+    publishedAt: '2024-04-11', tags: ['Microservices'], categories: ['Backend'], slug: 'microservices-three-mistakes',
+  },
+  {
+    uuid: 'a-2024-07', title: 'Spring 的 @Async 真的不是丟到 thread pool 這麼簡單',
+    summary: '我們的 Async task 在 prod 偶發 thread starvation，追了三天才發現是 propagation context 的問題。',
+    coverImageUrl: img('a-2024-07'), authorNickname: han, viewCount: 4920, likeCount: 248, commentCount: 56,
+    publishedAt: '2024-09-25', tags: ['Spring', 'Performance'], categories: ['Backend'], slug: 'spring-async-pitfall',
+  },
+  {
+    uuid: 'a-2024-08', title: '我們建立 design system 的第一年，學到了什麼',
+    summary: '從 Figma 變數到實際 production CSS variable，看似一條線，實際上中間斷掉的地方比連起來的還多。',
+    coverImageUrl: img('a-2024-08'), authorNickname: mira, viewCount: 5610, likeCount: 287, commentCount: 64,
+    publishedAt: '2024-02-29', tags: ['Design System', 'Typography'], categories: ['Design'], slug: 'design-system-first-year',
+  },
+  {
+    uuid: 'a-2024-09', title: 'Hover state 不該只是換顏色，用圖層思維設計按鈕',
+    summary: '一個按鈕有 base、shadow、border、icon、label 五層。每層在 hover 時的反應應該獨立想。',
+    coverImageUrl: img('a-2024-09'), authorNickname: mira, viewCount: 6780, likeCount: 342, commentCount: 51,
+    publishedAt: '2024-07-03', tags: ['CSS', 'Animation'], categories: ['Frontend'], slug: 'hover-state-as-layers',
+  },
+  {
+    uuid: 'a-2024-10', title: '《Deep Work》之後，我把通知全關掉的第 90 天',
+    summary: '不是 Cal Newport 那種極端版本。我留下 Slack mention 跟手機電話，其他全關。三個月後的觀察。',
+    coverImageUrl: img('a-2024-10'), authorNickname: chen, viewCount: 8420, likeCount: 451, commentCount: 78,
+    publishedAt: '2024-10-12', tags: ['Productivity', 'Books'], categories: ['Life'], slug: 'deep-work-day-90',
+  },
 ];
 
-// 根據 uuid 取得含 content 的文章詳情
+const articles2025_2026: MockArticleItem[] = [
+  {
+    uuid: 'a-2025-01', title: 'Vue 3.5 的 useTemplateRef 改寫了我所有 ref 的習慣',
+    summary: '不再 const el = ref 加 defineExpose。useTemplateRef 把流程縮成一行，且 type 推得更準。',
+    coverImageUrl: img('a-2025-01'), authorNickname: yuan, viewCount: 11240, likeCount: 568, commentCount: 134,
+    publishedAt: '2025-02-18', tags: ['Vue 3', 'TypeScript'], categories: ['Frontend'], slug: 'use-template-ref-changed-everything',
+  },
+  {
+    uuid: 'a-2025-02', title: 'TypeScript 5.5 的 inferred type predicate 解決了 filter 的壞習慣',
+    summary: 'array.filter(Boolean as any) 和 as Foo[] 之類的 hack 終於可以下架。這個小改動的影響比想像中大。',
+    coverImageUrl: img('a-2025-02'), authorNickname: yuan, viewCount: 7680, likeCount: 412, commentCount: 87,
+    publishedAt: '2025-05-09', tags: ['TypeScript'], categories: ['Frontend'], slug: 'ts-55-inferred-predicate',
+  },
+  {
+    uuid: 'a-2025-03', title: '為什麼我又重寫了 component 測試',
+    summary: '從 Jest snapshot 到 Vitest + Vue Test Utils 到 Testing Library 再回 VTU，我終於知道怎麼選了。',
+    coverImageUrl: img('a-2025-03'), authorNickname: yuan, viewCount: 5240, likeCount: 234, commentCount: 56,
+    publishedAt: '2025-08-21', tags: ['Testing', 'Vue 3'], categories: ['Practice'], slug: 'rewriting-component-tests-again',
+  },
+  {
+    uuid: 'a-2025-04', title: 'Inter 換成 Geist 之後我才發現字型對 layout 的影響有多大',
+    summary: '同樣 16px、line-height 1.5，換字型之後整個頁面的重量變了。Typography 從來不只是字體選擇。',
+    coverImageUrl: img('a-2025-04'), authorNickname: yuan, viewCount: 6320, likeCount: 318, commentCount: 71,
+    publishedAt: '2025-11-04', tags: ['Typography', 'Design System'], categories: ['Design'], slug: 'inter-to-geist',
+  },
+  {
+    uuid: 'a-2025-05', title: '遠端工作三年，我終於不再嘗試模擬辦公室',
+    summary: '從同步 standup、screen share pair programming 到完全 async，我花了三年才學會 remote 的真正規則。',
+    coverImageUrl: img('a-2025-05'), authorNickname: yuan, viewCount: 9810, likeCount: 521, commentCount: 142,
+    publishedAt: '2025-12-19', tags: ['Remote Work', 'Career'], categories: ['Life'], slug: 'remote-three-years-in',
+  },
+  {
+    uuid: 'a-2025-06', title: '從 Java 跳 Go 一年，我懷念的跟我不懷念的',
+    summary: '懷念 Stream API 跟 Lombok。不懷念 ClassNotFoundException 跟 Spring 的 magic auto-config。對 nil 仍有恨。',
+    coverImageUrl: img('a-2025-06'), authorNickname: han, viewCount: 8740, likeCount: 467, commentCount: 158,
+    publishedAt: '2025-06-26', tags: ['Go'], categories: ['Backend'], slug: 'java-to-go-one-year',
+  },
+  {
+    uuid: 'a-2025-07', title: 'Motion design 在 web 上的克制，我們刪掉了 80% 的 transition',
+    summary: '把 design system 裡所有 100ms 以下的 transition 全部移除之後，UI 反而感覺更快。這是一次有趣的反證。',
+    coverImageUrl: img('a-2025-07'), authorNickname: mira, viewCount: 5420, likeCount: 289, commentCount: 47,
+    publishedAt: '2025-04-15', tags: ['Motion', 'Animation'], categories: ['Design'], slug: 'restraint-in-motion',
+  },
+  {
+    uuid: 'a-2026-01', title: '《How to Take Smart Notes》之後我重做了我的 markdown vault',
+    summary: 'Sönke 的 Zettelkasten 不是 note-taking 系統，是寫作系統。我花了一個月把 800 篇 note 全部重整。',
+    coverImageUrl: img('a-2026-01'), authorNickname: chen, viewCount: 6890, likeCount: 354, commentCount: 89,
+    publishedAt: '2026-03-08', tags: ['Books', 'Productivity'], categories: ['Life'], slug: 'smart-notes-rebuild-vault',
+  },
+];
+
+export const allMockArticles: MockArticleItem[] = [
+  ...articles2023,
+  ...articles2024,
+  ...articles2025_2026,
+];
+
 export function getMockArticleDetail(uuid: string): ArticleDetailItem | null {
   const base = allMockArticles.find(a => a.uuid === uuid);
   if (!base) return null;
-  return { ...base, content: mockMarkdownContent };
+  const categories = base.categories.map((name, i) => ({
+    uuid: `mock-cat-${base.uuid}-${i}`,
+    name,
+    slug: name.toLowerCase(),
+  }));
+  return { ...base, content: mockMarkdownContent, categories, liked: false };
 }
 
-// 熱門標籤 mock 資料
-export const allMockTags: TagDetailResponse[] = [
-  { uuid: 'tag-1', name: 'Vue', slug: 'vue', articleCount: 18 },
-  { uuid: 'tag-2', name: 'React', slug: 'react', articleCount: 12 },
-  { uuid: 'tag-3', name: 'TypeScript', slug: 'typescript', articleCount: 15 },
-  { uuid: 'tag-4', name: 'Tailwind CSS', slug: 'tailwind-css', articleCount: 9 },
-  { uuid: 'tag-5', name: 'Node.js', slug: 'nodejs', articleCount: 11 },
-  { uuid: 'tag-6', name: 'Docker', slug: 'docker', articleCount: 8 },
-  { uuid: 'tag-7', name: 'Kubernetes', slug: 'kubernetes', articleCount: 7 },
-  { uuid: 'tag-8', name: 'PostgreSQL', slug: 'postgresql', articleCount: 6 },
-  { uuid: 'tag-9', name: 'Redis', slug: 'redis', articleCount: 5 },
-  { uuid: 'tag-10', name: 'Elasticsearch', slug: 'elasticsearch', articleCount: 4 },
-  { uuid: 'tag-11', name: 'Spring Boot', slug: 'spring-boot', articleCount: 10 },
-  { uuid: 'tag-12', name: 'GraphQL', slug: 'graphql', articleCount: 3 },
-  { uuid: 'tag-13', name: 'CI/CD', slug: 'ci-cd', articleCount: 6 },
-  { uuid: 'tag-14', name: 'Testing', slug: 'testing', articleCount: 8 },
-  { uuid: 'tag-15', name: 'DevOps', slug: 'devops', articleCount: 7 },
-  { uuid: 'tag-16', name: 'Architecture', slug: 'architecture', articleCount: 5 },
-  { uuid: 'tag-17', name: 'Security', slug: 'security', articleCount: 4 },
-  { uuid: 'tag-18', name: 'Performance', slug: 'performance', articleCount: 3 },
-  { uuid: 'tag-19', name: 'Rust', slug: 'rust', articleCount: 2 },
-  { uuid: 'tag-20', name: 'Go', slug: 'go', articleCount: 3 },
-];
+export const allMockTags: TagDetailResponse[] = ALL_MOCK_TAGS.map((name, index) => ({
+  uuid: `tag-${index + 1}`,
+  name,
+  slug: slugifyTag(name),
+  articleCount: allMockArticles.filter(article => article.tags.includes(name)).length,
+}));
 
-// 主題專區 mock 資料
 export interface ZoneEntry {
   slug: string;
   name: string;
@@ -106,75 +244,41 @@ export interface ZoneEntry {
 }
 
 export const mockZoneEntries: ZoneEntry[] = [
-  {
-    slug: 'tech',
-    name: '技術',
-    description: '前端、後端、DevOps 技術文章',
-    iconName: 'code',
-    articleCount: 35,
-    coverImageUrl: 'https://picsum.photos/seed/zone-tech/800/400',
-  },
-  {
-    slug: 'travel',
-    name: '旅遊',
-    description: '世界各地的旅行記錄',
-    iconName: 'globe',
-    articleCount: 12,
-    coverImageUrl: 'https://picsum.photos/seed/zone-travel/800/400',
-  },
-  {
-    slug: 'photography',
-    name: '攝影',
-    description: '用鏡頭捕捉瞬間',
-    iconName: 'camera',
-    articleCount: 8,
-    coverImageUrl: 'https://picsum.photos/seed/zone-photo/800/400',
-  },
+  { slug: 'tech', name: 'Tech', description: 'Frontend, backend, and delivery notes.', iconName: 'code', articleCount: 22, coverImageUrl: img('zone-tech') },
+  { slug: 'design', name: 'Design', description: 'Design systems, typography, color, and motion.', iconName: 'palette', articleCount: 4, coverImageUrl: img('zone-design') },
+  { slug: 'life', name: 'Life', description: 'Books, productivity, remote work, and career notes.', iconName: 'book-open', articleCount: 4, coverImageUrl: img('zone-life') },
 ];
 
-// ── 編輯器 / 我的文章 / Admin 種子資料 ──────────────────────────────────────
-
-export const mockCategories: CategoryOption[] = [
-  { id: 'cat-1', name: 'Vue', slug: 'vue' },
-  { id: 'cat-2', name: 'React', slug: 'react' },
-  { id: 'cat-3', name: 'TypeScript', slug: 'typescript' },
-  { id: 'cat-4', name: 'DevOps', slug: 'devops' },
-  { id: 'cat-5', name: 'Backend', slug: 'backend' },
-  { id: 'cat-6', name: 'Frontend', slug: 'frontend' },
-  { id: 'cat-7', name: 'Life', slug: 'life' },
+export const mockCategories: MockCategoryOption[] = [
+  { id: 'cat-1', uuid: 'cat-1', name: 'Vue', slug: 'vue' },
+  { id: 'cat-2', uuid: 'cat-2', name: 'React', slug: 'react' },
+  { id: 'cat-3', uuid: 'cat-3', name: 'TypeScript', slug: 'typescript' },
+  { id: 'cat-4', uuid: 'cat-4', name: 'Backend', slug: 'backend' },
+  { id: 'cat-5', uuid: 'cat-5', name: 'Frontend', slug: 'frontend' },
+  { id: 'cat-6', uuid: 'cat-6', name: 'Design', slug: 'design' },
+  { id: 'cat-7', uuid: 'cat-7', name: 'Life', slug: 'life' },
 ];
 
-export const mockTagPool: TagSuggestion[] = [
-  { name: 'Vue', articleCount: 18 },
-  { name: 'Vue Router', articleCount: 8 },
-  { name: 'Vite', articleCount: 10 },
-  { name: 'TypeScript', articleCount: 15 },
-  { name: 'Tailwind CSS', articleCount: 9 },
-  { name: 'Node.js', articleCount: 11 },
-  { name: 'Docker', articleCount: 8 },
-  { name: 'CI/CD', articleCount: 6 },
-  { name: 'Testing', articleCount: 8 },
-  { name: 'Performance', articleCount: 3 },
-  { name: 'Pinia', articleCount: 7 },
-  { name: 'Playwright', articleCount: 4 },
-];
+export const mockTagPool: TagSuggestion[] = allMockTags.map(tag => ({
+  name: tag.name,
+  articleCount: tag.articleCount,
+}));
 
 export const mockQuota: QuotaInfo = {
-  usedBytes: 52_428_800,      // 50 MB
-  limitBytes: 104_857_600,    // 100 MB
-  remainingBytes: 52_428_800, // 50 MB remaining
+  usedBytes: 52_428_800,
+  limitBytes: 104_857_600,
+  remainingBytes: 52_428_800,
 };
 
-// 各狀態文章的種子資料（用於「我的文章」和 Admin）
 export const mockEditorArticles: EditorArticle[] = [
   {
     uuid: 'editor-draft-1',
-    title: '草稿文章：Vue 3 Composition API 深入解析',
-    summary: '深入探討 Composition API 的設計理念與實踐',
-    content: '# Vue 3 Composition API\n\n這是一篇草稿文章...',
+    title: 'Vue 3 Composition API 草稿',
+    summary: '一篇關於 Composition API 的草稿。',
+    content: '# Vue 3 Composition API\n\nDraft content.',
     coverImageUrl: null,
     status: 'DRAFT',
-    categories: [{ id: 'cat-1', name: 'Vue', slug: 'vue' }],
+    categories: [mockCategories[0]!],
     tags: ['Vue', 'TypeScript'],
     rejectReason: null,
     createdAt: '2026-03-01T10:00:00Z',
@@ -182,12 +286,12 @@ export const mockEditorArticles: EditorArticle[] = [
   },
   {
     uuid: 'editor-pending-1',
-    title: '待審核文章：Pinia 狀態管理最佳實踐',
-    summary: '從零開始學習 Pinia，掌握 Vue 3 狀態管理',
-    content: '# Pinia 狀態管理\n\n這篇文章正在審核中...',
-    coverImageUrl: 'https://picsum.photos/seed/pending-1/800/400',
+    title: 'Pinia 狀態管理待審',
+    summary: 'Pinia 狀態管理文章。',
+    content: '# Pinia\n\nPending content.',
+    coverImageUrl: img('pending-1'),
     status: 'PENDING_REVIEW',
-    categories: [{ id: 'cat-1', name: 'Vue', slug: 'vue' }],
+    categories: [mockCategories[0]!],
     tags: ['Vue', 'Pinia'],
     rejectReason: null,
     createdAt: '2026-03-10T10:00:00Z',
@@ -195,12 +299,12 @@ export const mockEditorArticles: EditorArticle[] = [
   },
   {
     uuid: 'editor-pending-2',
-    title: '待審核文章：TypeScript 進階技巧整理',
-    summary: 'TypeScript 泛型、裝飾器與型別守衛的實際應用',
-    content: '# TypeScript 進階技巧\n\n第二篇待審文章...',
+    title: 'TypeScript 進階待審',
+    summary: 'TypeScript 型別文章。',
+    content: '# TypeScript\n\nPending content.',
     coverImageUrl: null,
     status: 'PENDING_REVIEW',
-    categories: [{ id: 'cat-3', name: 'TypeScript', slug: 'typescript' }],
+    categories: [mockCategories[2]!],
     tags: ['TypeScript'],
     rejectReason: null,
     createdAt: '2026-03-12T10:00:00Z',
@@ -208,12 +312,12 @@ export const mockEditorArticles: EditorArticle[] = [
   },
   {
     uuid: 'editor-published-1',
-    title: '已發布：Vite 建構工具完全指南',
-    summary: '從配置到優化，全面掌握 Vite 的使用方式',
-    content: '# Vite 完全指南\n\n已發布文章...',
-    coverImageUrl: 'https://picsum.photos/seed/published-1/800/400',
+    title: 'Vite 實戰發布文章',
+    summary: '一篇已發布的 Vite 文章。',
+    content: '# Vite\n\nPublished content.',
+    coverImageUrl: img('published-1'),
     status: 'PUBLISHED',
-    categories: [{ id: 'cat-1', name: 'Vue', slug: 'vue' }],
+    categories: [mockCategories[0]!],
     tags: ['Vite', 'Vue'],
     rejectReason: null,
     createdAt: '2026-02-01T10:00:00Z',
@@ -221,25 +325,25 @@ export const mockEditorArticles: EditorArticle[] = [
   },
   {
     uuid: 'editor-rejected-1',
-    title: '被退回：Docker 容器化部署入門',
-    summary: '從基礎開始學習 Docker，逐步掌握容器化部署',
-    content: '# Docker 入門\n\n被退回的文章...',
+    title: 'Docker 入門退回文章',
+    summary: '一篇被退回的 Docker 文章。',
+    content: '# Docker\n\nRejected content.',
     coverImageUrl: null,
     status: 'REJECTED',
-    categories: [{ id: 'cat-4', name: 'DevOps', slug: 'devops' }],
-    tags: ['Docker', 'DevOps'],
-    rejectReason: '文章內容過於簡略，請補充更多實際案例與程式碼範例，確保讀者能從中獲得實際幫助。',
+    categories: [mockCategories[3]!],
+    tags: ['Docker'],
+    rejectReason: '內容需要補充實作步驟。',
     createdAt: '2026-01-15T10:00:00Z',
     updatedAt: '2026-03-05T11:00:00Z',
   },
   {
     uuid: 'editor-archived-1',
-    title: '已封存：舊版 Vue CLI 使用指南',
-    summary: '這是一篇關於舊版 Vue CLI 的文章，現已封存',
-    content: '# Vue CLI 指南\n\n已封存的舊文章...',
+    title: 'Vue CLI 舊文章封存',
+    summary: '一篇封存的 Vue CLI 文章。',
+    content: '# Vue CLI\n\nArchived content.',
     coverImageUrl: null,
     status: 'ARCHIVED',
-    categories: [{ id: 'cat-1', name: 'Vue', slug: 'vue' }],
+    categories: [mockCategories[0]!],
     tags: ['Vue'],
     rejectReason: null,
     createdAt: '2025-06-01T10:00:00Z',
@@ -247,14 +351,12 @@ export const mockEditorArticles: EditorArticle[] = [
   },
 ];
 
-// 可變的 in-memory 文章儲存（編輯器 CRUD 操作對象）
 export let editorArticleStore: EditorArticle[] = [...mockEditorArticles];
 
 export function resetEditorArticleStore(): void {
   editorArticleStore = [...mockEditorArticles];
 }
 
-// 將 EditorArticle 轉換為 MyArticle 格式（列表用）
 export function toMyArticle(a: EditorArticle): MyArticle {
   return {
     uuid: a.uuid,
@@ -272,7 +374,6 @@ export function toMyArticle(a: EditorArticle): MyArticle {
   };
 }
 
-// 將 EditorArticle 轉換為 PendingArticle 格式（管理員待審列表用）
 export function toPendingArticle(a: EditorArticle): PendingArticle {
   return {
     ...toMyArticle(a),

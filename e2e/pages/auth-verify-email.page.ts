@@ -13,7 +13,7 @@ export class AuthVerifyEmailPage {
     this.successMessage = page.getByTestId('auth-verify-success')
     this.failureMessage = page.getByTestId('auth-verify-failure')
     this.noTokenMessage = page.getByTestId('auth-verify-no-token')
-    this.resendBtn = page.getByTestId('auth-verify-resend-btn')
+    this.resendBtn = page.getByTestId('auth-verify-resend-link')
     this.loadingState = page.getByText('驗證中...')
   }
 

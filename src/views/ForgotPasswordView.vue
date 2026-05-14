@@ -10,7 +10,7 @@ import { authService } from '../api/authService'
 import AuthFormLayout from '../components/auth/AuthFormLayout.vue'
 import FormField from '../components/ui/FormField.vue'
 
-interface ForgotPasswordForm {
+interface ForgotPasswordForm extends Record<string, unknown> {
   email: string
 }
 

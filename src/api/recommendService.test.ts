@@ -40,7 +40,7 @@ describe('recommendService', () => {
       vi.unstubAllEnvs();
     });
 
-    it('成功回應時正確解析結果（無 coverImageUrl）', async () => {
+    it('成功回應時正確解析結果（backend 無 coverImageUrl，mapper 補 null）', async () => {
       const backendRaw = [
         {
           uuid: 'r-1',
@@ -69,9 +69,10 @@ describe('recommendService', () => {
           likeCount: 10,
           publishedAt: '2026-03-01',
           tags: ['Vue'],
+          coverImageUrl: null,
         },
       ]);
-      expect(result[0]).not.toHaveProperty('coverImageUrl');
+      expect(result[0].coverImageUrl).toBeNull();
       expect(apiClient.get).toHaveBeenCalledWith('/api/v1/recommend/trending', {
         params: { period: '7d', limit: 5 },
       });

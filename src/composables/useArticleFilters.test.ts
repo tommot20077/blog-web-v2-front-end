@@ -181,23 +181,23 @@ describe('useArticleFilters', () => {
     expect(result[0].uuid).toBe('a1')
   })
 
-  it('category filter 使用 OR 邏輯：符合任一 tag 即可', async () => {
+  it('category filter 使用 OR 邏輯：符合任一 category 即可', async () => {
     const articles = [
-      makeArticle({ uuid: 'a1', tags: ['frontend'] }),
-      makeArticle({ uuid: 'a2', tags: ['css'] }),
-      makeArticle({ uuid: 'a3', tags: ['essay'] }),
+      makeArticle({ uuid: 'a1', categories: ['Frontend'] }),
+      makeArticle({ uuid: 'a2', categories: ['Backend'] }),
+      makeArticle({ uuid: 'a3', categories: ['Life'] }),
     ]
     const { filterAndSort, toggleCat } = await loadFilters()
-    toggleCat('frontend')
-    toggleCat('css')
+    toggleCat('Frontend')
+    toggleCat('Backend')
     const result = filterAndSort(articles)
     expect(result).toHaveLength(2)
   })
 
-  it('category filter 大小寫不敏感：選 Frontend 可匹配 tag frontend（整合後端小寫 slug）', async () => {
+  it('category filter 大小寫不敏感：選 Frontend 可匹配 category frontend（整合後端小寫 slug）', async () => {
     const articles = [
-      makeArticle({ uuid: 'a1', tags: ['frontend'] }),
-      makeArticle({ uuid: 'a2', tags: ['css'] }),
+      makeArticle({ uuid: 'a1', categories: ['frontend'] }),
+      makeArticle({ uuid: 'a2', categories: ['Backend'] }),
     ]
     const { filterAndSort, toggleCat } = await loadFilters()
     toggleCat('Frontend')
