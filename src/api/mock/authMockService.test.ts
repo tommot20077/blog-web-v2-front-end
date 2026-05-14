@@ -49,6 +49,22 @@ describe('authMockService', () => {
       await assertion;
     });
 
+    it('未驗證信箱用戶登入 → 拋出錯誤', async () => {
+      const regPromise = registerMock({
+        email: 'unverified@test.com',
+        password: 'Password1',
+        username: 'unverified',
+        nickname: 'Unverified',
+      });
+      await vi.advanceTimersByTimeAsync(500);
+      await regPromise;
+
+      const promise = loginMock({ identifier: 'unverified@test.com', password: 'Password1' });
+      const assertion = expect(promise).rejects.toThrow('請先驗證您的信箱');
+      await vi.advanceTimersByTimeAsync(500);
+      await assertion;
+    });
+
     it('以 nickname 作為 identifier 登入 → 回傳 AuthTokens', async () => {
       const promise = loginMock({ identifier: 'Yuan', password: 'Password1' });
       await vi.advanceTimersByTimeAsync(500);

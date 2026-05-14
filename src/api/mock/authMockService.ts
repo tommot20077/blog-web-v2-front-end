@@ -35,6 +35,9 @@ export function loginMock(payload: LoginPayload): Promise<AuthTokens> {
     if (!user) {
       throw new Error('帳號或密碼錯誤');
     }
+    if (!user.emailVerified) {
+      throw new Error('請先驗證您的信箱');
+    }
     setCurrentLoggedInUserId(user.uuid);
     setRefreshTokenValid(true);
     return generateTokens();

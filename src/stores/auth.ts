@@ -17,6 +17,8 @@ export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
   const accessToken = ref<string | null>(null)
   const returnUrl = ref<string | null>(null)
+  const initialized = ref(false)
+  let _initPromise: Promise<void> | null = null
 
   // Getters
   const isAuthenticated = computed(() => !!accessToken.value)
@@ -51,6 +53,14 @@ export const useAuthStore = defineStore('auth', () => {
     await fetchUser()
   }
 
+  function initialize(): Promise<void> {
+    if (_initPromise) return _initPromise
+    _initPromise = refreshToken()
+      .catch(() => {})
+      .finally(() => { initialized.value = true })
+    return _initPromise
+  }
+
   async function fetchUser() {
     user.value = await authService.getMe()
   }
@@ -63,6 +73,7 @@ export const useAuthStore = defineStore('auth', () => {
     user,
     accessToken,
     returnUrl,
+    initialized,
     isAuthenticated,
     isAdmin,
     isAuthor,
@@ -73,5 +84,6 @@ export const useAuthStore = defineStore('auth', () => {
     refreshToken,
     fetchUser,
     setReturnUrl,
+    initialize,
   }
 })
