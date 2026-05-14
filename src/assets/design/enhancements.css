@@ -1,0 +1,53 @@
+/* ===== Toast ===== */
+.toast-stack {
+  position: fixed; right: 18px; bottom: 18px; z-index: 200;
+  display: flex; flex-direction: column; gap: 10px;
+  pointer-events: none;
+  max-width: min(92vw, 380px);
+}
+.toast {
+  pointer-events: auto;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  gap: 10px;
+  align-items: start;
+  box-shadow: var(--shadow-md);
+  font-size: 13.5px; line-height: 1.45;
+}
+.toast .ic {
+  width: 22px; height: 22px; border-radius: 999px;
+  display: grid; place-items: center;
+  font-family: var(--f-mono); font-size: 11px; font-weight: 600;
+}
+.toast.success .ic { background: #DDF5E6; color: #1d6b3a; }
+.toast.error   .ic { background: #FBE0DA; color: #a8341d; }
+.toast.warning .ic { background: #FBE7D0; color: #a86b1d; }
+.toast.info    .ic { background: var(--bg-sub); color: var(--ink); }
+[data-theme="dark"] .toast.success .ic { background: rgba(80,180,120,.18); color: #8ed7a4; }
+[data-theme="dark"] .toast.error   .ic { background: rgba(220,90,70,.18); color: #f0a092; }
+[data-theme="dark"] .toast.warning .ic { background: rgba(220,160,70,.18); color: #f0c992; }
+.toast .msg { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.toast .msg b { font-weight: 600; font-size: 13px; color: var(--ink); }
+.toast .msg span { color: var(--muted); font-size: 12.5px; }
+.toast .close {
+  width: 22px; height: 22px; border-radius: 6px;
+  color: var(--muted-2); font-size: 11px;
+  background: transparent; border: none; cursor: pointer;
+  display: grid; place-items: center;
+  transition: color .2s ease, background .2s ease;
+}
+.toast .close:hover { color: var(--ink); background: var(--bg-sub); }
+
+@media (max-width: 600px) {
+  .toast-stack { right: 12px; left: 12px; bottom: 84px; max-width: none; }
+}
+
+/* TransitionGroup 進出場動畫（搭配 ToastContainer.vue 的 name="toast"） */
+.toast-enter-active { transition: transform .35s var(--ease), opacity .3s var(--ease); }
+.toast-leave-active { transition: transform .25s var(--ease), opacity .2s var(--ease); }
+.toast-enter-from   { transform: translateY(8px); opacity: 0; }
+.toast-leave-to     { transform: translateY(8px); opacity: 0; }

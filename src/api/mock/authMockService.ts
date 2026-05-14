@@ -101,6 +101,19 @@ export function verifyEmailMock(token: string): Promise<void> {
   });
 }
 
+export function verifyEmailCodeMock(email: string, code: string): Promise<void> {
+  return mockDelay(() => {
+    if (!/^\d{6}$/.test(code)) {
+      throw new Error('驗證碼格式不正確');
+    }
+    const user = registeredUsers.find((u) => u.email === email);
+    if (!user) {
+      throw new Error('驗證碼無效或已過期');
+    }
+    user.emailVerified = true;
+  });
+}
+
 export function getMeMock(): Promise<User> {
   return mockDelay(() => {
     if (!currentLoggedInUserId) {

@@ -64,6 +64,15 @@ export const authService = {
     return svc.verifyEmail(token)
   },
 
+  async verifyEmailCode(email: string, code: string): Promise<void> {
+    if (import.meta.env.VITE_USE_MOCK === 'true') {
+      const { authService: svc } = await import('./mock/authService')
+      return svc.verifyEmailCode(email, code)
+    }
+    const { authService: svc } = await import('./real/authService')
+    return svc.verifyEmailCode(email, code)
+  },
+
   async getMe(): Promise<User> {
     if (import.meta.env.VITE_USE_MOCK === 'true') {
       const { authService: svc } = await import('./mock/authService')

@@ -92,7 +92,7 @@ function mapArticleDetail(raw: BackendArticleDetail): ArticleDetailItem {
 }
 
 export const articleService = {
-  async getArticles(page: number, size: number, category: string, keyword: string): Promise<PageResult<ArticleItem>> {
+  async getArticles(page: number, size: number, category: string, _keyword: string): Promise<PageResult<ArticleItem>> {
     try {
       const params: Record<string, string> = {
         page: page.toString(),

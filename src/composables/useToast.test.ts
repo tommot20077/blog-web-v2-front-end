@@ -84,4 +84,19 @@ describe('useToast', () => {
 
     expect(toasts.value.map(t => t.type)).toEqual(['success', 'error', 'warning', 'info']);
   });
+
+  it('showToast 接受可選 sub 副標題', () => {
+    const { toasts, showToast } = useToast();
+    showToast('主標題', 'error', 4000, '副標說明');
+
+    expect(toasts.value[0].message).toBe('主標題');
+    expect(toasts.value[0].sub).toBe('副標說明');
+  });
+
+  it('未提供 sub 時欄位為 undefined', () => {
+    const { toasts, showToast } = useToast();
+    showToast('只有主標', 'info');
+
+    expect(toasts.value[0].sub).toBeUndefined();
+  });
 });

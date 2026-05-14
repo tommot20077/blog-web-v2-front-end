@@ -13,6 +13,7 @@ type ToastType = (typeof TOAST_TYPE)[keyof typeof TOAST_TYPE];
 interface ToastMessage {
   id: string;
   message: string;
+  sub?: string;
   type: ToastType;
   duration: number;
 }
@@ -29,9 +30,9 @@ const toasts = ref<ToastMessage[]>([]);
 const timers = new Map<string, ReturnType<typeof setTimeout>>();
 
 export function useToast() {
-  const showToast = (message: string, type: ToastType = 'info', duration = 4000) => {
+  const showToast = (message: string, type: ToastType = 'info', duration = 4000, sub?: string) => {
     const id = `toast-${++idCounter}`;
-    const toast: ToastMessage = { id, message, type, duration };
+    const toast: ToastMessage = { id, message, sub, type, duration };
 
     toasts.value.push(toast);
 

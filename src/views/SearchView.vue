@@ -24,8 +24,9 @@ const isMac = computed(() => {
 })
 
 function goToFirstArticle() {
-  if (results.value.articles.length > 0) {
-    router.push('/articles/' + results.value.articles[0].articleUuid)
+  const firstArticle = results.value.articles[0]
+  if (firstArticle) {
+    router.push('/articles/' + firstArticle.articleUuid)
   }
 }
 

@@ -73,7 +73,7 @@ describe('VerifyEmailView', () => {
     expect(getByTestId('auth-verify-title')).toBeInTheDocument()
   })
 
-  it('data-testid: auth-verify-resend-btn 存在（驗證失敗時）', async () => {
+  it('驗證失敗時提供前往重發驗證信頁面的入口', async () => {
     vi.mocked(authService.verifyEmail).mockRejectedValue(new Error('Token 已過期'))
     const { getByTestId } = await renderWithRouterAsync(
       VerifyEmailView,
@@ -81,7 +81,9 @@ describe('VerifyEmailView', () => {
       '/verify-email?token=expired-token',
     )
     await waitFor(() => {
-      expect(getByTestId('auth-verify-resend-btn')).toBeInTheDocument()
+      const link = getByTestId('auth-verify-resend-link')
+      expect(link).toBeInTheDocument()
+      expect(link.closest('a')).toHaveAttribute('href', '/check-email')
     })
   })
 })

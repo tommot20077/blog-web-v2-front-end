@@ -1,5 +1,7 @@
 import { onMounted, onUnmounted } from 'vue'
 
+const CURSOR_LAYER_Z_INDEX = '11000'
+
 export function useCursor() {
   let dot:  HTMLElement | null = null
   let ring: HTMLElement | null = null
@@ -50,6 +52,8 @@ export function useCursor() {
     ring = document.createElement('div')
     dot.className  = 'cursor-dot'
     ring.className = 'cursor-ring'
+    dot.style.zIndex = CURSOR_LAYER_Z_INDEX
+    ring.style.zIndex = CURSOR_LAYER_Z_INDEX
     // .visible is added on first mousemove to prevent stale ring at 0,0
     document.body.appendChild(dot)
     document.body.appendChild(ring)

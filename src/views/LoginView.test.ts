@@ -1,4 +1,4 @@
-import { fireEvent, waitFor } from '@testing-library/vue'
+import { fireEvent, waitFor, within } from '@testing-library/vue'
 import { flushPromises } from '@vue/test-utils'
 import { setActivePinia } from 'pinia'
 import LoginView from './LoginView.vue'
@@ -17,6 +17,7 @@ vi.mock('../api/authService', () => ({
     forgotPassword: vi.fn(),
     resetPassword: vi.fn(),
     verifyEmail: vi.fn(),
+    verifyEmailCode: vi.fn(),
     resendVerification: vi.fn(),
   },
 }))
@@ -27,6 +28,8 @@ const mockGetMe = vi.mocked(authService.getMe)
 describe('LoginView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    const { toasts, removeToast } = useToast()
+    toasts.value.forEach(toast => removeToast(toast.id))
   })
 
   it('渲染 Email 和密碼欄位', () => {
@@ -102,6 +105,117 @@ describe('LoginView', () => {
 
     const { toasts } = useToast()
     expect(toasts.value.some(t => t.message === '帳號或密碼錯誤' && t.type === 'error')).toBe(true)
+  })
+
+  it('login 回傳信箱未驗證時顯示驗證卡片並可重送驗證信', async () => {
+    mockLogin.mockRejectedValue(new Error('請先驗證電子信箱'))
+    vi.mocked(authService.resendVerification).mockResolvedValue(undefined)
+
+    const { getByLabelText, getByRole, getByTestId } = renderWithRouter(LoginView, {}, '/login')
+
+    await fireEvent.update(getByLabelText('Email'), 'test@test.com')
+    await fireEvent.update(getByLabelText('密碼'), 'password123')
+    await fireEvent.click(getByRole('button', { name: '登入' }))
+
+    await waitFor(() => {
+      expect(getByTestId('auth-login-verification-card')).toBeInTheDocument()
+      expect(getByTestId('auth-login-verification-email')).toHaveTextContent('test@test.com')
+    })
+
+    await fireEvent.click(getByTestId('auth-login-resend-verification'))
+
+    await waitFor(() => {
+      expect(authService.resendVerification).toHaveBeenCalledWith('test@test.com')
+      expect(getByTestId('auth-login-verification-feedback')).toHaveTextContent('驗證信已重新發送，請查看信箱')
+      const { toasts } = useToast()
+      expect(toasts.value.some(t => t.message === '驗證信已重新發送，請查看信箱')).toBe(false)
+    })
+  })
+
+  it('信箱未驗證卡片可輸入驗證碼完成驗證', async () => {
+    mockLogin.mockRejectedValue(new Error('請先驗證電子信箱'))
+    vi.mocked(authService.verifyEmailCode).mockResolvedValue(undefined)
+
+    const { getByLabelText, getByRole, getByTestId } = renderWithRouter(LoginView, {}, '/login')
+
+    await fireEvent.update(getByLabelText('Email'), 'test@test.com')
+    await fireEvent.update(getByLabelText('密碼'), 'password123')
+    await fireEvent.click(getByRole('button', { name: '登入' }))
+
+    await waitFor(() => {
+      expect(getByTestId('auth-login-code-field')).toBeInTheDocument()
+    })
+
+    await fireEvent.update(getByTestId('auth-login-code-field'), '123456')
+    await fireEvent.click(getByTestId('auth-login-verify-code'))
+
+    await waitFor(() => {
+      expect(authService.verifyEmailCode).toHaveBeenCalledWith('test@test.com', '123456')
+    })
+  })
+
+  it('信箱未驗證卡片驗證碼錯誤時在卡片內顯示錯誤且不新增 toast', async () => {
+    mockLogin.mockRejectedValue(new Error('請先驗證電子信箱'))
+    vi.mocked(authService.verifyEmailCode).mockRejectedValue(new Error('驗證碼無效或已過期'))
+
+    const { getByLabelText, getByRole, getByTestId } = renderWithRouter(LoginView, {}, '/login')
+
+    await fireEvent.update(getByLabelText('Email'), 'test@test.com')
+    await fireEvent.update(getByLabelText('密碼'), 'password123')
+    await fireEvent.click(getByRole('button', { name: '登入' }))
+
+    await waitFor(() => {
+      expect(getByTestId('auth-login-code-field')).toBeInTheDocument()
+    })
+
+    await fireEvent.update(getByTestId('auth-login-code-field'), '123456')
+    await fireEvent.click(getByTestId('auth-login-verify-code'))
+
+    await waitFor(() => {
+      const card = getByTestId('auth-login-verification-card')
+
+      expect(within(card).getByText('驗證碼無效或已過期')).toBeInTheDocument()
+      const { toasts } = useToast()
+      expect(toasts.value.some(t => t.message === '驗證碼無效或已過期')).toBe(false)
+    })
+  })
+
+  it('信箱未驗證時驗證碼與重送操作集中在同一張卡片', async () => {
+    mockLogin.mockRejectedValue(new Error('請先驗證電子信箱'))
+
+    const { getByLabelText, getByRole, getByTestId } = renderWithRouter(LoginView, {}, '/login')
+
+    await fireEvent.update(getByLabelText('Email'), 'test@test.com')
+    await fireEvent.update(getByLabelText('密碼'), 'password123')
+    await fireEvent.click(getByRole('button', { name: '登入' }))
+
+    await waitFor(() => {
+      const card = getByTestId('auth-login-verification-card')
+
+      expect(within(card).getByTestId('auth-login-verification-heading')).toHaveTextContent('完成信箱驗證')
+      expect(within(card).getByTestId('auth-login-verification-email')).toHaveTextContent('test@test.com')
+      expect(within(card).getByTestId('auth-login-code-field')).toBeInTheDocument()
+      expect(within(card).getByTestId('auth-login-verify-code')).toBeInTheDocument()
+      expect(within(card).getByTestId('auth-login-resend-verification')).toBeInTheDocument()
+    })
+  })
+
+  it('信箱未驗證卡片顯示在置中 overlay 並帶有暗化背景', async () => {
+    mockLogin.mockRejectedValue(new Error('請先驗證電子信箱'))
+
+    const { getByLabelText, getByRole, getByTestId } = renderWithRouter(LoginView, {}, '/login')
+
+    await fireEvent.update(getByLabelText('Email'), 'test@test.com')
+    await fireEvent.update(getByLabelText('密碼'), 'password123')
+    await fireEvent.click(getByRole('button', { name: '登入' }))
+
+    await waitFor(() => {
+      const overlay = getByTestId('auth-login-verification-overlay')
+      const card = getByTestId('auth-login-verification-card')
+
+      expect(getByTestId('auth-login-verification-backdrop')).toBeInTheDocument()
+      expect(overlay).toContainElement(card)
+    })
   })
 
   it('忘記密碼連結指向 /forgot-password', () => {

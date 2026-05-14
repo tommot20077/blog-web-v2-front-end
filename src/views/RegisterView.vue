@@ -72,7 +72,7 @@ async function handleSubmit() {
   try {
     await authStore.register(formData);
     showToast('註冊成功！請至信箱驗證您的帳號', 'success');
-    await router.push('/login');
+    await router.push({ name: 'check-email', query: { email: email.value } });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : '註冊失敗，請稍後再試';
     showToast(message, 'error');

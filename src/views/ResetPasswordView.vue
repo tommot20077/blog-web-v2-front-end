@@ -12,7 +12,7 @@ import AuthFormLayout from '../components/auth/AuthFormLayout.vue'
 import FormField from '../components/ui/FormField.vue'
 import PasswordRulesChecklist from '../components/auth/PasswordRulesChecklist.vue'
 
-interface ResetPasswordForm {
+interface ResetPasswordForm extends Record<string, unknown> {
   password: string
   confirmPassword: string
 }

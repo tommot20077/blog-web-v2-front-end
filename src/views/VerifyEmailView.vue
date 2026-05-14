@@ -89,14 +89,13 @@ onMounted(() => {
         <p style="font-weight:600">驗證失敗</p>
         <p style="opacity:.7;margin-top:4px">{{ errorMessage }}</p>
       </div>
-      <button
-        data-testid="auth-verify-resend-btn"
+      <RouterLink
+        data-testid="auth-verify-resend-link"
+        to="/check-email"
         class="auth-link"
-        style="background:none;border:none;cursor:pointer;padding:0"
-        @click="verify"
       >
         重新發送驗證信
-      </button>
+      </RouterLink>
     </div>
   </AuthFormLayout>
 </template>
