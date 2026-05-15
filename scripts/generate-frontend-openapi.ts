@@ -67,9 +67,9 @@ async function main(): Promise<void> {
   const args = parseCli(process.argv.slice(2))
 
   if (!args.source) {
-    // Scaffold mode: emit empty OpenAPI 3.1 skeleton when --out is given.
+    // Scaffold mode: emit empty OpenAPI 3.0.3 skeleton when --out is given.
     const skeleton = {
-      openapi: '3.1.0',
+      openapi: '3.0.3',
       info: { title: 'frontend-openapi (empty)', version: '0.0.0' },
       paths: {},
       components: { schemas: {} },

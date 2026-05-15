@@ -12,6 +12,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import {
+  emptyDocument,
   generateFromSources,
   scanAntiPatterns,
   scanFileForAntiPatterns,
@@ -52,6 +53,17 @@ function svc(content: string, filePath = '/virtual/svc.ts') {
 function pathOp(result: ReturnType<typeof generateFromSources>, p: string, method: string) {
   return result.document.paths[p]?.[method as 'get']
 }
+
+// ---------------------------------------------------------------------------
+// Task 3 — OpenAPI scaffold
+// ---------------------------------------------------------------------------
+
+describe('Task 3 — OpenAPI scaffold', () => {
+  it('emits OpenAPI 3.0.3 documents as required by the audit plan', () => {
+    expect(emptyDocument().openapi).toBe('3.0.3')
+    expect(generateFromSources({ files: [] }).document.openapi).toBe('3.0.3')
+  })
+})
 
 // ---------------------------------------------------------------------------
 // Task 4 — HTTP method + path extraction
