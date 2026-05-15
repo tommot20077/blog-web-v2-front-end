@@ -3,7 +3,7 @@ import { ref, onUnmounted } from 'vue'
 import { fileService } from '../../api/fileService'
 import { tagSuggestService } from '../../api/tagSuggestService'
 import { useToast } from '../../composables/useToast'
-import type { CategoryOption } from '../../types/editor'
+import type { CategoryOption, TagSuggestion } from '../../types/editor'
 import type { OutlineItem } from '../../composables/useEditorOutline'
 
 const props = defineProps<{
@@ -28,7 +28,7 @@ const metaTab = ref<'meta' | 'outline'>('meta')
 
 // ── 標籤 ──────────────────────────────────────────────────────────────────
 const tagInput = ref('')
-const tagSuggestions = ref<{ name: string; articleCount: number }[]>([])
+const tagSuggestions = ref<TagSuggestion[]>([])
 let suggestTimer: ReturnType<typeof setTimeout> | null = null
 
 function onTagInput() {
@@ -219,7 +219,7 @@ async function onFileChange(e: Event) {
               @click="addTag(sug.name)"
             >
               {{ sug.name }}
-              <span class="text-xs text-gray-400 ml-1">{{ sug.articleCount }}</span>
+              <span v-if="sug.articleCount && sug.articleCount > 0" class="text-xs text-gray-400 ml-1">{{ sug.articleCount }}</span>
             </li>
           </ul>
         </div>

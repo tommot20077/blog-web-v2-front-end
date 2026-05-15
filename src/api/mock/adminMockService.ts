@@ -1,4 +1,13 @@
-import type { EditorArticle, MyArticle, PageResult } from '../../types/editor'
+import type {
+  AdminTagResponse,
+  CategoryResponse,
+  CreateCategoryRequest,
+  EditorArticle,
+  MyArticle,
+  PageResult,
+  UpdateCategoryRequest,
+  UpdateTagRequest,
+} from '../../types/editor'
 import { editorArticleStore, toMyArticle } from './data'
 
 export function getPendingArticlesMock(page: number, size: number): Promise<PageResult<MyArticle>> {
@@ -52,4 +61,50 @@ export function rejectArticleMock(uuid: string, reason: string): Promise<EditorA
       resolve(article)
     }, 300)
   })
+}
+
+export function createCategoryMock(request: CreateCategoryRequest): Promise<CategoryResponse> {
+  return Promise.resolve({
+    uuid: `cat-${Date.now()}`,
+    name: request.name,
+    slug: request.slug,
+    description: request.description ?? null,
+    sortOrder: request.sortOrder ?? 0,
+  })
+}
+
+export function updateCategoryMock(uuid: string, request: UpdateCategoryRequest): Promise<CategoryResponse> {
+  return Promise.resolve({
+    uuid,
+    name: request.name ?? 'Mock Category',
+    slug: request.slug ?? 'mock-category',
+    description: request.description ?? null,
+    sortOrder: request.sortOrder ?? 0,
+  })
+}
+
+export function deleteCategoryMock(_uuid: string): Promise<void> {
+  return Promise.resolve()
+}
+
+export function updateTagMock(id: string, request: UpdateTagRequest): Promise<AdminTagResponse> {
+  return Promise.resolve({
+    id,
+    name: 'Mock Tag',
+    slug: 'mock-tag',
+    color: request.color ?? null,
+    icon: request.icon ?? null,
+    description: request.description ?? null,
+    parentId: null,
+    usageCount: 0,
+    createdAt: new Date().toISOString(),
+  })
+}
+
+export function deleteTagMock(_id: string): Promise<void> {
+  return Promise.resolve()
+}
+
+export function reindexSearchMock(): Promise<void> {
+  return Promise.resolve()
 }

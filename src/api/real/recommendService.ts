@@ -54,9 +54,12 @@ export const recommendService = {
     }
   },
 
-  async getRelatedArticles(articleUuid: string): Promise<RecommendArticleResponse[]> {
+  async getRelatedArticles(articleUuid: string, limit: number = 5): Promise<RecommendArticleResponse[]> {
     try {
-      const data = await apiClient.get<unknown, BackendRecommend[]>(`/api/v1/recommend/related/${articleUuid}`)
+      const data = await apiClient.get<unknown, BackendRecommend[]>(
+        `/api/v1/recommend/related/${articleUuid}`,
+        { params: { limit } },
+      )
       return data.map(mapBackendRecommend)
     } catch (error) {
       console.error('Fetch related articles failed:', error)

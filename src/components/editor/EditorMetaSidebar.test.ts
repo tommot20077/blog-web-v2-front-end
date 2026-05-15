@@ -61,6 +61,22 @@ describe('EditorMetaSidebar', () => {
       expect(screen.getByTitle('移除 TypeScript')).toBeInTheDocument()
       expect(screen.getByTitle('移除 React')).toBeInTheDocument()
     })
+
+    it('標籤建議不顯示未知數量的 0', async () => {
+      vi.mocked(tagSuggestService.suggestTags).mockResolvedValue([
+        { name: 'Vite', articleCount: 0 },
+      ])
+
+      const user = userEvent.setup()
+      render(EditorMetaSidebar, { props: defaultProps })
+      const input = screen.getByPlaceholderText(/標籤/)
+      await user.type(input, 'Vi')
+
+      await waitFor(() => {
+        expect(screen.getByText('Vite')).toBeInTheDocument()
+      })
+      expect(screen.queryByText('0')).not.toBeInTheDocument()
+    })
   })
 
   // ── Emit：update:summary ─────────────────────────────────────────────────

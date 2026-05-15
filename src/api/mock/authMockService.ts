@@ -101,6 +101,16 @@ export function verifyEmailMock(token: string): Promise<void> {
   });
 }
 
+export function verifyEmailCodeMock(email: string, code: string): Promise<void> {
+  return mockDelay(() => {
+    const user = registeredUsers.find((u) => u.email === email);
+    if (!user || code !== '123456') {
+      throw new Error('無效的信箱驗證碼');
+    }
+    user.emailVerified = true;
+  });
+}
+
 export function getMeMock(): Promise<User> {
   return mockDelay(() => {
     if (!currentLoggedInUserId) {

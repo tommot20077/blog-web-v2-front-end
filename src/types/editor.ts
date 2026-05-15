@@ -108,7 +108,7 @@ export interface CategoryOption {
 
 export interface TagSuggestion {
   name: string;
-  articleCount: number;
+  articleCount?: number;
 }
 
 // ── 分頁結果（複用於 My Articles） ──────────────────────────────────────────
@@ -135,22 +135,34 @@ export interface TagDetail {
 
 // ── 管理員操作 requests ────────────────────────────────────────────────────────
 export interface UpdateTagRequest {
-  color?: string;
-  icon?: string;
-  description?: string;
+  color?: string | null;
+  icon?: string | null;
+  description?: string | null;
+}
+
+export interface AdminTagResponse {
+  id: string;
+  name: string;
+  slug: string;
+  color?: string | null;
+  icon?: string | null;
+  description?: string | null;
+  parentId?: string | null;
+  usageCount: number;
+  createdAt?: string;
 }
 
 export interface CreateCategoryRequest {
   name: string;
   slug: string;
-  description?: string;
+  description?: string | null;
   sortOrder?: number;
 }
 
 export interface UpdateCategoryRequest {
   name?: string;
   slug?: string;
-  description?: string;
+  description?: string | null;
   sortOrder?: number;
 }
 
@@ -158,6 +170,6 @@ export interface CategoryResponse {
   uuid: string;
   name: string;
   slug: string;
-  description?: string;
-  sortOrder?: number;
+  description?: string | null;
+  sortOrder: number;
 }

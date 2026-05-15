@@ -1,6 +1,4 @@
 import { articleService } from './articleService';
-import type { ArticleItem } from './articleService';
-import type { PageResult } from '../types/editor';
 import apiClient from './apiClient';
 import { allMockArticles } from './mock/data';
 
@@ -92,7 +90,7 @@ describe('articleService', () => {
 
         const result = await articleService.getArticles(1, 6, '全部', '');
 
-        expect(result.records[0].tags).toEqual(['Vue']);
+        expect(result.records[0]?.tags).toEqual(['Vue']);
       });
 
       it('網路錯誤 → 回傳空 PageResult 並呼叫 console.error', async () => {
@@ -128,8 +126,8 @@ describe('articleService', () => {
         expect(apiClient.get).toHaveBeenCalledOnce();
         expect(apiClient.get).toHaveBeenCalledWith('/api/v1/articles', {
           params: {
-            page: '2',
-            size: '10',
+            page: 2,
+            size: 10,
             categorySlug: 'backend',
           },
         });
@@ -148,8 +146,8 @@ describe('articleService', () => {
 
         expect(apiClient.get).toHaveBeenCalledWith('/api/v1/articles', {
           params: {
-            page: '1',
-            size: '6',
+            page: 1,
+            size: 6,
           },
         });
       });
