@@ -333,6 +333,43 @@ describe('Task 5 — query + body extraction', () => {
     const queryNames = (op?.parameters ?? []).filter((p) => p.in === 'query').map((p) => p.name)
     expect(queryNames).toEqual([])
   })
+
+  it('GET query params with literal-union type emit string enum schema', () => {
+    const result = generateFromSources({
+      files: [
+        APICLIENT_STUB,
+        svc(`
+          import apiClient from './apiClient'
+          export function list(sort: 'newest' | 'oldest') {
+            return apiClient.get('/api/v1/comments', { params: { sort } })
+          }
+        `),
+      ],
+    })
+
+    const op = pathOp(result, '/api/v1/comments', 'get')
+    const sort = (op?.parameters ?? []).find((p) => p.in === 'query' && p.name === 'sort')
+    expect(sort?.schema).toEqual({ type: 'string', enum: ['newest', 'oldest'] })
+  })
+
+  it('DELETE with `{ data }` emits a request body and no ambiguous-request warning', () => {
+    const result = generateFromSources({
+      files: [
+        APICLIENT_STUB,
+        svc(`
+          import apiClient from './apiClient'
+          interface DeleteAccountRequest { password: string }
+          export function remove(data: DeleteAccountRequest) {
+            return apiClient.delete('/api/v1/users/me', { data })
+          }
+        `),
+      ],
+    })
+
+    const op = pathOp(result, '/api/v1/users/me', 'delete')
+    expect(op?.requestBody).toBeDefined()
+    expect(result.warnings.some((w) => w.code === 'ambiguous-request')).toBe(false)
+  })
 })
 
 // ---------------------------------------------------------------------------

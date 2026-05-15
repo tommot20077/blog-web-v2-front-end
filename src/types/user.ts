@@ -32,3 +32,9 @@ export interface FileMetadata {
   uploaderId: string;
   createdAt: string;
 }
+
+export interface FileListParams {
+  page?: number;
+  size?: number;
+  sort?: string;
+}

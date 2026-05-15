@@ -11,12 +11,12 @@ export const recommendService = {
     return svc.getTrending(period, limit)
   },
 
-  async getRelatedArticles(articleUuid: string): Promise<RecommendArticleResponse[]> {
+  async getRelatedArticles(articleUuid: string, limit: number = 5): Promise<RecommendArticleResponse[]> {
     if (import.meta.env.VITE_USE_MOCK === 'true') {
       const { recommendService: svc } = await import('./mock/recommendService')
-      return svc.getRelatedArticles(articleUuid)
+      return svc.getRelatedArticles(articleUuid, limit)
     }
     const { recommendService: svc } = await import('./real/recommendService')
-    return svc.getRelatedArticles(articleUuid)
+    return svc.getRelatedArticles(articleUuid, limit)
   },
 }

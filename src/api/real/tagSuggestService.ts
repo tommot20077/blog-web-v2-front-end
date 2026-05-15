@@ -1,19 +1,14 @@
 import apiClient from '../apiClient'
 import type { TagSuggestion } from '../../types/editor'
 
-interface BackendTag {
-  id: string
-  name: string
-  slug: string
-  usageCount: number
-}
-
 export const tagSuggestService = {
-  async suggestTags(query: string): Promise<TagSuggestion[]> {
+  async suggestTags(query: string, limit: number = 10): Promise<TagSuggestion[]> {
     if (!query.trim()) return []
     try {
-      const raw = await apiClient.get<unknown, BackendTag[]>('/api/v1/tags/suggest', { params: { q: query } })
-      return raw.map((t) => ({ name: t.name, articleCount: t.usageCount }))
+      const raw = await apiClient.get<unknown, string[]>('/api/v1/tags/suggest', {
+        params: { q: query, limit },
+      })
+      return raw.map((name) => ({ name, articleCount: 0 }))
     } catch (error) {
       console.error('Failed to suggest tags:', error)
       return []

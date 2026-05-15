@@ -26,9 +26,28 @@ describe('tagSuggestService', () => {
     afterEach(() => { vi.restoreAllMocks(); vi.unstubAllEnvs() })
 
     it('suggestTags 帶 query 呼叫 GET /api/v1/tags/suggest', async () => {
-      vi.mocked(apiClient.get).mockResolvedValue([{ name: 'Vue', articleCount: 10 }])
+      vi.mocked(apiClient.get).mockResolvedValue(['Vue'])
       await tagSuggestService.suggestTags('Vu')
-      expect(apiClient.get).toHaveBeenCalledWith('/api/v1/tags/suggest', { params: { q: 'Vu' } })
+      expect(apiClient.get).toHaveBeenCalledWith('/api/v1/tags/suggest', { params: { q: 'Vu', limit: 10 } })
+    })
+
+    it('suggestTags 帶 limit query 對齊後端參數', async () => {
+      vi.mocked(apiClient.get).mockResolvedValue(['Vue'])
+      await tagSuggestService.suggestTags('Vu', 8)
+      expect(apiClient.get).toHaveBeenCalledWith('/api/v1/tags/suggest', {
+        params: { q: 'Vu', limit: 8 },
+      })
+    })
+
+    it('suggestTags 將後端 string[] 回應映射為 TagSuggestion', async () => {
+      vi.mocked(apiClient.get).mockResolvedValue(['Vue', 'Vite'])
+
+      const result = await tagSuggestService.suggestTags('V')
+
+      expect(result).toEqual([
+        { name: 'Vue', articleCount: 0 },
+        { name: 'Vite', articleCount: 0 },
+      ])
     })
 
     it('空 query 不呼叫 API，直接回傳空陣列', async () => {

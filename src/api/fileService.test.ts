@@ -82,7 +82,18 @@ describe('fileService', () => {
 
       const result = await fileService.getUserFiles()
       expect(result).toEqual(mockFiles)
-      expect(apiClient.get).toHaveBeenCalledWith('/api/v1/users/me/files')
+      expect(apiClient.get).toHaveBeenCalledWith('/api/v1/users/me/files', { params: {} })
+    })
+
+    it('getUserFiles 帶 page/size/sort 對齊後端 Pageable 參數', async () => {
+      const mockFiles = [{ id: 'f1', originalName: 'img.png', contentType: 'image/png', size: 1024, usageType: 'ARTICLE_CONTENT' as const, hasThumbnail: false, uploaderId: 'u1', createdAt: '2026-01-01T00:00:00Z' }]
+      vi.mocked(apiClient.get).mockResolvedValue(mockFiles)
+
+      const result = await fileService.getUserFiles({ page: 2, size: 5, sort: 'createdAt,desc' })
+      expect(result).toEqual(mockFiles)
+      expect(apiClient.get).toHaveBeenCalledWith('/api/v1/users/me/files', {
+        params: { page: 2, size: 5, sort: 'createdAt,desc' },
+      })
     })
 
     it('getUserFiles API 錯誤時回傳空陣列', async () => {

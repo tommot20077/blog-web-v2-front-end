@@ -204,6 +204,18 @@ describe('authService', () => {
       })
     })
 
+    it('verifyEmailCode 使用 apiClient.post 呼叫後端驗證碼端點', async () => {
+      mockPost.mockResolvedValue(undefined)
+
+      const { authService } = await import('./authService')
+      await authService.verifyEmailCode('user@test.com', '123456')
+
+      expect(mockPost).toHaveBeenCalledWith('/api/v1/auth/verify-email-code', {
+        email: 'user@test.com',
+        code: '123456',
+      })
+    })
+
     it('getMe 使用 apiClient.get 呼叫正確的 URL', async () => {
       const mockUser: User = {
         uuid: 'u-1',

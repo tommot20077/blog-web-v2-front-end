@@ -1,5 +1,5 @@
 import type { FileUploadResponse, FileUsageType } from '../types/editor'
-import type { FileMetadata } from '../types/user'
+import type { FileListParams, FileMetadata } from '../types/user'
 
 export const fileService = {
   async uploadFile(file: File, usageType: FileUsageType): Promise<FileUploadResponse> {
@@ -29,12 +29,12 @@ export const fileService = {
     return svc.deleteFile(id)
   },
 
-  async getUserFiles(): Promise<FileMetadata[]> {
+  async getUserFiles(params: FileListParams = {}): Promise<FileMetadata[]> {
     if (import.meta.env.VITE_USE_MOCK === 'true') {
       const { fileService: svc } = await import('./mock/fileService')
-      return svc.getUserFiles()
+      return svc.getUserFiles(params)
     }
     const { fileService: svc } = await import('./real/fileService')
-    return svc.getUserFiles()
+    return svc.getUserFiles(params)
   },
 }

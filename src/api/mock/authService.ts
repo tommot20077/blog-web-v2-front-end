@@ -5,6 +5,7 @@ import {
   logoutMock,
   forgotPasswordMock,
   resetPasswordMock,
+  verifyEmailCodeMock,
   verifyEmailMock,
   getMeMock,
   resendVerificationMock,
@@ -18,6 +19,7 @@ export const authService = {
   forgotPassword: forgotPasswordMock,
   resetPassword: resetPasswordMock,
   verifyEmail: verifyEmailMock,
+  verifyEmailCode: verifyEmailCodeMock,
   getMe: getMeMock,
   resendVerification: (_email: string) => resendVerificationMock(),
 }

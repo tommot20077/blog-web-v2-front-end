@@ -476,6 +476,11 @@ function extractRequest(arg: Node, method: HttpMethod): RequestResult {
         (Node.isPropertyAssignment(p) || Node.isShorthandPropertyAssignment(p)) &&
         (p.getName() === 'params' || p.getName() === '"params"'),
     )
+    const dataProp = properties.find(
+      (p) =>
+        (Node.isPropertyAssignment(p) || Node.isShorthandPropertyAssignment(p)) &&
+        (p.getName() === 'data' || p.getName() === '"data"'),
+    )
 
     if (paramsProp && Node.isPropertyAssignment(paramsProp)) {
       const paramsInit = paramsProp.getInitializer()
@@ -527,6 +532,14 @@ function extractRequest(arg: Node, method: HttpMethod): RequestResult {
       const valSym = checker.getShorthandAssignmentValueSymbol(paramsProp.compilerNode)
       const varDecl = findFirstVariableDeclarationFromSymbol(valSym, sf)
       return resolveIdentifierAsQueryParams(nameNode, paramsProp, varDecl)
+    }
+
+    if (method === 'delete' && dataProp) {
+      const bodyType =
+        Node.isPropertyAssignment(dataProp) && dataProp.getInitializer()
+          ? safeGetType(dataProp.getInitializerOrThrow())
+          : safeGetType(dataProp)
+      return { kind: 'body', schema: tsTypeToSchema(bodyType) ?? {} }
     }
 
     if (method === 'get' || method === 'head' || method === 'options' || method === 'delete') {
@@ -851,6 +864,13 @@ function tsTypeToSchema(
     const hasNull = parts.some((p) => p.isNull() || p.isUndefined())
     const nonNull = parts.filter((p) => !p.isNull() && !p.isUndefined())
     if (nonNull.length === 0) return { type: 'null' }
+    if (nonNull.length > 1 && nonNull.every((p) => p.isStringLiteral())) {
+      return {
+        type: 'string',
+        enum: nonNull.map((p) => p.getLiteralValue()),
+        ...(hasNull ? { nullable: true } : {}),
+      }
+    }
     if (nonNull.length === 1) {
       const inner = tsTypeToSchema(nonNull[0], schemas, seen) ?? {}
       if (hasNull) {
