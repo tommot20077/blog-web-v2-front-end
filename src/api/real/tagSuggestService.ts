@@ -8,7 +8,7 @@ export const tagSuggestService = {
       const raw = await apiClient.get<unknown, string[]>('/api/v1/tags/suggest', {
         params: { q: query, limit },
       })
-      return raw.map((name) => ({ name, articleCount: 0 }))
+      return raw.map((name) => ({ name }))
     } catch (error) {
       console.error('Failed to suggest tags:', error)
       return []

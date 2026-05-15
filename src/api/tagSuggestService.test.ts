@@ -39,14 +39,14 @@ describe('tagSuggestService', () => {
       })
     })
 
-    it('suggestTags 將後端 string[] 回應映射為 TagSuggestion', async () => {
+    it('suggestTags 將後端 string[] 回應映射為不含 articleCount 的 TagSuggestion', async () => {
       vi.mocked(apiClient.get).mockResolvedValue(['Vue', 'Vite'])
 
       const result = await tagSuggestService.suggestTags('V')
 
       expect(result).toEqual([
-        { name: 'Vue', articleCount: 0 },
-        { name: 'Vite', articleCount: 0 },
+        { name: 'Vue' },
+        { name: 'Vite' },
       ])
     })
 

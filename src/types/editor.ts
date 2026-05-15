@@ -108,7 +108,7 @@ export interface CategoryOption {
 
 export interface TagSuggestion {
   name: string;
-  articleCount: number;
+  articleCount?: number;
 }
 
 // ── 分頁結果（複用於 My Articles） ──────────────────────────────────────────
