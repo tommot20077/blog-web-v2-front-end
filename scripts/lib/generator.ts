@@ -63,7 +63,7 @@ export interface OpenApiOperation {
 }
 
 export interface OpenApiDocument {
-  openapi: '3.1.0'
+  openapi: '3.0.3'
   info: { title: string; version: string }
   paths: Record<string, Partial<Record<HttpMethod, OpenApiOperation>>>
   components: { schemas: Record<string, Record<string, unknown>> }
@@ -92,7 +92,7 @@ const APICLIENT_METHODS: ReadonlySet<HttpMethod> = new Set([
 
 export function emptyDocument(): OpenApiDocument {
   return {
-    openapi: '3.1.0',
+    openapi: '3.0.3',
     info: { title: 'frontend-openapi', version: '0.0.0' },
     paths: {},
     components: { schemas: {} },
