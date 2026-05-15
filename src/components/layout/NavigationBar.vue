@@ -88,6 +88,9 @@ async function handleLogout() {
         <span class="nav-user__name" data-testid="navbar-user-greeting">
           你好, {{ authStore.user?.nickname }}!
         </span>
+        <RouterLink to="/bookmarks" class="nav-link" active-class="active" data-testid="navbar-link-bookmarks">
+          收藏
+        </RouterLink>
         <RouterLink to="/settings" class="nav-link" active-class="active" data-testid="navbar-link-settings">
           設定
         </RouterLink>

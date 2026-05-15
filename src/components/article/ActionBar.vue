@@ -3,9 +3,14 @@ defineProps<{
   liked: boolean
   likeCount: number
   isPending: boolean
+  bookmarked: boolean
+  bookmarkPending: boolean
 }>()
 
-defineEmits<{ toggle: [] }>()
+defineEmits<{
+  toggle: []
+  toggleBookmark: []
+}>()
 </script>
 
 <template>
@@ -21,8 +26,20 @@ defineEmits<{ toggle: [] }>()
       <span data-testid="article-like-action-bar-count" class="ab-count">{{ likeCount }}</span>
     </button>
 
-    <!-- placeholders for future Stage: bookmark / share / view-as-md -->
-    <button class="ab-btn disabled" disabled title="coming soon" aria-label="Bookmark">🔖</button>
+    <button
+      data-testid="article-bookmark-action-bar"
+      class="ab-btn"
+      :class="{ active: bookmarked, pulse: bookmarkPending }"
+      :disabled="bookmarkPending"
+      :aria-pressed="bookmarked"
+      :aria-label="bookmarked ? '取消收藏' : '加入收藏'"
+      :title="bookmarked ? '取消收藏' : '加入收藏'"
+      @click="$emit('toggleBookmark')"
+    >
+      <span aria-hidden="true">{{ bookmarked ? '★' : '☆' }}</span>
+    </button>
+
+    <!-- placeholders for future Stage: share / view-as-md -->
     <button class="ab-btn disabled" disabled title="coming soon" aria-label="Share">↗</button>
     <button class="ab-btn disabled" disabled title="coming soon" aria-label="View as Markdown">{ }</button>
   </aside>

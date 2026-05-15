@@ -224,7 +224,7 @@ export function getMockArticleDetail(uuid: string): ArticleDetailItem | null {
     name,
     slug: name.toLowerCase(),
   }));
-  return { ...base, content: mockMarkdownContent, categories, liked: false };
+  return { ...base, content: mockMarkdownContent, categories, liked: false, bookmarked: false };
 }
 
 export const allMockTags: TagDetailResponse[] = ALL_MOCK_TAGS.map((name, index) => ({

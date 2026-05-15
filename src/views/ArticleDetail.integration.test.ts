@@ -26,6 +26,14 @@ vi.mock('../composables/useArticleLike', () => ({
   })),
 }))
 
+vi.mock('../composables/useArticleBookmark', () => ({
+  useArticleBookmark: vi.fn((_uuid: unknown, initial: { bookmarked: boolean }) => ({
+    bookmarked: ref(initial.bookmarked),
+    isPending: ref(false),
+    toggle: vi.fn(),
+  })),
+}))
+
 vi.mock('../composables/useComments', () => ({
   useComments: vi.fn(() => ({
     list: ref([]),
@@ -66,6 +74,7 @@ describe('ArticleDetail Integration', () => {
       coverImageUrl: null,
       categories: [],
       liked: false,
+      bookmarked: false,
     })
   })
 

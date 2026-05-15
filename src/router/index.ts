@@ -90,6 +90,12 @@ const router = createRouter({
       meta: { requiresAuth: true, layout: 'shell' as const }
     },
     {
+      path: '/bookmarks',
+      name: 'bookmarks',
+      component: () => import('../views/BookmarksView.vue'),
+      meta: { requiresAuth: true, layout: 'shell' as const }
+    },
+    {
       path: '/settings',
       name: 'settings',
       component: () => import('../views/SettingsView.vue'),

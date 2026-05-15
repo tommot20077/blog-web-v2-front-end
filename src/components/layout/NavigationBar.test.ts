@@ -54,6 +54,16 @@ describe('NavigationBar', () => {
       expect(queryByTestId('navbar-user-menu')).toBeInTheDocument()
     })
 
+    it('已登入時顯示我的收藏連結', async () => {
+      const { getByTestId } = renderWithRouter(NavigationBar)
+      const authStore = useAuthStore()
+      authStore.accessToken = 'test-token'
+      authStore.user = createMockUser({ nickname: 'TestUser' })
+      await nextTick()
+
+      expect(getByTestId('navbar-link-bookmarks')).toHaveAttribute('href', '/bookmarks')
+    })
+
     it('已登入時不顯示 login button', async () => {
       const { queryByTestId } = renderWithRouter(NavigationBar)
       const authStore = useAuthStore()

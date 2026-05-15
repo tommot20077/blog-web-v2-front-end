@@ -37,6 +37,14 @@ vi.mock('../composables/useArticleLike', () => ({
   })),
 }))
 
+vi.mock('../composables/useArticleBookmark', () => ({
+  useArticleBookmark: vi.fn((_uuid: unknown, initial: { bookmarked: boolean }) => ({
+    bookmarked: ref(initial.bookmarked),
+    isPending: ref(false),
+    toggle: vi.fn(),
+  })),
+}))
+
 vi.mock('../composables/useComments', () => ({
   useComments: vi.fn(() => ({
     list: ref([]),
@@ -213,6 +221,18 @@ describe('ArticleDetail 頁面', () => {
       const likeEl = container.querySelector('[data-testid="article-like-footer-count"]')
       expect(likeEl).toBeInTheDocument()
       expect(likeEl?.textContent).toContain('42')
+    })
+
+    it('文章已收藏時 action rail 顯示 active bookmark', async () => {
+      const mockArticle = createMockArticleDetail({ bookmarked: true })
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+      const { container } = await renderArticleDetail()
+      await flushPromises()
+
+      const bookmarkBtn = container.querySelector('[data-testid="article-bookmark-action-bar"]')
+      expect(bookmarkBtn).toBeInTheDocument()
+      expect(bookmarkBtn).toHaveClass('active')
     })
 
     it('顯示留言數', async () => {

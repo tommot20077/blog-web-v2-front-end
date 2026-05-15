@@ -27,6 +27,7 @@ export function createMockArticleDetail(overrides: Partial<ArticleDetailItem> = 
     content: '# Test\n\nHello world',
     categories: [] as ArticleCategory[],
     liked: false,
+    bookmarked: false,
     ...overrides,
   }
 }
