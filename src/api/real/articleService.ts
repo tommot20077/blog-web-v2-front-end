@@ -33,6 +33,7 @@ interface BackendArticleDetail extends BackendArticleBase {
   content: string
   categories: CategorySummaryResponse[]
   liked: boolean
+  bookmarked?: boolean
 }
 
 export interface ArticleCategory {
@@ -62,6 +63,7 @@ export interface ArticleDetailItem extends Omit<ArticleItem, 'categories'> {
   content: string
   categories: ArticleCategory[]
   liked: boolean
+  bookmarked: boolean
 }
 
 function mapArticle(raw: BackendArticleBase): ArticleItem {
@@ -88,6 +90,7 @@ function mapArticleDetail(raw: BackendArticleDetail): ArticleDetailItem {
     content: raw.content,
     categories: (raw.categories ?? []).map((c) => ({ uuid: c.uuid, name: c.name, slug: c.slug })),
     liked: raw.liked,
+    bookmarked: raw.bookmarked ?? false,
   }
 }
 

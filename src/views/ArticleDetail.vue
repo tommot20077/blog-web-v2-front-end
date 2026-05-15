@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watchEffect } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useArticleDetail } from '../composables/useArticleDetail'
 import { useArticleLike } from '../composables/useArticleLike'
+import { useArticleBookmark } from '../composables/useArticleBookmark'
 import { useMarkdownRenderer } from '../composables/useMarkdownRenderer'
 import { useWordCount } from '../composables/useWordCount'
 import { useReadingProgress } from '../composables/useReadingProgress'
@@ -27,12 +28,14 @@ const { progress } = useReadingProgress(articleEl)
 // Like state — called synchronously in setup (safe for useRouter/useRoute inside useAuthWall)
 const articleUuidRef = computed(() => article.value?.uuid ?? '')
 const likeState = useArticleLike(articleUuidRef, { liked: false, likeCount: 0 })
+const bookmarkState = useArticleBookmark(articleUuidRef, { bookmarked: false })
 
-// Once article loads, sync its initial liked/count into likeState
+// Once article loads, sync its initial interaction state.
 watchEffect(() => {
   if (article.value) {
     likeState.liked.value = article.value.liked
     likeState.likeCount.value = article.value.likeCount
+    bookmarkState.bookmarked.value = article.value.bookmarked
   }
 })
 
@@ -154,7 +157,10 @@ const goBack = () => window.history.length > 1 ? router.back() : router.push('/a
           :liked="likeState.liked.value"
           :like-count="likeState.likeCount.value"
           :is-pending="likeState.isPending.value"
+          :bookmarked="bookmarkState.bookmarked.value"
+          :bookmark-pending="bookmarkState.isPending.value"
           @toggle="likeState.toggle"
+          @toggle-bookmark="bookmarkState.toggle"
         />
       </div>
     </div>

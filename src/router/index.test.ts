@@ -44,6 +44,7 @@ function createTestRouter() {
       { path: '/verify-email', name: 'verify-email', component: StubComponent },
       // 測試用：需要認證的路由
       { path: '/dashboard', name: 'dashboard', component: StubComponent, meta: { requiresAuth: true } },
+      { path: '/bookmarks', name: 'bookmarks', component: StubComponent, meta: { requiresAuth: true, layout: 'shell' } },
       // 測試用：需要特定角色的路由
       {
         path: '/admin',
@@ -202,6 +203,16 @@ describe('Router Guard — requiresAuth', () => {
 
     expect(router.currentRoute.value.name).toBe('dashboard')
     expect(router.currentRoute.value.path).toBe('/dashboard')
+  })
+
+  it('/bookmarks 需要登入，未登入會重導至 /login 並記錄 returnUrl', async () => {
+    const authStore = useAuthStore()
+    const router = createTestRouter()
+
+    await router.push('/bookmarks')
+
+    expect(router.currentRoute.value.name).toBe('login')
+    expect(authStore.returnUrl).toBe('/bookmarks')
   })
 })
 
