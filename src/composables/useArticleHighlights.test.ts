@@ -134,6 +134,62 @@ describe('useArticleHighlights', () => {
     expect(wrapper.vm.highlights[0].uuid).toBe('h-1')
   })
 
+  it('does not append a created highlight after article changes', async () => {
+    let resolveCreate: (highlight: Highlight) => void = () => {}
+    vi.mocked(highlightService.create).mockReturnValue(new Promise<Highlight>((resolve) => {
+      resolveCreate = resolve
+    }))
+    const wrapper = mountHarness()
+    await nextTick()
+    await flushPromises()
+
+    const createPromise = wrapper.vm.createHighlight({ snippet: 'selected text', color: '#FFEB3B' })
+    wrapper.vm.articleUuid = 'second-article-uuid'
+    await nextTick()
+
+    resolveCreate(makeHighlight({ uuid: 'stale-created' }))
+    await createPromise
+
+    expect(wrapper.vm.highlights).toHaveLength(0)
+  })
+
+  it('ignores overlapping mutations while one is pending', async () => {
+    let resolveCreate: (highlight: Highlight) => void = () => {}
+    vi.mocked(highlightService.create).mockReturnValue(new Promise<Highlight>((resolve) => {
+      resolveCreate = resolve
+    }))
+    const wrapper = mountHarness()
+    await nextTick()
+    await flushPromises()
+
+    const firstCreate = wrapper.vm.createHighlight({ snippet: 'first', color: '#FFEB3B' })
+    expect(wrapper.vm.isMutating).toBe(true)
+
+    const secondCreate = wrapper.vm.createHighlight({ snippet: 'second', color: '#FFEB3B' })
+    await nextTick()
+
+    expect(highlightService.create).toHaveBeenCalledTimes(1)
+    await expect(secondCreate).resolves.toBeNull()
+    expect(wrapper.vm.isMutating).toBe(true)
+
+    resolveCreate(makeHighlight({ uuid: 'created' }))
+    await firstCreate
+
+    expect(wrapper.vm.isMutating).toBe(false)
+  })
+
+  it('shows a toast when create fails', async () => {
+    vi.mocked(highlightService.create).mockRejectedValueOnce(new Error('fail'))
+    const wrapper = mountHarness()
+    await nextTick()
+    await flushPromises()
+
+    const result = await wrapper.vm.createHighlight({ snippet: 'selected text', color: '#FFEB3B' })
+
+    expect(result).toBeNull()
+    expect(mockShowToast).toHaveBeenCalledWith('建立劃線失敗，請稍後再試', 'error')
+  })
+
   it('does not create when auth wall blocks', async () => {
     mockRequireAuth.mockReturnValue(false)
     const wrapper = mountHarness()

@@ -41,10 +41,13 @@ export function useArticleHighlights(articleUuid: Readonly<Ref<string>>) {
   }
 
   async function createHighlight(request: CreateHighlightRequest) {
+    if (isMutating.value) return null
     if (!requireAuth() || !articleUuid.value) return null
+    const targetUuid = articleUuid.value
     isMutating.value = true
     try {
-      const created = await highlightService.create(articleUuid.value, request)
+      const created = await highlightService.create(targetUuid, request)
+      if (articleUuid.value !== targetUuid || !authStore.isAuthenticated) return null
       highlights.value = [...highlights.value, created]
       return created
     } catch (error) {
@@ -57,6 +60,7 @@ export function useArticleHighlights(articleUuid: Readonly<Ref<string>>) {
   }
 
   async function updateHighlight(uuid: string, request: UpdateHighlightRequest) {
+    if (isMutating.value) return null
     if (!requireAuth()) return null
     const previous = highlights.value
     isMutating.value = true
@@ -75,6 +79,7 @@ export function useArticleHighlights(articleUuid: Readonly<Ref<string>>) {
   }
 
   async function deleteHighlight(uuid: string) {
+    if (isMutating.value) return false
     if (!requireAuth()) return false
     isMutating.value = true
     try {
