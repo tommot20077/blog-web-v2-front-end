@@ -10,7 +10,9 @@ const DEFAULT_THROTTLE_MS = 1000
 const MIN_DELTA = 0.03
 const COMPLETE_THRESHOLD = 0.95
 
-function normalizeProgress(progressPercent: number): number {
+function normalizeProgress(progressPercent: number): number | null {
+  if (!Number.isFinite(progressPercent)) return null
+
   const ratio = Math.min(1, Math.max(0, progressPercent / 100))
   return ratio >= COMPLETE_THRESHOLD ? 1 : Number(ratio.toFixed(3))
 }
@@ -111,6 +113,8 @@ export function usePersistedReadingProgress(
     if (!canPersist.value) return
 
     const nextProgress = normalizeProgress(progress.value)
+    if (nextProgress === null) return
+
     clearPersistTimer()
     persistTimer = setTimeout(() => {
       persistTimer = null

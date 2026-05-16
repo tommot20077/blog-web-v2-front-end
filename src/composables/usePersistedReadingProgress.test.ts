@@ -141,6 +141,18 @@ describe('usePersistedReadingProgress', () => {
     expect(readingProgressService.update).toHaveBeenCalledWith('article-uuid', { progress: 1 })
   })
 
+  it('skips non-finite local progress values', async () => {
+    const wrapper = mountHarness()
+    await nextTick()
+    await flushPromises()
+
+    wrapper.vm.progress = Number.POSITIVE_INFINITY
+    await nextTick()
+    await vi.advanceTimersByTimeAsync(1000)
+
+    expect(readingProgressService.update).not.toHaveBeenCalled()
+  })
+
   it('skips small progress deltas below 0.03', async () => {
     vi.mocked(readingProgressService.get).mockResolvedValue({
       progress: 0.5,
