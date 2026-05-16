@@ -88,8 +88,10 @@ describe('highlightService facade', () => {
   it('mock mode supports article-scoped CRUD in memory', async () => {
     vi.stubEnv('VITE_USE_MOCK', 'true')
     const articleUuid = `article-${Date.now()}`
+    const otherArticleUuid = `other-${Date.now()}`
 
     expect(await highlightService.list(articleUuid)).toEqual([])
+    expect(await highlightService.list(otherArticleUuid)).toEqual([])
 
     const created = await highlightService.create(articleUuid, {
       snippet: 'selected text',
@@ -100,6 +102,7 @@ describe('highlightService facade', () => {
     })
     expect(created.uuid).toMatch(/^mock-highlight-/)
     expect(await highlightService.list(articleUuid)).toHaveLength(1)
+    expect(await highlightService.list(otherArticleUuid)).toEqual([])
 
     const updated = await highlightService.update(created.uuid, { color: '#C8E6C9', note: 'updated' })
     expect(updated.color).toBe('#C8E6C9')
