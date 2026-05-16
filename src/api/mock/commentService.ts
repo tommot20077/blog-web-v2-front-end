@@ -17,6 +17,11 @@ function getList(articleUuid: string): CommentItem[] {
   return store.get(articleUuid)!
 }
 
+export function resetCommentMockState(): void {
+  store.clear()
+  nextId = 1
+}
+
 // mock 模擬後端 markdown→HTML pipeline 的最簡版：escape + 包 <p>
 // 防 mock/dev 模式下用戶輸入直接被 v-html 渲染造成 XSS
 function escapeHtml(s: string): string {
@@ -124,4 +129,8 @@ export const commentService = {
       if (item) return
     }
   },
+}
+
+export async function seedComment(articleUuid: string, content: string): Promise<CommentItem> {
+  return commentService.create(articleUuid, { content })
 }

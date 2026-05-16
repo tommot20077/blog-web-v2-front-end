@@ -6,7 +6,7 @@ export interface MockUser extends User {
 
 const SEED_USERS: MockUser[] = [
   {
-    uuid: 'user-uuid-1',
+    uuid: 'user-uuid-admin',
     email: 'admin@test.com',
     password: 'Password1',
     nickname: 'Admin',
@@ -16,7 +16,27 @@ const SEED_USERS: MockUser[] = [
     createdAt: '2026-01-01T00:00:00Z',
   },
   {
-    uuid: 'user-uuid-2',
+    uuid: 'user-uuid-author',
+    email: 'author@test.com',
+    password: 'Password1',
+    nickname: 'Yuan Author',
+    avatarUrl: null,
+    role: 'AUTHOR' as UserRole,
+    emailVerified: true,
+    createdAt: '2026-01-15T00:00:00Z',
+  },
+  {
+    uuid: 'user-uuid-reader',
+    email: 'reader@test.com',
+    password: 'Password1',
+    nickname: 'Yuan Reader',
+    avatarUrl: null,
+    role: 'USER' as UserRole,
+    emailVerified: true,
+    createdAt: '2026-01-20T00:00:00Z',
+  },
+  {
+    uuid: 'user-uuid-legacy-author',
     email: 'user@test.com',
     password: 'Password1',
     nickname: 'Yuan',
@@ -27,7 +47,11 @@ const SEED_USERS: MockUser[] = [
   },
 ];
 
-export let registeredUsers: MockUser[] = [...SEED_USERS];
+function cloneSeedUsers(): MockUser[] {
+  return SEED_USERS.map(user => ({ ...user }));
+}
+
+export let registeredUsers: MockUser[] = cloneSeedUsers();
 export let currentLoggedInUserId: string | null = null;
 export let refreshTokenValid = false;
 
@@ -40,7 +64,7 @@ export function setRefreshTokenValid(valid: boolean): void {
 }
 
 export function resetAuthMockState(): void {
-  registeredUsers = [...SEED_USERS];
+  registeredUsers = cloneSeedUsers();
   currentLoggedInUserId = null;
   refreshTokenValid = false;
 }

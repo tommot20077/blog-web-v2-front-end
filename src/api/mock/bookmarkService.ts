@@ -4,6 +4,14 @@ import type { BookmarkArticleSummary } from '../real/bookmarkService'
 
 const bookmarkedArticles = new Set<string>()
 
+export function resetBookmarkMockState(): void {
+  bookmarkedArticles.clear()
+}
+
+export function seedBookmark(articleUuid: string): void {
+  bookmarkedArticles.add(articleUuid)
+}
+
 function mapBookmarkArticle(article: typeof allMockArticles[number]): BookmarkArticleSummary {
   return {
     uuid: article.uuid,
