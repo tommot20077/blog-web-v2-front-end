@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { render, screen, fireEvent } from '@testing-library/vue'
 import { flushPromises } from '@vue/test-utils'
 import ArticleDetail from './ArticleDetail.vue'
@@ -8,11 +8,13 @@ import type { ArticleCategory } from '../api/real/articleService'
 
 const {
   mockUsePersistedReadingProgress,
+  mockUseMarkdownRenderer,
   mockUseArticleHighlights,
   mockUseInlineArticleHighlights,
   mockUseArticleTextSelection,
 } = vi.hoisted(() => ({
   mockUsePersistedReadingProgress: vi.fn(),
+  mockUseMarkdownRenderer: vi.fn(),
   mockUseArticleHighlights: vi.fn(),
   mockUseInlineArticleHighlights: vi.fn(),
   mockUseArticleTextSelection: vi.fn(),
@@ -20,6 +22,10 @@ const {
 
 let mockApplyHighlights: ReturnType<typeof vi.fn>
 let mockHighlightsRef: ReturnType<typeof ref>
+let mockCreateHighlight: ReturnType<typeof vi.fn>
+let mockUpdateHighlight: ReturnType<typeof vi.fn>
+let mockDeleteHighlight: ReturnType<typeof vi.fn>
+let mockClearSelection: ReturnType<typeof vi.fn>
 
 vi.mock('../api/articleService', () => ({
   articleService: {
@@ -29,10 +35,7 @@ vi.mock('../api/articleService', () => ({
 }))
 
 vi.mock('../composables/useMarkdownRenderer', () => ({
-  useMarkdownRenderer: vi.fn((content: { value: string }) => ({
-    renderedHtml: computed(() => `<p>${content.value}</p>`),
-    isReady: ref(true),
-  })),
+  useMarkdownRenderer: mockUseMarkdownRenderer,
 }))
 
 vi.mock('../composables/useWordCount', () => ({
@@ -90,7 +93,12 @@ vi.mock('../components/article/ArticleHighlightPanel.vue', () => ({
     name: 'ArticleHighlightPanel',
     props: ['highlights', 'locatedByHighlightUuid', 'isLoading', 'isMutating'],
     emits: ['update', 'delete'],
-    template: '<section data-testid="mock-highlight-panel"></section>',
+    template: `
+      <section data-testid="mock-highlight-panel">
+        <button data-testid="mock-highlight-update" @click="$emit('update', 'highlight-uuid', { note: 'updated note' })">update</button>
+        <button data-testid="mock-highlight-delete" @click="$emit('delete', 'highlight-uuid')">delete</button>
+      </section>
+    `,
   },
 }))
 
@@ -132,14 +140,22 @@ describe('ArticleDetail 頁面', () => {
     mockUsePersistedReadingProgress.mockClear()
     mockApplyHighlights = vi.fn()
     mockHighlightsRef = ref([])
+    mockCreateHighlight = vi.fn()
+    mockUpdateHighlight = vi.fn()
+    mockDeleteHighlight = vi.fn()
+    mockClearSelection = vi.fn()
+    mockUseMarkdownRenderer.mockImplementation((content: { value: string }) => ({
+      renderedHtml: computed(() => `<p>${content.value}</p>`),
+      isReady: ref(true),
+    }))
     mockUseArticleHighlights.mockReturnValue({
       highlights: mockHighlightsRef,
       isLoading: ref(false),
       isMutating: ref(false),
       loadError: ref(false),
-      createHighlight: vi.fn(),
-      updateHighlight: vi.fn(),
-      deleteHighlight: vi.fn(),
+      createHighlight: mockCreateHighlight,
+      updateHighlight: mockUpdateHighlight,
+      deleteHighlight: mockDeleteHighlight,
       loadHighlights: vi.fn(),
     })
     mockUseInlineArticleHighlights.mockReturnValue({
@@ -149,7 +165,7 @@ describe('ArticleDetail 頁面', () => {
     mockUseArticleTextSelection.mockReturnValue({
       selectionPayload: ref(null),
       selectionError: ref(null),
-      clearSelection: vi.fn(),
+      clearSelection: mockClearSelection,
       refreshSelection: vi.fn(),
     })
   })
@@ -271,6 +287,92 @@ describe('ArticleDetail 頁面', () => {
     expect(mockApplyHighlights).toHaveBeenCalled()
     expect(container.querySelector('[data-testid="mock-highlight-toolbar"]')).toBeInTheDocument()
     expect(container.querySelector('[data-testid="mock-highlight-panel"]')).toBeInTheDocument()
+  })
+
+  it('toolbar 建立 highlight 成功後清除選取狀態', async () => {
+    const selectionPayload = { snippet: 'hello', prefix: '', suffix: ' highlight' }
+    const createdHighlight = {
+      uuid: 'highlight-uuid',
+      snippet: 'hello',
+      prefix: '',
+      suffix: ' highlight',
+      note: null,
+      color: '#ffeb3b',
+      createdAt: '2026-05-16T00:00:00Z',
+      updatedAt: '2026-05-16T00:00:00Z',
+    }
+    mockCreateHighlight.mockResolvedValue(createdHighlight)
+    mockUseArticleTextSelection.mockReturnValue({
+      selectionPayload: ref(selectionPayload),
+      selectionError: ref(null),
+      clearSelection: mockClearSelection,
+      refreshSelection: vi.fn(),
+    })
+    const mockArticle = createMockArticleDetail({ uuid: 'article-uuid', content: 'hello highlight' })
+    vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+    await renderArticleDetail()
+    await flushPromises()
+    await fireEvent.click(screen.getByTestId('mock-highlight-toolbar'))
+    await flushPromises()
+
+    expect(mockCreateHighlight).toHaveBeenCalledWith(selectionPayload)
+    expect(mockClearSelection).toHaveBeenCalledOnce()
+  })
+
+  it('toolbar 建立 highlight 失敗時不清除選取狀態', async () => {
+    const selectionPayload = { snippet: 'hello', prefix: '', suffix: ' highlight' }
+    mockCreateHighlight.mockResolvedValue(null)
+    mockUseArticleTextSelection.mockReturnValue({
+      selectionPayload: ref(selectionPayload),
+      selectionError: ref(null),
+      clearSelection: mockClearSelection,
+      refreshSelection: vi.fn(),
+    })
+    const mockArticle = createMockArticleDetail({ uuid: 'article-uuid', content: 'hello highlight' })
+    vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+    await renderArticleDetail()
+    await flushPromises()
+    await fireEvent.click(screen.getByTestId('mock-highlight-toolbar'))
+    await flushPromises()
+
+    expect(mockCreateHighlight).toHaveBeenCalledWith(selectionPayload)
+    expect(mockClearSelection).not.toHaveBeenCalled()
+  })
+
+  it('panel update 與 delete 事件接到 highlight state handlers', async () => {
+    const mockArticle = createMockArticleDetail({ uuid: 'article-uuid', content: 'hello highlight' })
+    vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+    await renderArticleDetail()
+    await flushPromises()
+    await fireEvent.click(screen.getByTestId('mock-highlight-update'))
+    await fireEvent.click(screen.getByTestId('mock-highlight-delete'))
+
+    expect(mockUpdateHighlight).toHaveBeenCalledWith('highlight-uuid', { note: 'updated note' })
+    expect(mockDeleteHighlight).toHaveBeenCalledWith('highlight-uuid')
+  })
+
+  it('renderedHtml 變更後重新套用 inline highlights', async () => {
+    const renderedHtml = ref('<p>initial highlight</p>')
+    mockUseMarkdownRenderer.mockReturnValue({
+      renderedHtml,
+      isReady: ref(true),
+    })
+    const mockArticle = createMockArticleDetail({ uuid: 'article-uuid', content: 'initial highlight' })
+    vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+    await renderArticleDetail()
+    await flushPromises()
+    const initialApplyCount = mockApplyHighlights.mock.calls.length
+
+    renderedHtml.value = '<p>changed highlight</p>'
+    await nextTick()
+    await nextTick()
+    await flushPromises()
+
+    expect(mockApplyHighlights.mock.calls.length).toBeGreaterThan(initialApplyCount)
   })
 
   describe('文章標頭 UI 增強', () => {
