@@ -56,8 +56,8 @@ describe('useInlineArticleHighlights', () => {
     await nextTick()
 
     const marks = Array.from(
-      wrapper.element.querySelectorAll<HTMLElement>('[data-highlight-uuid="h-1"]'),
-    )
+      wrapper.element.querySelectorAll('[data-highlight-uuid="h-1"]'),
+    ) as HTMLElement[]
     expect(marks).toHaveLength(1)
     expect(marks[0]!.parentElement!.textContent).toContain('target before selected text target after')
   })
@@ -81,8 +81,8 @@ describe('useInlineArticleHighlights', () => {
     await nextTick()
 
     const marks = Array.from(
-      wrapper.element.querySelectorAll<HTMLElement>('[data-highlight-uuid="h-1"]'),
-    )
+      wrapper.element.querySelectorAll('[data-highlight-uuid="h-1"]'),
+    ) as HTMLElement[]
     expect(marks).toHaveLength(1)
     expect(marks[0]!.textContent).toBe('selected text')
     expect(marks[0]!.parentElement!.textContent).toContain('same before selected text target after')
