@@ -18,7 +18,7 @@ describe('ArticleTextSelectionToolbar', () => {
       },
     })
 
-    await fireEvent.click(screen.getByTestId('highlight-color-1'))
+    await fireEvent.click(screen.getByRole('button', { name: '使用綠色劃線' }))
     await fireEvent.click(screen.getByTestId('highlight-create-button'))
 
     expect(emitted().create?.[0]).toEqual([
@@ -29,6 +29,23 @@ describe('ArticleTextSelectionToolbar', () => {
         color: '#C8E6C9',
       },
     ])
+  })
+
+  it('exposes selected state for color swatches', async () => {
+    render(ArticleTextSelectionToolbar, {
+      props: {
+        selectionPayload: { snippet: 'selected text', prefix: 'before ', suffix: ' after' },
+        isPending: false,
+      },
+    })
+
+    expect(screen.getByRole('button', { name: '使用黃色劃線' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: '使用綠色劃線' })).toHaveAttribute('aria-pressed', 'false')
+
+    await fireEvent.click(screen.getByRole('button', { name: '使用綠色劃線' }))
+
+    expect(screen.getByRole('button', { name: '使用黃色劃線' })).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByRole('button', { name: '使用綠色劃線' })).toHaveAttribute('aria-pressed', 'true')
   })
 
   it('disables create while pending', () => {

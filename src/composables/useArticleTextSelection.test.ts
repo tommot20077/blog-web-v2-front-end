@@ -1,4 +1,5 @@
 import { mount } from '@vue/test-utils'
+import type { VueWrapper } from '@vue/test-utils'
 import { defineComponent, nextTick, ref } from 'vue'
 import { afterEach, describe, expect, it } from 'vitest'
 import { useArticleTextSelection } from './useArticleTextSelection'
@@ -26,12 +27,16 @@ function mountHarness() {
 }
 
 describe('useArticleTextSelection', () => {
+  let wrapper: VueWrapper | null = null
+
   afterEach(() => {
+    wrapper?.unmount()
+    wrapper = null
     window.getSelection()?.removeAllRanges()
   })
 
   it('extracts snippet prefix suffix for selection inside article body', async () => {
-    const wrapper = mountHarness()
+    wrapper = mountHarness()
     await nextTick()
     const textNode = wrapper.element.querySelector('p')!.firstChild as Text
 
@@ -46,7 +51,7 @@ describe('useArticleTextSelection', () => {
   })
 
   it('uses the actual range offset when selected text appears more than once', async () => {
-    const wrapper = mountHarness()
+    wrapper = mountHarness()
     await nextTick()
     const paragraph = wrapper.element.querySelector('p')!
     paragraph.textContent = 'alpha selected text omega target before selected text target after'
@@ -63,7 +68,7 @@ describe('useArticleTextSelection', () => {
   })
 
   it('clears selection outside article body', async () => {
-    const wrapper = mountHarness()
+    wrapper = mountHarness()
     await nextTick()
     const textNode = wrapper.element.querySelector('aside')!.firstChild as Text
 
@@ -74,7 +79,7 @@ describe('useArticleTextSelection', () => {
   })
 
   it('rejects selected text longer than 500 characters', async () => {
-    const wrapper = mountHarness()
+    wrapper = mountHarness()
     await nextTick()
     const paragraph = wrapper.element.querySelector('p')!
     paragraph.textContent = 'x'.repeat(501)
@@ -83,5 +88,41 @@ describe('useArticleTextSelection', () => {
 
     expect(wrapper.vm.selectionPayload).toBeNull()
     expect(wrapper.vm.selectionError).toBe('選取文字不可超過 500 字')
+  })
+
+  it('clears stale error after selecting outside article body', async () => {
+    wrapper = mountHarness()
+    await nextTick()
+    const paragraph = wrapper.element.querySelector('p')!
+    paragraph.textContent = 'x'.repeat(501)
+
+    selectText(paragraph.firstChild as Text, 0, 501)
+    await nextTick()
+    expect(wrapper.vm.selectionError).toBe('選取文字不可超過 500 字')
+
+    const outsideText = wrapper.element.querySelector('aside')!.firstChild as Text
+    selectText(outsideText, 0, 7)
+    await nextTick()
+
+    expect(wrapper.vm.selectionPayload).toBeNull()
+    expect(wrapper.vm.selectionError).toBeNull()
+  })
+
+  it('truncates prefix and suffix context to 64 characters', async () => {
+    wrapper = mountHarness()
+    await nextTick()
+    const paragraph = wrapper.element.querySelector('p')!
+    const prefix = 'p'.repeat(70)
+    const suffix = 's'.repeat(70)
+    paragraph.textContent = `${prefix}selected text${suffix}`
+
+    selectText(paragraph.firstChild as Text, 70, 83)
+    await nextTick()
+
+    expect(wrapper.vm.selectionPayload).toEqual({
+      snippet: 'selected text',
+      prefix: 'p'.repeat(64),
+      suffix: 's'.repeat(64),
+    })
   })
 })

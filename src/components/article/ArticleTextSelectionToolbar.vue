@@ -12,14 +12,18 @@ const emit = defineEmits<{
   create: [request: CreateHighlightRequest]
 }>()
 
-const colors = ['#FFEB3B', '#C8E6C9', '#BBDEFB']
+const colors = [
+  { label: '使用黃色劃線', value: '#FFEB3B' },
+  { label: '使用綠色劃線', value: '#C8E6C9' },
+  { label: '使用藍色劃線', value: '#BBDEFB' },
+]
 const selectedColor = ref(colors[0])
 
 function submit() {
   if (!props.selectionPayload || props.isPending) return
   emit('create', {
     ...props.selectionPayload,
-    color: selectedColor.value,
+    color: selectedColor.value.value,
   })
 }
 </script>
@@ -32,11 +36,13 @@ function submit() {
   >
     <button
       v-for="(color, index) in colors"
-      :key="color"
+      :key="color.value"
       type="button"
       class="highlight-color"
-      :class="{ active: selectedColor === color }"
-      :style="{ backgroundColor: color }"
+      :class="{ active: selectedColor.value === color.value }"
+      :style="{ backgroundColor: color.value }"
+      :aria-label="color.label"
+      :aria-pressed="selectedColor.value === color.value"
       :data-testid="`highlight-color-${index}`"
       @click="selectedColor = color"
     />

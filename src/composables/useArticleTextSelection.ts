@@ -9,6 +9,14 @@ export interface ArticleSelectionPayload {
 const CONTEXT_LIMIT = 64
 const SNIPPET_LIMIT = 500
 
+function clearSelectionState(
+  selectionPayload: Ref<ArticleSelectionPayload | null>,
+  selectionError: Ref<string | null>,
+) {
+  selectionPayload.value = null
+  selectionError.value = null
+}
+
 function trimContext(value: string): string {
   return value.slice(-CONTEXT_LIMIT)
 }
@@ -41,20 +49,20 @@ export function useArticleTextSelection(articleBodyRef: Ref<HTMLElement | null>)
     const root = articleBodyRef.value
     const selection = window.getSelection()
     if (!root || !selection || selection.rangeCount === 0 || selection.isCollapsed) {
-      selectionPayload.value = null
+      clearSelectionState(selectionPayload, selectionError)
       return
     }
 
     const range = selection.getRangeAt(0)
     if (!root.contains(range.commonAncestorContainer)) {
-      selectionPayload.value = null
+      clearSelectionState(selectionPayload, selectionError)
       return
     }
 
     const rawSnippet = selection.toString()
     const snippet = rawSnippet.trim()
     if (!snippet) {
-      selectionPayload.value = null
+      clearSelectionState(selectionPayload, selectionError)
       return
     }
     if (snippet.length > SNIPPET_LIMIT) {
@@ -66,7 +74,7 @@ export function useArticleTextSelection(articleBodyRef: Ref<HTMLElement | null>)
     const bodyText = root.textContent ?? ''
     const rangeStartOffset = getRangeStartOffset(root, range)
     if (rangeStartOffset === null) {
-      selectionPayload.value = null
+      clearSelectionState(selectionPayload, selectionError)
       return
     }
     const leadingTrim = rawSnippet.length - rawSnippet.trimStart().length
