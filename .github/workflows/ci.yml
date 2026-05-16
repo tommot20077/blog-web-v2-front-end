@@ -5,10 +5,19 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   unit-and-component-tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -20,6 +29,7 @@ jobs:
 
   coverage:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -37,6 +47,7 @@ jobs:
 
   e2e-tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -45,7 +56,7 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - run: npx playwright test
+      - run: npm run test:e2e:mock
         env:
           CI: true
           E2E_MOCK: '1'
@@ -58,6 +69,7 @@ jobs:
 
   e2e-integration:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     if: github.event_name == 'pull_request'
     steps:
       - name: Checkout frontend
@@ -125,6 +137,20 @@ jobs:
         with:
           name: playwright-report-integration
           path: playwright-report/
+          retention-days: 14
+
+      - name: Capture E2E stack logs
+        if: failure()
+        run: |
+          mkdir -p e2e-artifacts
+          docker compose -f docker-compose.e2e.yml logs --no-color > e2e-artifacts/docker-compose.log
+
+      - name: Upload E2E stack logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-stack-logs
+          path: e2e-artifacts/
           retention-days: 14
 
       - name: Tear down E2E stack
