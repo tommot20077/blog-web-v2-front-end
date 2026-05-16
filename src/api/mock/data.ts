@@ -4,6 +4,7 @@ import { mockMarkdownContent } from './mockArticleContent';
 import type { CategoryOption, TagSuggestion, QuotaInfo, EditorArticle, MyArticle, PendingArticle } from '../../types/editor';
 import { MOCK_AUTHOR_PROFILES } from './profiles';
 import { ALL_MOCK_TAGS } from './tagRegistry';
+import { isArticleBookmarked, isArticleLiked } from './articleInteractionMockState';
 
 type MockCategoryOption = CategoryOption & { uuid: string };
 type MockArticleItem = ArticleItem & { categories: string[] };
@@ -224,7 +225,13 @@ export function getMockArticleDetail(uuid: string): ArticleDetailItem | null {
     name,
     slug: name.toLowerCase(),
   }));
-  return { ...base, content: mockMarkdownContent, categories, liked: false, bookmarked: false };
+  return {
+    ...base,
+    content: mockMarkdownContent,
+    categories,
+    liked: isArticleLiked(base.uuid),
+    bookmarked: isArticleBookmarked(base.uuid),
+  };
 }
 
 export const allMockTags: TagDetailResponse[] = ALL_MOCK_TAGS.map((name, index) => ({
@@ -351,10 +358,22 @@ export const mockEditorArticles: EditorArticle[] = [
   },
 ];
 
-export let editorArticleStore: EditorArticle[] = [...mockEditorArticles];
+function cloneEditorArticle(article: EditorArticle): EditorArticle {
+  return {
+    ...article,
+    categories: article.categories.map(category => ({ ...category })),
+    tags: [...article.tags],
+  };
+}
+
+function cloneEditorArticleStore(): EditorArticle[] {
+  return mockEditorArticles.map(cloneEditorArticle);
+}
+
+export let editorArticleStore: EditorArticle[] = cloneEditorArticleStore();
 
 export function resetEditorArticleStore(): void {
-  editorArticleStore = [...mockEditorArticles];
+  editorArticleStore = cloneEditorArticleStore();
 }
 
 export function toMyArticle(a: EditorArticle): MyArticle {
