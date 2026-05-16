@@ -6,6 +6,10 @@ import { createTestRouter, createMockArticleDetail } from '../test-utils'
 import { articleService } from '../api/articleService'
 import type { ArticleCategory } from '../api/real/articleService'
 
+const { mockUsePersistedReadingProgress } = vi.hoisted(() => ({
+  mockUsePersistedReadingProgress: vi.fn(),
+}))
+
 vi.mock('../api/articleService', () => ({
   articleService: {
     getArticles: vi.fn(),
@@ -45,6 +49,10 @@ vi.mock('../composables/useArticleBookmark', () => ({
   })),
 }))
 
+vi.mock('../composables/usePersistedReadingProgress', () => ({
+  usePersistedReadingProgress: mockUsePersistedReadingProgress,
+}))
+
 vi.mock('../composables/useComments', () => ({
   useComments: vi.fn(() => ({
     list: ref([]),
@@ -80,6 +88,7 @@ async function renderArticleDetail() {
 describe('ArticleDetail 頁面', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
+    mockUsePersistedReadingProgress.mockClear()
   })
 
   it('載入中顯示「萃取文章細節中...」', async () => {
@@ -162,6 +171,19 @@ describe('ArticleDetail 頁面', () => {
     await flushPromises()
     articleRoot = container.querySelector('[data-testid="article-root"]')
     expect(articleRoot).not.toBeInTheDocument()
+  })
+
+  it('將文章 UUID 與本地閱讀進度傳入持久化 composable', async () => {
+    const mockArticle = createMockArticleDetail({ uuid: 'article-uuid' })
+    vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+    await renderArticleDetail()
+    await flushPromises()
+
+    expect(mockUsePersistedReadingProgress).toHaveBeenCalledOnce()
+    const [uuidRef, progressRef] = mockUsePersistedReadingProgress.mock.calls[0]!
+    expect(uuidRef.value).toBe('article-uuid')
+    expect(progressRef.value).toBe(0)
   })
 
   describe('文章標頭 UI 增強', () => {

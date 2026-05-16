@@ -7,6 +7,7 @@ import { useArticleBookmark } from '../composables/useArticleBookmark'
 import { useMarkdownRenderer } from '../composables/useMarkdownRenderer'
 import { useWordCount } from '../composables/useWordCount'
 import { useReadingProgress } from '../composables/useReadingProgress'
+import { usePersistedReadingProgress } from '../composables/usePersistedReadingProgress'
 import ActionBar from '../components/article/ActionBar.vue'
 import ReactionFooter from '../components/article/ReactionFooter.vue'
 import CommentSection from '../components/article/CommentSection.vue'
@@ -27,6 +28,7 @@ const { progress } = useReadingProgress(articleEl)
 
 // Like state — called synchronously in setup (safe for useRouter/useRoute inside useAuthWall)
 const articleUuidRef = computed(() => article.value?.uuid ?? '')
+usePersistedReadingProgress(articleUuidRef, progress)
 const likeState = useArticleLike(articleUuidRef, { liked: false, likeCount: 0 })
 const bookmarkState = useArticleBookmark(articleUuidRef, { bookmarked: false })
 
