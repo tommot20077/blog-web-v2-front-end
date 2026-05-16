@@ -190,6 +190,15 @@ describe('EditorView Integration', () => {
       })
       expect(mockRouterReplace).not.toHaveBeenCalled()
     })
+
+    it('載入既有文章期間停用儲存與送審，避免空白初始 state 覆蓋文章', async () => {
+      vi.mocked(editorService.getArticleForEdit).mockReturnValue(new Promise(() => {}))
+
+      renderEditor({ uuid: 'edit-uuid' })
+
+      expect(screen.getByTestId('editor-save-btn')).toBeDisabled()
+      expect(screen.getByTestId('editor-publish-btn')).toBeDisabled()
+    })
   })
 
   // ── 送出審核 ───────────────────────────────────────────────────────────────

@@ -11,6 +11,7 @@ export function useEditorForm(uuid?: string) {
   const tagNames = ref<string[]>([])
   const isDirty = ref(false)
   const isSaving = ref(false)
+  const isLoadingArticle = ref(!!uuid)
   const article = ref<EditorArticle | null>(null)
 
   const currentUuid = ref(uuid)
@@ -23,15 +24,20 @@ export function useEditorForm(uuid?: string) {
 
   async function loadArticle(): Promise<void> {
     if (!currentUuid.value) return
-    const data = await editorService.getArticleForEdit(currentUuid.value)
-    if (!data) return
-    article.value = data
-    title.value = data.title
-    summary.value = data.summary
-    coverImageUrl.value = data.coverImageUrl
-    categoryIds.value = data.categories.map(c => c.id)
-    tagNames.value = [...data.tags]
-    isDirty.value = false
+    isLoadingArticle.value = true
+    try {
+      const data = await editorService.getArticleForEdit(currentUuid.value)
+      if (!data) return
+      article.value = data
+      title.value = data.title
+      summary.value = data.summary
+      coverImageUrl.value = data.coverImageUrl
+      categoryIds.value = data.categories.map(c => c.id)
+      tagNames.value = [...data.tags]
+      isDirty.value = false
+    } finally {
+      isLoadingArticle.value = false
+    }
   }
 
   async function saveDraft(content: string): Promise<EditorArticle | null> {
@@ -77,6 +83,7 @@ export function useEditorForm(uuid?: string) {
     isNew,
     isDirty,
     isSaving,
+    isLoadingArticle,
     article,
     loadArticle,
     saveDraft,

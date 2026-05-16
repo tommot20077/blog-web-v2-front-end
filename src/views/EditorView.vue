@@ -45,7 +45,7 @@ const { wordCount } = useWordCount(markdownContent)
 // ── Form state ─────────────────────────────────────────────────────────────
 const {
   title, summary, coverImageUrl, categoryIds, tagNames,
-  isNew, isSaving, article, loadArticle, saveDraft, submitForReview,
+  isNew, isSaving, isLoadingArticle, article, loadArticle, saveDraft, submitForReview,
 } = useEditorForm(props.uuid)
 
 // ── Categories ─────────────────────────────────────────────────────────────
@@ -125,7 +125,7 @@ async function onSubmitForReview() {
         type="button"
         class="btn btn--ghost"
         data-testid="editor-save-btn"
-        :disabled="isSaving"
+        :disabled="isSaving || isLoadingArticle"
         @click="onSaveDraft"
       >
         {{ isSaving ? '儲存中...' : '儲存草稿' }}
@@ -134,7 +134,7 @@ async function onSubmitForReview() {
         type="button"
         class="btn btn--primary"
         data-testid="editor-publish-btn"
-        :disabled="isSaving"
+        :disabled="isSaving || isLoadingArticle"
         @click="onSubmitForReview"
       >
         送出審核
