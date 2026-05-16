@@ -95,12 +95,12 @@ describe('useArticleHighlights', () => {
     await nextTick()
     await flushPromises()
 
-    expect(wrapper.vm.highlights[0].uuid).toBe('h-2')
+    expect(wrapper.vm.highlights[0]?.uuid).toBe('h-2')
 
     rejectFirstLoad(new Error('old request failed'))
     await flushPromises()
 
-    expect(wrapper.vm.highlights[0].uuid).toBe('h-2')
+    expect(wrapper.vm.highlights[0]?.uuid).toBe('h-2')
     expect(wrapper.vm.loadError).toBe(false)
   })
 
@@ -131,7 +131,7 @@ describe('useArticleHighlights', () => {
       suffix: ' after',
       color: '#FFEB3B',
     })
-    expect(wrapper.vm.highlights[0].uuid).toBe('h-1')
+    expect(wrapper.vm.highlights[0]?.uuid).toBe('h-1')
   })
 
   it('does not append a created highlight after article changes', async () => {
@@ -208,12 +208,12 @@ describe('useArticleHighlights', () => {
     await flushPromises()
 
     await wrapper.vm.updateHighlight('h-1', { note: 'updated' })
-    expect(wrapper.vm.highlights[0].note).toBe('updated')
+    expect(wrapper.vm.highlights[0]?.note).toBe('updated')
 
     vi.mocked(highlightService.update).mockRejectedValueOnce(new Error('fail'))
     await wrapper.vm.updateHighlight('h-1', { note: 'bad' })
 
-    expect(wrapper.vm.highlights[0].note).toBe('updated')
+    expect(wrapper.vm.highlights[0]?.note).toBe('updated')
     expect(mockShowToast).toHaveBeenCalledWith('更新劃線失敗，請稍後再試', 'error')
   })
 

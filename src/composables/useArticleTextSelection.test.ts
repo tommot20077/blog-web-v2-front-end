@@ -2,7 +2,12 @@ import { mount } from '@vue/test-utils'
 import type { VueWrapper } from '@vue/test-utils'
 import { defineComponent, nextTick, ref } from 'vue'
 import { afterEach, describe, expect, it } from 'vitest'
-import { useArticleTextSelection } from './useArticleTextSelection'
+import { useArticleTextSelection, type ArticleSelectionPayload } from './useArticleTextSelection'
+
+interface SelectionHarnessVm {
+  selectionPayload: ArticleSelectionPayload | null
+  selectionError: string | null
+}
 
 function selectText(node: Text, start: number, end: number) {
   const range = document.createRange()
@@ -26,6 +31,10 @@ function mountHarness() {
   return mount(Wrapper, { attachTo: document.body })
 }
 
+function selectionVm(wrapper: VueWrapper): SelectionHarnessVm {
+  return wrapper.vm as unknown as SelectionHarnessVm
+}
+
 describe('useArticleTextSelection', () => {
   let wrapper: VueWrapper | null = null
 
@@ -43,7 +52,7 @@ describe('useArticleTextSelection', () => {
     selectText(textNode, 7, 20)
     await nextTick()
 
-    expect(wrapper.vm.selectionPayload).toEqual({
+    expect(selectionVm(wrapper).selectionPayload).toEqual({
       snippet: 'selected text',
       prefix: 'before ',
       suffix: ' after',
@@ -60,7 +69,7 @@ describe('useArticleTextSelection', () => {
     selectText(textNode, 40, 53)
     await nextTick()
 
-    expect(wrapper.vm.selectionPayload).toEqual({
+    expect(selectionVm(wrapper).selectionPayload).toEqual({
       snippet: 'selected text',
       prefix: 'alpha selected text omega target before ',
       suffix: ' target after',
@@ -75,7 +84,7 @@ describe('useArticleTextSelection', () => {
     selectText(textNode, 0, 7)
     await nextTick()
 
-    expect(wrapper.vm.selectionPayload).toBeNull()
+    expect(selectionVm(wrapper).selectionPayload).toBeNull()
   })
 
   it('rejects selected text longer than 500 characters', async () => {
@@ -86,8 +95,8 @@ describe('useArticleTextSelection', () => {
     selectText(paragraph.firstChild as Text, 0, 501)
     await nextTick()
 
-    expect(wrapper.vm.selectionPayload).toBeNull()
-    expect(wrapper.vm.selectionError).toBe('選取文字不可超過 500 字')
+    expect(selectionVm(wrapper).selectionPayload).toBeNull()
+    expect(selectionVm(wrapper).selectionError).toBe('選取文字不可超過 500 字')
   })
 
   it('clears stale error after selecting outside article body', async () => {
@@ -98,14 +107,14 @@ describe('useArticleTextSelection', () => {
 
     selectText(paragraph.firstChild as Text, 0, 501)
     await nextTick()
-    expect(wrapper.vm.selectionError).toBe('選取文字不可超過 500 字')
+    expect(selectionVm(wrapper).selectionError).toBe('選取文字不可超過 500 字')
 
     const outsideText = wrapper.element.querySelector('aside')!.firstChild as Text
     selectText(outsideText, 0, 7)
     await nextTick()
 
-    expect(wrapper.vm.selectionPayload).toBeNull()
-    expect(wrapper.vm.selectionError).toBeNull()
+    expect(selectionVm(wrapper).selectionPayload).toBeNull()
+    expect(selectionVm(wrapper).selectionError).toBeNull()
   })
 
   it('truncates prefix and suffix context to 64 characters', async () => {
@@ -119,7 +128,7 @@ describe('useArticleTextSelection', () => {
     selectText(paragraph.firstChild as Text, 70, 83)
     await nextTick()
 
-    expect(wrapper.vm.selectionPayload).toEqual({
+    expect(selectionVm(wrapper).selectionPayload).toEqual({
       snippet: 'selected text',
       prefix: 'p'.repeat(64),
       suffix: 's'.repeat(64),
