@@ -16,19 +16,42 @@ const emit = defineEmits<{
 
 const colors = ['#FFEB3B', '#C8E6C9', '#BBDEFB']
 const noteDrafts = ref<Record<string, string>>({})
+const dirtyNoteUuids = ref<Set<string>>(new Set())
 
 watch(
   () => props.highlights,
   (highlights) => {
     const next: Record<string, string> = {}
-    for (const highlight of highlights) next[highlight.uuid] = highlight.note ?? ''
+    const nextDirtyUuids = new Set<string>()
+
+    for (const highlight of highlights) {
+      if (dirtyNoteUuids.value.has(highlight.uuid)) {
+        next[highlight.uuid] = noteDrafts.value[highlight.uuid] ?? highlight.note ?? ''
+        nextDirtyUuids.add(highlight.uuid)
+      } else {
+        next[highlight.uuid] = highlight.note ?? ''
+      }
+    }
+
     noteDrafts.value = next
+    dirtyNoteUuids.value = nextDirtyUuids
   },
   { immediate: true },
 )
 
 function isLocated(uuid: string) {
   return props.locatedByHighlightUuid.get(uuid) !== false
+}
+
+function markNoteDirty(uuid: string) {
+  dirtyNoteUuids.value = new Set(dirtyNoteUuids.value).add(uuid)
+}
+
+function saveNote(uuid: string) {
+  const nextDirtyUuids = new Set(dirtyNoteUuids.value)
+  nextDirtyUuids.delete(uuid)
+  dirtyNoteUuids.value = nextDirtyUuids
+  emit('update', uuid, { note: noteDrafts.value[uuid] ?? '' })
 }
 </script>
 
@@ -59,6 +82,8 @@ function isLocated(uuid: string) {
           class="highlight-color"
           :class="{ active: highlight.color === color }"
           :style="{ backgroundColor: color }"
+          :aria-label="`選擇劃線顏色 ${color}`"
+          :aria-pressed="highlight.color === color"
           :data-testid="`highlight-panel-color-${highlight.uuid}-${index}`"
           :disabled="isMutating"
           @click="emit('update', highlight.uuid, { color })"
@@ -69,7 +94,9 @@ function isLocated(uuid: string) {
         v-model="noteDrafts[highlight.uuid]"
         class="highlight-note"
         maxlength="2000"
+        aria-label="劃線筆記"
         :disabled="isMutating"
+        @input="markNoteDirty(highlight.uuid)"
       />
 
       <div class="highlight-actions">
@@ -77,7 +104,7 @@ function isLocated(uuid: string) {
           type="button"
           :data-testid="`highlight-note-save-${highlight.uuid}`"
           :disabled="isMutating"
-          @click="emit('update', highlight.uuid, { note: noteDrafts[highlight.uuid] ?? '' })"
+          @click="saveNote(highlight.uuid)"
         >
           儲存 note
         </button>

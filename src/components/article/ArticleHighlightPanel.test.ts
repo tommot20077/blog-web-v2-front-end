@@ -63,6 +63,88 @@ describe('ArticleHighlightPanel', () => {
     expect(emitted().update?.[1]).toEqual(['h-1', { color: '#C8E6C9' }])
   })
 
+  it('preserves an unsaved note draft across unrelated highlight prop updates', async () => {
+    const { rerender } = render(ArticleHighlightPanel, {
+      props: {
+        highlights: [highlight()],
+        locatedByHighlightUuid: new Map([['h-1', true]]),
+        isLoading: false,
+        isMutating: false,
+      },
+    })
+
+    await fireEvent.update(screen.getByRole('textbox', { name: '劃線筆記' }), 'draft note')
+    await rerender({
+      highlights: [highlight({ color: '#C8E6C9' })],
+      locatedByHighlightUuid: new Map([['h-1', true]]),
+      isLoading: false,
+      isMutating: false,
+    })
+
+    expect(screen.getByRole('textbox', { name: '劃線筆記' })).toHaveValue('draft note')
+  })
+
+  it('exposes color swatches with accessible names and selected state', () => {
+    render(ArticleHighlightPanel, {
+      props: {
+        highlights: [highlight()],
+        locatedByHighlightUuid: new Map([['h-1', true]]),
+        isLoading: false,
+        isMutating: false,
+      },
+    })
+
+    expect(screen.getByRole('button', { name: '選擇劃線顏色 #FFEB3B' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    expect(screen.getByRole('button', { name: '選擇劃線顏色 #C8E6C9' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    )
+  })
+
+  it('exposes the note textarea with an accessible label', () => {
+    render(ArticleHighlightPanel, {
+      props: {
+        highlights: [highlight()],
+        locatedByHighlightUuid: new Map([['h-1', true]]),
+        isLoading: false,
+        isMutating: false,
+      },
+    })
+
+    expect(screen.getByRole('textbox', { name: '劃線筆記' })).toHaveValue('note')
+  })
+
+  it('disables editing controls and suppresses emits while mutating', async () => {
+    const { emitted } = render(ArticleHighlightPanel, {
+      props: {
+        highlights: [highlight()],
+        locatedByHighlightUuid: new Map([['h-1', true]]),
+        isLoading: false,
+        isMutating: true,
+      },
+    })
+
+    const note = screen.getByRole('textbox', { name: '劃線筆記' })
+    const save = screen.getByTestId('highlight-note-save-h-1')
+    const color = screen.getByRole('button', { name: '選擇劃線顏色 #C8E6C9' })
+    const deleteButton = screen.getByTestId('highlight-delete-h-1')
+
+    expect(note).toBeDisabled()
+    expect(save).toBeDisabled()
+    expect(color).toBeDisabled()
+    expect(deleteButton).toBeDisabled()
+
+    await fireEvent.click(save)
+    await fireEvent.click(color)
+    await fireEvent.click(deleteButton)
+
+    expect(emitted().update).toBeUndefined()
+    expect(emitted().delete).toBeUndefined()
+  })
+
   it('emits delete', async () => {
     const { emitted } = render(ArticleHighlightPanel, {
       props: {
