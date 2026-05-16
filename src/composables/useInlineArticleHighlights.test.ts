@@ -60,6 +60,19 @@ describe('useInlineArticleHighlights', () => {
     expect(marks[0]!.parentElement!.textContent).toContain('target before selected text target after')
   })
 
+  it('uses trimmed snippet length when suffix disambiguates duplicate snippets', async () => {
+    const wrapper = mountHarness(
+      '<p>same before selected text wrong after</p><p>same before selected text target after</p>',
+      [highlight({ snippet: ' selected text ', prefix: 'same before ', suffix: ' target after' })],
+    )
+    await nextTick()
+
+    const marks = Array.from(wrapper.element.querySelectorAll('[data-highlight-uuid="h-1"]'))
+    expect(marks).toHaveLength(1)
+    expect(marks[0]!.textContent).toBe('selected text')
+    expect(marks[0]!.parentElement!.textContent).toContain('same before selected text target after')
+  })
+
   it('does not guess when a snippet cannot be found', async () => {
     const wrapper = mountHarness('<p>article body</p>', [highlight({ snippet: 'missing text' })])
     await nextTick()

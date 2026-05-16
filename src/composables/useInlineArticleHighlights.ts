@@ -43,12 +43,12 @@ function findSegmentAt(
   return { segment, innerOffset: offset - segment.start }
 }
 
-function candidateScore(bodyText: string, index: number, highlight: Highlight): number {
+function candidateScore(bodyText: string, index: number, highlight: Highlight, snippet: string): number {
   let score = 0
   const prefix = highlight.prefix ?? ''
   const suffix = highlight.suffix ?? ''
   if (prefix && bodyText.slice(Math.max(0, index - prefix.length), index) === prefix) score += prefix.length
-  const suffixStart = index + highlight.snippet.length
+  const suffixStart = index + snippet.length
   if (suffix && bodyText.slice(suffixStart, suffixStart + suffix.length) === suffix) score += suffix.length
   return score
 }
@@ -59,7 +59,7 @@ function findBestIndex(bodyText: string, highlight: Highlight): number | null {
   const candidates: MatchCandidate[] = []
   let index = bodyText.indexOf(snippet)
   while (index >= 0) {
-    candidates.push({ index, score: candidateScore(bodyText, index, highlight) })
+    candidates.push({ index, score: candidateScore(bodyText, index, highlight, snippet) })
     index = bodyText.indexOf(snippet, index + snippet.length)
   }
   if (candidates.length === 0) return null
