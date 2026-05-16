@@ -103,6 +103,7 @@ onMounted(fetchArticles)
         v-for="article in articles"
         :key="article.uuid"
         class="admin-card"
+        :data-testid="'admin-review-row-' + article.uuid"
       >
         <!-- 標題 + 日期 + 操作 -->
         <div class="admin-card-head">
@@ -114,6 +115,7 @@ onMounted(fetchArticles)
             <button
               type="button"
               class="admin-btn admin-btn-approve"
+              :data-testid="'admin-review-approve-' + article.uuid"
               @click="handlePublish(article.uuid)"
             >
               通過
@@ -121,6 +123,7 @@ onMounted(fetchArticles)
             <button
               type="button"
               class="admin-btn admin-btn-reject"
+              :data-testid="'admin-review-reject-' + article.uuid"
               @click="openRejectForm(article.uuid)"
             >
               退回

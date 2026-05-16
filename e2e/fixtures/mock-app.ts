@@ -57,6 +57,12 @@ async function withMockControls<T, Args extends unknown[]>(
 
 async function uiLogin(page: Page, role: Role): Promise<void> {
   const creds = getCredentials(role)
+  const logoutButton = page.getByTestId('navbar-logout-btn')
+  if (await logoutButton.isVisible().catch(() => false)) {
+    await logoutButton.click()
+    await expect(logoutButton).not.toBeVisible()
+  }
+
   await page.goto('/login')
   await page.getByTestId('auth-login-field-email').fill(creds.email)
   await page.getByTestId('auth-login-field-password').fill(creds.password)
@@ -78,6 +84,7 @@ export const test = base.extend<{
 }>({
   page: async ({ page }, use) => {
     const originalGoto = page.goto.bind(page)
+    const originalReload = page.reload.bind(page)
 
     page.goto = (async (url: string | URL, options?: Parameters<Page['goto']>[1]) => {
       if (isInAppPath(url) && await hasAppRouter(page)) {
@@ -96,6 +103,18 @@ export const test = base.extend<{
 
       return originalGoto(url, options)
     }) as Page['goto']
+
+    page.reload = (async (options?: Parameters<Page['reload']>[0]) => {
+      if (await hasAppRouter(page)) {
+        const currentPath = await page.evaluate(() => (
+          window.location.pathname + window.location.search + window.location.hash
+        ))
+        await page.goto(currentPath, { waitUntil: options?.waitUntil, timeout: options?.timeout })
+        return null
+      }
+
+      return originalReload(options)
+    }) as Page['reload']
 
     await use(page)
   },
