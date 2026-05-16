@@ -47,7 +47,8 @@ test.describe('Settings 帳號刪除 (B5)', () => {
     //    兩個 once 會同時被同一個 dialog 觸發 → 第二個 listener 在第一個 dialog 上 expect 'prompt' 失敗。
     let dialogIdx = 0
     const dialogHandler = async (dialog: import('@playwright/test').Dialog) => {
-      if (dialogIdx === 0) {
+      const currentDialogIdx = dialogIdx++
+      if (currentDialogIdx === 0) {
         expect(dialog.type()).toBe('confirm')
         await dialog.accept()
       } else {
@@ -55,7 +56,6 @@ test.describe('Settings 帳號刪除 (B5)', () => {
         await dialog.accept(password)
         page.off('dialog', dialogHandler)
       }
-      dialogIdx++
     }
     page.on('dialog', dialogHandler)
 
