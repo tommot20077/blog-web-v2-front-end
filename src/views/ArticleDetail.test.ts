@@ -181,7 +181,7 @@ describe('ArticleDetail 頁面', () => {
     await flushPromises()
 
     expect(mockUsePersistedReadingProgress).toHaveBeenCalledOnce()
-    const [uuidRef, progressRef] = mockUsePersistedReadingProgress.mock.calls[0]
+    const [uuidRef, progressRef] = mockUsePersistedReadingProgress.mock.calls[0]!
     expect(uuidRef.value).toBe('article-uuid')
     expect(progressRef.value).toBe(0)
   })
