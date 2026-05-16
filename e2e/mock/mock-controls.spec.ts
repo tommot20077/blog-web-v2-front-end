@@ -15,8 +15,25 @@ test.describe('mock E2E controls', () => {
     await expect(page.getByText('Vue 3.5 的 useTemplateRef')).toBeVisible()
 
     await resetMockStateInApp()
+    await loginAs('reader')
     await page.goto('/bookmarks')
     await expect(page.getByText('目前沒有收藏文章')).toBeVisible()
+  })
+
+  test('resetMockStateInApp 清掉登入狀態', async ({
+    page,
+    loginAs,
+    resetMockStateInApp,
+  }) => {
+    await resetMockStateInApp()
+    await loginAs('reader')
+    await page.goto('/bookmarks')
+    await expect(page.getByText('目前沒有收藏文章')).toBeVisible()
+
+    await resetMockStateInApp()
+    await page.goto('/bookmarks')
+
+    await expect(page).toHaveURL(/\/login/)
   })
 
   test('expectAuthRedirect 可驗證受保護頁面導回登入', async ({

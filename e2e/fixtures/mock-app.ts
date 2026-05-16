@@ -16,6 +16,17 @@ type AppRouter = {
   push: (path: string) => Promise<void>
 }
 
+type AuthStoreControls = {
+  logout?: () => Promise<void> | void
+  user?: unknown
+  accessToken?: string | null
+  returnUrl?: string | null
+}
+
+type AppPinia = {
+  _s?: Map<string, AuthStoreControls>
+}
+
 async function hasAppRouter(page: Page): Promise<boolean> {
   return page.evaluate(() => {
     return Boolean((window as unknown as { __router?: unknown }).__router)
@@ -53,6 +64,26 @@ async function withMockControls<T, Args extends unknown[]>(
     const fn = new Function('controls', 'args', `return (${source})(controls, ...args)`)
     return fn(controls, args)
   }, { source: fn.toString(), args })
+}
+
+async function resetAuthStore(page: Page): Promise<void> {
+  await page.evaluate(async () => {
+    const pinia = (window as unknown as { __pinia?: AppPinia }).__pinia
+    const authStore = pinia?._s?.get('auth')
+
+    if (!authStore) {
+      return
+    }
+
+    if (typeof authStore.logout === 'function') {
+      await authStore.logout()
+      return
+    }
+
+    authStore.user = null
+    authStore.accessToken = null
+    authStore.returnUrl = null
+  })
 }
 
 async function uiLogin(page: Page, role: Role): Promise<void> {
@@ -110,6 +141,7 @@ export const test = base.extend<{
   resetMockStateInApp: async ({ page }, use) => {
     await use(async () => {
       await withMockControls(page, controls => controls.resetAllMockState())
+      await resetAuthStore(page)
     })
   },
 
