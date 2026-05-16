@@ -9,9 +9,10 @@ test.describe('Admin journey', () => {
     await loginAs('admin')
     await page.goto('/admin/review')
 
-    const row = page.locator('.admin-card').filter({ hasText: 'Pinia 狀態管理待審' })
+    const row = page.getByTestId('admin-review-row-editor-pending-1')
     await expect(row).toBeVisible()
-    await row.getByRole('button', { name: '通過' }).click()
+    await expect(row).toContainText('Pinia 狀態管理待審')
+    await page.getByTestId('admin-review-approve-editor-pending-1').click()
 
     await expect(page.getByText('文章已通過審核')).toBeVisible()
     await expect(row).not.toBeVisible()
@@ -21,8 +22,9 @@ test.describe('Admin journey', () => {
     await loginAs('admin')
     await page.goto('/admin/review')
 
-    const row = page.locator('.admin-card').filter({ hasText: 'TypeScript 進階待審' })
-    await row.getByRole('button', { name: '退回' }).click()
+    const row = page.getByTestId('admin-review-row-editor-pending-2')
+    await expect(row).toContainText('TypeScript 進階待審')
+    await page.getByTestId('admin-review-reject-editor-pending-2').click()
     await page.getByPlaceholder('請輸入退回理由').fill('請補上範例程式碼')
     await row.getByRole('button', { name: '確認退回' }).click()
     await expect(page.getByText('文章已退回')).toBeVisible()
@@ -33,18 +35,24 @@ test.describe('Admin journey', () => {
     await expect(page.getByText('請補上範例程式碼')).toBeVisible()
   })
 
-  test('待審列表空狀態與載入失敗狀態正常', async ({ page, loginAs, mockApiFailure }) => {
+  test('待審列表空狀態與載入失敗狀態正常', async ({
+    page,
+    loginAs,
+    mockApiFailure,
+    refreshCurrentRoute,
+  }) => {
     await loginAs('admin')
     await page.goto('/admin/review')
     await expect(page.locator('.admin-card')).toHaveCount(2)
 
-    for (const button of await page.getByRole('button', { name: '通過' }).all()) {
-      await button.click()
-    }
+    await page.getByTestId('admin-review-approve-editor-pending-1').click()
+    await expect(page.getByTestId('admin-review-row-editor-pending-1')).not.toBeVisible()
+    await page.getByTestId('admin-review-approve-editor-pending-2').click()
+    await expect(page.getByTestId('admin-review-row-editor-pending-2')).not.toBeVisible()
     await expect(page.getByText('目前沒有待審核文章')).toBeVisible()
 
     await mockApiFailure('**/api/v1/admin/articles/pending*', { code: 'E_ADMIN', message: '載入失敗', data: null }, 500)
-    await page.reload()
+    await refreshCurrentRoute()
     await expect(page.getByText('載入待審核文章失敗，請稍後再試')).toBeVisible()
   })
 

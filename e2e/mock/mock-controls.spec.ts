@@ -46,4 +46,26 @@ test.describe('mock E2E controls', () => {
 
     await expect(page.getByText('載入待審核文章失敗，請稍後再試')).toBeVisible()
   })
+
+  test('refreshCurrentRoute 會保留 mockApiFailure 並重新載入目前 admin route', async ({
+    page,
+    loginAs,
+    mockApiFailure,
+    refreshCurrentRoute,
+    resetMockStateInApp,
+  }) => {
+    await resetMockStateInApp()
+    await loginAs('admin')
+    await page.goto('/admin/review')
+
+    await mockApiFailure(
+      '**/api/v1/admin/articles/pending*',
+      { code: 'E_ADMIN', message: '載入失敗', data: null },
+      500,
+    )
+
+    await refreshCurrentRoute()
+
+    await expect(page.getByText('載入待審核文章失敗，請稍後再試')).toBeVisible()
+  })
 })
