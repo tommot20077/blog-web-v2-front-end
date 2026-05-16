@@ -55,9 +55,22 @@ describe('useInlineArticleHighlights', () => {
     )
     await nextTick()
 
-    const marks = Array.from(wrapper.element.querySelectorAll('[data-highlight-uuid="h-1"]'))
+    const marks = Array.from(
+      wrapper.element.querySelectorAll<HTMLElement>('[data-highlight-uuid="h-1"]'),
+    )
     expect(marks).toHaveLength(1)
     expect(marks[0]!.parentElement!.textContent).toContain('target before selected text target after')
+  })
+
+  it('does not guess when duplicate snippets tie on matching context', async () => {
+    const wrapper = mountHarness(
+      '<p>same before selected text same after</p><p>same before selected text same after</p>',
+      [highlight({ prefix: 'same before ', suffix: ' same after' })],
+    )
+    await nextTick()
+
+    expect(wrapper.element.querySelector('[data-highlight-uuid="h-1"]')).toBeNull()
+    expect(wrapper.vm.locatedByHighlightUuid.get('h-1')).toBe(false)
   })
 
   it('uses trimmed snippet length when suffix disambiguates duplicate snippets', async () => {
@@ -67,7 +80,9 @@ describe('useInlineArticleHighlights', () => {
     )
     await nextTick()
 
-    const marks = Array.from(wrapper.element.querySelectorAll('[data-highlight-uuid="h-1"]'))
+    const marks = Array.from(
+      wrapper.element.querySelectorAll<HTMLElement>('[data-highlight-uuid="h-1"]'),
+    )
     expect(marks).toHaveLength(1)
     expect(marks[0]!.textContent).toBe('selected text')
     expect(marks[0]!.parentElement!.textContent).toContain('same before selected text target after')

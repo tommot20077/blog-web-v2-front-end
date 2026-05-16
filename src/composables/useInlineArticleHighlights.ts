@@ -65,7 +65,10 @@ function findBestIndex(bodyText: string, highlight: Highlight): number | null {
   if (candidates.length === 0) return null
   if (candidates.length === 1) return candidates[0]!.index
   const sorted = [...candidates].sort((a, b) => b.score - a.score)
-  return sorted[0]!.score > 0 ? sorted[0]!.index : null
+  const best = sorted[0]!
+  const second = sorted[1]
+  if (best.score <= 0 || second?.score === best.score) return null
+  return best.index
 }
 
 function unwrapExistingMarks(root: HTMLElement) {
