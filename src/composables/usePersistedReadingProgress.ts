@@ -27,6 +27,9 @@ export function usePersistedReadingProgress(
   const isPersistingProgress = ref(false)
   const throttleMs = options.throttleMs ?? DEFAULT_THROTTLE_MS
   let persistTimer: ReturnType<typeof setTimeout> | null = null
+  let loadRequestId = 0
+  let activePersist: Promise<void> | null = null
+  let queuedProgress: number | null = null
 
   const canPersist = computed(() => authStore.isAuthenticated && Boolean(articleUuid.value))
 
@@ -37,18 +40,23 @@ export function usePersistedReadingProgress(
     persistTimer = null
   }
 
-  async function loadProgress() {
+  async function loadProgress(targetUuid = articleUuid.value) {
     if (!canPersist.value) return
 
+    const requestId = ++loadRequestId
     isLoadingProgress.value = true
     try {
-      const saved = await readingProgressService.get(articleUuid.value)
+      const saved = await readingProgressService.get(targetUuid)
+      if (requestId !== loadRequestId || articleUuid.value !== targetUuid || !canPersist.value) return
+
       savedProgress.value = saved?.progress ?? null
       lastPersistedProgress.value = saved?.progress ?? null
     } catch (error) {
       console.error('Failed to load reading progress:', error)
     } finally {
-      isLoadingProgress.value = false
+      if (requestId === loadRequestId) {
+        isLoadingProgress.value = false
+      }
     }
   }
 
@@ -62,14 +70,40 @@ export function usePersistedReadingProgress(
   async function persistProgress(nextProgress: number) {
     if (!canPersist.value || !shouldPersist(nextProgress)) return
 
+    if (activePersist) {
+      queuedProgress = nextProgress
+      return
+    }
+
+    await runPersist(nextProgress)
+  }
+
+  async function runPersist(nextProgress: number) {
+    if (!canPersist.value || !shouldPersist(nextProgress)) return
+
+    const targetUuid = articleUuid.value
+
     isPersistingProgress.value = true
+    activePersist = readingProgressService.update(targetUuid, { progress: nextProgress }).then(() => {
+      if (articleUuid.value === targetUuid && canPersist.value) {
+        lastPersistedProgress.value = nextProgress
+      }
+    })
+
     try {
-      await readingProgressService.update(articleUuid.value, { progress: nextProgress })
-      lastPersistedProgress.value = nextProgress
+      await activePersist
     } catch (error) {
       console.error('Failed to persist reading progress:', error)
     } finally {
-      isPersistingProgress.value = false
+      activePersist = null
+      const nextQueuedProgress = queuedProgress
+      queuedProgress = null
+
+      if (nextQueuedProgress !== null && canPersist.value && shouldPersist(nextQueuedProgress)) {
+        await runPersist(nextQueuedProgress)
+      } else {
+        isPersistingProgress.value = false
+      }
     }
   }
 
@@ -85,12 +119,18 @@ export function usePersistedReadingProgress(
   }
 
   watch(
-    articleUuid,
-    () => {
+    [articleUuid, canPersist],
+    ([uuid, can]) => {
       clearPersistTimer()
+      queuedProgress = null
       savedProgress.value = null
       lastPersistedProgress.value = null
-      void loadProgress()
+      loadRequestId += 1
+      if (can) {
+        void loadProgress(uuid)
+      } else {
+        isLoadingProgress.value = false
+      }
     },
     { immediate: true },
   )
