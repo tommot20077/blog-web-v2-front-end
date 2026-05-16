@@ -6,9 +6,19 @@ import { createTestRouter, createMockArticleDetail } from '../test-utils'
 import { articleService } from '../api/articleService'
 import type { ArticleCategory } from '../api/real/articleService'
 
-const { mockUsePersistedReadingProgress } = vi.hoisted(() => ({
+const {
+  mockUsePersistedReadingProgress,
+  mockUseArticleHighlights,
+  mockUseInlineArticleHighlights,
+  mockUseArticleTextSelection,
+} = vi.hoisted(() => ({
   mockUsePersistedReadingProgress: vi.fn(),
+  mockUseArticleHighlights: vi.fn(),
+  mockUseInlineArticleHighlights: vi.fn(),
+  mockUseArticleTextSelection: vi.fn(),
 }))
+
+let mockApplyHighlights: ReturnType<typeof vi.fn>
 
 vi.mock('../api/articleService', () => ({
   articleService: {
@@ -53,6 +63,36 @@ vi.mock('../composables/usePersistedReadingProgress', () => ({
   usePersistedReadingProgress: mockUsePersistedReadingProgress,
 }))
 
+vi.mock('../composables/useArticleHighlights', () => ({
+  useArticleHighlights: mockUseArticleHighlights,
+}))
+
+vi.mock('../composables/useInlineArticleHighlights', () => ({
+  useInlineArticleHighlights: mockUseInlineArticleHighlights,
+}))
+
+vi.mock('../composables/useArticleTextSelection', () => ({
+  useArticleTextSelection: mockUseArticleTextSelection,
+}))
+
+vi.mock('../components/article/ArticleTextSelectionToolbar.vue', () => ({
+  default: {
+    name: 'ArticleTextSelectionToolbar',
+    props: ['selectionPayload', 'isPending'],
+    emits: ['create'],
+    template: '<button data-testid="mock-highlight-toolbar" @click="$emit(\'create\', selectionPayload)">toolbar</button>',
+  },
+}))
+
+vi.mock('../components/article/ArticleHighlightPanel.vue', () => ({
+  default: {
+    name: 'ArticleHighlightPanel',
+    props: ['highlights', 'locatedByHighlightUuid', 'isLoading', 'isMutating'],
+    emits: ['update', 'delete'],
+    template: '<section data-testid="mock-highlight-panel"></section>',
+  },
+}))
+
 vi.mock('../composables/useComments', () => ({
   useComments: vi.fn(() => ({
     list: ref([]),
@@ -89,6 +129,27 @@ describe('ArticleDetail 頁面', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
     mockUsePersistedReadingProgress.mockClear()
+    mockApplyHighlights = vi.fn()
+    mockUseArticleHighlights.mockReturnValue({
+      highlights: ref([]),
+      isLoading: ref(false),
+      isMutating: ref(false),
+      loadError: ref(false),
+      createHighlight: vi.fn(),
+      updateHighlight: vi.fn(),
+      deleteHighlight: vi.fn(),
+      loadHighlights: vi.fn(),
+    })
+    mockUseInlineArticleHighlights.mockReturnValue({
+      locatedByHighlightUuid: ref(new Map()),
+      applyHighlights: mockApplyHighlights,
+    })
+    mockUseArticleTextSelection.mockReturnValue({
+      selectionPayload: ref(null),
+      selectionError: ref(null),
+      clearSelection: vi.fn(),
+      refreshSelection: vi.fn(),
+    })
   })
 
   it('載入中顯示「萃取文章細節中...」', async () => {
@@ -184,6 +245,29 @@ describe('ArticleDetail 頁面', () => {
     const [uuidRef, progressRef] = mockUsePersistedReadingProgress.mock.calls[0]!
     expect(uuidRef.value).toBe('article-uuid')
     expect(progressRef.value).toBe(0)
+  })
+
+  it('將文章 UUID 與 article body ref 接到 highlight composables', async () => {
+    const mockArticle = createMockArticleDetail({ uuid: 'article-uuid', content: 'hello highlight' })
+    vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+    const { container } = await renderArticleDetail()
+    await flushPromises()
+
+    expect(mockUseArticleHighlights).toHaveBeenCalledOnce()
+    const [uuidRef] = mockUseArticleHighlights.mock.calls[0]!
+    expect(uuidRef.value).toBe('article-uuid')
+
+    expect(mockUseArticleTextSelection).toHaveBeenCalledOnce()
+    const [bodyRefForSelection] = mockUseArticleTextSelection.mock.calls[0]!
+    expect(bodyRefForSelection.value).toBe(container.querySelector('[data-testid="article-body"]'))
+
+    expect(mockUseInlineArticleHighlights).toHaveBeenCalledOnce()
+    const [bodyRefForInline] = mockUseInlineArticleHighlights.mock.calls[0]!
+    expect(bodyRefForInline.value).toBe(container.querySelector('[data-testid="article-body"]'))
+    expect(mockApplyHighlights).toHaveBeenCalled()
+    expect(container.querySelector('[data-testid="mock-highlight-toolbar"]')).toBeInTheDocument()
+    expect(container.querySelector('[data-testid="mock-highlight-panel"]')).toBeInTheDocument()
   })
 
   describe('文章標頭 UI 增強', () => {
