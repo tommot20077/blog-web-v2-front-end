@@ -10,6 +10,18 @@ describe('ArticleTextSelectionToolbar', () => {
     expect(container.querySelector('[data-testid="article-highlight-toolbar"]')).not.toBeInTheDocument()
   })
 
+  it('shows selection error when selected text cannot be used', () => {
+    render(ArticleTextSelectionToolbar, {
+      props: {
+        selectionPayload: null,
+        selectionError: '選取文字不可超過 500 字',
+        isPending: false,
+      },
+    })
+
+    expect(screen.getByRole('alert')).toHaveTextContent('選取文字不可超過 500 字')
+  })
+
   it('emits create with the selected color and payload', async () => {
     const { emitted } = render(ArticleTextSelectionToolbar, {
       props: {

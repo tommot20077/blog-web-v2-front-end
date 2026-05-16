@@ -217,6 +217,20 @@ describe('useArticleHighlights', () => {
     expect(mockShowToast).toHaveBeenCalledWith('更新劃線失敗，請稍後再試', 'error')
   })
 
+  it('refreshes the highlights array reference on update failure for view rollback', async () => {
+    vi.mocked(highlightService.list).mockResolvedValue([makeHighlight({ note: 'old' })])
+    vi.mocked(highlightService.update).mockRejectedValueOnce(new Error('fail'))
+    const wrapper = mountHarness()
+    await nextTick()
+    await flushPromises()
+    const beforeUpdate = wrapper.vm.highlights
+
+    await wrapper.vm.updateHighlight('h-1', { note: 'bad' })
+
+    expect(wrapper.vm.highlights[0]?.note).toBe('old')
+    expect(wrapper.vm.highlights).not.toBe(beforeUpdate)
+  })
+
   it('deletes highlight after API succeeds and keeps it on failure', async () => {
     vi.mocked(highlightService.list).mockResolvedValue([makeHighlight()])
     const wrapper = mountHarness()

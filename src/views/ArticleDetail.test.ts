@@ -82,9 +82,14 @@ vi.mock('../composables/useArticleTextSelection', () => ({
 vi.mock('../components/article/ArticleTextSelectionToolbar.vue', () => ({
   default: {
     name: 'ArticleTextSelectionToolbar',
-    props: ['selectionPayload', 'isPending'],
+    props: ['selectionPayload', 'selectionError', 'isPending'],
     emits: ['create'],
-    template: '<button data-testid="mock-highlight-toolbar" @click="$emit(\'create\', selectionPayload)">toolbar</button>',
+    template: `
+      <div>
+        <p v-if="selectionError" data-testid="mock-highlight-selection-error">{{ selectionError }}</p>
+        <button data-testid="mock-highlight-toolbar" @click="$emit('create', selectionPayload)">toolbar</button>
+      </div>
+    `,
   },
 }))
 
@@ -339,6 +344,22 @@ describe('ArticleDetail 頁面', () => {
 
     expect(mockCreateHighlight).toHaveBeenCalledWith(selectionPayload)
     expect(mockClearSelection).not.toHaveBeenCalled()
+  })
+
+  it('將選取錯誤傳給 highlight toolbar 顯示', async () => {
+    mockUseArticleTextSelection.mockReturnValue({
+      selectionPayload: ref(null),
+      selectionError: ref('選取文字不可超過 500 字'),
+      clearSelection: mockClearSelection,
+      refreshSelection: vi.fn(),
+    })
+    const mockArticle = createMockArticleDetail({ uuid: 'article-uuid', content: 'hello highlight' })
+    vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+    await renderArticleDetail()
+    await flushPromises()
+
+    expect(screen.getByTestId('mock-highlight-selection-error')).toHaveTextContent('選取文字不可超過 500 字')
   })
 
   it('panel update 與 delete 事件接到 highlight state handlers', async () => {

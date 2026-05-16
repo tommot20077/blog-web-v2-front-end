@@ -69,7 +69,7 @@ export function useArticleHighlights(articleUuid: Readonly<Ref<string>>) {
       highlights.value = highlights.value.map((highlight) => highlight.uuid === uuid ? updated : highlight)
       return updated
     } catch (error) {
-      highlights.value = previous
+      highlights.value = [...previous]
       console.error('Failed to update article highlight:', error)
       showToast('更新劃線失敗，請稍後再試', 'error')
       return null

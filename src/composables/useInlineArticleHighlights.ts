@@ -60,7 +60,7 @@ function findBestIndex(bodyText: string, highlight: Highlight): number | null {
   let index = bodyText.indexOf(snippet)
   while (index >= 0) {
     candidates.push({ index, score: candidateScore(bodyText, index, highlight, snippet) })
-    index = bodyText.indexOf(snippet, index + snippet.length)
+    index = bodyText.indexOf(snippet, index + 1)
   }
   if (candidates.length === 0) return null
   if (candidates.length === 1) return candidates[0]!.index

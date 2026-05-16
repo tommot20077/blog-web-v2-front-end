@@ -160,6 +160,7 @@ const goBack = () => window.history.length > 1 ? router.back() : router.push('/a
 
         <ArticleTextSelectionToolbar
           :selection-payload="selectionState.selectionPayload.value"
+          :selection-error="selectionState.selectionError.value"
           :is-pending="highlightState.isMutating.value"
           @create="createHighlightFromSelection"
         />

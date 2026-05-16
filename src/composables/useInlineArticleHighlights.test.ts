@@ -88,6 +88,18 @@ describe('useInlineArticleHighlights', () => {
     expect(marks[0]!.parentElement!.textContent).toContain('same before selected text target after')
   })
 
+  it('considers overlapping snippet candidates when context identifies the middle match', async () => {
+    const wrapper = mountHarness('<p>aaaa</p>', [
+      highlight({ snippet: 'aa', prefix: 'a', suffix: 'a' }),
+    ])
+    await nextTick()
+
+    const mark = wrapper.element.querySelector('[data-highlight-uuid="h-1"]') as HTMLElement | null
+    expect(mark?.textContent).toBe('aa')
+    expect(wrapper.element.textContent).toBe('aaaa')
+    expect(wrapper.vm.locatedByHighlightUuid.get('h-1')).toBe(true)
+  })
+
   it('does not guess when a snippet cannot be found', async () => {
     const wrapper = mountHarness('<p>article body</p>', [highlight({ snippet: 'missing text' })])
     await nextTick()
