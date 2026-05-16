@@ -1,0 +1,80 @@
+import { render, screen, fireEvent } from '@testing-library/vue'
+import ArticleHighlightPanel from './ArticleHighlightPanel.vue'
+import type { Highlight } from '../../api/highlightService'
+
+function highlight(overrides: Partial<Highlight> = {}): Highlight {
+  return {
+    uuid: 'h-1',
+    snippet: 'selected text',
+    prefix: '',
+    suffix: '',
+    color: '#FFEB3B',
+    note: 'note',
+    createdAt: '2026-05-16T00:00:00',
+    updatedAt: '2026-05-16T00:00:00',
+    ...overrides,
+  }
+}
+
+describe('ArticleHighlightPanel', () => {
+  it('shows empty state when there are no highlights', () => {
+    render(ArticleHighlightPanel, {
+      props: {
+        highlights: [],
+        locatedByHighlightUuid: new Map(),
+        isLoading: false,
+        isMutating: false,
+      },
+    })
+
+    expect(screen.getByText('尚未建立劃線')).toBeInTheDocument()
+  })
+
+  it('renders snippet note and not-located state', () => {
+    render(ArticleHighlightPanel, {
+      props: {
+        highlights: [highlight()],
+        locatedByHighlightUuid: new Map([['h-1', false]]),
+        isLoading: false,
+        isMutating: false,
+      },
+    })
+
+    expect(screen.getByText('selected text')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('note')).toBeInTheDocument()
+    expect(screen.getByText('正文位置已變更')).toBeInTheDocument()
+  })
+
+  it('emits update for note and color changes', async () => {
+    const { emitted } = render(ArticleHighlightPanel, {
+      props: {
+        highlights: [highlight()],
+        locatedByHighlightUuid: new Map([['h-1', true]]),
+        isLoading: false,
+        isMutating: false,
+      },
+    })
+
+    await fireEvent.update(screen.getByDisplayValue('note'), 'new note')
+    await fireEvent.click(screen.getByTestId('highlight-note-save-h-1'))
+    await fireEvent.click(screen.getByTestId('highlight-panel-color-h-1-1'))
+
+    expect(emitted().update?.[0]).toEqual(['h-1', { note: 'new note' }])
+    expect(emitted().update?.[1]).toEqual(['h-1', { color: '#C8E6C9' }])
+  })
+
+  it('emits delete', async () => {
+    const { emitted } = render(ArticleHighlightPanel, {
+      props: {
+        highlights: [highlight()],
+        locatedByHighlightUuid: new Map([['h-1', true]]),
+        isLoading: false,
+        isMutating: false,
+      },
+    })
+
+    await fireEvent.click(screen.getByTestId('highlight-delete-h-1'))
+
+    expect(emitted().delete?.[0]).toEqual(['h-1'])
+  })
+})
