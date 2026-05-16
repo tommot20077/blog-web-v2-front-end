@@ -79,6 +79,31 @@ describe('useArticleHighlights', () => {
     expect(wrapper.vm.isLoading).toBe(false)
   })
 
+  it('ignores stale load failures after article changes', async () => {
+    let rejectFirstLoad: (error: Error) => void = () => {}
+    const firstLoad = new Promise<Highlight[]>((_, reject) => {
+      rejectFirstLoad = reject
+    })
+    vi.mocked(highlightService.list)
+      .mockReturnValueOnce(firstLoad)
+      .mockResolvedValueOnce([makeHighlight({ uuid: 'h-2', snippet: 'second article text' })])
+
+    const wrapper = mountHarness()
+    await nextTick()
+
+    wrapper.vm.articleUuid = 'second-article-uuid'
+    await nextTick()
+    await flushPromises()
+
+    expect(wrapper.vm.highlights[0].uuid).toBe('h-2')
+
+    rejectFirstLoad(new Error('old request failed'))
+    await flushPromises()
+
+    expect(wrapper.vm.highlights[0].uuid).toBe('h-2')
+    expect(wrapper.vm.loadError).toBe(false)
+  })
+
   it('skips load when unauthenticated or UUID is missing', async () => {
     mountHarness({ authenticated: false })
     mountHarness({ uuid: '' })

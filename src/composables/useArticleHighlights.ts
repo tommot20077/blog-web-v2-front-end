@@ -31,6 +31,7 @@ export function useArticleHighlights(articleUuid: Readonly<Ref<string>>) {
       if (requestId !== loadRequestId || articleUuid.value !== targetUuid || !canLoad.value) return
       highlights.value = records
     } catch (error) {
+      if (requestId !== loadRequestId || articleUuid.value !== targetUuid || !canLoad.value) return
       console.error('Failed to load article highlights:', error)
       loadError.value = true
       highlights.value = []
