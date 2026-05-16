@@ -12,8 +12,8 @@ interface Credentials {
 }
 
 const MOCK_CREDENTIALS: Record<Role, Credentials> = {
-  reader: { email: 'user@test.com', password: 'Password1', nickname: 'Yuan' },
-  author: { email: 'user@test.com', password: 'Password1', nickname: 'Yuan' },
+  reader: { email: 'reader@test.com', password: 'Password1', nickname: 'Yuan Reader' },
+  author: { email: 'author@test.com', password: 'Password1', nickname: 'Yuan Author' },
   admin: { email: 'admin@test.com', password: 'Password1', nickname: 'Admin' },
 }
 

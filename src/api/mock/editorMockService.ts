@@ -1,13 +1,20 @@
 import type { ArticleFormData, EditorArticle } from '../../types/editor'
 import { editorArticleStore, mockCategories } from './data'
+import { createMockApiFailureError, getMockApiFailure } from './mockApiFailureState'
 
 function generateUuid(): string {
   return `article-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 }
 
 export function createArticleMock(data: ArticleFormData): Promise<EditorArticle> {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     setTimeout(() => {
+      const failure = getMockApiFailure('/api/v1/articles')
+      if (failure) {
+        reject(createMockApiFailureError(failure))
+        return
+      }
+
       const now = new Date().toISOString()
       const article: EditorArticle = {
         uuid: generateUuid(),
@@ -31,6 +38,12 @@ export function createArticleMock(data: ArticleFormData): Promise<EditorArticle>
 export function updateArticleMock(uuid: string, data: ArticleFormData): Promise<EditorArticle> {
   return new Promise((resolve, reject) => {
     setTimeout(() => {
+      const failure = getMockApiFailure(`/api/v1/articles/${uuid}`)
+      if (failure) {
+        reject(createMockApiFailureError(failure))
+        return
+      }
+
       const index = editorArticleStore.findIndex(a => a.uuid === uuid)
       if (index === -1) {
         reject(new Error(`文章 ${uuid} 不存在`))

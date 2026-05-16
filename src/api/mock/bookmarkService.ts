@@ -1,8 +1,20 @@
 import { allMockArticles } from './data'
 import type { BackendPageResult } from '../utils'
 import type { BookmarkArticleSummary } from '../real/bookmarkService'
+import {
+  isArticleBookmarked,
+  removeArticleBookmark,
+  resetBookmarkState,
+  seedArticleBookmark,
+} from './articleInteractionMockState'
 
-const bookmarkedArticles = new Set<string>()
+export function resetBookmarkMockState(): void {
+  resetBookmarkState()
+}
+
+export function seedBookmark(articleUuid: string): void {
+  seedArticleBookmark(articleUuid)
+}
 
 function mapBookmarkArticle(article: typeof allMockArticles[number]): BookmarkArticleSummary {
   return {
@@ -26,16 +38,16 @@ function mapBookmarkArticle(article: typeof allMockArticles[number]): BookmarkAr
 
 export const bookmarkService = {
   async bookmark(articleUuid: string): Promise<void> {
-    bookmarkedArticles.add(articleUuid)
+    seedArticleBookmark(articleUuid)
   },
 
   async unbookmark(articleUuid: string): Promise<void> {
-    bookmarkedArticles.delete(articleUuid)
+    removeArticleBookmark(articleUuid)
   },
 
   async getMyBookmarks(page: number, size: number): Promise<BackendPageResult<BookmarkArticleSummary>> {
     const records = allMockArticles
-      .filter((article) => bookmarkedArticles.has(article.uuid))
+      .filter((article) => isArticleBookmarked(article.uuid))
       .map(mapBookmarkArticle)
     const start = Math.max(0, (page - 1) * size)
     const pageRecords = records.slice(start, start + size)
