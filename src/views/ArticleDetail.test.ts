@@ -19,6 +19,7 @@ const {
 }))
 
 let mockApplyHighlights: ReturnType<typeof vi.fn>
+let mockHighlightsRef: ReturnType<typeof ref>
 
 vi.mock('../api/articleService', () => ({
   articleService: {
@@ -130,8 +131,9 @@ describe('ArticleDetail 頁面', () => {
     vi.restoreAllMocks()
     mockUsePersistedReadingProgress.mockClear()
     mockApplyHighlights = vi.fn()
+    mockHighlightsRef = ref([])
     mockUseArticleHighlights.mockReturnValue({
-      highlights: ref([]),
+      highlights: mockHighlightsRef,
       isLoading: ref(false),
       isMutating: ref(false),
       loadError: ref(false),
@@ -263,8 +265,9 @@ describe('ArticleDetail 頁面', () => {
     expect(bodyRefForSelection.value).toBe(container.querySelector('[data-testid="article-body"]'))
 
     expect(mockUseInlineArticleHighlights).toHaveBeenCalledOnce()
-    const [bodyRefForInline] = mockUseInlineArticleHighlights.mock.calls[0]!
+    const [bodyRefForInline, highlightsRefForInline] = mockUseInlineArticleHighlights.mock.calls[0]!
     expect(bodyRefForInline.value).toBe(container.querySelector('[data-testid="article-body"]'))
+    expect(highlightsRefForInline).toBe(mockHighlightsRef)
     expect(mockApplyHighlights).toHaveBeenCalled()
     expect(container.querySelector('[data-testid="mock-highlight-toolbar"]')).toBeInTheDocument()
     expect(container.querySelector('[data-testid="mock-highlight-panel"]')).toBeInTheDocument()
