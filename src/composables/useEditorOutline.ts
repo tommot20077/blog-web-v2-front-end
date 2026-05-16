@@ -19,9 +19,12 @@ export function useEditorOutline(
       .map((line, idx) => {
         const match = line.match(/^(#{1,3})\s+(.+)/)
         if (!match) return null
+        const marker = match[1]
+        const text = match[2]
+        if (!marker || !text) return null
         return {
-          level: match[1].length as 1 | 2 | 3,
-          text: match[2].replace(/[*_`~]+/g, '').trim(),
+          level: marker.length as 1 | 2 | 3,
+          text: text.replace(/[*_`~]+/g, '').trim(),
           lineIndex: idx,
         }
       })
@@ -30,7 +33,8 @@ export function useEditorOutline(
 
   function updateCursorLine(lineIndex: number) {
     const above = outline.value.filter(h => h.lineIndex <= lineIndex)
-    activeLineIndex.value = above.length > 0 ? above[above.length - 1].lineIndex : -1
+    const current = above.length > 0 ? above[above.length - 1] : undefined
+    activeLineIndex.value = current ? current.lineIndex : -1
   }
 
   function jumpToLine(lineIndex: number) {

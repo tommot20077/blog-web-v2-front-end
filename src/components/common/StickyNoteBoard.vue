@@ -19,7 +19,7 @@ const generateMockNotes = () => {
 
   return contents.map((content, index) => ({
     id: `note-${index}`,
-    author: authors[index],
+    author: authors[index] ?? 'Guest',
     content: content,
     date: '2026-03-21',
     rotation: randomBetween(-6, 6),

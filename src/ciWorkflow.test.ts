@@ -40,6 +40,7 @@ describe('frontend CI workflow', () => {
   it('keeps every job bounded by an explicit timeout', () => {
     const jobs = [
       'unit-and-component-tests',
+      'build',
       'coverage',
       'e2e-tests',
       'e2e-integration',
@@ -50,8 +51,8 @@ describe('frontend CI workflow', () => {
     }
   })
 
-  it('unit, coverage, and mock e2e jobs use Node 20 with npm ci', () => {
-    for (const jobName of ['unit-and-component-tests', 'coverage', 'e2e-tests']) {
+  it('unit, build, coverage, and mock e2e jobs use Node 20 with npm ci', () => {
+    for (const jobName of ['unit-and-component-tests', 'build', 'coverage', 'e2e-tests']) {
       const job = workflowJob(jobName)
       expect(job).toContain('actions/setup-node@v4')
       expect(job).toContain('node-version: 20')
@@ -70,6 +71,13 @@ describe('frontend CI workflow', () => {
     expect(coverage).toContain('retention-days: 14')
   })
 
+  it('build job runs the production build as a required CI gate', () => {
+    const build = workflowJob('build')
+
+    expect(build).toContain('npm run build')
+    expect(build).toContain('timeout-minutes: 15')
+  })
+
   it('mock E2E job runs in mock mode and uploads Playwright reports', () => {
     const e2e = workflowJob('e2e-tests')
 
@@ -78,6 +86,13 @@ describe('frontend CI workflow', () => {
     expect(e2e).toContain('CI: true')
     expect(e2e).toContain('name: playwright-report')
     expect(e2e).toContain('path: playwright-report/')
+  })
+
+  it('browser E2E jobs wait for unit tests and the production build gate', () => {
+    const requiredGates = 'needs: [unit-and-component-tests, build]'
+
+    expect(workflowJob('e2e-tests')).toContain(requiredGates)
+    expect(workflowJob('e2e-integration')).toContain(requiredGates)
   })
 
   it('real-backend E2E checks out and builds the backend before running browser tests', () => {
@@ -122,5 +137,14 @@ describe('frontend CI workflow', () => {
     const backendService = compose.slice(backendStart, backendEnd)
 
     expect(backendService).toContain('MANAGEMENT_HEALTH_MAIL_ENABLED: "false"')
+  })
+
+  it('production build tsconfig excludes test-only files', () => {
+    const tsconfig = readFileSync('tsconfig.app.json', 'utf8')
+
+    expect(tsconfig).toContain('"exclude"')
+    expect(tsconfig).toContain('"src/**/*.test.ts"')
+    expect(tsconfig).toContain('"src/**/*.spec.ts"')
+    expect(tsconfig).toContain('"src/test-utils/**"')
   })
 })

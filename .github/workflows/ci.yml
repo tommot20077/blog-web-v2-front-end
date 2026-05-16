@@ -27,6 +27,18 @@ jobs:
       - run: npm ci
       - run: npm test
 
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build
+
   coverage:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -48,6 +60,7 @@ jobs:
   e2e-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    needs: [unit-and-component-tests, build]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -71,6 +84,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     if: github.event_name == 'pull_request'
+    needs: [unit-and-component-tests, build]
     steps:
       - name: Checkout frontend
         uses: actions/checkout@v4

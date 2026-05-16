@@ -50,7 +50,7 @@ const DEFAULT_MESSAGES: Record<string, string> = {
  * @param rules - 欄位驗證規則定義
  * @returns errors（響應式錯誤物件）、isValid、validateField、validateForm、clearErrors、getPasswordStrength
  */
-export function useFormValidation<T extends Record<string, unknown>>(
+export function useFormValidation<T extends object>(
   rules: Partial<Record<keyof T, ValidationRule[]>>,
 ) {
   // 初始化 errors 物件，每個有規則的欄位初始值為 null
@@ -170,7 +170,7 @@ export function getPasswordRules(password: string): PasswordRules {
 /**
  * 執行單一規則驗證
  */
-function runRule<T extends Record<string, unknown>>(
+function runRule<T extends object>(
   rule: ValidationRule,
   value: unknown,
   formData?: T,
@@ -190,7 +190,7 @@ function runRule<T extends Record<string, unknown>>(
     case 'matchField': {
       if (!formData || !rule.params?.field) return false;
       const targetField = rule.params.field as string;
-      return value === formData[targetField];
+      return value === (formData as Record<string, unknown>)[targetField];
     }
 
     case 'pattern': {

@@ -87,6 +87,7 @@ let ioObserver: IntersectionObserver | null = null
 onMounted(() => {
   fetchAll()
   ioObserver = new IntersectionObserver(([e]) => {
+    if (!e) return
     if (e.isIntersecting && paging.value === 'infinite' && page.value * PER_PAGE < filtered.value.length) {
       page.value++
     }
