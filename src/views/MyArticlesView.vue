@@ -3,11 +3,7 @@ import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { myArticlesService } from '../api/myArticlesService'
 import { useToast } from '../composables/useToast'
-import {
-  ARTICLE_STATUS_FILTER,
-  ARTICLE_STATUS_LABELS,
-  ARTICLE_STATUS_COLORS,
-} from '../types/editor'
+import { ARTICLE_STATUS_LABELS } from '../types/editor'
 import type { MyArticle, ArticleStatusFilter } from '../types/editor'
 
 const { showToast } = useToast()
