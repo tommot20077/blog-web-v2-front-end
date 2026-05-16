@@ -7,12 +7,30 @@ import { useArticleTextSelection, type ArticleSelectionPayload } from './useArti
 interface SelectionHarnessVm {
   selectionPayload: ArticleSelectionPayload | null
   selectionError: string | null
+  selectionAnchor: { top: number; left: number } | null
 }
 
-function selectText(node: Text, start: number, end: number) {
+function selectText(
+  node: Text,
+  start: number,
+  end: number,
+  rect?: Pick<DOMRect, 'top' | 'left' | 'width' | 'height'>,
+) {
   const range = document.createRange()
   range.setStart(node, start)
   range.setEnd(node, end)
+  if (rect) {
+    Object.defineProperty(range, 'getBoundingClientRect', {
+      value: () => ({
+        ...rect,
+        right: rect.left + rect.width,
+        bottom: rect.top + rect.height,
+        x: rect.left,
+        y: rect.top,
+        toJSON: () => ({}),
+      }),
+    })
+  }
   const selection = window.getSelection()!
   selection.removeAllRanges()
   selection.addRange(range)
@@ -57,6 +75,17 @@ describe('useArticleTextSelection', () => {
       prefix: 'before ',
       suffix: ' after',
     })
+  })
+
+  it('captures a toolbar anchor from the selected range rectangle', async () => {
+    wrapper = mountHarness()
+    await nextTick()
+    const textNode = wrapper.element.querySelector('p')!.firstChild as Text
+
+    selectText(textNode, 7, 20, { top: 160, left: 80, width: 200, height: 24 })
+    await nextTick()
+
+    expect(selectionVm(wrapper).selectionAnchor).toEqual({ top: 160, left: 180 })
   })
 
   it('uses the actual range offset when selected text appears more than once', async () => {

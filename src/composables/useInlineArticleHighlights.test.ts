@@ -100,6 +100,31 @@ describe('useInlineArticleHighlights', () => {
     expect(wrapper.vm.locatedByHighlightUuid.get('h-1')).toBe(true)
   })
 
+  it('locates every highlight before inserted marks hide context text', async () => {
+    const wrapper = mountHarness('<p>alpha selected text target selected text omega</p>', [
+      highlight({
+        uuid: 'h-1',
+        snippet: 'target',
+        prefix: 'selected text ',
+        suffix: ' selected text',
+      }),
+      highlight({
+        uuid: 'h-2',
+        snippet: 'selected text',
+        prefix: 'target ',
+        suffix: '',
+      }),
+    ])
+    await nextTick()
+
+    const targetMark = wrapper.element.querySelector('[data-highlight-uuid="h-1"]') as HTMLElement | null
+    const selectedTextMark = wrapper.element.querySelector('[data-highlight-uuid="h-2"]') as HTMLElement | null
+    expect(targetMark?.textContent).toBe('target')
+    expect(selectedTextMark?.textContent).toBe('selected text')
+    expect(wrapper.vm.locatedByHighlightUuid.get('h-1')).toBe(true)
+    expect(wrapper.vm.locatedByHighlightUuid.get('h-2')).toBe(true)
+  })
+
   it('does not guess when a snippet cannot be found', async () => {
     const wrapper = mountHarness('<p>article body</p>', [highlight({ snippet: 'missing text' })])
     await nextTick()

@@ -70,4 +70,18 @@ describe('ArticleTextSelectionToolbar', () => {
 
     expect(screen.getByTestId('highlight-create-button')).toBeDisabled()
   })
+
+  it('positions itself near the current selection anchor', () => {
+    render(ArticleTextSelectionToolbar, {
+      props: {
+        selectionPayload: { snippet: 'selected text', prefix: '', suffix: '' },
+        selectionAnchor: { top: 120, left: 240 },
+        isPending: false,
+      },
+    })
+
+    const toolbar = screen.getByTestId('article-highlight-toolbar')
+    expect(toolbar).toHaveClass('is-floating')
+    expect(toolbar).toHaveStyle({ top: '120px', left: '240px' })
+  })
 })

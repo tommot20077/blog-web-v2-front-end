@@ -30,6 +30,25 @@ describe('ArticleHighlightPanel', () => {
     expect(screen.getByText('尚未建立劃線')).toBeInTheDocument()
   })
 
+  it('shows a load error state and emits retry', async () => {
+    const { emitted } = render(ArticleHighlightPanel, {
+      props: {
+        highlights: [],
+        locatedByHighlightUuid: new Map(),
+        isLoading: false,
+        isMutating: false,
+        loadError: true,
+      },
+    })
+
+    expect(screen.getByRole('alert')).toHaveTextContent('劃線載入失敗')
+    expect(screen.queryByText('尚未建立劃線')).not.toBeInTheDocument()
+
+    await fireEvent.click(screen.getByRole('button', { name: '重新載入劃線' }))
+
+    expect(emitted().retry).toHaveLength(1)
+  })
+
   it('renders snippet note and not-located state', () => {
     render(ArticleHighlightPanel, {
       props: {
@@ -76,6 +95,28 @@ describe('ArticleHighlightPanel', () => {
     await fireEvent.update(screen.getByRole('textbox', { name: '劃線筆記' }), 'draft note')
     await rerender({
       highlights: [highlight({ color: '#C8E6C9' })],
+      locatedByHighlightUuid: new Map([['h-1', true]]),
+      isLoading: false,
+      isMutating: false,
+    })
+
+    expect(screen.getByRole('textbox', { name: '劃線筆記' })).toHaveValue('draft note')
+  })
+
+  it('keeps a saved note draft visible when parent rolls back after update failure', async () => {
+    const { rerender } = render(ArticleHighlightPanel, {
+      props: {
+        highlights: [highlight({ note: 'old note' })],
+        locatedByHighlightUuid: new Map([['h-1', true]]),
+        isLoading: false,
+        isMutating: false,
+      },
+    })
+
+    await fireEvent.update(screen.getByRole('textbox', { name: '劃線筆記' }), 'draft note')
+    await fireEvent.click(screen.getByTestId('highlight-note-save-h-1'))
+    await rerender({
+      highlights: [highlight({ note: 'old note' })],
       locatedByHighlightUuid: new Map([['h-1', true]]),
       isLoading: false,
       isMutating: false,

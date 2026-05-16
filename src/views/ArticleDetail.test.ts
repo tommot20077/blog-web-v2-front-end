@@ -25,6 +25,7 @@ let mockHighlightsRef: ReturnType<typeof ref>
 let mockCreateHighlight: ReturnType<typeof vi.fn>
 let mockUpdateHighlight: ReturnType<typeof vi.fn>
 let mockDeleteHighlight: ReturnType<typeof vi.fn>
+let mockLoadHighlights: ReturnType<typeof vi.fn>
 let mockClearSelection: ReturnType<typeof vi.fn>
 
 vi.mock('../api/articleService', () => ({
@@ -82,11 +83,12 @@ vi.mock('../composables/useArticleTextSelection', () => ({
 vi.mock('../components/article/ArticleTextSelectionToolbar.vue', () => ({
   default: {
     name: 'ArticleTextSelectionToolbar',
-    props: ['selectionPayload', 'selectionError', 'isPending'],
+    props: ['selectionPayload', 'selectionError', 'selectionAnchor', 'isPending'],
     emits: ['create'],
     template: `
       <div>
         <p v-if="selectionError" data-testid="mock-highlight-selection-error">{{ selectionError }}</p>
+        <p v-if="selectionAnchor" data-testid="mock-highlight-selection-anchor">{{ selectionAnchor.top }},{{ selectionAnchor.left }}</p>
         <button data-testid="mock-highlight-toolbar" @click="$emit('create', selectionPayload)">toolbar</button>
       </div>
     `,
@@ -96,12 +98,14 @@ vi.mock('../components/article/ArticleTextSelectionToolbar.vue', () => ({
 vi.mock('../components/article/ArticleHighlightPanel.vue', () => ({
   default: {
     name: 'ArticleHighlightPanel',
-    props: ['highlights', 'locatedByHighlightUuid', 'isLoading', 'isMutating'],
-    emits: ['update', 'delete'],
+    props: ['highlights', 'locatedByHighlightUuid', 'isLoading', 'isMutating', 'loadError'],
+    emits: ['update', 'delete', 'retry'],
     template: `
       <section data-testid="mock-highlight-panel">
+        <p v-if="loadError" data-testid="mock-highlight-load-error">load error</p>
         <button data-testid="mock-highlight-update" @click="$emit('update', 'highlight-uuid', { note: 'updated note' })">update</button>
         <button data-testid="mock-highlight-delete" @click="$emit('delete', 'highlight-uuid')">delete</button>
+        <button data-testid="mock-highlight-retry" @click="$emit('retry')">retry</button>
       </section>
     `,
   },
@@ -148,6 +152,7 @@ describe('ArticleDetail 頁面', () => {
     mockCreateHighlight = vi.fn()
     mockUpdateHighlight = vi.fn()
     mockDeleteHighlight = vi.fn()
+    mockLoadHighlights = vi.fn()
     mockClearSelection = vi.fn()
     mockUseMarkdownRenderer.mockImplementation((content: { value: string }) => ({
       renderedHtml: computed(() => `<p>${content.value}</p>`),
@@ -161,7 +166,7 @@ describe('ArticleDetail 頁面', () => {
       createHighlight: mockCreateHighlight,
       updateHighlight: mockUpdateHighlight,
       deleteHighlight: mockDeleteHighlight,
-      loadHighlights: vi.fn(),
+      loadHighlights: mockLoadHighlights,
     })
     mockUseInlineArticleHighlights.mockReturnValue({
       locatedByHighlightUuid: ref(new Map()),
@@ -170,6 +175,7 @@ describe('ArticleDetail 頁面', () => {
     mockUseArticleTextSelection.mockReturnValue({
       selectionPayload: ref(null),
       selectionError: ref(null),
+      selectionAnchor: ref(null),
       clearSelection: mockClearSelection,
       refreshSelection: vi.fn(),
     })
@@ -310,6 +316,7 @@ describe('ArticleDetail 頁面', () => {
     mockUseArticleTextSelection.mockReturnValue({
       selectionPayload: ref(selectionPayload),
       selectionError: ref(null),
+      selectionAnchor: ref(null),
       clearSelection: mockClearSelection,
       refreshSelection: vi.fn(),
     })
@@ -331,6 +338,7 @@ describe('ArticleDetail 頁面', () => {
     mockUseArticleTextSelection.mockReturnValue({
       selectionPayload: ref(selectionPayload),
       selectionError: ref(null),
+      selectionAnchor: ref(null),
       clearSelection: mockClearSelection,
       refreshSelection: vi.fn(),
     })
@@ -350,6 +358,7 @@ describe('ArticleDetail 頁面', () => {
     mockUseArticleTextSelection.mockReturnValue({
       selectionPayload: ref(null),
       selectionError: ref('選取文字不可超過 500 字'),
+      selectionAnchor: ref(null),
       clearSelection: mockClearSelection,
       refreshSelection: vi.fn(),
     })
@@ -360,6 +369,45 @@ describe('ArticleDetail 頁面', () => {
     await flushPromises()
 
     expect(screen.getByTestId('mock-highlight-selection-error')).toHaveTextContent('選取文字不可超過 500 字')
+  })
+
+  it('將選取 anchor 傳給 highlight toolbar 定位', async () => {
+    mockUseArticleTextSelection.mockReturnValue({
+      selectionPayload: ref({ snippet: 'hello', prefix: '', suffix: ' highlight' }),
+      selectionError: ref(null),
+      selectionAnchor: ref({ top: 120, left: 240 }),
+      clearSelection: mockClearSelection,
+      refreshSelection: vi.fn(),
+    })
+    const mockArticle = createMockArticleDetail({ uuid: 'article-uuid', content: 'hello highlight' })
+    vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+    await renderArticleDetail()
+    await flushPromises()
+
+    expect(screen.getByTestId('mock-highlight-selection-anchor')).toHaveTextContent('120,240')
+  })
+
+  it('將 highlight load error 與 retry 接到 panel', async () => {
+    mockUseArticleHighlights.mockReturnValue({
+      highlights: mockHighlightsRef,
+      isLoading: ref(false),
+      isMutating: ref(false),
+      loadError: ref(true),
+      createHighlight: mockCreateHighlight,
+      updateHighlight: mockUpdateHighlight,
+      deleteHighlight: mockDeleteHighlight,
+      loadHighlights: mockLoadHighlights,
+    })
+    const mockArticle = createMockArticleDetail({ uuid: 'article-uuid', content: 'hello highlight' })
+    vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+    await renderArticleDetail()
+    await flushPromises()
+    await fireEvent.click(screen.getByTestId('mock-highlight-retry'))
+
+    expect(screen.getByTestId('mock-highlight-load-error')).toBeInTheDocument()
+    expect(mockLoadHighlights).toHaveBeenCalledOnce()
   })
 
   it('panel update 與 delete 事件接到 highlight state handlers', async () => {

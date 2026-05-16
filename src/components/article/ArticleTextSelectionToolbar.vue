@@ -1,11 +1,15 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import type { CreateHighlightRequest } from '../../api/highlightService'
-import type { ArticleSelectionPayload } from '../../composables/useArticleTextSelection'
+import type {
+  ArticleSelectionAnchor,
+  ArticleSelectionPayload,
+} from '../../composables/useArticleTextSelection'
 
 const props = defineProps<{
   selectionPayload: ArticleSelectionPayload | null
   selectionError?: string | null
+  selectionAnchor?: ArticleSelectionAnchor | null
   isPending: boolean
 }>()
 
@@ -21,6 +25,12 @@ const colors = [
   { label: '使用藍色劃線', value: '#BBDEFB' },
 ] satisfies Array<{ label: string; value: HighlightColor }>
 const selectedColor = ref<HighlightColor>('#FFEB3B')
+const toolbarStyle = computed(() => props.selectionAnchor
+  ? {
+      top: `${props.selectionAnchor.top}px`,
+      left: `${props.selectionAnchor.left}px`,
+    }
+  : undefined)
 
 function submit() {
   if (!props.selectionPayload || props.isPending) return
@@ -35,6 +45,8 @@ function submit() {
   <div
     v-if="selectionPayload || selectionError"
     class="article-highlight-toolbar"
+    :class="{ 'is-floating': selectionAnchor }"
+    :style="toolbarStyle"
     data-testid="article-highlight-toolbar"
   >
     <p v-if="selectionError" class="highlight-error" role="alert">{{ selectionError }}</p>
@@ -74,6 +86,13 @@ function submit() {
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--bg);
+}
+.article-highlight-toolbar.is-floating {
+  position: fixed;
+  z-index: 40;
+  margin: 0;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .14);
+  transform: translate(-50%, calc(-100% - 10px));
 }
 .highlight-color {
   width: 22px;

@@ -14,6 +14,12 @@ interface MatchCandidate {
   score: number
 }
 
+interface HighlightLocation {
+  highlight: Highlight
+  startIndex: number
+  endIndex: number
+}
+
 function collectTextSegments(root: HTMLElement): { text: string; segments: TextSegment[] } {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
     acceptNode(node) {
@@ -92,11 +98,44 @@ function normalizeCssColor(color: string): string {
   return `rgb(${red}, ${green}, ${blue})`
 }
 
-function applyMark(root: HTMLElement, highlight: Highlight): boolean {
-  const { text, segments } = collectTextSegments(root)
-  const startIndex = findBestIndex(text, highlight)
-  if (startIndex === null) return false
-  const endIndex = startIndex + highlight.snippet.trim().length
+function overlapsExistingLocation(location: HighlightLocation, locations: HighlightLocation[]): boolean {
+  return locations.some((item) => location.startIndex < item.endIndex && item.startIndex < location.endIndex)
+}
+
+function locateHighlights(bodyText: string, highlights: Highlight[]): {
+  locations: HighlightLocation[]
+  locatedByHighlightUuid: Map<string, boolean>
+} {
+  const locations: HighlightLocation[] = []
+  const locatedByHighlightUuid = new Map<string, boolean>()
+
+  for (const highlight of highlights) {
+    const snippet = highlight.snippet.trim()
+    const startIndex = findBestIndex(bodyText, highlight)
+    if (startIndex === null) {
+      locatedByHighlightUuid.set(highlight.uuid, false)
+      continue
+    }
+
+    const location = {
+      highlight,
+      startIndex,
+      endIndex: startIndex + snippet.length,
+    }
+    if (overlapsExistingLocation(location, locations)) {
+      locatedByHighlightUuid.set(highlight.uuid, false)
+      continue
+    }
+
+    locations.push(location)
+    locatedByHighlightUuid.set(highlight.uuid, true)
+  }
+
+  return { locations, locatedByHighlightUuid }
+}
+
+function applyMark(segments: TextSegment[], location: HighlightLocation): boolean {
+  const { highlight, startIndex, endIndex } = location
   const start = findSegmentAt(segments, startIndex)
   const end = findSegmentAt(segments, endIndex)
   if (!start || !end) return false
@@ -127,9 +166,11 @@ export function useInlineArticleHighlights(
     if (!root) return
 
     unwrapExistingMarks(root)
-    const nextLocated = new Map<string, boolean>()
-    for (const highlight of highlights.value) {
-      nextLocated.set(highlight.uuid, applyMark(root, highlight))
+    const { text, segments } = collectTextSegments(root)
+    const { locations, locatedByHighlightUuid: nextLocated } = locateHighlights(text, highlights.value)
+    const sortedLocations = [...locations].sort((a, b) => b.startIndex - a.startIndex)
+    for (const location of sortedLocations) {
+      if (!applyMark(segments, location)) nextLocated.set(location.highlight.uuid, false)
     }
     locatedByHighlightUuid.value = nextLocated
   }

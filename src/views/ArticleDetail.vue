@@ -161,6 +161,7 @@ const goBack = () => window.history.length > 1 ? router.back() : router.push('/a
         <ArticleTextSelectionToolbar
           :selection-payload="selectionState.selectionPayload.value"
           :selection-error="selectionState.selectionError.value"
+          :selection-anchor="selectionState.selectionAnchor.value"
           :is-pending="highlightState.isMutating.value"
           @create="createHighlightFromSelection"
         />
@@ -178,8 +179,10 @@ const goBack = () => window.history.length > 1 ? router.back() : router.push('/a
           :located-by-highlight-uuid="inlineHighlightState.locatedByHighlightUuid.value"
           :is-loading="highlightState.isLoading.value"
           :is-mutating="highlightState.isMutating.value"
+          :load-error="highlightState.loadError.value"
           @update="highlightState.updateHighlight"
           @delete="highlightState.deleteHighlight"
+          @retry="highlightState.loadHighlights"
         />
 
         <!-- Article end -->

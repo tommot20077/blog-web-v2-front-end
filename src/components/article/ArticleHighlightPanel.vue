@@ -7,11 +7,13 @@ const props = defineProps<{
   locatedByHighlightUuid: Map<string, boolean>
   isLoading: boolean
   isMutating: boolean
+  loadError?: boolean
 }>()
 
 const emit = defineEmits<{
   update: [uuid: string, request: UpdateHighlightRequest]
   delete: [uuid: string]
+  retry: []
 }>()
 
 const colors = ['#FFEB3B', '#C8E6C9', '#BBDEFB']
@@ -25,11 +27,13 @@ watch(
     const nextDirtyUuids = new Set<string>()
 
     for (const highlight of highlights) {
+      const incomingNote = highlight.note ?? ''
       if (dirtyNoteUuids.value.has(highlight.uuid)) {
-        next[highlight.uuid] = noteDrafts.value[highlight.uuid] ?? highlight.note ?? ''
-        nextDirtyUuids.add(highlight.uuid)
+        const draftNote = noteDrafts.value[highlight.uuid] ?? incomingNote
+        next[highlight.uuid] = draftNote
+        if (draftNote !== incomingNote) nextDirtyUuids.add(highlight.uuid)
       } else {
-        next[highlight.uuid] = highlight.note ?? ''
+        next[highlight.uuid] = incomingNote
       }
     }
 
@@ -48,9 +52,6 @@ function markNoteDirty(uuid: string) {
 }
 
 function saveNote(uuid: string) {
-  const nextDirtyUuids = new Set(dirtyNoteUuids.value)
-  nextDirtyUuids.delete(uuid)
-  dirtyNoteUuids.value = nextDirtyUuids
   emit('update', uuid, { note: noteDrafts.value[uuid] ?? '' })
 }
 </script>
@@ -63,6 +64,10 @@ function saveNote(uuid: string) {
     </div>
 
     <p v-if="isLoading" class="highlight-empty">載入劃線中...</p>
+    <div v-else-if="loadError" class="highlight-error-state" role="alert">
+      <p>劃線載入失敗</p>
+      <button type="button" @click="emit('retry')">重新載入劃線</button>
+    </div>
     <p v-else-if="highlights.length === 0" class="highlight-empty">尚未建立劃線</p>
 
     <article
@@ -142,6 +147,29 @@ function saveNote(uuid: string) {
 .highlight-empty {
   color: var(--muted);
   font-size: 14px;
+}
+.highlight-error-state {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid #c54235;
+  border-radius: 8px;
+  color: #c54235;
+  font-size: 14px;
+}
+.highlight-error-state p {
+  margin: 0;
+}
+.highlight-error-state button {
+  border: 1px solid currentColor;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  padding: 6px 10px;
+  cursor: pointer;
 }
 .highlight-card {
   margin-top: 14px;
