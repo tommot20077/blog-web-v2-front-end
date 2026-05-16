@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watchEffect } from 'vue'
+import { computed, nextTick, onMounted, ref, watch, watchEffect } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useArticleDetail } from '../composables/useArticleDetail'
 import { useArticleLike } from '../composables/useArticleLike'
@@ -8,10 +8,15 @@ import { useMarkdownRenderer } from '../composables/useMarkdownRenderer'
 import { useWordCount } from '../composables/useWordCount'
 import { useReadingProgress } from '../composables/useReadingProgress'
 import { usePersistedReadingProgress } from '../composables/usePersistedReadingProgress'
+import { useArticleHighlights } from '../composables/useArticleHighlights'
+import { useInlineArticleHighlights } from '../composables/useInlineArticleHighlights'
+import { useArticleTextSelection } from '../composables/useArticleTextSelection'
 import ActionBar from '../components/article/ActionBar.vue'
 import ReactionFooter from '../components/article/ReactionFooter.vue'
 import CommentSection from '../components/article/CommentSection.vue'
 import RelatedArticlesSection from '../components/article/RelatedArticlesSection.vue'
+import ArticleTextSelectionToolbar from '../components/article/ArticleTextSelectionToolbar.vue'
+import ArticleHighlightPanel from '../components/article/ArticleHighlightPanel.vue'
 import NotFoundView from './NotFoundView.vue'
 
 const route = useRoute()
@@ -28,9 +33,23 @@ const { progress } = useReadingProgress(articleEl)
 
 // Like state — called synchronously in setup (safe for useRouter/useRoute inside useAuthWall)
 const articleUuidRef = computed(() => article.value?.uuid ?? '')
+const articleBodyEl = ref<HTMLElement | null>(null)
+const highlightState = useArticleHighlights(articleUuidRef)
+const selectionState = useArticleTextSelection(articleBodyEl)
+const inlineHighlightState = useInlineArticleHighlights(articleBodyEl, highlightState.highlights)
 usePersistedReadingProgress(articleUuidRef, progress)
 const likeState = useArticleLike(articleUuidRef, { liked: false, likeCount: 0 })
 const bookmarkState = useArticleBookmark(articleUuidRef, { bookmarked: false })
+
+async function createHighlightFromSelection(request: Parameters<typeof highlightState.createHighlight>[0]) {
+  const created = await highlightState.createHighlight(request)
+  if (created) selectionState.clearSelection()
+}
+
+watch(renderedHtml, async () => {
+  await nextTick()
+  await inlineHighlightState.applyHighlights()
+}, { flush: 'post' })
 
 // Once article loads, sync its initial interaction state.
 watchEffect(() => {
@@ -133,9 +152,18 @@ const goBack = () => window.history.length > 1 ? router.back() : router.push('/a
     <div class="art-content-layout wrap">
       <div class="art-body-col">
         <div
+          ref="articleBodyEl"
           class="art-body prose"
           data-testid="article-body"
           v-html="renderedHtml"
+        />
+
+        <ArticleTextSelectionToolbar
+          :selection-payload="selectionState.selectionPayload.value"
+          :selection-error="selectionState.selectionError.value"
+          :selection-anchor="selectionState.selectionAnchor.value"
+          :is-pending="highlightState.isMutating.value"
+          @create="createHighlightFromSelection"
         />
 
         <!-- Reaction footer (below article body) -->
@@ -144,6 +172,17 @@ const goBack = () => window.history.length > 1 ? router.back() : router.push('/a
           :like-count="likeState.likeCount.value"
           :is-pending="likeState.isPending.value"
           @toggle="likeState.toggle"
+        />
+
+        <ArticleHighlightPanel
+          :highlights="highlightState.highlights.value"
+          :located-by-highlight-uuid="inlineHighlightState.locatedByHighlightUuid.value"
+          :is-loading="highlightState.isLoading.value"
+          :is-mutating="highlightState.isMutating.value"
+          :load-error="highlightState.loadError.value"
+          @update="highlightState.updateHighlight"
+          @delete="highlightState.deleteHighlight"
+          @retry="highlightState.loadHighlights"
         />
 
         <!-- Article end -->
