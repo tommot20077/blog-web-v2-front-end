@@ -46,138 +46,140 @@ const goBack = () => window.history.length > 1 ? router.back() : router.push('/a
 </script>
 
 <template>
-  <!-- Loading -->
-  <div v-if="isLoading" class="art-loading">
-    <div class="sk-pulse" style="height:4px;width:120px;border-radius:2px;" />
-    <p class="mono">萃取文章細節中...</p>
-  </div>
-
-  <!-- 404 -->
-  <NotFoundView v-else-if="!article" />
-
-  <!-- Article -->
-  <article v-else ref="articleEl" class="art-detail" data-testid="article-root">
-
-    <!-- Reading progress bar -->
-    <div class="art-progress">
-      <div class="bar" :style="{ width: `${progress}%` }" data-testid="article-progress-bar" />
+  <div class="article-detail-page">
+    <!-- Loading -->
+    <div v-if="isLoading" class="art-loading">
+      <div class="sk-pulse" style="height:4px;width:120px;border-radius:2px;" />
+      <p class="mono">萃取文章細節中...</p>
     </div>
 
-    <!-- Hero -->
-    <div class="art-hero">
-      <div class="wrap">
-        <!-- Breadcrumb -->
-        <div class="art-hero-back">
-          <button class="back-btn" @click="goBack">回列表</button>
-        </div>
+    <!-- 404 -->
+    <NotFoundView v-else-if="!article" />
 
-        <!-- Meta -->
-        <div class="art-hero-meta">
-          <div data-testid="article-categories">
-            <span
-              v-for="cat in article.categories ?? []"
-              :key="cat.uuid"
-              class="mono"
-              style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent)"
-            >{{ cat.name }}</span>
+    <!-- Article -->
+    <article v-else ref="articleEl" class="art-detail" data-testid="article-root">
+
+      <!-- Reading progress bar -->
+      <div class="art-progress">
+        <div class="bar" :style="{ width: `${progress}%` }" data-testid="article-progress-bar" />
+      </div>
+
+      <!-- Hero -->
+      <div class="art-hero">
+        <div class="wrap">
+          <!-- Breadcrumb -->
+          <div class="art-hero-back">
+            <button class="back-btn" @click="goBack">回列表</button>
           </div>
-          <span class="mono" style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)">
-            {{ readingTimeMinutes }} MIN READ
-          </span>
-          <span class="mono" style="font-size:11px;color:var(--muted)">約 {{ readingTimeMinutes }} 分鐘閱讀時間</span>
-        </div>
 
-        <!-- Title -->
-        <h1 class="art-hero-title" data-testid="article-title">{{ article.title }}</h1>
+          <!-- Meta -->
+          <div class="art-hero-meta">
+            <div data-testid="article-categories">
+              <span
+                v-for="cat in article.categories ?? []"
+                :key="cat.uuid"
+                class="mono"
+                style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent)"
+              >{{ cat.name }}</span>
+            </div>
+            <span class="mono" style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)">
+              {{ readingTimeMinutes }} MIN READ
+            </span>
+            <span class="mono" style="font-size:11px;color:var(--muted)">約 {{ readingTimeMinutes }} 分鐘閱讀時間</span>
+          </div>
 
-        <!-- Tags -->
-        <div class="art-hero-tags" data-testid="article-tags">
-          <span
-            v-for="tag in article.tags"
-            :key="tag"
-            class="art-tag"
-          ># {{ tag }}</span>
-        </div>
+          <!-- Title -->
+          <h1 class="art-hero-title" data-testid="article-title">{{ article.title }}</h1>
 
-        <!-- Author / stats row -->
-        <div class="art-hero-foot">
-          <div class="meta-line">
-            <div class="avatar" />
-            <div class="who">
-              <b data-testid="article-author">{{ article.authorNickname }}</b>
-              <div class="mono" style="font-size:11px;color:var(--muted)">
-                <time data-testid="article-date">{{ article.publishedAt }}</time>
+          <!-- Tags -->
+          <div class="art-hero-tags" data-testid="article-tags">
+            <span
+              v-for="tag in article.tags"
+              :key="tag"
+              class="art-tag"
+            ># {{ tag }}</span>
+          </div>
+
+          <!-- Author / stats row -->
+          <div class="art-hero-foot">
+            <div class="meta-line">
+              <div class="avatar" />
+              <div class="who">
+                <b data-testid="article-author">{{ article.authorNickname }}</b>
+                <div class="mono" style="font-size:11px;color:var(--muted)">
+                  <time data-testid="article-date">{{ article.publishedAt }}</time>
+                </div>
               </div>
             </div>
-          </div>
-          <div class="art-hero-stats">
-            <span>{{ article.viewCount }} 觀看次數</span>
-            <span data-testid="comment-count">{{ article.commentCount }} 留言</span>
+            <div class="art-hero-stats">
+              <span>{{ article.viewCount }} 觀看次數</span>
+              <span data-testid="comment-count">{{ article.commentCount }} 留言</span>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Cover image -->
-    <div v-if="article.coverImageUrl" class="art-cover wrap">
-      <img
-        :src="article.coverImageUrl"
-        :alt="article.title"
-        data-testid="article-cover-image"
-      />
-    </div>
-
-    <!-- Article body + side ActionBar -->
-    <div class="art-content-layout wrap">
-      <div class="art-body-col">
-        <div
-          class="art-body prose"
-          data-testid="article-body"
-          v-html="renderedHtml"
-        />
-
-        <!-- Reaction footer (below article body) -->
-        <ReactionFooter
-          :liked="likeState.liked.value"
-          :like-count="likeState.likeCount.value"
-          :is-pending="likeState.isPending.value"
-          @toggle="likeState.toggle"
-        />
-
-        <!-- Article end -->
-        <footer class="art-end">
-          <p class="mono" style="font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted-2)">END OF ARTICLE.</p>
-          <button @click="scrollToTop" class="back-top-btn">↑</button>
-        </footer>
-      </div>
-
-      <!-- Sticky action bar (right rail) -->
-      <div class="art-action-rail">
-        <ActionBar
-          :liked="likeState.liked.value"
-          :like-count="likeState.likeCount.value"
-          :is-pending="likeState.isPending.value"
-          :bookmarked="bookmarkState.bookmarked.value"
-          :bookmark-pending="bookmarkState.isPending.value"
-          @toggle="likeState.toggle"
-          @toggle-bookmark="bookmarkState.toggle"
+      <!-- Cover image -->
+      <div v-if="article.coverImageUrl" class="art-cover wrap">
+        <img
+          :src="article.coverImageUrl"
+          :alt="article.title"
+          data-testid="article-cover-image"
         />
       </div>
-    </div>
 
-    <!-- Related articles -->
-    <RelatedArticlesSection :article-uuid="article.uuid" />
+      <!-- Article body + side ActionBar -->
+      <div class="art-content-layout wrap">
+        <div class="art-body-col">
+          <div
+            class="art-body prose"
+            data-testid="article-body"
+            v-html="renderedHtml"
+          />
 
-    <!-- Comment section -->
-    <CommentSection :article-uuid="article.uuid" />
+          <!-- Reaction footer (below article body) -->
+          <ReactionFooter
+            :liked="likeState.liked.value"
+            :like-count="likeState.likeCount.value"
+            :is-pending="likeState.isPending.value"
+            @toggle="likeState.toggle"
+          />
 
-    <!-- Side navigation dots -->
-    <div class="art-nav">
-      <div class="art-nav-dot active" />
-      <div class="art-nav-dot" />
-      <div class="art-nav-dot" />
-    </div>
-  </article>
+          <!-- Article end -->
+          <footer class="art-end">
+            <p class="mono" style="font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted-2)">END OF ARTICLE.</p>
+            <button @click="scrollToTop" class="back-top-btn">↑</button>
+          </footer>
+        </div>
+
+        <!-- Sticky action bar (right rail) -->
+        <div class="art-action-rail">
+          <ActionBar
+            :liked="likeState.liked.value"
+            :like-count="likeState.likeCount.value"
+            :is-pending="likeState.isPending.value"
+            :bookmarked="bookmarkState.bookmarked.value"
+            :bookmark-pending="bookmarkState.isPending.value"
+            @toggle="likeState.toggle"
+            @toggle-bookmark="bookmarkState.toggle"
+          />
+        </div>
+      </div>
+
+      <!-- Related articles -->
+      <RelatedArticlesSection :article-uuid="article.uuid" />
+
+      <!-- Comment section -->
+      <CommentSection :article-uuid="article.uuid" />
+
+      <!-- Side navigation dots -->
+      <div class="art-nav">
+        <div class="art-nav-dot active" />
+        <div class="art-nav-dot" />
+        <div class="art-nav-dot" />
+      </div>
+    </article>
+  </div>
 </template>
 
 <style scoped>
