@@ -25,4 +25,10 @@ if (import.meta.env.DEV) {
   ;(window as unknown as Record<string, unknown>).__router = router
   ;(window as unknown as Record<string, unknown>).__pinia = pinia
   ;(window as unknown as Record<string, unknown>).__apiClient = apiClient
+
+  if (import.meta.env.VITE_USE_MOCK === 'true') {
+    import('./api/mock/e2eMockState').then(({ mockE2E }) => {
+      ;(window as unknown as Record<string, unknown>).__mockE2E = mockE2E
+    })
+  }
 }
