@@ -9,10 +9,17 @@ import type {
   UpdateTagRequest,
 } from '../../types/editor'
 import { editorArticleStore, toMyArticle } from './data'
+import { createMockApiFailureError, getMockApiFailure } from './mockApiFailureState'
 
 export function getPendingArticlesMock(page: number, size: number): Promise<PageResult<MyArticle>> {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     setTimeout(() => {
+      const failure = getMockApiFailure(`/api/v1/admin/articles/pending?page=${page}&size=${size}`)
+      if (failure) {
+        reject(createMockApiFailureError(failure))
+        return
+      }
+
       const filtered = editorArticleStore.filter(a => a.status === 'PENDING_REVIEW')
       const total = filtered.length
       const pages = Math.max(1, Math.ceil(total / size))

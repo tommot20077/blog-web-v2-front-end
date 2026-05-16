@@ -4,6 +4,12 @@ import { resetBookmarkMockState, seedBookmark as seedBookmarkState } from './boo
 import { resetArticleLikeMockState, seedArticleLike } from './articleLikeService'
 import { resetCommentMockState, seedComment } from './commentService'
 import { resetTagMockState, seedFollowedTag } from './tagMockService'
+import {
+  mockApiFailure as mockApiFailureState,
+  resetMockApiFailures,
+  type MockApiFailureBody,
+  type MockApiFailurePattern,
+} from './mockApiFailureState'
 
 export function resetAllMockState(): void {
   resetAuthMockState()
@@ -12,6 +18,7 @@ export function resetAllMockState(): void {
   resetArticleLikeMockState()
   resetCommentMockState()
   resetTagMockState()
+  resetMockApiFailures()
 }
 
 export function seedBookmark(articleUuid: string): void {
@@ -30,10 +37,19 @@ export function seedTagFollow(tagUuid: string): void {
   seedFollowedTag(tagUuid)
 }
 
+export function mockApiFailure(
+  urlPattern: MockApiFailurePattern,
+  body?: MockApiFailureBody,
+  status?: number,
+): void {
+  mockApiFailureState(urlPattern, body, status)
+}
+
 export const mockE2E = {
   resetAllMockState,
   seedBookmark,
   seedLike,
   seedArticleComment,
   seedTagFollow,
+  mockApiFailure,
 }

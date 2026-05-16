@@ -1,4 +1,4 @@
-import { test as base, expect, type Page, type Route } from '@playwright/test'
+import { test as base, expect, type Page } from '@playwright/test'
 import { getCredentials } from './auth'
 
 type Role = 'reader' | 'author' | 'admin'
@@ -9,6 +9,7 @@ type MockControls = {
   seedLike: (articleUuid: string) => void
   seedArticleComment: (articleUuid: string, content: string) => Promise<void>
   seedTagFollow: (tagUuid: string) => void
+  mockApiFailure: (urlPattern: string | RegExp, body?: Record<string, unknown>, status?: number) => void
 }
 
 type AppRouter = {
@@ -90,7 +91,6 @@ export const test = base.extend<{
 
           await router.push(target)
         }, url)
-        await page.waitForURL(url, { timeout: options?.timeout ?? 8000 })
         return null
       }
 
@@ -137,13 +137,15 @@ export const test = base.extend<{
       body = { code: 'E_MOCK', message: 'Mock failure', data: null },
       status = 500,
     ) => {
-      await page.route(urlPattern, async (route: Route) => {
-        await route.fulfill({
-          status,
-          contentType: 'application/json',
-          body: JSON.stringify(body),
-        })
-      })
+      await withMockControls(
+        page,
+        (controls, pattern: string | RegExp, failureBody: Record<string, unknown>, statusCode: number) => {
+          controls.mockApiFailure(pattern, failureBody, statusCode)
+        },
+        urlPattern,
+        body,
+        status,
+      )
     })
   },
 })

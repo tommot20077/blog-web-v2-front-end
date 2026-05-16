@@ -18,4 +18,32 @@ test.describe('mock E2E controls', () => {
     await page.goto('/bookmarks')
     await expect(page.getByText('目前沒有收藏文章')).toBeVisible()
   })
+
+  test('expectAuthRedirect 可驗證受保護頁面導回登入', async ({
+    expectAuthRedirect,
+    resetMockStateInApp,
+  }) => {
+    await resetMockStateInApp()
+
+    await expectAuthRedirect('/editor')
+  })
+
+  test('mockApiFailure 可讓 admin 待審核列表顯示載入失敗', async ({
+    page,
+    loginAs,
+    mockApiFailure,
+    resetMockStateInApp,
+  }) => {
+    await resetMockStateInApp()
+    await loginAs('admin')
+    await mockApiFailure(
+      '**/api/v1/admin/articles/pending*',
+      { code: 'E_ADMIN', message: '載入失敗', data: null },
+      500,
+    )
+
+    await page.goto('/admin/review')
+
+    await expect(page.getByText('載入待審核文章失敗，請稍後再試')).toBeVisible()
+  })
 })
