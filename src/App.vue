@@ -42,11 +42,7 @@ const onGlobalKeyDown = (e: KeyboardEvent) => {
 
 onMounted(async () => {
   window.addEventListener('keydown', onGlobalKeyDown)
-  try {
-    await authStore.refreshToken()
-  } catch {
-    // silent fail — user not logged in
-  }
+  await authStore.ensureHydrated()
 })
 
 onUnmounted(() => window.removeEventListener('keydown', onGlobalKeyDown))

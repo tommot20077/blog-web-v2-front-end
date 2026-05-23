@@ -17,6 +17,8 @@ export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
   const accessToken = ref<string | null>(null)
   const returnUrl = ref<string | null>(null)
+  const isHydrated = ref(false)
+  let hydrationPromise: Promise<void> | null = null
 
   // Getters
   const isAuthenticated = computed(() => !!accessToken.value)
@@ -24,11 +26,18 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthor = computed(() => user.value?.role === 'AUTHOR' || isAdmin.value)
   const userRole = computed(() => user.value?.role ?? null)
 
+  function clearState() {
+    user.value = null
+    accessToken.value = null
+    returnUrl.value = null
+  }
+
   // Actions
   async function login(payload: LoginPayload) {
     const tokens = await authService.login(payload)
     accessToken.value = tokens.accessToken
     await fetchUser()
+    isHydrated.value = true
     const redirect = returnUrl.value
     returnUrl.value = null
     return redirect
@@ -40,19 +49,41 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function logout() {
     try { await authService.logout() } catch { /* 忽略登出 API 錯誤 */ }
-    user.value = null
-    accessToken.value = null
-    returnUrl.value = null
+    clearState()
+    isHydrated.value = true
   }
 
   async function refreshToken() {
     const tokens = await authService.refresh()
     accessToken.value = tokens.accessToken
     await fetchUser()
+    isHydrated.value = true
   }
 
   async function fetchUser() {
     user.value = await authService.getMe()
+  }
+
+  async function ensureHydrated() {
+    if (accessToken.value) {
+      isHydrated.value = true
+      return
+    }
+    if (isHydrated.value) return
+    if (hydrationPromise) return hydrationPromise
+
+    hydrationPromise = (async () => {
+      try {
+        await refreshToken()
+      } catch {
+        clearState()
+        isHydrated.value = true
+      } finally {
+        hydrationPromise = null
+      }
+    })()
+
+    return hydrationPromise
   }
 
   function setReturnUrl(url: string | null) {
@@ -63,6 +94,7 @@ export const useAuthStore = defineStore('auth', () => {
     user,
     accessToken,
     returnUrl,
+    isHydrated,
     isAuthenticated,
     isAdmin,
     isAuthor,
@@ -72,6 +104,7 @@ export const useAuthStore = defineStore('auth', () => {
     logout,
     refreshToken,
     fetchUser,
+    ensureHydrated,
     setReturnUrl,
   }
 })

@@ -14,6 +14,13 @@ async function assertLoggedIn(page: Page, role: string): Promise<void> {
   }
 }
 
+async function navigateWithinApp(page: Page, path: string): Promise<void> {
+  await page.evaluate(async (targetPath) => {
+    const router = (window as unknown as Record<string, { push: (p: string) => Promise<void> }>).__router
+    await router.push(targetPath)
+  }, path)
+}
+
 async function logoutViaStore(page: Page): Promise<void> {
   await page.evaluate(async () => {
     const store = (window as unknown as { __pinia?: { _s: Map<string, { logout: () => Promise<void> }> } })
@@ -41,7 +48,8 @@ test.describe('P0 full-stack red - author review', () => {
 
     await uiLogin('author@test.local', 'Test1234!')
     await assertLoggedIn(page, 'author@test.local')
-    await page.goto('/editor')
+    await navigateWithinApp(page, '/editor')
+    await page.waitForURL('/editor', { timeout: 8_000 })
 
     await page.getByTestId('editor-title-input').fill(articleTitle)
     await page.locator('.cm-content').click()
@@ -68,7 +76,8 @@ test.describe('P0 full-stack red - author review', () => {
 
     await uiLogin('admin@test.local', 'Test1234!')
     await assertLoggedIn(page, 'admin@test.local')
-    await page.goto('/admin/review')
+    await navigateWithinApp(page, '/admin/review')
+    await page.waitForURL('/admin/review', { timeout: 8_000 })
 
     const pendingArticle = page.locator('.admin-card', { hasText: articleTitle })
     await expect(pendingArticle).toBeVisible({ timeout: 10_000 })
@@ -76,7 +85,8 @@ test.describe('P0 full-stack red - author review', () => {
     await expect(pendingArticle).toHaveCount(0, { timeout: 8000 })
     await logoutViaStore(page)
 
-    await page.goto('/search')
+    await navigateWithinApp(page, '/search')
+    await page.waitForURL('/search', { timeout: 8_000 })
     await page.getByTestId('search-input').fill(articleTitle)
     const searchResult = page.getByTestId('search-article-card').filter({ hasText: articleTitle })
     await expect(searchResult.first()).toBeVisible({ timeout: 10_000 })
