@@ -35,4 +35,20 @@ describe('global-setup backend readiness', () => {
       }),
     ).rejects.toThrow('http://localhost:9010/actuator/health/readiness')
   })
+
+  it('重試用盡後，應保留 readiness 的 HTTP status 與 body', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue({ ok: false, status: 503, text: async () => '{"status":"DOWN"}' })
+
+    await expect(
+      waitForBackendReadiness({
+        backendBase: 'http://localhost:9010',
+        fetchImpl: fetchMock as typeof fetch,
+        sleep: async () => undefined,
+        retries: 2,
+        delayMs: 1,
+      }),
+    ).rejects.toThrow('status 503 {"status":"DOWN"}')
+  })
 })

@@ -46,7 +46,7 @@ export async function waitForBackendReadiness({
       if (res.ok) {
         return
       }
-      lastError = `status ${res.status()} ${await res.text().catch(() => '')}`.trim()
+      lastError = `status ${res.status} ${await res.text().catch(() => '')}`.trim()
     } catch (error) {
       lastError = error instanceof Error ? error.message : String(error)
     }
