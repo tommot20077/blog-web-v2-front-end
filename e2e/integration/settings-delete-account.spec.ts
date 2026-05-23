@@ -5,12 +5,6 @@ const BACKEND = process.env.VITE_API_BASE_URL || 'http://localhost:8080'
 
 test.describe('Settings 帳號刪除 (B5)', () => {
   test('B5: 註冊臨時 user → 刪除 → 該帳號無法再登入', async ({ request, page }) => {
-    // 此 spec 需要 user activation 機制（kubectl/docker compose exec psql），
-    // 本地 dev 若 kubectl 連不上 k3s 會 skip。CI 走 docker compose path 應正常。
-    test.skip(
-      process.env.E2E_CI !== '1' && !process.env.E2E_FORCE_DELETE_ACCOUNT,
-      'B5 needs activateUser via kubectl/docker — set E2E_FORCE_DELETE_ACCOUNT=1 to force locally',
-    )
     const ts = Date.now()
     const email = `b5_${ts}@test.local`
     const username = `b5_${ts}`

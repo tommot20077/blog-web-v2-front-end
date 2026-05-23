@@ -22,7 +22,7 @@ export class ArticleListPage {
   }
 
   async goto() {
-    await this.page.goto('/articles')
+    await this.page.goto('/articles', { waitUntil: 'domcontentloaded' })
   }
 
   /** 等待首次載入完成（loading 消失 + 文章出現） */

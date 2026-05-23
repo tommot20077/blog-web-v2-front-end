@@ -62,13 +62,11 @@ test.describe('按鈕互動 — 色彩對比度（WCAG AA）', () => {
     await articleListPage.goto()
     await articleListPage.waitForArticlesLoaded()
 
-    // 確保在 Grid 模式且有多頁
+    await page.getByRole('button', { name: 'Pages', exact: true }).click()
+
+    // 確保有多頁
     const page2Btn = page.getByRole('button', { name: '2' })
-    const hasPage2 = await page2Btn.isVisible().catch(() => false)
-    if (!hasPage2) {
-      test.skip()
-      return
-    }
+    await expect(page2Btn).toBeVisible()
 
     const colorInfo = await page2Btn.evaluate((btn) => {
       const style = window.getComputedStyle(btn)
