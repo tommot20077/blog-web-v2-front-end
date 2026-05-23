@@ -6,6 +6,7 @@ const BACKEND = process.env.VITE_API_BASE_URL || 'http://localhost:9010'
 type FullstackRedFixtures = {
   backendUrl: string
   waitForBackend: () => Promise<void>
+  expectSeedUserCanLogin: (identifier: string, password: string, roleLabel?: string) => Promise<void>
   loginViaApi: (identifier: string, password: string) => Promise<unknown>
   uiLogin: (identifier: string, password: string) => Promise<void>
 }
@@ -47,6 +48,27 @@ async function loginWithApi(
   return response.json()
 }
 
+async function expectSeedUserCanLoginWithApi(
+  request: APIRequestContext,
+  identifier: string,
+  password: string,
+  roleLabel = 'USER',
+): Promise<void> {
+  const response = await request.post(`${BACKEND}/api/v1/auth/login`, {
+    data: {
+      identifier,
+      password,
+    },
+  })
+
+  if (!response.ok()) {
+    const body = await response.text()
+    throw new Error(
+      `Full-stack red precondition failed: required ${roleLabel} seed user ${identifier} cannot login (status ${response.status()}, body ${body})`,
+    )
+  }
+}
+
 async function loginWithUi(page: Page, identifier: string, password: string): Promise<void> {
   await page.goto('/login')
   await page.getByTestId('auth-login-field-email').fill(identifier)
@@ -63,6 +85,11 @@ export const test = base.extend<FullstackRedFixtures>({
   },
   loginViaApi: async ({ request }, use) => {
     await use((identifier, password) => loginWithApi(request, identifier, password))
+  },
+  expectSeedUserCanLogin: async ({ request }, use) => {
+    await use((identifier, password, roleLabel) =>
+      expectSeedUserCanLoginWithApi(request, identifier, password, roleLabel),
+    )
   },
   uiLogin: async ({ page }, use) => {
     await use((identifier, password) => loginWithUi(page, identifier, password))
