@@ -382,6 +382,36 @@ describe('Task 5 — query + body extraction', () => {
     expect(op?.requestBody).toBeDefined()
     expect(result.warnings.some((w) => w.code === 'ambiguous-request')).toBe(false)
   })
+
+  it('POST with FormData body + multipart header: emits multipart/form-data request body with appended fields', () => {
+    const result = generateFromSources({
+      files: [
+        APICLIENT_STUB,
+        svc(`
+          import apiClient from './apiClient'
+          type FileUsageType = 'ARTICLE_COVER'
+          interface FileUploadResponse { id: string; url: string }
+
+          export async function uploadFile(file: File, usageType: FileUsageType): Promise<FileUploadResponse> {
+            const formData = new FormData()
+            formData.append('file', file)
+            formData.append('usageType', usageType)
+            return apiClient.post('/api/v1/files/upload', formData, {
+              headers: { 'Content-Type': 'multipart/form-data' },
+            })
+          }
+        `),
+      ],
+    })
+
+    const op = pathOp(result, '/api/v1/files/upload', 'post')
+    expect(op?.requestBody).toBeDefined()
+    const multipart = op?.requestBody?.content['multipart/form-data']
+    expect(multipart).toBeDefined()
+    const schema = multipart?.schema as Record<string, unknown>
+    expect(schema.type).toBe('object')
+    expect(Object.keys((schema.properties as Record<string, unknown>) ?? {}).sort()).toEqual(['file', 'usageType'])
+  })
 })
 
 // ---------------------------------------------------------------------------
