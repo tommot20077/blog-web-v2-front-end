@@ -1,9 +1,10 @@
 import { defineConfig, devices } from '@playwright/test'
 
-const USE_MOCK = process.env.E2E_MOCK === '1'
+const USE_FULLSTACK_RED = process.env.E2E_FULLSTACK_RED === '1'
+const USE_MOCK = process.env.E2E_MOCK === '1' && !USE_FULLSTACK_RED
 
 export default defineConfig({
-  testDir: USE_MOCK ? './e2e/mock' : './e2e/integration',
+  testDir: USE_FULLSTACK_RED ? './e2e/fullstack-red' : USE_MOCK ? './e2e/mock' : './e2e/integration',
   testMatch: '**/*.spec.ts',
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
@@ -23,7 +24,7 @@ export default defineConfig({
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
   ],
-  globalSetup: USE_MOCK ? undefined : './e2e/global-setup.ts',
+  globalSetup: USE_MOCK || USE_FULLSTACK_RED ? undefined : './e2e/global-setup.ts',
   webServer: {
     command: 'npx vite --host localhost --port 5500',
     url: 'http://localhost:5500',
