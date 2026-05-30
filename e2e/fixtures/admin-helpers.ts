@@ -61,9 +61,11 @@ function remoteDevPsqlClientCommand(sql: string): string | null {
 export function activateUser(email: string, role: string): void {
   const sql = buildActivationSql(email, role)
   const remoteFallback = IS_CI ? null : remoteDevPsqlClientCommand(sql)
+  const localComposeCommand = `docker compose -f "${COMPOSE_FILE}" exec -T postgres psql -U e2e_user -d blog_e2e -c "${sql}"`
   const commands = IS_CI
-    ? [`docker compose -f "${COMPOSE_FILE}" exec -T postgres psql -U e2e_user -d blog_e2e -c "${sql}"`]
+    ? [localComposeCommand]
     : [
+        localComposeCommand,
         `kubectl exec -n infra-dev deploy/postgres -- psql -U luca -d blog_v2_db -c "${sql}"`,
         ...(remoteFallback ? [remoteFallback] : []),
       ]

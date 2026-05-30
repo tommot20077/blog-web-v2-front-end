@@ -1,7 +1,14 @@
 import { test as base } from '@playwright/test'
 import type { APIRequestContext, Page } from '@playwright/test'
+import { activateUser } from '../../fixtures/admin-helpers'
 
 const BACKEND = process.env.VITE_API_BASE_URL || 'http://localhost:9010'
+
+const SEED_USERS: Record<string, { username: string; nickname: string }> = {
+  'reader@test.local': { username: 'reader_e2e', nickname: 'Reader' },
+  'author@test.local': { username: 'author_e2e', nickname: 'Author' },
+  'admin@test.local': { username: 'admin_e2e', nickname: 'Admin' },
+}
 
 type FullstackRedFixtures = {
   backendUrl: string
@@ -54,6 +61,15 @@ async function expectSeedUserCanLoginWithApi(
   password: string,
   roleLabel = 'USER',
 ): Promise<void> {
+  await ensureSeedUserCanLogin(request, identifier, password, roleLabel)
+}
+
+async function ensureSeedUserCanLogin(
+  request: APIRequestContext,
+  identifier: string,
+  password: string,
+  roleLabel: string,
+): Promise<void> {
   const response = await request.post(`${BACKEND}/api/v1/auth/login`, {
     data: {
       identifier,
@@ -61,10 +77,46 @@ async function expectSeedUserCanLoginWithApi(
     },
   })
 
-  if (!response.ok()) {
-    const body = await response.text()
+  if (response.ok()) {
+    return
+  }
+
+  const firstLoginBody = await response.text()
+  const seedUser = SEED_USERS[identifier]
+  if (!seedUser) {
     throw new Error(
-      `Full-stack red precondition failed: required ${roleLabel} seed user ${identifier} cannot login (status ${response.status()}, body ${body})`,
+      `Full-stack red precondition failed: required ${roleLabel} seed user ${identifier} cannot login (status ${response.status()}, body ${firstLoginBody})`,
+    )
+  }
+
+  const registerResponse = await request.post(`${BACKEND}/api/v1/auth/register`, {
+    data: {
+      email: identifier,
+      username: seedUser.username,
+      nickname: seedUser.nickname,
+      password,
+    },
+  })
+
+  if (!registerResponse.ok() && registerResponse.status() !== 400 && registerResponse.status() !== 409) {
+    throw new Error(
+      `Full-stack red precondition failed: seed user ${identifier} registration failed (status ${registerResponse.status()}, body ${await registerResponse.text()})`,
+    )
+  }
+
+  activateUser(identifier, roleLabel)
+
+  const retryResponse = await request.post(`${BACKEND}/api/v1/auth/login`, {
+    data: {
+      identifier,
+      password,
+    },
+  })
+
+  if (!retryResponse.ok()) {
+    const body = await retryResponse.text()
+    throw new Error(
+      `Full-stack red precondition failed: required ${roleLabel} seed user ${identifier} cannot login after seeding (initial status ${response.status()}, initial body ${firstLoginBody}, retry status ${retryResponse.status()}, body ${body})`,
     )
   }
 }
