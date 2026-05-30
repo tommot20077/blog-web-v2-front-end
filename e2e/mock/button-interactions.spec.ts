@@ -136,13 +136,12 @@ test.describe('按鈕互動 — 手機底部導覽', { tag: '@mobile' }, () => {
     await expect(page).toHaveURL('/login')
   })
 
-  test('ThemeSwitcher 在手機版應可見（BUG-005）', async ({ page, themeSwitcher }) => {
+  test('ThemeSwitcher 在手機版應可見（BUG-005）', async ({ page }) => {
     await page.goto('/articles')
     await page.waitForLoadState('networkidle')
 
-    // BUG-005：修復前此測試失敗（ThemeSwitcher 被 hidden md:flex 隱藏）
-    // DOM 中有兩個 ThemeSwitcher（mobile/desktop），取第一個（mobile）確認可見
-    await expect(page.getByTestId('navbar-theme-toggle').first()).toBeVisible()
+    // Mobile viewport hides the desktop navbar, so assert the toggle inside the bottom nav.
+    await expect(page.getByTestId('mobile-bottom-nav').getByLabel('切換深淺色模式')).toBeVisible()
   })
 })
 
