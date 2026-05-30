@@ -55,6 +55,19 @@ describe('fileService', () => {
       )
     })
 
+    it('uploadFile 會將 Docker 內部 MinIO hostname 轉成瀏覽器可讀 URL', async () => {
+      const mockResponse = { id: 'f1', url: 'http://minio:9000/blog-files/img.png', width: 800, height: 600, size: 1024, usageType: 'ARTICLE_COVER' as const }
+      vi.mocked(apiClient.post).mockResolvedValue(mockResponse)
+
+      const file = new File(['x'], 'img.png', { type: 'image/png' })
+      const result = await fileService.uploadFile(file, 'ARTICLE_COVER')
+
+      expect(result).toEqual({
+        ...mockResponse,
+        url: 'http://localhost:9000/blog-files/img.png',
+      })
+    })
+
     it('API 錯誤時拋出錯誤', async () => {
       vi.mocked(apiClient.post).mockRejectedValue(new Error('Upload failed'))
       const file = new File(['x'], 'img.png', { type: 'image/png' })

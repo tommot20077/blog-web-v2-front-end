@@ -148,6 +148,16 @@ describe('frontend CI workflow', () => {
     expect(backendService).toContain('MANAGEMENT_HEALTH_MAIL_ENABLED: "false"')
   })
 
+  it('real-backend E2E exposes MinIO public port for browser-loaded upload previews', () => {
+    const compose = readFileSync('docker-compose.e2e.yml', 'utf8')
+    const minioStart = compose.indexOf('  minio:')
+    const minioEnd = compose.indexOf('  elasticsearch:', minioStart)
+    const minioService = compose.slice(minioStart, minioEnd)
+
+    expect(minioService).toContain('ports:')
+    expect(minioService).toContain('"9000:9000"')
+  })
+
   it('production build tsconfig excludes test-only files', () => {
     const tsconfig = readFileSync('tsconfig.app.json', 'utf8')
 
