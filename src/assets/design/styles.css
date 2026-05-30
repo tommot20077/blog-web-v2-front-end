@@ -521,3 +521,7 @@ html[data-cursor="label"] .cursor-ring.text { opacity: 1; }
   .err-bg-num { font-size: 180px; }
   .err-title { font-size: 32px; }
 }
+
+@media (max-width: 767px) {
+  .nav-wrap { display: none; }
+}
