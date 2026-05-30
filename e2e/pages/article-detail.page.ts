@@ -41,8 +41,9 @@ export class ArticleDetailPage {
   }
 
   /** 等待文章載入完成 */
-  async waitForArticleLoaded() {
-    await this.articleTitle.waitFor({ state: 'visible' })
+  async waitForArticleLoaded(timeout = 15000) {
+    await this.page.getByTestId('article-root').waitFor({ state: 'visible', timeout })
+    await this.articleTitle.waitFor({ state: 'visible', timeout })
   }
 
   async waitForContent() {
