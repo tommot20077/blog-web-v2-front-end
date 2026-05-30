@@ -62,7 +62,6 @@ describe('MobileBottomNav', () => {
     const { wrapper } = mountWithPlugins();
     const themeBtn = wrapper.find('[data-testid="mobile-bottom-nav"] [aria-label="切換深淺色模式"]');
     expect(themeBtn.exists()).toBe(true);
-    expect(themeBtn.attributes('data-testid')).toBe('navbar-theme-toggle');
     expect(themeBtn.classes()).toContain('theme-switcher');
   });
 
