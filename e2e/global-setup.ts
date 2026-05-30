@@ -10,6 +10,7 @@ type ReadinessOptions = {
   sleep?: (ms: number) => Promise<void>
   retries?: number
   delayMs?: number
+  attemptTimeoutMs?: number
 }
 
 interface SeedUser {
@@ -36,19 +37,24 @@ export async function waitForBackendReadiness({
   sleep = defaultSleep,
   retries = 30,
   delayMs = 1000,
+  attemptTimeoutMs = 5000,
 }: ReadinessOptions = {}) {
   const readinessUrl = `${backendBase}/actuator/health/readiness`
   let lastError = 'unknown'
 
   for (let attempt = 1; attempt <= retries; attempt += 1) {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), attemptTimeoutMs)
     try {
-      const res = await fetchImpl(readinessUrl)
+      const res = await fetchImpl(readinessUrl, { signal: controller.signal })
       if (res.ok) {
         return
       }
       lastError = `status ${res.status} ${await res.text().catch(() => '')}`.trim()
     } catch (error) {
       lastError = error instanceof Error ? error.message : String(error)
+    } finally {
+      clearTimeout(timeout)
     }
 
     if (attempt < retries) {

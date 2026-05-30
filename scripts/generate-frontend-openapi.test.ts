@@ -412,6 +412,34 @@ describe('Task 5 — query + body extraction', () => {
     expect(schema.type).toBe('object')
     expect(Object.keys((schema.properties as Record<string, unknown>) ?? {}).sort()).toEqual(['file', 'usageType'])
   })
+
+  it('POST with conditional FormData append: only unconditional fields are required', () => {
+    const result = generateFromSources({
+      files: [
+        APICLIENT_STUB,
+        svc(`
+          import apiClient from './apiClient'
+
+          export async function uploadFile(file: File, description?: string) {
+            const formData = new FormData()
+            formData.append('file', file)
+            if (description) {
+              formData.append('description', description)
+            }
+            return apiClient.post('/api/v1/files/upload', formData, {
+              headers: { 'Content-Type': 'multipart/form-data' },
+            })
+          }
+        `),
+      ],
+    })
+
+    const op = pathOp(result, '/api/v1/files/upload', 'post')
+    const multipart = op?.requestBody?.content['multipart/form-data']
+    const schema = multipart?.schema as Record<string, unknown>
+    expect(Object.keys((schema.properties as Record<string, unknown>) ?? {}).sort()).toEqual(['description', 'file'])
+    expect(schema.required).toEqual(['file'])
+  })
 })
 
 // ---------------------------------------------------------------------------

@@ -609,7 +609,9 @@ function extractMultipartFormDataSchema(arg: Node, configArg?: Node): Record<str
 
     const fieldName = nameArg.getLiteralText()
     properties[fieldName] = multipartValueSchema(safeGetType(valueArg))
-    if (!required.includes(fieldName)) required.push(fieldName)
+    if (isUnconditionalMultipartAppend(node, scope) && !required.includes(fieldName)) {
+      required.push(fieldName)
+    }
   })
 
   return {
@@ -617,6 +619,27 @@ function extractMultipartFormDataSchema(arg: Node, configArg?: Node): Record<str
     properties,
     ...(required.length > 0 ? { required } : {}),
   }
+}
+
+function isUnconditionalMultipartAppend(node: Node, scope: Node): boolean {
+  let current = node.getParent()
+  while (current && current !== scope) {
+    if (
+      Node.isIfStatement(current) ||
+      Node.isConditionalExpression(current) ||
+      Node.isSwitchStatement(current) ||
+      Node.isForStatement(current) ||
+      Node.isForInStatement(current) ||
+      Node.isForOfStatement(current) ||
+      Node.isWhileStatement(current) ||
+      Node.isDoStatement(current) ||
+      Node.isTryStatement(current)
+    ) {
+      return false
+    }
+    current = current.getParent()
+  }
+  return true
 }
 
 function multipartValueSchema(type: Type | undefined): Record<string, unknown> {

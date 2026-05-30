@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main, develop, feature/p0-red-e2e]
+    branches: [main, develop]
   pull_request:
-    branches: [main, develop, feature/p0-red-e2e]
+    branches: [main, develop]
   workflow_dispatch:
 
 permissions:

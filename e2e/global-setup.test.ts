@@ -18,8 +18,16 @@ describe('global-setup backend readiness', () => {
       }),
     ).resolves.toBeUndefined()
 
-    expect(fetchMock).toHaveBeenNthCalledWith(1, 'http://localhost:9010/actuator/health/readiness')
-    expect(fetchMock).toHaveBeenNthCalledWith(2, 'http://localhost:9010/actuator/health/readiness')
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      'http://localhost:9010/actuator/health/readiness',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    )
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      'http://localhost:9010/actuator/health/readiness',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    )
   })
 
   it('重試用盡後，錯誤訊息應指向 readiness endpoint', async () => {
@@ -50,5 +58,29 @@ describe('global-setup backend readiness', () => {
         delayMs: 1,
       }),
     ).rejects.toThrow('status 503 {"status":"DOWN"}')
+  })
+
+  it('每次 readiness fetch 都帶 timeout signal，避免單次 request 無限等待', async () => {
+    const signals: AbortSignal[] = []
+    const fetchMock = vi.fn().mockImplementation((_url: string, init?: RequestInit) => {
+      if (init?.signal) signals.push(init.signal)
+      return new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () => reject(new Error('aborted')))
+      })
+    })
+
+    await expect(
+      waitForBackendReadiness({
+        backendBase: 'http://localhost:9010',
+        fetchImpl: fetchMock as typeof fetch,
+        sleep: async () => undefined,
+        retries: 1,
+        delayMs: 1,
+        attemptTimeoutMs: 1,
+      }),
+    ).rejects.toThrow('aborted')
+
+    expect(signals).toHaveLength(1)
+    expect(signals[0].aborted).toBe(true)
   })
 })
