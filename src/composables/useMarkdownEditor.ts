@@ -4,7 +4,6 @@ import { EditorState, type Extension } from '@codemirror/state'
 import { history, defaultKeymap, historyKeymap, indentWithTab, undo as cmUndo, redo as cmRedo } from '@codemirror/commands'
 import { markdown } from '@codemirror/lang-markdown'
 import { syntaxHighlighting, indentOnInput } from '@codemirror/language'
-import { languages } from '@codemirror/language-data'
 import { classHighlighter } from '@lezer/highlight'
 
 export function useMarkdownEditor(
@@ -35,7 +34,7 @@ export function useMarkdownEditor(
 
     const extensions: Extension[] = [
       history(),
-      markdown({ codeLanguages: languages }),
+      markdown({ codeLanguages: [] }),
       syntaxHighlighting(classHighlighter),
       lineNumbers(),
       highlightActiveLine(),

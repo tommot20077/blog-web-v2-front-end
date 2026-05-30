@@ -41,7 +41,7 @@ test.describe('作者撰寫文章 (integration)', () => {
     const uuid = createBody.data.uuid
 
     try {
-      const get = await request.get(`${BACKEND}/api/v1/articles/${uuid}/edit`, {
+      const get = await request.get(`${BACKEND}/api/v1/articles/${uuid}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       const getBody = await get.json()

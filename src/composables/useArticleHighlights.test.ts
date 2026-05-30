@@ -1,13 +1,14 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { defineComponent, nextTick, ref } from 'vue'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { highlightService, type Highlight } from '../api/highlightService'
 import { useAuthStore } from '../stores/auth'
 import { useArticleHighlights } from './useArticleHighlights'
 
 const mockRequireAuth = vi.fn()
 const mockShowToast = vi.fn()
+let consoleErrorSpy: ReturnType<typeof vi.spyOn>
 
 vi.mock('../api/highlightService', () => ({
   highlightService: {
@@ -60,11 +61,16 @@ function mountHarness(options: { uuid?: string; authenticated?: boolean } = {}) 
 describe('useArticleHighlights', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     mockRequireAuth.mockReturnValue(true)
     vi.mocked(highlightService.list).mockResolvedValue([])
     vi.mocked(highlightService.create).mockResolvedValue(makeHighlight())
     vi.mocked(highlightService.update).mockResolvedValue(makeHighlight({ note: 'updated' }))
     vi.mocked(highlightService.delete).mockResolvedValue(undefined)
+  })
+
+  afterEach(() => {
+    consoleErrorSpy.mockRestore()
   })
 
   it('loads highlights for authenticated readers', async () => {
@@ -187,6 +193,7 @@ describe('useArticleHighlights', () => {
     const result = await wrapper.vm.createHighlight({ snippet: 'selected text', color: '#FFEB3B' })
 
     expect(result).toBeNull()
+    expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to create article highlight:', expect.any(Error))
     expect(mockShowToast).toHaveBeenCalledWith('建立劃線失敗，請稍後再試', 'error')
   })
 
@@ -214,6 +221,7 @@ describe('useArticleHighlights', () => {
     await wrapper.vm.updateHighlight('h-1', { note: 'bad' })
 
     expect(wrapper.vm.highlights[0]?.note).toBe('updated')
+    expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to update article highlight:', expect.any(Error))
     expect(mockShowToast).toHaveBeenCalledWith('更新劃線失敗，請稍後再試', 'error')
   })
 
@@ -229,6 +237,7 @@ describe('useArticleHighlights', () => {
 
     expect(wrapper.vm.highlights[0]?.note).toBe('old')
     expect(wrapper.vm.highlights).not.toBe(beforeUpdate)
+    expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to update article highlight:', expect.any(Error))
   })
 
   it('deletes highlight after API succeeds and keeps it on failure', async () => {
@@ -245,6 +254,7 @@ describe('useArticleHighlights', () => {
     await wrapper.vm.deleteHighlight('h-1')
 
     expect(wrapper.vm.highlights).toHaveLength(1)
+    expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to delete article highlight:', expect.any(Error))
     expect(mockShowToast).toHaveBeenCalledWith('刪除劃線失敗，請稍後再試', 'error')
   })
 })

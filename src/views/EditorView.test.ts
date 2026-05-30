@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { createPinia, setActivePinia } from 'pinia'
 import EditorView from './EditorView.vue'
 import { editorService } from '../api/editorService'
+import { categoryService } from '../api/categoryService'
 import { createMockEditorArticle } from '../test-utils/factories'
 
 // ── Mock vue-router ──────────────────────────────────────────────────────────
@@ -65,6 +66,20 @@ describe('EditorView', () => {
 
   // ── Structure ────────────────────────────────────────────────────────────
   describe('structure', () => {
+    it('category service 回傳 undefined 時仍以空陣列渲染 sidebar，不輸出 categories prop warning', async () => {
+      vi.mocked(categoryService.getCategories).mockResolvedValue(undefined as never)
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+      renderEditor()
+      await waitFor(() => {
+        expect(screen.getByTestId('editor-root')).toBeInTheDocument()
+      })
+
+      const warningText = warnSpy.mock.calls.flat().join(' ')
+      expect(warningText).not.toContain('Invalid prop: type check failed for prop "categories"')
+      warnSpy.mockRestore()
+    })
+
     it('renders editor-root', () => {
       renderEditor()
       expect(screen.getByTestId('editor-root')).toBeInTheDocument()

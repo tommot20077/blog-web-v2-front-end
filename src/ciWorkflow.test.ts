@@ -26,6 +26,15 @@ function workflowStep(job: string, name: string): string {
 }
 
 describe('frontend CI workflow', () => {
+  it('runs CI only for long-lived main/develop branches', () => {
+    const workflow = readWorkflow()
+
+    expect(workflow).toContain('push:')
+    expect(workflow).toContain('pull_request:')
+    expect(workflow).toContain('branches: [main, develop]')
+    expect(workflow).not.toContain('feature/p0-red-e2e')
+  })
+
   it('cancels superseded branch runs and uses least-privilege contents access', () => {
     const workflow = readWorkflow()
 

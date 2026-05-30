@@ -126,7 +126,7 @@ test.describe('Admin Review (H1/H3/H4/H5)', () => {
       await expect(article).toHaveCount(0, { timeout: 5000 })
 
       // 驗證 backend 狀態
-      const editResp = await request.get(`${BACKEND}/api/v1/articles/${draftUuid}/edit`, {
+      const editResp = await request.get(`${BACKEND}/api/v1/articles/${draftUuid}`, {
         headers: { Authorization: `Bearer ${authorToken}` },
       })
       const data = (await editResp.json()).data

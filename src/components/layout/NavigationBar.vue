@@ -91,6 +91,15 @@ async function handleLogout() {
         <RouterLink to="/bookmarks" class="nav-link" active-class="active" data-testid="navbar-link-bookmarks">
           收藏
         </RouterLink>
+        <RouterLink
+          v-if="authStore.isAuthor"
+          to="/editor"
+          class="nav-link"
+          active-class="active"
+          data-testid="navbar-link-editor"
+        >
+          寫文章
+        </RouterLink>
         <RouterLink to="/settings" class="nav-link" active-class="active" data-testid="navbar-link-settings">
           設定
         </RouterLink>

@@ -8,4 +8,18 @@ export default defineConfig({
     host: '127.0.0.1',
     port: 5500,
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('/node_modules/@codemirror/')) {
+            return 'vendor-codemirror'
+          }
+          if (id.includes('/node_modules/@lezer/')) {
+            return 'vendor-lezer'
+          }
+        },
+      },
+    },
+  },
 })

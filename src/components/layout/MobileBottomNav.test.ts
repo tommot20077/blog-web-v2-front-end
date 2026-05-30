@@ -58,6 +58,13 @@ describe('MobileBottomNav', () => {
     expect(themeBtn.exists()).toBe(true);
   });
 
+  it('主題切換按鈕位於 mobile bottom nav 內，供手機版 E2E 鎖定', () => {
+    const { wrapper } = mountWithPlugins();
+    const themeBtn = wrapper.find('[data-testid="mobile-bottom-nav"] [aria-label="切換深淺色模式"]');
+    expect(themeBtn.exists()).toBe(true);
+    expect(themeBtn.classes()).toContain('theme-switcher');
+  });
+
   describe('我的 tab Auth-Aware', () => {
     it('未登入時點擊「我的」導航至 /login', async () => {
       const { wrapper, router } = mountWithPlugins();

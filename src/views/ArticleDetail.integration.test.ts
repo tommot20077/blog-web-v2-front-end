@@ -79,8 +79,14 @@ describe('ArticleDetail Integration', () => {
   })
 
   it('掛載後以 uuid 呼叫 getArticleByUuid', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
     await renderWithRouterAsync(ArticleDetail, {}, '/articles/article-uuid-1')
     await flushPromises()
+
     expect(articleService.getArticleByUuid).toHaveBeenCalledWith('article-uuid-1')
+    const warningText = warnSpy.mock.calls.flat().join(' ')
+    expect(warningText).not.toContain('Invalid watch source')
+    warnSpy.mockRestore()
   })
 })

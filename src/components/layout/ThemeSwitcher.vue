@@ -7,9 +7,9 @@ const { isDark, toggleTheme } = useTheme();
 </script>
 
 <template>
-  <button 
+  <button
     @click="toggleTheme"
-    class="relative p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors flex items-center justify-center cursor-pointer"
+    class="theme-switcher relative p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors flex items-center justify-center cursor-pointer"
     aria-label="切換深淺色模式"
   >
     <div class="relative w-6 h-6 flex items-center justify-center pointer-events-none">
@@ -20,3 +20,25 @@ const { isDark, toggleTheme } = useTheme();
     </div>
   </button>
 </template>
+
+<style scoped>
+.theme-switcher {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.theme-switcher > div {
+  width: 24px;
+  height: 24px;
+  position: relative;
+}
+
+.theme-switcher :deep(svg) {
+  width: 24px;
+  height: 24px;
+  display: block;
+}
+</style>

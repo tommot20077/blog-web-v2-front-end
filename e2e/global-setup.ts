@@ -4,6 +4,15 @@ import { activateUser } from './fixtures/admin-helpers'
 const BACKEND = process.env.VITE_API_BASE_URL || 'http://localhost:8080'
 const IS_CI = process.env.E2E_CI === '1'
 
+type ReadinessOptions = {
+  backendBase?: string
+  fetchImpl?: typeof fetch
+  sleep?: (ms: number) => Promise<void>
+  retries?: number
+  delayMs?: number
+  attemptTimeoutMs?: number
+}
+
 interface SeedUser {
   email: string
   username: string
@@ -20,15 +29,44 @@ const SEED_USERS: SeedUser[] = [
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
-async function healthCheck() {
-  const res = await fetch(`${BACKEND}/actuator/health`).catch(() => null)
-  if (!res || !res.ok) {
-    throw new Error(
-      `Backend health check failed at ${BACKEND}/actuator/health — ` +
-      'please start infra and backend before running E2E tests. ' +
-      'Or run with E2E_MOCK=1 for mock mode.',
-    )
+const defaultSleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+export async function waitForBackendReadiness({
+  backendBase = BACKEND,
+  fetchImpl = fetch,
+  sleep = defaultSleep,
+  retries = 30,
+  delayMs = 1000,
+  attemptTimeoutMs = 5000,
+}: ReadinessOptions = {}) {
+  const readinessUrl = `${backendBase}/actuator/health/readiness`
+  let lastError = 'unknown'
+
+  for (let attempt = 1; attempt <= retries; attempt += 1) {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), attemptTimeoutMs)
+    try {
+      const res = await fetchImpl(readinessUrl, { signal: controller.signal })
+      if (res.ok) {
+        return
+      }
+      lastError = `status ${res.status} ${await res.text().catch(() => '')}`.trim()
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : String(error)
+    } finally {
+      clearTimeout(timeout)
+    }
+
+    if (attempt < retries) {
+      await sleep(delayMs)
+    }
   }
+
+  throw new Error(
+    `Backend readiness check failed at ${readinessUrl} — ${lastError}. ` +
+    'please start infra and backend before running E2E tests. ' +
+    'Or run with E2E_MOCK=1 for mock mode.',
+  )
 }
 
 async function registerUser(user: SeedUser) {
@@ -186,9 +224,9 @@ async function seedCommonTags(authorToken: string): Promise<void> {
 // ── main ─────────────────────────────────────────────────────────────────────
 
 export default async function globalSetup() {
-  console.log('\n[E2E global-setup] Checking backend health...')
-  await healthCheck()
-  console.log('[E2E global-setup] Backend is healthy.')
+  console.log('\n[E2E global-setup] Checking backend readiness...')
+  await waitForBackendReadiness()
+  console.log('[E2E global-setup] Backend readiness is UP.')
 
   console.log('[E2E global-setup] Ensuring MinIO bucket...')
   ensureMinIOBucket()

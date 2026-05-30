@@ -2,6 +2,7 @@ import { ref, watch, type Ref } from 'vue';
 import MarkdownIt from 'markdown-it';
 import taskLists from 'markdown-it-task-lists';
 import DOMPurify from 'dompurify';
+import type { HighlighterGeneric } from '@shikijs/types'
 
 /**
  * useMarkdownRenderer
@@ -44,27 +45,73 @@ export function useMarkdownRenderer(markdownContent: Ref<string>) {
   // 3. 非同步載入 Shiki + @shikijs/markdown-it 外掛
   const initShiki = async () => {
     try {
-      const { fromHighlighter } = await import('@shikijs/markdown-it');
-      const { createHighlighter } = await import('shiki');
+      const { fromHighlighter } = await import('@shikijs/markdown-it/core');
+      const { createHighlighterCore } = await import('shiki/core');
+      const { createJavaScriptRegexEngine } = await import('shiki/engine/javascript');
+      const [
+        githubLight,
+        githubDark,
+        javascript,
+        typescript,
+        vue,
+        vueHtml,
+        html,
+        css,
+        scss,
+        json,
+        yaml,
+        toml,
+        bash,
+        shellscript,
+        java,
+        kotlin,
+        sql,
+        python,
+        go,
+        rust,
+        dockerfile,
+      ] = await Promise.all([
+        import('@shikijs/themes/github-light').then((module) => module.default),
+        import('@shikijs/themes/github-dark').then((module) => module.default),
+        import('@shikijs/langs/javascript').then((module) => module.default),
+        import('@shikijs/langs/typescript').then((module) => module.default),
+        import('@shikijs/langs/vue').then((module) => module.default),
+        import('@shikijs/langs/vue-html').then((module) => module.default),
+        import('@shikijs/langs/html').then((module) => module.default),
+        import('@shikijs/langs/css').then((module) => module.default),
+        import('@shikijs/langs/scss').then((module) => module.default),
+        import('@shikijs/langs/json').then((module) => module.default),
+        import('@shikijs/langs/yaml').then((module) => module.default),
+        import('@shikijs/langs/toml').then((module) => module.default),
+        import('@shikijs/langs/bash').then((module) => module.default),
+        import('@shikijs/langs/shellscript').then((module) => module.default),
+        import('@shikijs/langs/java').then((module) => module.default),
+        import('@shikijs/langs/kotlin').then((module) => module.default),
+        import('@shikijs/langs/sql').then((module) => module.default),
+        import('@shikijs/langs/python').then((module) => module.default),
+        import('@shikijs/langs/go').then((module) => module.default),
+        import('@shikijs/langs/rust').then((module) => module.default),
+        import('@shikijs/langs/dockerfile').then((module) => module.default),
+      ])
 
-      const highlighter = await createHighlighter({
-        themes: ['github-light', 'github-dark'],
+      const highlighter = await createHighlighterCore({
+        themes: [githubLight, githubDark],
         langs: [
-          'javascript', 'typescript', 'vue', 'vue-html',
-          'html', 'css', 'scss',
-          'json', 'yaml', 'toml',
-          'bash', 'shell',
-          'java', 'kotlin',
-          'sql',
-          'markdown',
-          'python',
-          'go', 'rust',
-          'dockerfile',
+          javascript, typescript, vue, vueHtml,
+          html, css, scss,
+          json, yaml, toml,
+          bash, shellscript,
+          java, kotlin,
+          sql,
+          python,
+          go, rust,
+          dockerfile,
         ],
+        engine: createJavaScriptRegexEngine(),
       });
 
       // 用 CSS Variables 模式，讓深淺色切換只靠 CSS class 即可
-      const shikiPlugin = fromHighlighter(highlighter, {
+      const shikiPlugin = fromHighlighter(highlighter as unknown as HighlighterGeneric<any, any>, {
         themes: {
           light: 'github-light',
           dark: 'github-dark',

@@ -161,9 +161,11 @@ const router = createRouter({
  * 4. 其餘 → 正常通過
  */
 export function setupGuards(targetRouter: Router) {
-  targetRouter.beforeEach((to) => {
+  targetRouter.beforeEach(async (to) => {
     const authStore = useAuthStore()
     const { showToast } = useToast()
+
+    await authStore.ensureHydrated()
 
     // 需要認證但未登入
     if (to.meta.requiresAuth && !authStore.isAuthenticated) {

@@ -305,8 +305,9 @@ function processFunction(
   }
 
   const secondArg = args[1]
+  const thirdArg = args[2]
   if (secondArg) {
-    const reqResult = extractRequest(secondArg, method)
+    const reqResult = extractRequest(secondArg, method, thirdArg)
     if (reqResult.kind === 'query') {
       for (const q of reqResult.params) {
         op.parameters ??= []
@@ -324,7 +325,7 @@ function processFunction(
     } else if (reqResult.kind === 'body') {
       op.requestBody = {
         required: true,
-        content: { 'application/json': { schema: reqResult.schema } },
+        content: { [reqResult.contentType ?? 'application/json']: { schema: reqResult.schema } },
       }
     } else if (reqResult.kind === 'ambiguous') {
       warnings.push({
@@ -465,10 +466,10 @@ type RequestResult =
       params: Array<{ name: string; required: boolean; schema: Record<string, unknown> }>
       warning?: { code: WarningCode; detail: string }
     }
-  | { kind: 'body'; schema: Record<string, unknown> }
+  | { kind: 'body'; schema: Record<string, unknown>; contentType?: string }
   | { kind: 'ambiguous'; reason: string }
 
-function extractRequest(arg: Node, method: HttpMethod): RequestResult {
+function extractRequest(arg: Node, method: HttpMethod, configArg?: Node): RequestResult {
   if (Node.isObjectLiteralExpression(arg)) {
     const properties = arg.getProperties()
     const paramsProp = properties.find(
@@ -559,9 +560,122 @@ function extractRequest(arg: Node, method: HttpMethod): RequestResult {
       reason: `${method.toUpperCase()} request has non-object second argument`,
     }
   }
+  const multipartSchema = extractMultipartFormDataSchema(arg, configArg)
+  if (multipartSchema) {
+    return {
+      kind: 'body',
+      schema: multipartSchema,
+      contentType: 'multipart/form-data',
+    }
+  }
   const t = safeGetType(arg)
   const schema = tsTypeToSchema(t) ?? {}
   return { kind: 'body', schema }
+}
+
+function extractMultipartFormDataSchema(arg: Node, configArg?: Node): Record<string, unknown> | undefined {
+  const explicitContentType = getExplicitContentType(configArg)
+  const typeText = safeGetType(arg)?.getText() ?? ''
+  const looksLikeFormData = explicitContentType === 'multipart/form-data' || typeText.includes('FormData')
+  if (!looksLikeFormData || !Node.isIdentifier(arg)) return undefined
+
+  const identName = arg.getText()
+  const properties: Record<string, unknown> = {}
+  const required: string[] = []
+  const enclosingFn = arg.getFirstAncestor(
+    (a) =>
+      Node.isFunctionDeclaration(a) ||
+      Node.isArrowFunction(a) ||
+      Node.isFunctionExpression(a) ||
+      Node.isMethodDeclaration(a),
+  )
+  const scope =
+    enclosingFn && Node.isFunctionLikeDeclaration(enclosingFn)
+      ? enclosingFn.getBody() ?? arg.getSourceFile()
+      : arg.getSourceFile()
+
+  scope.forEachDescendant((node) => {
+    if (!Node.isCallExpression(node)) return
+    const expr = node.getExpression()
+    if (!Node.isPropertyAccessExpression(expr)) return
+    if (expr.getName() !== 'append') return
+
+    const target = expr.getExpression()
+    if (!Node.isIdentifier(target) || target.getText() !== identName) return
+
+    const [nameArg, valueArg] = node.getArguments()
+    if (!nameArg || !valueArg) return
+    if (!Node.isStringLiteral(nameArg) && !Node.isNoSubstitutionTemplateLiteral(nameArg)) return
+
+    const fieldName = nameArg.getLiteralText()
+    properties[fieldName] = multipartValueSchema(safeGetType(valueArg))
+    if (isUnconditionalMultipartAppend(node, scope) && !required.includes(fieldName)) {
+      required.push(fieldName)
+    }
+  })
+
+  return {
+    type: 'object',
+    properties,
+    ...(required.length > 0 ? { required } : {}),
+  }
+}
+
+function isUnconditionalMultipartAppend(node: Node, scope: Node): boolean {
+  let current = node.getParent()
+  while (current && current !== scope) {
+    if (
+      Node.isIfStatement(current) ||
+      Node.isConditionalExpression(current) ||
+      Node.isSwitchStatement(current) ||
+      Node.isForStatement(current) ||
+      Node.isForInStatement(current) ||
+      Node.isForOfStatement(current) ||
+      Node.isWhileStatement(current) ||
+      Node.isDoStatement(current) ||
+      Node.isTryStatement(current)
+    ) {
+      return false
+    }
+    current = current.getParent()
+  }
+  return true
+}
+
+function multipartValueSchema(type: Type | undefined): Record<string, unknown> {
+  const typeText = type?.getText() ?? ''
+  if (typeText.includes('File') || typeText.includes('Blob')) {
+    return { type: 'string', format: 'binary' }
+  }
+  return tsTypeToSchema(type) ?? { type: 'string' }
+}
+
+function getExplicitContentType(configArg?: Node): string | undefined {
+  if (!configArg || !Node.isObjectLiteralExpression(configArg)) return undefined
+
+  const headersProp = configArg.getProperties().find(
+    (p) =>
+      Node.isPropertyAssignment(p) &&
+      p.getName().replace(/^["']|["']$/g, '') === 'headers',
+  )
+  if (!headersProp || !Node.isPropertyAssignment(headersProp)) return undefined
+
+  const headersInit = headersProp.getInitializer()
+  if (!headersInit || !Node.isObjectLiteralExpression(headersInit)) return undefined
+
+  const contentTypeProp = headersInit.getProperties().find(
+    (p) =>
+      Node.isPropertyAssignment(p) &&
+      ['Content-Type', 'content-type'].includes(p.getName().replace(/^["']|["']$/g, '')),
+  )
+  if (!contentTypeProp || !Node.isPropertyAssignment(contentTypeProp)) return undefined
+
+  const contentTypeInit = contentTypeProp.getInitializer()
+  if (!contentTypeInit) return undefined
+  if (Node.isStringLiteral(contentTypeInit) || Node.isNoSubstitutionTemplateLiteral(contentTypeInit)) {
+    return contentTypeInit.getLiteralText()
+  }
+  return undefined
 }
 
 /**

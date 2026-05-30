@@ -65,7 +65,7 @@ onUnmounted(() => window.removeEventListener('keydown', onGlobalKeyDown))
 
 // ── Mount: load article in edit mode + load categories ────────────────────
 onMounted(async () => {
-  categories.value = await categoryService.getCategories()
+  categories.value = (await categoryService.getCategories()) ?? []
   if (!isNew.value) {
     await loadArticle()
     if (article.value?.content) {

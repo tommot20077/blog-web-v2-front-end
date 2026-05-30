@@ -46,7 +46,7 @@ async function createHighlightFromSelection(request: Parameters<typeof highlight
   if (created) selectionState.clearSelection()
 }
 
-watch(renderedHtml, async () => {
+watch(() => renderedHtml.value, async () => {
   await nextTick()
   await inlineHighlightState.applyHighlights()
 }, { flush: 'post' })

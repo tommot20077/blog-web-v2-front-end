@@ -64,6 +64,26 @@ describe('NavigationBar', () => {
       expect(getByTestId('navbar-link-bookmarks')).toHaveAttribute('href', '/bookmarks')
     })
 
+    it('AUTHOR 已登入時顯示寫文章入口', async () => {
+      const { getByTestId } = renderWithRouter(NavigationBar)
+      const authStore = useAuthStore()
+      authStore.accessToken = 'test-token'
+      authStore.user = createMockUser({ nickname: 'AuthorUser', role: 'AUTHOR' })
+      await nextTick()
+
+      expect(getByTestId('navbar-link-editor')).toHaveAttribute('href', '/editor')
+    })
+
+    it('一般 USER 已登入時不顯示寫文章入口', async () => {
+      const { queryByTestId } = renderWithRouter(NavigationBar)
+      const authStore = useAuthStore()
+      authStore.accessToken = 'test-token'
+      authStore.user = createMockUser({ nickname: 'ReaderUser', role: 'USER' })
+      await nextTick()
+
+      expect(queryByTestId('navbar-link-editor')).not.toBeInTheDocument()
+    })
+
     it('已登入時不顯示 login button', async () => {
       const { queryByTestId } = renderWithRouter(NavigationBar)
       const authStore = useAuthStore()

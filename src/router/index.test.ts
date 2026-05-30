@@ -214,6 +214,28 @@ describe('Router Guard — requiresAuth', () => {
     expect(router.currentRoute.value.name).toBe('login')
     expect(authStore.returnUrl).toBe('/bookmarks')
   })
+
+  it('首次載入 protected route 時會先嘗試靜默 refresh，成功後允許進入', async () => {
+    const { authService } = await import('../api/authService')
+    vi.mocked(authService.refresh).mockResolvedValue({ accessToken: 'bootstrapped-token', expiresIn: 3600 })
+    vi.mocked(authService.getMe).mockResolvedValue({
+      uuid: 'author-uuid',
+      email: 'author@test.local',
+      nickname: 'Author',
+      avatarUrl: null,
+      role: 'AUTHOR',
+      emailVerified: true,
+      createdAt: '2024-01-01',
+    })
+
+    const router = createTestRouter()
+    await router.push('/dashboard')
+
+    expect(router.currentRoute.value.name).toBe('dashboard')
+    expect(router.currentRoute.value.path).toBe('/dashboard')
+    expect(authService.refresh).toHaveBeenCalledOnce()
+    expect(authService.getMe).toHaveBeenCalledOnce()
+  })
 })
 
 describe('Router Guard — requiredRole', () => {
