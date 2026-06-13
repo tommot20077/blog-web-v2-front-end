@@ -66,6 +66,19 @@ export interface ArticleDetailItem extends Omit<ArticleItem, 'categories'> {
   bookmarked: boolean
 }
 
+/**
+ * 年度歸檔精簡投影
+ * 對應後端 ArticleArchiveResponse（uuid / title / slug / publishedAt / tags）
+ * tags 為標籤名稱字串陣列；後端已依 publishedAt 由新到舊排序。
+ */
+export interface ArchiveItem {
+  uuid: string
+  title: string
+  slug: string
+  publishedAt: string
+  tags: string[]
+}
+
 function mapArticle(raw: BackendArticleBase): ArticleItem {
   return {
     uuid: raw.uuid,
@@ -129,6 +142,16 @@ export const articleService = {
     } catch (error) {
       console.error('Fetch article by slug failed:', error)
       return null
+    }
+  },
+
+  async getArchive(): Promise<ArchiveItem[]> {
+    try {
+      // 後端 tags 已是字串陣列、且已依 publishedAt desc 排序，無需額外映射
+      return await apiClient.get<unknown, ArchiveItem[]>('/api/v1/articles/archive')
+    } catch (error) {
+      console.error('Fetch archive failed:', error)
+      return []
     }
   },
 }

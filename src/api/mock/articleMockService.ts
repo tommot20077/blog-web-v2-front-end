@@ -1,4 +1,4 @@
-import type { ArticleItem, ArticleDetailItem } from '../articleService';
+import type { ArticleItem, ArticleDetailItem, ArchiveItem } from '../articleService';
 import type { PageResult } from '../../types/editor';
 import { allMockArticles, getMockArticleDetail } from './data';
 
@@ -61,5 +61,24 @@ export function getArticleBySlugMock(slug: string): Promise<ArticleDetailItem | 
       }
       resolve(getMockArticleDetail(base.uuid));
     }, 500);
+  });
+}
+
+// 年度歸檔精簡投影（Mock 版本）
+// 重用 allMockArticles，投影成 ArchiveItem 並依 publishedAt 由新到舊排序，
+// 對齊後端 /api/v1/articles/archive 的回傳契約。
+export function getArchiveMock(): Promise<ArchiveItem[]> {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const items: ArchiveItem[] = allMockArticles.map(a => ({
+        uuid: a.uuid,
+        title: a.title,
+        slug: a.slug,
+        publishedAt: a.publishedAt,
+        tags: a.tags,
+      }));
+      items.sort((x, y) => y.publishedAt.localeCompare(x.publishedAt));
+      resolve(items);
+    }, 600);
   });
 }
