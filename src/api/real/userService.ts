@@ -1,9 +1,18 @@
 import apiClient from '../apiClient'
-import type { UpdateProfileRequest, ChangePasswordRequest, DeleteAccountRequest } from '../../types/user'
+import type {
+  UpdateProfileRequest,
+  NotificationPreferencesRequest,
+  ChangePasswordRequest,
+  DeleteAccountRequest,
+} from '../../types/user'
 
 export const userService = {
   async updateProfile(data: UpdateProfileRequest): Promise<void> {
     return apiClient.patch<unknown, void>('/api/v1/users/me/profile', data)
+  },
+
+  async updateNotifications(data: NotificationPreferencesRequest): Promise<void> {
+    return apiClient.patch<unknown, void>('/api/v1/users/me/notifications', data)
   },
 
   async changePassword(data: ChangePasswordRequest): Promise<void> {

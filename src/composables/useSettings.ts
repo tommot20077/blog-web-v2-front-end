@@ -71,12 +71,12 @@ export function useSettings() {
   const autosave = ref(localStorage.getItem('blog.settings.autosave') !== 'false')
   const { status: writingStatus, withSave: withWritingSave } = useSaveStatus()
 
-  // ── Notifications (localStorage only — TODO: backend) ──
-  const nComment = ref(localStorage.getItem('blog.settings.nComment') !== 'false')
-  const nLike = ref(localStorage.getItem('blog.settings.nLike') !== 'false')
-  const nReview = ref(localStorage.getItem('blog.settings.nReview') !== 'false')
-  const nFollow = ref(localStorage.getItem('blog.settings.nFollow') !== 'false')
-  const nNewsletter = ref(localStorage.getItem('blog.settings.nNewsletter') !== 'false')
+  // ── Notifications (後端持久化，初始值由 GET /users/me 載入) ──
+  const nComment = ref(true)
+  const nLike = ref(true)
+  const nReview = ref(true)
+  const nFollow = ref(true)
+  const nNewsletter = ref(true)
   const { status: notifStatus, withSave: withNotifSave } = useSaveStatus()
 
   // Parse socialLinks JSON string from user profile
@@ -101,6 +101,16 @@ export function useSettings() {
     linkedin.value = restored.linkedin
   }
 
+  // 從 authStore.user 同步通知偏好（後端 UserProfileResponse.notification* 欄位）
+  function hydrateNotifications(user: typeof authStore.user) {
+    if (!user) return
+    nComment.value = user.notificationComment ?? true
+    nLike.value = user.notificationLike ?? true
+    nReview.value = user.notificationReview ?? true
+    nFollow.value = user.notificationFollow ?? true
+    nNewsletter.value = user.notificationNewsletter ?? true
+  }
+
   // 從 authStore.user 同步 profile 欄位（onMounted 與 watch 共用 logic）
   function hydrateProfile(user: typeof authStore.user) {
     if (!user) return
@@ -108,15 +118,15 @@ export function useSettings() {
     bio.value = user.bio || ''
     email.value = user.email || ''
     website.value = user.website ?? ''
-    // TODO: backend profile update endpoint does not yet accept avatarUrl
-    avatarUrl.value = user.avatarUrl || localStorage.getItem('blog.settings.avatarUrl') || null
+    avatarUrl.value = user.avatarUrl || null
+    location.value = user.location ?? ''
     hydrateSocial(user)
+    hydrateNotifications(user)
   }
 
   // Initialize from auth store
   onMounted(() => {
     hydrateProfile(authStore.user)
-    location.value = localStorage.getItem('blog.settings.location') || ''
   })
 
   // 若 authStore.user 在 onMounted 後才就緒（e.g. refresh token 完成），即時同步
@@ -131,8 +141,6 @@ export function useSettings() {
           const resp = await fileService.uploadFile(avatarFile.value, 'AVATAR')
           avatarUrl.value = resp.url
           avatarFile.value = null
-          // TODO: backend profile update endpoint does not yet accept avatarUrl
-          localStorage.setItem('blog.settings.avatarUrl', resp.url)
         }
         // 帶上 socialLinks 現值，避免後端 setWebsite(null) 模式的反向問題：
         // 若不送 socialLinks，後端 updateProfile 會把它清成 null
@@ -142,11 +150,11 @@ export function useSettings() {
           bio: bio.value || undefined,
           website: website.value || undefined,
           socialLinks,
+          avatarUrl: avatarUrl.value || undefined,
+          location: location.value || undefined,
         })
         // Refresh the auth store user object so the rest of the app sees updated data
         await authStore.fetchUser()
-        // Persist remaining fields locally (TODO: backend support)
-        localStorage.setItem('blog.settings.location', location.value)
       })
     } catch {
       showToast('儲存個人資料失敗', 'error')
@@ -192,13 +200,15 @@ export function useSettings() {
           twitter: twitter.value,
           linkedin: linkedin.value,
         })
-        // 解構帶上 website 現值，避免後端無條件 setWebsite(null) 抹掉既有值
-        const { nickname, bio, website: currentWebsite } = authStore.user!
+        // 解構帶上現值，避免後端無條件 set(null) 抹掉既有 website / avatarUrl / location
+        const { nickname, bio, website: currentWebsite, avatarUrl: currentAvatar, location: currentLocation } = authStore.user!
         await userService.updateProfile({
           nickname,
           bio,
           website: currentWebsite ?? undefined,
           socialLinks,
+          avatarUrl: currentAvatar ?? undefined,
+          location: currentLocation ?? undefined,
         })
         await authStore.fetchUser()
       })
@@ -222,12 +232,13 @@ export function useSettings() {
   async function saveNotifications() {
     try {
       await withNotifSave(async () => {
-        // TODO: backend notifications API
-        localStorage.setItem('blog.settings.nComment', String(nComment.value))
-        localStorage.setItem('blog.settings.nLike', String(nLike.value))
-        localStorage.setItem('blog.settings.nReview', String(nReview.value))
-        localStorage.setItem('blog.settings.nFollow', String(nFollow.value))
-        localStorage.setItem('blog.settings.nNewsletter', String(nNewsletter.value))
+        await userService.updateNotifications({
+          comment: nComment.value,
+          like: nLike.value,
+          review: nReview.value,
+          follow: nFollow.value,
+          newsletter: nNewsletter.value,
+        })
       })
     } catch {
       showToast('儲存通知設定失敗', 'error')
@@ -238,7 +249,6 @@ export function useSettings() {
     if (avatarUrl.value?.startsWith('blob:')) URL.revokeObjectURL(avatarUrl.value)
     avatarUrl.value = null
     avatarFile.value = null
-    localStorage.removeItem('blog.settings.avatarUrl')
   }
 
   async function deleteAccount(password: string) {

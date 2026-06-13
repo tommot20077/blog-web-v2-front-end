@@ -29,9 +29,16 @@ export interface User {
   website?: string | null;
   socialLinks?: string | null;
   avatarUrl: string | null;
+  location?: string | null;
   role: UserRole;
   emailVerified: boolean;
   createdAt: string;
+  // 通知偏好（對應後端 UserProfileResponse.notification*，非 null 布林）
+  notificationComment?: boolean;
+  notificationLike?: boolean;
+  notificationReview?: boolean;
+  notificationFollow?: boolean;
+  notificationNewsletter?: boolean;
 }
 
 // 登入請求

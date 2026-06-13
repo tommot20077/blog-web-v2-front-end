@@ -27,6 +27,18 @@ describe('userService', () => {
         userService.deleteAccount({ password: 'mypassword' }),
       ).resolves.toBeUndefined()
     })
+
+    it('updateNotifications 成功解析且無回傳值', async () => {
+      await expect(
+        userService.updateNotifications({
+          comment: true,
+          like: true,
+          review: true,
+          follow: true,
+          newsletter: false,
+        }),
+      ).resolves.toBeUndefined()
+    })
   })
 
   describe('API 模式 (VITE_USE_MOCK=false)', () => {
@@ -52,6 +64,13 @@ describe('userService', () => {
       const data = { password: 'mypassword' }
       await userService.deleteAccount(data)
       expect(apiClient.delete).toHaveBeenCalledWith('/api/v1/users/me', { data })
+    })
+
+    it('updateNotifications 呼叫 PATCH /api/v1/users/me/notifications', async () => {
+      vi.mocked(apiClient.patch).mockResolvedValue(undefined)
+      const data = { comment: true, like: false, review: true, follow: false, newsletter: true }
+      await userService.updateNotifications(data)
+      expect(apiClient.patch).toHaveBeenCalledWith('/api/v1/users/me/notifications', data)
     })
   })
 })
