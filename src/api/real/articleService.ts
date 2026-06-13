@@ -146,12 +146,8 @@ export const articleService = {
   },
 
   async getArchive(): Promise<ArchiveItem[]> {
-    try {
-      // 後端 tags 已是字串陣列、且已依 publishedAt desc 排序，無需額外映射
-      return await apiClient.get<unknown, ArchiveItem[]>('/api/v1/articles/archive')
-    } catch (error) {
-      console.error('Fetch archive failed:', error)
-      return []
-    }
+    // 失敗時不吞錯：向上拋出讓 view 區分「載入失敗」與「沒有文章」，
+    // 避免網路錯誤被誤顯示為空歸檔。後端 tags 已是字串陣列、且已依 publishedAt desc 排序，無需額外映射。
+    return await apiClient.get<unknown, ArchiveItem[]>('/api/v1/articles/archive')
   },
 }

@@ -83,7 +83,7 @@ describe('TagsIndexView', () => {
     expect(container.querySelector('[data-testid="tags-series-header"]')).not.toBeInTheDocument()
   })
 
-  it('getAllTags 失敗回空陣列時標籤雲為空但頁面不崩潰', async () => {
+  it('getAllTags 回傳空陣列（成功但無資料）時標籤雲為空但頁面不崩潰', async () => {
     vi.mocked(tagService.getAllTags).mockResolvedValue([])
 
     const { container } = await renderWithRouterAsync(TagsIndexView, {}, '/tags')
@@ -92,6 +92,17 @@ describe('TagsIndexView', () => {
     expect(container.querySelector('[data-testid="tags-index-root"]')).toBeInTheDocument()
     const cloud = container.querySelector('[data-testid="tags-cloud"]')
     expect(cloud?.querySelectorAll('.tg-chip').length ?? 0).toBe(0)
+  })
+
+  it('getAllTags 拋錯時顯示 tags-error 狀態（不誤判為空標籤雲）', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.mocked(tagService.getAllTags).mockRejectedValue(new Error('Network failure'))
+
+    const { container } = await renderWithRouterAsync(TagsIndexView, {}, '/tags')
+    await flushPromises()
+
+    expect(container.querySelector('[data-testid="tags-error"]')).toBeInTheDocument()
+    expect(container.querySelector('[data-testid="tags-cloud"]')).not.toBeInTheDocument()
   })
 
   it('初始（資料尚未 resolve）顯示 loading 狀態', async () => {

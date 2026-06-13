@@ -62,13 +62,9 @@ export const tagService = {
   },
 
   async getAllTags(): Promise<TagDetailResponse[]> {
-    try {
-      const data = await apiClient.get<unknown, BackendTag[]>('/api/v1/tags/all')
-      return data.map(mapBackendTag)
-    } catch (error) {
-      console.error('Fetch all tags failed:', error)
-      return []
-    }
+    // 失敗時不吞錯：向上拋出讓標籤索引頁顯示「載入失敗」而非空標籤雲。
+    const data = await apiClient.get<unknown, BackendTag[]>('/api/v1/tags/all')
+    return data.map(mapBackendTag)
   },
 
   async getTagBySlug(slug: string): Promise<TagDetail | null> {

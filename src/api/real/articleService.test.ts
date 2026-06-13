@@ -32,13 +32,9 @@ describe('real articleService.getArchive', () => {
     expect(result).toEqual([])
   })
 
-  it('網路錯誤 → 回傳空陣列並呼叫 console.error', async () => {
+  it('網路錯誤 → 向上拋出錯誤（讓 view 顯示 error 狀態，不誤判為空）', async () => {
     vi.mocked(apiClient.get).mockRejectedValue(new Error('Network failure'))
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
-    const result = await articleService.getArchive()
-
-    expect(result).toEqual([])
-    expect(consoleSpy).toHaveBeenCalledWith('Fetch archive failed:', expect.any(Error))
+    await expect(articleService.getArchive()).rejects.toThrow('Network failure')
   })
 })

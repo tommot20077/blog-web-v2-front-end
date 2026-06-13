@@ -191,14 +191,10 @@ describe('tagService', () => {
       expect(item).not.toHaveProperty('createdAt');
     });
 
-    it('getAllTags 網路錯誤時回傳空陣列並呼叫 console.error', async () => {
+    it('getAllTags 網路錯誤時向上拋出錯誤（讓標籤索引頁顯示 error 狀態）', async () => {
       vi.mocked(apiClient.get).mockRejectedValue(new Error('Network failure'));
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      const result = await tagService.getAllTags();
-
-      expect(result).toEqual([]);
-      expect(consoleSpy).toHaveBeenCalledWith('Fetch all tags failed:', expect.any(Error));
+      await expect(tagService.getAllTags()).rejects.toThrow('Network failure');
     });
   });
 });
