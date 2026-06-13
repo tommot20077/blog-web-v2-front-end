@@ -61,6 +61,16 @@ export const tagService = {
     }
   },
 
+  async getAllTags(): Promise<TagDetailResponse[]> {
+    try {
+      const data = await apiClient.get<unknown, BackendTag[]>('/api/v1/tags/all')
+      return data.map(mapBackendTag)
+    } catch (error) {
+      console.error('Fetch all tags failed:', error)
+      return []
+    }
+  },
+
   async getTagBySlug(slug: string): Promise<TagDetail | null> {
     try {
       const data = await apiClient.get<unknown, BackendTagDetail>(`/api/v1/tags/${slug}`)

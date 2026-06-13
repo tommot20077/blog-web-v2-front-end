@@ -1,4 +1,4 @@
-import { getHotTagsMock } from './tagMockService';
+import { getHotTagsMock, getAllTagsMock } from './tagMockService';
 
 describe('tagMockService', () => {
   beforeEach(() => {
@@ -46,5 +46,46 @@ describe('tagMockService', () => {
     const result = await promise;
 
     expect(result).toHaveLength(24);
+  });
+});
+
+describe('getAllTagsMock', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('回傳全部標籤（重用既有 mock tags）', async () => {
+    const promise = getAllTagsMock();
+    vi.advanceTimersByTime(300);
+    const result = await promise;
+
+    expect(result).toHaveLength(24);
+  });
+
+  it('回傳結果按 articleCount 降序排列', async () => {
+    const promise = getAllTagsMock();
+    vi.advanceTimersByTime(300);
+    const result = await promise;
+
+    for (let i = 1; i < result.length; i++) {
+      expect(result[i - 1].articleCount).toBeGreaterThanOrEqual(result[i].articleCount);
+    }
+  });
+
+  it('每筆結果包含 TagDetailResponse 所有欄位', async () => {
+    const promise = getAllTagsMock();
+    vi.advanceTimersByTime(300);
+    const result = await promise;
+
+    for (const tag of result) {
+      expect(tag).toHaveProperty('uuid');
+      expect(tag).toHaveProperty('name');
+      expect(tag).toHaveProperty('slug');
+      expect(tag).toHaveProperty('articleCount');
+    }
   });
 });

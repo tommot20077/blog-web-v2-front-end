@@ -13,6 +13,15 @@ export const tagService = {
     return svc.getHotTags(limit)
   },
 
+  async getAllTags(): Promise<TagDetailResponse[]> {
+    if (import.meta.env.VITE_USE_MOCK === 'true') {
+      const { tagService: svc } = await import('./mock/tagService')
+      return svc.getAllTags()
+    }
+    const { tagService: svc } = await import('./real/tagService')
+    return svc.getAllTags()
+  },
+
   async getTagBySlug(slug: string): Promise<TagDetail | null> {
     if (import.meta.env.VITE_USE_MOCK === 'true') {
       const { tagService: svc } = await import('./mock/tagService')

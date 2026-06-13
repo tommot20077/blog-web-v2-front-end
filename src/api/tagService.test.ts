@@ -34,6 +34,16 @@ describe('tagService', () => {
       expect(result[0]).toHaveProperty('slug');
       expect(result[0]).toHaveProperty('articleCount');
     });
+
+    it('getAllTags 委派給 mock module 並回傳全部標籤', async () => {
+      const result = await tagService.getAllTags();
+
+      expect(result.length).toBeGreaterThan(0);
+      expect(result[0]).toHaveProperty('uuid');
+      expect(result[0]).toHaveProperty('name');
+      expect(result[0]).toHaveProperty('slug');
+      expect(result[0]).toHaveProperty('articleCount');
+    });
   });
 
   describe('API 模式 (VITE_USE_MOCK=false)', () => {
@@ -136,6 +146,59 @@ describe('tagService', () => {
       expect(item).not.toHaveProperty('description');
       expect(item).not.toHaveProperty('parentId');
       expect(item).not.toHaveProperty('createdAt');
+    });
+
+    it('getAllTags 成功時打對 /api/v1/tags/all 並映射 usageCount→articleCount', async () => {
+      const backendData = [
+        { id: 't-1', name: 'Vue', slug: 'vue', usageCount: 18 },
+        { id: 't-2', name: 'TDD', slug: 'tdd', usageCount: 9 },
+      ];
+      vi.mocked(apiClient.get).mockResolvedValue(backendData);
+
+      const result = await tagService.getAllTags();
+
+      expect(apiClient.get).toHaveBeenCalledWith('/api/v1/tags/all');
+      expect(result).toEqual([
+        { uuid: 't-1', name: 'Vue', slug: 'vue', articleCount: 18 },
+        { uuid: 't-2', name: 'TDD', slug: 'tdd', articleCount: 9 },
+      ]);
+    });
+
+    it('getAllTags 不洩漏 color/icon 等後端額外欄位', async () => {
+      const backendData = [
+        {
+          id: 'def-456',
+          name: 'React',
+          slug: 'react',
+          usageCount: 77,
+          color: '#61dafb',
+          icon: 'react-icon',
+          description: 'React framework',
+          parentId: 'parent-id',
+          createdAt: '2024-02-01T00:00:00',
+        },
+      ];
+      vi.mocked(apiClient.get).mockResolvedValue(backendData);
+
+      const result = await tagService.getAllTags();
+      const item = result[0] as Record<string, unknown>;
+
+      expect(item).not.toHaveProperty('id');
+      expect(item).not.toHaveProperty('color');
+      expect(item).not.toHaveProperty('icon');
+      expect(item).not.toHaveProperty('description');
+      expect(item).not.toHaveProperty('parentId');
+      expect(item).not.toHaveProperty('createdAt');
+    });
+
+    it('getAllTags 網路錯誤時回傳空陣列並呼叫 console.error', async () => {
+      vi.mocked(apiClient.get).mockRejectedValue(new Error('Network failure'));
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      const result = await tagService.getAllTags();
+
+      expect(result).toEqual([]);
+      expect(consoleSpy).toHaveBeenCalledWith('Fetch all tags failed:', expect.any(Error));
     });
   });
 });
