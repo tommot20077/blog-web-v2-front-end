@@ -107,12 +107,12 @@ describe('apiClient', () => {
       expect(capturedCreateConfig.baseURL).toBe('http://test-api:8080')
     })
 
-    it('VITE_API_BASE_URL 未設定時使用預設值 http://localhost:8080', async () => {
+    it('VITE_API_BASE_URL 未設定時使用預設值 http://localhost:9010', async () => {
       vi.stubEnv('VITE_API_BASE_URL', '')
       vi.resetModules()
       await import('./apiClient')
 
-      expect(capturedCreateConfig.baseURL).toBe('http://localhost:8080')
+      expect(capturedCreateConfig.baseURL).toBe('http://localhost:9010')
     })
 
     it('設定 withCredentials: true 以發送 HttpOnly cookie', () => {
