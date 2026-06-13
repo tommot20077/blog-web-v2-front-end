@@ -23,8 +23,10 @@ type PasswordStrength = (typeof PASSWORD_STRENGTH)[keyof typeof PASSWORD_STRENGT
 
 export type PasswordRules = {
   length: boolean;
-  letter: boolean;
+  lowercase: boolean;
+  uppercase: boolean;
   digit: boolean;
+  special: boolean;
 };
 
 interface ValidationRule {
@@ -155,15 +157,38 @@ export function useFormValidation<T extends object>(
 }
 
 /**
- * 取得密碼是否符合三條規則：長度 8-50、含英文字母、含數字
+ * 後端密碼複雜度政策的特殊字元集合：@$!%*?&#
  *
- * <p>純函式不依賴 reactive state，可獨立 import 不需建空的 useFormValidation。</p>
+ * <p>須與後端 PasswordPolicy regex 一致：
+ * {@code ^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,50}$}</p>
+ */
+export const PASSWORD_SPECIAL_CHARS = '@$!%*?&#';
+
+/**
+ * 完整密碼複雜度 regex，須與後端 PasswordPolicy 完全一致。
+ */
+export const PASSWORD_POLICY_PATTERN =
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,50}$/;
+
+/**
+ * 密碼複雜度提示文案，須與後端政策一致。
+ */
+export const PASSWORD_POLICY_MESSAGE =
+  '密碼須為 8-50 字元，且須包含大小寫英文字母、數字與特殊字元（@$!%*?&#）';
+
+/**
+ * 取得密碼是否符合五條規則：長度 8-50、含小寫、含大寫、含數字、含特殊字元（@$!%*?&#）。
+ *
+ * <p>純函式不依賴 reactive state，可獨立 import 不需建空的 useFormValidation。
+ * 與後端 PasswordPolicy 對齊，逐項回傳供即時提示使用。</p>
  */
 export function getPasswordRules(password: string): PasswordRules {
   return {
     length: password.length >= 8 && password.length <= 50,
-    letter: /[A-Za-z]/.test(password),
+    lowercase: /[a-z]/.test(password),
+    uppercase: /[A-Z]/.test(password),
     digit: /\d/.test(password),
+    special: /[@$!%*?&#]/.test(password),
   };
 }
 

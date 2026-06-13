@@ -3,7 +3,7 @@ import { userService } from '../api/userService'
 import { fileService } from '../api/fileService'
 import { useAuthStore } from '../stores/auth'
 import { useToast } from './useToast'
-import { getPasswordRules } from './useFormValidation'
+import { getPasswordRules, PASSWORD_POLICY_MESSAGE } from './useFormValidation'
 
 type SaveStatus = 'idle' | 'saving' | 'saved'
 
@@ -159,10 +159,16 @@ export function useSettings() {
       showToast('新密碼不一致', 'error')
       return
     }
-    // client-side 對齊後端 PasswordPolicy（min 8、含字母+數字）
+    // client-side 對齊後端 PasswordPolicy（8-50 字元、含大小寫字母+數字+特殊字元）
     const passwordRules = getPasswordRules(pwNew.value)
-    if (!passwordRules.length || !passwordRules.letter || !passwordRules.digit) {
-      showToast('新密碼須為 8-50 字元，且包含至少一個英文字母及一個數字', 'error')
+    if (
+      !passwordRules.length ||
+      !passwordRules.lowercase ||
+      !passwordRules.uppercase ||
+      !passwordRules.digit ||
+      !passwordRules.special
+    ) {
+      showToast(`新${PASSWORD_POLICY_MESSAGE}`, 'error')
       return
     }
     try {

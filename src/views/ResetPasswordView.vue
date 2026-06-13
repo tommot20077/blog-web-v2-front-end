@@ -5,7 +5,11 @@
  */
 import { reactive, ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useFormValidation } from '../composables/useFormValidation'
+import {
+  useFormValidation,
+  PASSWORD_POLICY_PATTERN,
+  PASSWORD_POLICY_MESSAGE,
+} from '../composables/useFormValidation'
 import { useToast } from '../composables/useToast'
 import { authService } from '../api/authService'
 import AuthFormLayout from '../components/auth/AuthFormLayout.vue'
@@ -38,8 +42,8 @@ const { errors, validateForm } = useFormValidation<ResetPasswordForm>({
     { type: 'required', message: '請輸入新密碼' },
     {
       type: 'pattern',
-      message: '密碼須為 8-50 字元，且包含至少一個英文字母及一個數字',
-      params: { pattern: /^(?=.*[A-Za-z])(?=.*\d).{8,50}$/ },
+      message: PASSWORD_POLICY_MESSAGE,
+      params: { pattern: PASSWORD_POLICY_PATTERN },
     },
   ],
   confirmPassword: [
