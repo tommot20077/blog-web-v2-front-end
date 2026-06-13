@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { tagService } from '../api/tagService'
-import { seriesService, type SeriesSummary } from '../api/real/seriesService'
+import { seriesService, type SeriesSummary } from '../api/seriesService'
 
 interface Tag { name: string; slug: string; count: number }
 
@@ -14,21 +14,30 @@ const hasError = ref(false)
 async function load() {
   isLoading.value = true
   hasError.value = false
-  try {
-    const [allTags, seriesPage] = await Promise.all([
-      tagService.getAllTags(),
-      seriesService.list({ size: 100 }),
-    ])
-    tags.value = allTags.map(t => ({ name: t.name, slug: t.slug, count: t.articleCount }))
-    series.value = seriesPage.records
-  } catch (error) {
-    console.error('Load tags index failed:', error)
+
+  // tags 與 series 各自獨立抓取：series 失敗（或無 mock 層）不可阻擋標籤雲渲染。
+  const [tagsResult, seriesResult] = await Promise.allSettled([
+    tagService.getAllTags(),
+    seriesService.list({ size: 100 }),
+  ])
+
+  if (tagsResult.status === 'fulfilled') {
+    tags.value = tagsResult.value.map(t => ({ name: t.name, slug: t.slug, count: t.articleCount }))
+  } else {
+    console.error('Load tags failed:', tagsResult.reason)
     hasError.value = true
     tags.value = []
-    series.value = []
-  } finally {
-    isLoading.value = false
   }
+
+  if (seriesResult.status === 'fulfilled') {
+    series.value = seriesResult.value.records
+  } else {
+    // series 失敗時靜默降級為空清單（區塊會自動隱藏），不影響標籤雲
+    console.error('Load series failed:', seriesResult.reason)
+    series.value = []
+  }
+
+  isLoading.value = false
 }
 
 onMounted(load)
@@ -90,8 +99,8 @@ const hasSeries = computed(() => series.value.length > 0)
       </div>
     </section>
 
-    <!-- Series（無資料時整段隱藏） -->
-    <section v-if="!isLoading && !hasError && hasSeries" class="tg-section wrap">
+    <!-- Series（無資料時整段隱藏；與 tag cloud 獨立，tag 失敗仍可顯示） -->
+    <section v-if="!isLoading && hasSeries" class="tg-section wrap">
       <div class="tg-sec-h" data-testid="tags-series-header">
         <span class="mono tg-sec-label" style="color:var(--muted-2)">Series · 連載</span>
         <div class="tg-sec-line" />

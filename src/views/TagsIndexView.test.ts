@@ -4,9 +4,9 @@ import { flushPromises } from '@vue/test-utils'
 import { renderWithRouterAsync } from '../test-utils'
 import TagsIndexView from './TagsIndexView.vue'
 import { tagService } from '../api/tagService'
-import { seriesService } from '../api/real/seriesService'
+import { seriesService } from '../api/seriesService'
 import type { TagDetailResponse } from '../api/tagService'
-import type { SeriesSummary } from '../api/real/seriesService'
+import type { SeriesSummary } from '../api/seriesService'
 import type { BackendPageResult } from '../api/utils'
 
 vi.mock('../api/tagService', () => ({
@@ -15,7 +15,7 @@ vi.mock('../api/tagService', () => ({
   },
 }))
 
-vi.mock('../api/real/seriesService', () => ({
+vi.mock('../api/seriesService', () => ({
   seriesService: {
     list: vi.fn(),
   },
