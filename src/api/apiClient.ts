@@ -2,7 +2,7 @@
  * API Client — 基於 axios 的 HTTP 客戶端
  *
  * 功能：
- * - 以 VITE_API_BASE_URL 為 baseURL，預設 http://localhost:8080
+ * - 以 VITE_API_BASE_URL 為 baseURL，預設 http://localhost:9010
  * - withCredentials: true（發送 HttpOnly refresh token cookie）
  * - Request interceptor：自動注入 Authorization Bearer token
  * - Response interceptor：解包 ApiResponse<T>，401 refresh queue
@@ -46,7 +46,7 @@ export function isSuccessCode(code: string): boolean {
 }
 
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:9010',
   withCredentials: true,
 })
 

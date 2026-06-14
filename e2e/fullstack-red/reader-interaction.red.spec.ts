@@ -139,6 +139,8 @@ test.describe('P0 full-stack red - reader interaction', () => {
     test.setTimeout(60_000)
     await waitForBackend()
     await expectSeedUserCanLogin('reader@test.local', 'Test1234!', 'USER')
+    await expectSeedUserCanLogin('author@test.local', 'Test1234!', 'AUTHOR')
+    await expectSeedUserCanLogin('admin@test.local', 'Test1234!', 'ADMIN')
 
     const title = `P0 Reader Interaction ${Date.now()}`
     const { uuid, adminToken } = await createPublishedArticle(request, title)
@@ -197,15 +199,32 @@ test.describe('P0 full-stack red - reader interaction', () => {
     }
   })
 
-  test('Guest 點擊互動應導到登入頁或顯示穩定權限錯誤', async ({ page, waitForBackend }) => {
+  test('Guest 點擊互動應導到登入頁或顯示穩定權限錯誤', async ({
+    page,
+    request,
+    waitForBackend,
+    expectSeedUserCanLogin,
+  }) => {
     await waitForBackend()
+    await expectSeedUserCanLogin('author@test.local', 'Test1234!', 'AUTHOR')
+    await expectSeedUserCanLogin('admin@test.local', 'Test1234!', 'ADMIN')
 
-    const firstArticle = await expectFirstArticleInList(page)
-    await firstArticle.click()
-    await expect(page).toHaveURL(/\/articles\//, { timeout: 10_000 })
-    await expect(page.getByTestId('article-root')).toBeVisible({ timeout: 10_000 })
+    const title = `P0 Guest Interaction ${Date.now()}`
+    const { uuid, adminToken } = await createPublishedArticle(request, title)
 
-    await page.getByTestId('article-like-action-bar').click()
-    await expectGuestInteractionBlocked(page)
+    try {
+      const firstArticle = await expectFirstArticleInList(page)
+      await firstArticle.click()
+      await expect(page).toHaveURL(/\/articles\//, { timeout: 10_000 })
+      await expect(page.getByTestId('article-root')).toBeVisible({ timeout: 10_000 })
+      await expect(page.getByTestId('article-title')).toContainText(title, { timeout: 10_000 })
+
+      await page.getByTestId('article-like-action-bar').click()
+      await expectGuestInteractionBlocked(page)
+    } finally {
+      await request.delete(`${BACKEND}/api/v1/articles/${uuid}`, {
+        headers: { Authorization: `Bearer ${adminToken}` },
+      }).catch(() => undefined)
+    }
   })
 })

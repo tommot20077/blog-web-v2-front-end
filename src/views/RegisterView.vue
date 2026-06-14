@@ -2,7 +2,11 @@
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
-import { useFormValidation } from '../composables/useFormValidation';
+import {
+  useFormValidation,
+  PASSWORD_POLICY_PATTERN,
+  PASSWORD_POLICY_MESSAGE,
+} from '../composables/useFormValidation';
 import { useToast } from '../composables/useToast';
 import AuthFormLayout from '../components/auth/AuthFormLayout.vue';
 import FormField from '../components/ui/FormField.vue';
@@ -45,8 +49,8 @@ const { errors, validateForm, getPasswordStrength } = useFormValidation<{
     { type: 'required', message: '請輸入密碼' },
     {
       type: 'pattern',
-      message: '密碼須為 8-50 字元，且包含至少一個英文字母及一個數字',
-      params: { pattern: /^(?=.*[A-Za-z])(?=.*\d).{8,50}$/ },
+      message: PASSWORD_POLICY_MESSAGE,
+      params: { pattern: PASSWORD_POLICY_PATTERN },
     },
   ],
 });

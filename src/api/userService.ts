@@ -1,4 +1,9 @@
-import type { UpdateProfileRequest, ChangePasswordRequest, DeleteAccountRequest } from '../types/user'
+import type {
+  UpdateProfileRequest,
+  NotificationPreferencesRequest,
+  ChangePasswordRequest,
+  DeleteAccountRequest,
+} from '../types/user'
 
 export const userService = {
   async updateProfile(data: UpdateProfileRequest): Promise<void> {
@@ -8,6 +13,15 @@ export const userService = {
     }
     const { userService: svc } = await import('./real/userService')
     return svc.updateProfile(data)
+  },
+
+  async updateNotifications(data: NotificationPreferencesRequest): Promise<void> {
+    if (import.meta.env.VITE_USE_MOCK === 'true') {
+      const { userService: svc } = await import('./mock/userService')
+      return svc.updateNotifications(data)
+    }
+    const { userService: svc } = await import('./real/userService')
+    return svc.updateNotifications(data)
   },
 
   async changePassword(data: ChangePasswordRequest): Promise<void> {

@@ -12,6 +12,16 @@ export function getHotTagsMock(limit: number): Promise<TagDetailResponse[]> {
   });
 }
 
+// 模擬全部標籤服務：依照 articleCount 由多到少排序回傳全部（對齊後端 /tags/all）
+export function getAllTagsMock(): Promise<TagDetailResponse[]> {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const sorted = [...allMockTags].sort((a, b) => b.articleCount - a.articleCount);
+      resolve(sorted);
+    }, 300);
+  });
+}
+
 // 模擬標籤詳情資料（TagDetail 完整結構）
 const mockTagDetails: TagDetail[] = allMockTags.map((tag) => ({
   uuid: tag.uuid,

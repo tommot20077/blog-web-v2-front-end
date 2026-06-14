@@ -1,35 +1,53 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { allMockArticles } from '../api/mock/data'
+import { articleService } from '../api/articleService'
+import type { ArchiveItem } from '../api/articleService'
 
 interface YearGroup {
   year: string
-  articles: typeof allMockArticles
+  articles: ArchiveItem[]
 }
 
+const articles = ref<ArchiveItem[]>([])
+const loading = ref(true)
+const error = ref(false)
+
+onMounted(async () => {
+  try {
+    articles.value = await articleService.getArchive()
+  } catch {
+    error.value = true
+  } finally {
+    loading.value = false
+  }
+})
+
 const byYear = computed<YearGroup[]>(() => {
-  const map = new Map<string, typeof allMockArticles>()
-  allMockArticles.forEach(a => {
+  const map = new Map<string, ArchiveItem[]>()
+  articles.value.forEach(a => {
     const y = a.publishedAt.slice(0, 4)
     if (!map.has(y)) map.set(y, [])
     map.get(y)!.push(a)
   })
   return [...map.entries()]
     .sort((a, b) => b[0].localeCompare(a[0]))
-    .map(([year, articles]) => ({
+    .map(([year, list]) => ({
       year,
-      // 同一年內依 publishedAt desc 排序，避免 mock 種子順序造成時間倒亂
-      articles: [...articles].sort((a, b) => b.publishedAt.localeCompare(a.publishedAt)),
+      // 同一年內依 publishedAt desc 排序，避免後端/種子順序造成時間倒亂
+      articles: [...list].sort((a, b) => b.publishedAt.localeCompare(a.publishedAt)),
     }))
 })
 
 const stats = computed(() => {
-  const total = allMockArticles.length
+  const total = articles.value.length
   const years = byYear.value.length
-  const tags = new Set(allMockArticles.flatMap(a => a.tags)).size
+  const tags = new Set(articles.value.flatMap(a => a.tags)).size
   return { total, years, tags }
 })
+
+const isEmpty = computed(() => !loading.value && !error.value && articles.value.length === 0)
+const hasData = computed(() => !loading.value && !error.value && articles.value.length > 0)
 
 function fmtDate(d: string) {
   const p = d.slice(0, 10).split('-')
@@ -56,8 +74,23 @@ function fmtDate(d: string) {
 
     <div class="ar-divider wrap" />
 
+    <!-- Loading -->
+    <div v-if="loading" class="ar-state wrap" data-testid="archive-loading">
+      <span class="mono">載入中…</span>
+    </div>
+
+    <!-- Error -->
+    <div v-else-if="error" class="ar-state wrap" data-testid="archive-error">
+      <span class="mono">載入失敗，請稍後再試。</span>
+    </div>
+
+    <!-- Empty -->
+    <div v-else-if="isEmpty" class="ar-state wrap" data-testid="archive-empty">
+      <span class="mono">目前還沒有任何文章。</span>
+    </div>
+
     <!-- Year groups -->
-    <main class="ar-main wrap">
+    <main v-else-if="hasData" class="ar-main wrap">
       <section
         v-for="group in byYear"
         :key="group.year"
@@ -111,6 +144,10 @@ function fmtDate(d: string) {
 .ar-stat span { font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
 
 .ar-divider { height: 1px; background: var(--divider); margin-bottom: 48px; }
+
+/* Loading / Empty / Error states */
+.ar-state { padding: 64px 0; text-align: center; color: var(--muted); }
+.ar-state .mono { font-family: var(--f-mono); font-size: 12px; letter-spacing: 0.08em; }
 
 /* Year groups */
 .ar-year-group { margin-bottom: 52px; }

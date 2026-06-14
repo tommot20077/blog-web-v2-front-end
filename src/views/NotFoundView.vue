@@ -1,12 +1,25 @@
 <script setup lang="ts">
+import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
-import { allMockArticles } from '../api/mock/data'
+import { recommendService } from '../api/recommendService'
+import type { RecommendArticleResponse } from '../api/real/recommendService'
 
-const suggestions = [...allMockArticles]
-  .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt))
-  .slice(0, 4)
+const suggestions = ref<RecommendArticleResponse[]>([])
+const isLoading = ref(true)
+
+onMounted(async () => {
+  try {
+    suggestions.value = await recommendService.getTrending('7d', 4)
+  } catch {
+    // 推薦失敗時優雅降級：保持空清單、隱藏推薦區塊，404 頁本身不受影響
+    suggestions.value = []
+  } finally {
+    isLoading.value = false
+  }
+})
 
 function fmtDate(d: string) {
+  // 用 ISO 字串前 10 字（YYYY-MM-DD）避免 new Date() 跨時區 shift
   const p = d.slice(0, 10).split('-')
   return p.length === 3 ? `${p[1]}.${p[2]}` : d.slice(5)
 }
@@ -33,8 +46,12 @@ function fmtDate(d: string) {
         <RouterLink to="/archive" class="nf-btn-sec">Archive</RouterLink>
       </div>
 
-      <!-- Suggested articles -->
-      <div class="nf-suggest" data-testid="notfound-suggestions">
+      <!-- Suggested articles (真實推薦；空清單或失敗時隱藏，避免壞連結) -->
+      <div
+        v-if="!isLoading && suggestions.length > 0"
+        class="nf-suggest"
+        data-testid="notfound-suggestions"
+      >
         <div class="nf-suggest-h">
           <span class="mono nf-suggest-label">最近寫的 · 也許你會想看</span>
           <span class="nf-suggest-rule" />

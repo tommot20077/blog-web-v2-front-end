@@ -25,13 +25,22 @@ const rules = computed(() => getPasswordRules(props.password));
       <span>長度 8-50 字元</span>
     </li>
     <li
-      data-testid="rule-letter"
-      :data-met="String(rules.letter)"
+      data-testid="rule-lowercase"
+      :data-met="String(rules.lowercase)"
       class="flex items-center gap-2"
-      :class="rules.letter ? 'text-green-500' : 'text-gray-400'"
+      :class="rules.lowercase ? 'text-green-500' : 'text-gray-400'"
     >
-      <span>{{ rules.letter ? '✓' : '✗' }}</span>
-      <span>包含英文字母</span>
+      <span>{{ rules.lowercase ? '✓' : '✗' }}</span>
+      <span>包含小寫字母</span>
+    </li>
+    <li
+      data-testid="rule-uppercase"
+      :data-met="String(rules.uppercase)"
+      class="flex items-center gap-2"
+      :class="rules.uppercase ? 'text-green-500' : 'text-gray-400'"
+    >
+      <span>{{ rules.uppercase ? '✓' : '✗' }}</span>
+      <span>包含大寫字母</span>
     </li>
     <li
       data-testid="rule-digit"
@@ -41,6 +50,15 @@ const rules = computed(() => getPasswordRules(props.password));
     >
       <span>{{ rules.digit ? '✓' : '✗' }}</span>
       <span>包含數字</span>
+    </li>
+    <li
+      data-testid="rule-special"
+      :data-met="String(rules.special)"
+      class="flex items-center gap-2"
+      :class="rules.special ? 'text-green-500' : 'text-gray-400'"
+    >
+      <span>{{ rules.special ? '✓' : '✗' }}</span>
+      <span>包含特殊字元（@$!%*?&#）</span>
     </li>
   </ul>
 </template>

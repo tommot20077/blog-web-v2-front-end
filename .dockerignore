@@ -1,0 +1,54 @@
+# 依賴與建置產物（image 內會重新 npm ci / build）
+node_modules
+dist
+dist-ssr
+
+# Docker 自身
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# 版本控制 / CI
+.git
+.gitignore
+.gitattributes
+.github
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# 測試與報告產物
+test-results
+playwright-report
+blob-report
+.playwright
+.playwright-cli
+.playwright-mcp
+coverage
+e2e
+
+# 編輯器 / 工具設定
+.vscode
+.idea
+.claude
+.codex
+.worktrees
+
+# 設計稿與文件（不參與 production build）
+blog-v2-design
+blog-v2-1-design
+old-src
+docs
+ai-docs
+api-reference
+*.md
+
+# 本機環境覆寫（不應進 image；production 用 .env.production）
+.env.local
+*.local
+.env.development.local
+.env.development.local.example

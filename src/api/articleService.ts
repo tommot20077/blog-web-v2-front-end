@@ -1,5 +1,5 @@
-export type { ArticleItem, ArticleDetailItem } from './real/articleService'
-import type { ArticleItem, ArticleDetailItem } from './real/articleService'
+export type { ArticleItem, ArticleDetailItem, ArchiveItem } from './real/articleService'
+import type { ArticleItem, ArticleDetailItem, ArchiveItem } from './real/articleService'
 import type { PageResult } from '../types/editor'
 
 export const articleService = {
@@ -28,5 +28,14 @@ export const articleService = {
     }
     const { articleService: svc } = await import('./real/articleService')
     return svc.getArticleBySlug(slug)
+  },
+
+  async getArchive(): Promise<ArchiveItem[]> {
+    if (import.meta.env.VITE_USE_MOCK === 'true') {
+      const { articleService: svc } = await import('./mock/articleService')
+      return svc.getArchive()
+    }
+    const { articleService: svc } = await import('./real/articleService')
+    return svc.getArchive()
   },
 }

@@ -1,4 +1,4 @@
-import { getArticlesMock, getArticleByUuidMock } from './articleMockService';
+import { getArticlesMock, getArticleByUuidMock, getArchiveMock } from './articleMockService';
 import { allMockArticles } from './data';
 
 describe('articleMockService', () => {
@@ -133,6 +133,35 @@ describe('articleMockService', () => {
       const result = await promise;
 
       expect(result).toBeNull();
+    });
+  });
+
+  // --- getArchiveMock ---
+  describe('getArchiveMock', () => {
+    it('回傳全部文章的 archive 精簡投影（uuid/title/slug/publishedAt/tags）', async () => {
+      const promise = getArchiveMock();
+      await vi.advanceTimersByTimeAsync(600);
+      const result = await promise;
+
+      expect(result).toHaveLength(allMockArticles.length);
+      const first = result[0]!;
+      expect(first).toHaveProperty('uuid');
+      expect(first).toHaveProperty('title');
+      expect(first).toHaveProperty('slug');
+      expect(first).toHaveProperty('publishedAt');
+      expect(Array.isArray(first.tags)).toBe(true);
+    });
+
+    it('依 publishedAt 由新到舊排序且跨多年度', async () => {
+      const promise = getArchiveMock();
+      await vi.advanceTimersByTimeAsync(600);
+      const result = await promise;
+
+      for (let i = 1; i < result.length; i++) {
+        expect(result[i - 1]!.publishedAt.localeCompare(result[i]!.publishedAt)).toBeGreaterThanOrEqual(0);
+      }
+      const years = new Set(result.map((a) => a.publishedAt.slice(0, 4)));
+      expect(years.size).toBeGreaterThan(1);
     });
   });
 });

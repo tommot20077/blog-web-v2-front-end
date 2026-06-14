@@ -13,17 +13,18 @@ test.describe('NotFoundView 升級 — 推薦文章與多 CTA', () => {
     await expect(page.locator('[data-testid="notfound-actions"]')).toBeVisible({ timeout: 5000 })
   })
 
-  test('推薦文章為最新發佈的 4 篇（依 publishedAt desc 排序）', async ({ page }) => {
+  test('推薦文章顯示 4 篇，每篇都是有效的文章連結', async ({ page }) => {
+    // 推薦來源已改為 recommendService.getTrending（熱門排序），不再保證 publishedAt desc，
+    // 因此只驗證：固定取回 4 篇、每篇都是指向 /articles/:uuid 的可點連結。
     await page.goto('/this-route-definitely-does-not-exist')
     await expect(page.locator('[data-testid="notfound-suggestions"]')).toBeVisible({ timeout: 5000 })
-    // 用 data-pub-date attribute 取完整 publishedAt（YYYY-MM-DD）做 desc 比較
     const rows = page.locator('[data-testid="notfound-suggestions"] .nf-suggest-row')
     expect(await rows.count()).toBe(4)
-    const dates = await rows.evaluateAll(els =>
-      els.map(el => (el as HTMLElement).dataset.pubDate ?? '')
+    const hrefs = await rows.evaluateAll(els =>
+      els.map(el => (el as HTMLAnchorElement).getAttribute('href') ?? '')
     )
-    for (let i = 0; i < dates.length - 1; i++) {
-      expect(dates[i] >= dates[i + 1]).toBe(true)
+    for (const href of hrefs) {
+      expect(href).toMatch(/^\/articles\/.+/)
     }
   })
 
@@ -72,12 +73,19 @@ test.describe('Tags Index — /tags', () => {
     expect(joined).not.toContain('Java')
   })
 
-  test('Series 區塊 ONGOING count 排除已完結的 series', async ({ page }) => {
+  test('Series 區塊顯示 seriesService.list() 回傳的連載', async ({ page }) => {
+    // Series 來源已改為 seriesService.list()（mock 層 3 筆）。後端 SeriesSummary 沒有
+    // 進度 / 完結 / ONGOING 概念，所以改為驗證：卡片數量對齊 mock、且標題確實渲染。
     await page.goto('/tags')
     await expect(page.locator('[data-testid="tags-series"]')).toBeVisible({ timeout: 5000 })
+    const cards = page.locator('[data-testid="tags-series"] .tg-series-card')
+    expect(await cards.count()).toBe(3)
+    // header 應顯示 series 數量
     const headerText = await page.locator('[data-testid="tags-series-header"]').textContent()
-    // header 含 "3 ONGOING"（4 個 series 中 1 個完結，剩 3 個 ongoing）
-    expect(headerText).toMatch(/\b3\s+ONGOING\b/i)
+    expect(headerText).toMatch(/3\s+series/i)
+    // mock 連載標題應出現
+    const seriesText = await page.locator('[data-testid="tags-series"]').textContent()
+    expect(seriesText).toContain('Vue 3 響應式系統內部')
   })
 })
 

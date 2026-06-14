@@ -1,54 +1,46 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { allMockArticles } from '../api/mock/data'
+import { tagService } from '../api/tagService'
+import { seriesService, type SeriesSummary } from '../api/seriesService'
 
 interface Tag { name: string; slug: string; count: number }
-interface Series { id: string; badge: string; title: string; desc: string; done: number; total: number }
 
-function toSlug(name: string): string {
-  return name.toLowerCase().replace(/\s+/g, '-')
+const tags = ref<Tag[]>([])
+const series = ref<SeriesSummary[]>([])
+const isLoading = ref(true)
+const hasError = ref(false)
+
+async function load() {
+  isLoading.value = true
+  hasError.value = false
+
+  // tags 與 series 各自獨立抓取：series 失敗（或無 mock 層）不可阻擋標籤雲渲染。
+  const [tagsResult, seriesResult] = await Promise.allSettled([
+    tagService.getAllTags(),
+    seriesService.list({ size: 100 }),
+  ])
+
+  if (tagsResult.status === 'fulfilled') {
+    tags.value = tagsResult.value.map(t => ({ name: t.name, slug: t.slug, count: t.articleCount }))
+  } else {
+    console.error('Load tags failed:', tagsResult.reason)
+    hasError.value = true
+    tags.value = []
+  }
+
+  if (seriesResult.status === 'fulfilled') {
+    series.value = seriesResult.value.records
+  } else {
+    // series 失敗時靜默降級為空清單（區塊會自動隱藏），不影響標籤雲
+    console.error('Load series failed:', seriesResult.reason)
+    series.value = []
+  }
+
+  isLoading.value = false
 }
 
-// 從 mock article 動態算 tag 頻次，避免 hard-coded list 與資料脫節
-const TAGS: Tag[] = (() => {
-  const counter = new Map<string, number>()
-  allMockArticles.forEach(a => a.tags.forEach(t => counter.set(t, (counter.get(t) ?? 0) + 1)))
-  return [...counter.entries()]
-    .map(([name, count]) => ({ name, slug: toSlug(name), count }))
-    .sort((a, b) => b.count - a.count)
-})()
-
-const SERIES: Series[] = [
-  {
-    id: 'vue-reactivity',
-    badge: 'Series · 5 / 8',
-    title: 'Vue 3 響應式系統內部',
-    desc: '從 reactive、ref、effect 到 computed 的完整解剖，以及如何自己寫一個迷你版本。',
-    done: 5, total: 8,
-  },
-  {
-    id: 'markdown-editor',
-    badge: 'Series · 3 / 6',
-    title: '從零打造 Markdown Editor',
-    desc: 'CodeMirror 6 + Shiki + 自製 markdown extension，全 series 結束時你會有一個能用的 editor。',
-    done: 3, total: 6,
-  },
-  {
-    id: 'spring-webflux',
-    badge: 'Series · 2 / 5',
-    title: 'Spring WebFlux 實戰',
-    desc: '非同步、backpressure、R2DBC 與整合測試的踩雷紀錄。',
-    done: 2, total: 5,
-  },
-  {
-    id: 'pg-index',
-    badge: 'Series · 4 / 4 · 完結',
-    title: 'PostgreSQL Index 全攻略',
-    desc: 'B-tree、GIN、BRIN、Hash、partial index — 何時用、怎麼測。',
-    done: 4, total: 4,
-  },
-]
+onMounted(load)
 
 function chipSize(count: number) {
   if (count >= 14) return 's5'
@@ -58,9 +50,9 @@ function chipSize(count: number) {
   return 's1'
 }
 
-const totalTags = computed(() => TAGS.length)
-const totalSeries = computed(() => SERIES.length)
-const ongoingSeries = computed(() => SERIES.filter(s => s.done < s.total).length)
+const totalTags = computed(() => tags.value.length)
+const totalSeries = computed(() => series.value.length)
+const hasSeries = computed(() => series.value.length > 0)
 </script>
 
 <template>
@@ -91,9 +83,11 @@ const ongoingSeries = computed(() => SERIES.filter(s => s.done < s.total).length
         <span class="mono tg-sec-label" style="color:var(--muted-2)">Tag Cloud</span>
         <div class="tg-sec-line" />
       </div>
-      <div class="tg-cloud" data-testid="tags-cloud">
+      <div v-if="isLoading" class="tg-state" data-testid="tags-loading">載入中…</div>
+      <div v-else-if="hasError" class="tg-state" data-testid="tags-error">標籤載入失敗，請稍後再試。</div>
+      <div v-else class="tg-cloud" data-testid="tags-cloud">
         <RouterLink
-          v-for="tag in TAGS"
+          v-for="tag in tags"
           :key="tag.slug"
           :to="'/tags/' + tag.slug"
           class="tg-chip"
@@ -105,30 +99,18 @@ const ongoingSeries = computed(() => SERIES.filter(s => s.done < s.total).length
       </div>
     </section>
 
-    <!-- Series -->
-    <section class="tg-section wrap">
+    <!-- Series（無資料時整段隱藏；與 tag cloud 獨立，tag 失敗仍可顯示） -->
+    <section v-if="!isLoading && hasSeries" class="tg-section wrap">
       <div class="tg-sec-h" data-testid="tags-series-header">
         <span class="mono tg-sec-label" style="color:var(--muted-2)">Series · 連載</span>
         <div class="tg-sec-line" />
-        <span class="mono tg-sec-meta" style="color:var(--muted)">{{ ongoingSeries }} ongoing</span>
+        <span class="mono tg-sec-meta" style="color:var(--muted)">{{ totalSeries }} series</span>
       </div>
       <div class="tg-series-grid" data-testid="tags-series">
-        <div v-for="s in SERIES" :key="s.id" class="tg-series-card">
-          <span class="tg-series-badge">{{ s.badge }}</span>
+        <div v-for="s in series" :key="s.uuid" class="tg-series-card">
+          <span class="tg-series-badge">Series · {{ s.articleCount }} 篇</span>
           <h3 class="tg-series-title">{{ s.title }}</h3>
-          <p class="tg-series-desc">{{ s.desc }}</p>
-          <div class="tg-series-prog">
-            <div class="tg-prog-bar">
-              <div class="tg-prog-fill" :style="{ width: `${(s.done / s.total) * 100}%` }" />
-            </div>
-            <span class="mono tg-prog-pct">{{ Math.round((s.done / s.total) * 100) }}%</span>
-          </div>
-        </div>
-
-        <!-- Coming soon placeholder -->
-        <div class="tg-series-card tg-series-card--coming">
-          <div class="tg-coming-title">下一個系列規劃中</div>
-          <div class="tg-coming-sub">關於 Vue 3 + Tailwind 的 12 篇連載</div>
+          <p v-if="s.description" class="tg-series-desc">{{ s.description }}</p>
         </div>
       </div>
     </section>
@@ -162,6 +144,9 @@ const ongoingSeries = computed(() => SERIES.filter(s => s.done < s.total).length
 .tg-sec-label { font-size: 10.5px; letter-spacing: 0.2em; white-space: nowrap; }
 .tg-sec-line { flex: 1; height: 1px; background: var(--divider); }
 .tg-sec-meta { font-size: 10.5px; letter-spacing: 0.14em; white-space: nowrap; }
+
+/* Loading / error state */
+.tg-state { font-size: 14px; color: var(--muted); padding: 8px 0; }
 
 /* Tag cloud */
 .tg-cloud { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: baseline; }
@@ -229,26 +214,7 @@ const ongoingSeries = computed(() => SERIES.filter(s => s.done < s.total).length
   margin: 0 0 10px;
   line-height: 1.3;
 }
-.tg-series-desc { font-size: 13.5px; color: var(--muted); line-height: 1.65; margin: 0 0 16px; }
-
-.tg-series-prog { display: flex; align-items: center; gap: 12px; }
-.tg-prog-bar { flex: 1; height: 4px; background: var(--bg-sub); border-radius: 2px; overflow: hidden; }
-.tg-prog-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.6s var(--ease); }
-.tg-prog-pct { font-size: 10.5px; color: var(--muted); letter-spacing: 0.1em; }
-
-.tg-series-card--coming {
-  border-style: dashed;
-  background: transparent;
-  color: var(--muted);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 140px;
-  gap: 6px;
-}
-.tg-coming-title { font-family: var(--f-display); font-size: 17px; color: var(--ink-2); }
-.tg-coming-sub { font-size: 13px; }
+.tg-series-desc { font-size: 13.5px; color: var(--muted); line-height: 1.65; margin: 0; }
 
 @media (max-width: 640px) {
   .tg-header { flex-direction: column; align-items: flex-start; gap: 16px; }

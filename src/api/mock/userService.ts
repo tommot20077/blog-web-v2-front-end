@@ -1,7 +1,13 @@
-import { updateProfileMock, changePasswordMock, deleteAccountMock } from './userMockService'
+import {
+  updateProfileMock,
+  updateNotificationsMock,
+  changePasswordMock,
+  deleteAccountMock,
+} from './userMockService'
 
 export const userService = {
   updateProfile: updateProfileMock,
+  updateNotifications: updateNotificationsMock,
   changePassword: changePasswordMock,
   deleteAccount: deleteAccountMock,
 }

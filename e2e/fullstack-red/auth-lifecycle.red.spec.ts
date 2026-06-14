@@ -7,7 +7,13 @@ test.describe('P0 full-stack red - auth lifecycle', () => {
     request,
     waitForBackend,
   }) => {
+    test.setTimeout(60_000)
     await waitForBackend()
+    await page.context().clearCookies()
+    await page.addInitScript(() => {
+      localStorage.clear()
+      sessionStorage.clear()
+    })
 
     const unique = `${Date.now()}${Math.random().toString(36).slice(2, 8)}`
     const email = `p0-auth-${unique}@test.local`

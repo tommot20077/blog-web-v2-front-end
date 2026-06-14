@@ -22,10 +22,30 @@ describe('activateUser', () => {
     vi.unstubAllEnvs()
   })
 
+  it('tries the local e2e compose postgres before remote dev fallbacks', async () => {
+    vi.stubEnv('E2E_CI', '')
+    vi.stubEnv('LOCAL_DB_PASSWORD', 'dev-secret')
+    mockedExecSync.mockImplementationOnce(() => Buffer.from('UPDATE 1'))
+
+    const { activateUser } = await loadHelpers()
+
+    activateUser('admin@test.local', 'ADMIN')
+
+    expect(mockedExecSync).toHaveBeenCalledTimes(1)
+    expect(mockedExecSync).toHaveBeenCalledWith(
+      expect.stringContaining('docker compose -f'),
+      { stdio: 'pipe' },
+    )
+    expect(mockedExecSync.mock.calls[0]?.[0]).toContain('exec -T postgres psql -U e2e_user -d blog_e2e')
+  })
+
   it('falls back to a one-shot psql client against the remote dev DB when local kubectl is unavailable', async () => {
     vi.stubEnv('E2E_CI', '')
     vi.stubEnv('LOCAL_DB_PASSWORD', 'dev-secret')
     mockedExecSync
+      .mockImplementationOnce(() => {
+        throw new Error('compose unavailable')
+      })
       .mockImplementationOnce(() => {
         throw new Error('kubectl unavailable')
       })
@@ -35,18 +55,18 @@ describe('activateUser', () => {
 
     activateUser('admin@test.local', 'ADMIN')
 
-    expect(mockedExecSync).toHaveBeenCalledTimes(2)
+    expect(mockedExecSync).toHaveBeenCalledTimes(3)
     expect(mockedExecSync).toHaveBeenNthCalledWith(
-      1,
+      2,
       expect.stringContaining('kubectl exec -n infra-dev deploy/postgres'),
       { stdio: 'pipe' },
     )
     expect(mockedExecSync).toHaveBeenNthCalledWith(
-      2,
+      3,
       expect.stringContaining('docker run --rm'),
       { stdio: 'pipe' },
     )
-    const fallbackCommand = mockedExecSync.mock.calls[1]?.[0] as string
+    const fallbackCommand = mockedExecSync.mock.calls[2]?.[0] as string
     expect(fallbackCommand).toContain('postgres:16-alpine')
     expect(fallbackCommand).toContain('PGPASSWORD=dev-secret')
     expect(fallbackCommand).toContain('-h "10.0.0.214"')
@@ -66,8 +86,9 @@ describe('activateUser', () => {
 
     activateUser('admin@test.local', 'ADMIN')
 
-    expect(mockedExecSync).toHaveBeenCalledTimes(1)
-    expect(mockedExecSync.mock.calls[0]?.[0]).toContain('kubectl exec -n infra-dev deploy/postgres')
+    expect(mockedExecSync).toHaveBeenCalledTimes(2)
+    expect(mockedExecSync.mock.calls[0]?.[0]).toContain('docker compose -f')
+    expect(mockedExecSync.mock.calls[1]?.[0]).toContain('kubectl exec -n infra-dev deploy/postgres')
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('LOCAL_DB_PASSWORD'))
 
     warnSpy.mockRestore()

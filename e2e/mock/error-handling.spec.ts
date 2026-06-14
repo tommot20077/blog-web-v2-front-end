@@ -1,9 +1,13 @@
-import { test, expect } from '../fixtures/base'
+import { test, expect } from '../fixtures/mock-app'
 
 /**
  * 情境 I：404 和錯誤處理
  */
 test.describe('錯誤頁面處理', () => {
+  test.beforeEach(async ({ resetMockStateInApp }) => {
+    await resetMockStateInApp()
+  })
+
   test('訪問未定義路由顯示 404 頁面', async ({ page }) => {
     await page.goto('/this-page-does-not-exist-xyz')
     await expect(page.locator('.err-page')).toBeVisible()

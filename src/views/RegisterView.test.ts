@@ -102,7 +102,7 @@ describe('RegisterView', () => {
     await fireEvent.update(emailInput, 'test@example.com');
     await fireEvent.update(usernameInput, 'test_user');
     await fireEvent.update(nicknameInput, 'TestUser');
-    await fireEvent.update(passwordInput, 'Password123');
+    await fireEvent.update(passwordInput, 'Password123!');
 
     const button = screen.getByRole('button', { name: '註冊' });
     await fireEvent.click(button);
@@ -135,7 +135,7 @@ describe('RegisterView', () => {
     await fireEvent.update(emailInput, 'test@example.com');
     await fireEvent.update(usernameInput, 'test_user');
     await fireEvent.update(nicknameInput, 'TestUser');
-    await fireEvent.update(passwordInput, 'Password123');
+    await fireEvent.update(passwordInput, 'Password123!');
 
     const button = screen.getByRole('button', { name: '註冊' });
     await fireEvent.click(button);

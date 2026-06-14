@@ -52,14 +52,14 @@ describe('ResetPasswordView', () => {
       '/reset-password?token=valid-token',
     )
 
-    await fireEvent.update(getByLabelText('新密碼'), 'NewPassword123')
-    await fireEvent.update(getByLabelText('確認密碼'), 'NewPassword123')
+    await fireEvent.update(getByLabelText('新密碼'), 'NewPassword123!')
+    await fireEvent.update(getByLabelText('確認密碼'), 'NewPassword123!')
     await fireEvent.click(getByRole('button', { name: '重設密碼' }))
 
     await waitFor(() => {
       expect(router.currentRoute.value.path).toBe('/login')
     })
-    expect(authService.resetPassword).toHaveBeenCalledWith('valid-token', 'NewPassword123')
+    expect(authService.resetPassword).toHaveBeenCalledWith('valid-token', 'NewPassword123!')
   })
 
   it('無 token 顯示錯誤訊息', async () => {
