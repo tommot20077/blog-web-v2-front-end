@@ -193,15 +193,17 @@ describe('authService', () => {
       })
     })
 
-    it('verifyEmail 使用 apiClient.get 並將 token 作為 query param', async () => {
-      mockGet.mockResolvedValue(undefined)
+    it('verifyEmail 使用 apiClient.post 並將 token 放在 request body', async () => {
+      mockPost.mockResolvedValue(undefined)
 
       const { authService } = await import('./authService')
       await authService.verifyEmail('verify-token-xyz')
 
-      expect(mockGet).toHaveBeenCalledWith('/api/v1/auth/verify-email', {
-        params: { token: 'verify-token-xyz' },
+      expect(mockPost).toHaveBeenCalledWith('/api/v1/auth/verify-email', {
+        token: 'verify-token-xyz',
       })
+      // token 屬憑證，不得再經由 query string 傳遞
+      expect(mockGet).not.toHaveBeenCalled()
     })
 
     it('verifyEmailCode 使用 apiClient.post 呼叫後端驗證碼端點', async () => {
