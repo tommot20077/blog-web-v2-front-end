@@ -1,5 +1,5 @@
 import { execSync } from 'child_process'
-import { activateUser } from './fixtures/admin-helpers'
+import { activateUser, resetAuthRateLimits } from './fixtures/admin-helpers'
 
 const BACKEND = process.env.VITE_API_BASE_URL || 'http://localhost:8080'
 const IS_CI = process.env.E2E_CI === '1'
@@ -227,6 +227,13 @@ export default async function globalSetup() {
   console.log('\n[E2E global-setup] Checking backend readiness...')
   await waitForBackendReadiness()
   console.log('[E2E global-setup] Backend readiness is UP.')
+
+  // 確保 auth 限流計數從乾淨狀態起跑。後端的 register / login 限流是 per-IP，
+  // 而 E2E 全部請求同一個 IP，故重跑（本機沿用同一組 compose）時計數會累加，
+  // 導致 global-setup 自己的 admin 登入就先被 A0113 擋下、整個套件無法啟動。
+  // CI 每次是全新的 Redis，此處為 no-op。
+  console.log('[E2E global-setup] Resetting auth rate limits...')
+  resetAuthRateLimits()
 
   console.log('[E2E global-setup] Ensuring MinIO bucket...')
   ensureMinIOBucket()
