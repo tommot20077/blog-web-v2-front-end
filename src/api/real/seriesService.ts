@@ -2,19 +2,6 @@ import apiClient from '../apiClient'
 import type { BackendPageResult } from '../utils'
 import type { ArticleStatus } from '../../types/editor'
 
-export interface Series {
-  id: number
-  uuid: string
-  title: string
-  slug: string
-  description?: string | null
-  coverImageUrl?: string | null
-  authorId: number
-  articleCount: number
-  createdAt: string
-  updatedAt: string
-}
-
 export interface AuthorSummary {
   uuid?: string
   nickname?: string
@@ -116,12 +103,12 @@ export const seriesService = {
     return apiClient.get<unknown, SeriesDetail>(`/api/v1/series/${slug}`)
   },
 
-  async create(request: CreateSeriesRequest): Promise<Series> {
-    return apiClient.post<unknown, Series>('/api/v1/series', request)
+  async create(request: CreateSeriesRequest): Promise<SeriesSummary> {
+    return apiClient.post<unknown, SeriesSummary>('/api/v1/series', request)
   },
 
-  async update(uuid: string, request: UpdateSeriesRequest): Promise<Series> {
-    return apiClient.put<unknown, Series>(`/api/v1/series/${uuid}`, request)
+  async update(uuid: string, request: UpdateSeriesRequest): Promise<SeriesSummary> {
+    return apiClient.put<unknown, SeriesSummary>(`/api/v1/series/${uuid}`, request)
   },
 
   async delete(uuid: string): Promise<void> {
