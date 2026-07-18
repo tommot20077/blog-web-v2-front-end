@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { waitForBackendReadiness } from './global-setup'
+import { startAuthRateLimitResetLoop, waitForBackendReadiness } from './global-setup'
 
 describe('global-setup backend readiness', () => {
   it('使用 readiness endpoint，且 backend 啟動中的失敗會重試直到成功', async () => {
@@ -82,5 +82,47 @@ describe('global-setup backend readiness', () => {
 
     expect(signals).toHaveLength(1)
     expect(signals[0].aborted).toBe(true)
+  })
+})
+
+describe('auth rate limit reset loop', () => {
+  it('週期性呼叫 reset，直到 stop() 後停止', () => {
+    vi.useFakeTimers()
+    try {
+      const reset = vi.fn()
+      const stop = startAuthRateLimitResetLoop({ intervalMs: 1000, reset })
+
+      // global-setup 進 loop 前已重置一次，loop 不應立刻再打
+      expect(reset).not.toHaveBeenCalled()
+
+      vi.advanceTimersByTime(3000)
+      expect(reset).toHaveBeenCalledTimes(3)
+
+      stop()
+      vi.advanceTimersByTime(5000)
+      expect(reset).toHaveBeenCalledTimes(3)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('reset 拋錯時不得中斷整個 loop（限流清不掉不該讓套件掛掉）', () => {
+    vi.useFakeTimers()
+    try {
+      const reset = vi
+        .fn()
+        .mockImplementationOnce(() => {
+          throw new Error('redis unreachable')
+        })
+        .mockImplementation(() => undefined)
+      const stop = startAuthRateLimitResetLoop({ intervalMs: 1000, reset })
+
+      expect(() => vi.advanceTimersByTime(2000)).not.toThrow()
+      expect(reset).toHaveBeenCalledTimes(2)
+
+      stop()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })
