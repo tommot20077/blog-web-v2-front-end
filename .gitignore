@@ -23,12 +23,16 @@ dist-ssr
 *.sln
 *.sw?
 /.env
-/.claude/
-/CLAUDE.md
-/pending.md
 /todo.md
-/ai-docs/
 /.playwright-mcp/
+# AI 治理層必須進版控(worktree/CI/clone 才讀得到制度);見 ai-docs/maintenance.md §5
+!/ai-docs/
+!/CLAUDE.md
+!/pending.md
+!/.claude/
+/.claude/settings.local.json
+/.claude/worktrees/
+/.claude/scheduled_tasks.lock
 
 # Playwright
 /test-results/
