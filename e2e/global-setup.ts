@@ -31,6 +31,49 @@ const SEED_USERS: SeedUser[] = [
 
 const defaultSleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
+type ResetLoopOptions = {
+  intervalMs?: number
+  reset?: () => void
+}
+
+/**
+ * 啟動背景限流重置迴圈，回傳 stop 函式。
+ *
+ * <p><b>為何需要</b>：後端 register / login 限流是 per-IP（{@code REGISTER_IP_MAX=10}
+ * ／60 分、{@code LOGIN_IP_MAX=20}／15 分），而整套 E2E 的請求全來自同一個 IP
+ * （compose 網路 gateway），共用同一組計數器。套件約 66 處登入呼叫、整趟約
+ * 5 分鐘內跑完（遠短於 15 分鐘窗口 → 計數器永不自動重置），跑到約第 13 個
+ * 測試就撞上 {@code LOGIN_IP_MAX}，其後每個要登入的測試都拿到 A0113、以
+ * {@code Cannot read properties of null (reading 'accessToken')} 收場——這正是
+ * CI e2e-integration job 的既有失敗根因。</p>
+ *
+ * <p>{@code global-setup} 只在起跑點清一次不夠（計數在跑的過程中累積），故此處
+ * 每隔 {@code intervalMs} 清一次 {@code auth:*:ip:*}，讓整趟壓在上限下。重置只
+ * 刪計數 key、不影響任何正常斷言（限流本身的行為應由獨立 case 覆蓋，不靠「剛好
+ * 撞到上限」來測）。</p>
+ *
+ * <p>此迴圈跑在 Playwright 主進程（globalSetup 之後、globalTeardown 之前皆存活），
+ * 由 globalSetup 回傳的 teardown 於全部測試結束後 stop。{@code unref} 確保它自身
+ * 不會擋住主進程結束。</p>
+ */
+export function startAuthRateLimitResetLoop({
+  intervalMs = 8000,
+  reset = resetAuthRateLimits,
+}: ResetLoopOptions = {}): () => void {
+  const handle = setInterval(() => {
+    // reset 失敗不該讓整套測試掛掉：清不掉時測試本來就還能跑（只是可能撞限流），
+    // 中斷 loop 反而更糟。resetAuthRateLimits 內部已吞錯，這裡是雙保險。
+    try {
+      reset()
+    } catch {
+      // 忽略：下一個 tick 再試
+    }
+  }, intervalMs)
+  // 別讓這個背景 interval 成為讓 Playwright 主進程無法退出的懸掛 handle
+  handle.unref?.()
+  return () => clearInterval(handle)
+}
+
 export async function waitForBackendReadiness({
   backendBase = BACKEND,
   fetchImpl = fetch,
@@ -269,4 +312,14 @@ export default async function globalSetup() {
   await seedCommonTags(authorToken)
 
   console.log('[E2E global-setup] Done.')
+
+  // 起跑點清一次還不夠：per-IP 登入計數會在整趟測試中累積、跑到約第 13 個
+  // 測試就撞 LOGIN_IP_MAX(20)。啟動背景迴圈週期性清 auth:*:ip:*，讓整趟壓在
+  // 上限下。回傳的函式即 Playwright globalTeardown，於全部測試結束後 stop。
+  console.log('[E2E global-setup] Starting auth rate-limit reset loop...')
+  const stopRateLimitResetLoop = startAuthRateLimitResetLoop()
+  return () => {
+    stopRateLimitResetLoop()
+    console.log('[E2E global-teardown] Auth rate-limit reset loop stopped.')
+  }
 }
