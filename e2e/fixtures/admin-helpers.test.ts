@@ -140,6 +140,30 @@ describe('fetchVerificationToken', () => {
 
     expect(() => fetchVerificationToken('nobody@test.local')).toThrow(/verification token/i)
   })
+
+  it('遠端 dev DB fallback 也用 -t -A 純值輸出，且僅有單一 -c（不靠字串替換）', async () => {
+    vi.stubEnv('E2E_CI', '')
+    vi.stubEnv('LOCAL_DB_PASSWORD', 'dev-secret')
+    mockedExecSync
+      .mockImplementationOnce(() => {
+        throw new Error('compose down')
+      })
+      .mockImplementationOnce(() => {
+        throw new Error('kubectl down')
+      })
+      .mockImplementationOnce(() => 'tok-remote\n')
+
+    const { fetchVerificationToken } = await loadHelpers()
+
+    const token = fetchVerificationToken('remote@test.local')
+
+    expect(token).toBe('tok-remote')
+    const remoteCmd = mockedExecSync.mock.calls[2]?.[0] as string
+    expect(remoteCmd).toContain('postgres:16-alpine')
+    expect(remoteCmd).toContain('-t -A -c')
+    // 字串替換 bug 的徵兆是拼出重複的 -c；純值 tuple 輸出只該有一個
+    expect(remoteCmd.match(/ -c /g)?.length ?? 0).toBe(1)
+  })
 })
 
 describe('resetAuthRateLimits', () => {

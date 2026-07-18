@@ -28,7 +28,15 @@ function buildVerificationTokenSql(email: string): string {
   ].join(' ')
 }
 
-function remoteDevPsqlClientCommand(sql: string): string | null {
+/**
+ * 組出連遠端 dev DB 的一次性 psql client 命令。
+ *
+ * @param sql 要執行的 SQL
+ * @param tupleOnly true 時加 -t -A（tuples only + unaligned），輸出為純值、
+ *   不含表格框線與欄位標題；查單一 token 用。預設 false（activateUser 的
+ *   UPDATE 不需要）。
+ */
+function remoteDevPsqlClientCommand(sql: string, tupleOnly = false): string | null {
   const password = process.env.LOCAL_DB_PASSWORD
   if (!password) {
     return null
@@ -53,6 +61,7 @@ function remoteDevPsqlClientCommand(sql: string): string | null {
     quoteArg(username),
     '-d',
     quoteArg(database),
+    ...(tupleOnly ? ['-t', '-A'] : []),
     '-c',
     quoteArg(sql),
   ].join(' ')
@@ -166,14 +175,16 @@ export function resetAuthRateLimits(): void {
  */
 export function fetchVerificationToken(email: string): string {
   const sql = buildVerificationTokenSql(email)
-  const remoteFallback = IS_CI ? null : remoteDevPsqlClientCommand(sql)
+  // tupleOnly=true → 遠端 fallback 同樣加 -t -A 純值輸出（由函式內統一插旗，
+  // 不再對組好的命令字串做脆弱的 .replace）。
+  const remoteFallback = IS_CI ? null : remoteDevPsqlClientCommand(sql, true)
   const localComposeCommand = `docker compose -f "${COMPOSE_FILE}" exec -T postgres psql -U e2e_user -d blog_e2e -t -A -c "${sql}"`
   const commands = IS_CI
     ? [localComposeCommand]
     : [
         localComposeCommand,
         `kubectl exec -n infra-dev deploy/postgres -- psql -U luca -d blog_v2_db -t -A -c "${sql}"`,
-        ...(remoteFallback ? [remoteFallback.replace(' -c ', ' -t -A -c ')] : []),
+        ...(remoteFallback ? [remoteFallback] : []),
       ]
 
   for (const cmd of commands) {
