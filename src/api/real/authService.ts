@@ -27,7 +27,7 @@ export const authService = {
   },
 
   async verifyEmail(token: string): Promise<void> {
-    return apiClient.get('/api/v1/auth/verify-email', { params: { token } })
+    return apiClient.post('/api/v1/auth/verify-email', { token })
   },
 
   async verifyEmailCode(email: string, code: string): Promise<void> {
