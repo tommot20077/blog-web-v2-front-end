@@ -34,6 +34,8 @@ interface PageResult<T> {
 *   內部 PK（`Long`）永不暴露給前端
 
 > ℹ️ version / series 端點於後端 **#50（H4）** 完成 DTO 化：`POST /series`、`PUT /series/{uuid}` 回 `SeriesSummaryResponse`（含 `author` 物件，非 `authorId`）；`POST /versions/manual`、`.../promote` 回 `VersionDetailResponse`，且 Version DTO 已移除內部 `authorId` / `categoryId`。前端型別已於 PR #39 對齊，惟 **`api-reference/openapi.json` 快照待 #50 上線後整份重抓**——在此之前快照仍是舊形狀（仍宣告 `ApiResponseSeries`、`ApiResponseArticleVersion` 及 Version DTO 的 `authorId`/`categoryId`），以本註記為準。追蹤見 [pending.md](../pending.md)。
+>
+> ℹ️ 信箱驗證端點於後端 **#48（H6）** 改為 `POST /api/v1/auth/verify-email`，body `{ token }`（token 屬憑證，不再走 query string，避免進入 access log 與瀏覽器歷史；後端以 `VerifyEmailRequest` + `@NotBlank` 驗證）。前端 `authService.verifyEmail` 已於 PR #38 對齊為 `apiClient.post(...)`，惟 **`api-reference/openapi.json` 快照待 #48 上線後整份重抓**——在此之前快照仍宣告舊形狀（`GET /api/v1/auth/verify-email` + `token` query param），以本註記為準。追蹤見 [pending.md](../pending.md)。
 
 ## Auth Flow
 

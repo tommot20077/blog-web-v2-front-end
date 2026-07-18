@@ -28,3 +28,17 @@
 2. 比對 `src/api/real/{seriesService,articleVersionService}.ts` 與快照一致後，刪除本項。
 
 **⚠️ 未上線前的隱形風險**：型別領先已部署契約。目前安全**僅因這四個方法無任何頁面消費**；一旦有人接「版本歷史 / 誰建立此快照」UI 並期待舊 `authorId`，或此前端先於 #50 進 prod，型別會靜默說謊（`apiClient` 無回應 schema 驗證層）。
+
+---
+
+## 📌 契約快照待重抓：verifyEmail 改 POST + body（後端 #48 / H6）
+**狀態**：`Pending`（綁定後端 blog-web-v2 #48 上線）
+**描述**：
+後端 #48（H6）將 `/api/v1/auth/verify-email` 由 `GET ?token=` 改為 `POST` + request body `{ token }`（token 屬憑證，不得經 query string 傳遞——會進 access log 與瀏覽器歷史；後端新增 `VerifyEmailRequest`，`token` 標 `@NotBlank`）。前端 `src/api/real/authService.ts`（PR #38）已對齊為 `apiClient.post('/api/v1/auth/verify-email', { token })`，並在 `VerifyEmailView` 進頁即把 token 從網址移除。但 `api-reference/openapi.json` 仍是 **#48 前的快照**（宣告 `GET` + `token` query param），與現行程式**相矛盾**。
+
+**待解任務**：
+1. 後端 #48 合併上線後，依 [maintenance.md](ai-docs/maintenance.md) §2 **整份重抓** `openapi.json`（後端跑於本機 9010）：
+   `curl http://localhost:9010/v3/api-docs -o api-reference/openapi.json`
+2. 確認快照 `/api/v1/auth/verify-email` 已翻為 `post` + `VerifyEmailRequest` body schema、且與 `authService.verifyEmail` 一致後，刪除本項並移除 [api-contract.md](ai-docs/api-contract.md) 對應 ℹ️ 註記。
+
+**⚠️ 未上線前的隱形風險**：前端已送 POST。若在後端 #48 部署前先進 prod → 後端仍是 GET → **405 Method Not Allowed → 所有信箱驗證失敗**。兩個 PR 必須同批部署（後端先或同時），前端不可單獨搶先上線。
