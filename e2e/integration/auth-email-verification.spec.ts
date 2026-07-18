@@ -41,14 +41,21 @@ test('N1 註冊 → 信箱驗證 → 登入', async ({ page }) => {
   // ── 2. 驗證前不得能登入（帳號尚未啟用）──────────────────────────────
   await page.getByTestId('auth-login-field-email').fill(email)
   await page.getByTestId('auth-login-field-password').fill(password)
+  // 先掛上 login 回應的等待，再點擊——確保斷言等到後端「確實回應」才判斷。
+  // 若只用 toHaveURL(/\/login/)：當下就在 /login 會立即通過、根本沒等後端，
+  // 未驗證帳號若被放行也抓不到（假通過）。
+  const loginResponse = page.waitForResponse(
+    (res) => res.url().includes('/api/v1/auth/login') && res.request().method() === 'POST',
+  )
   await page.getByTestId('auth-login-submit').click()
-  // 仍停留在 /login：未驗證的帳號不應取得 session
-  await expect(page).toHaveURL(/\/login/, { timeout: 10_000 })
+  await loginResponse
+  // 後端回應後仍停留在 /login ⇒ 未取得 session（成功時 LoginView 會導離 /login）
+  await expect(page).toHaveURL(/\/login/)
 
   // ── 3. 取得驗證 token（等同使用者從驗證信取得）──────────────────────
-  // compose 內無 SMTP，但 token 於註冊當下即寫入 verification_tokens
+  // compose 內無 SMTP，但 token 於註冊當下即寫入 verification_tokens。
+  // fetchVerificationToken 查無 token 會自行拋錯，故此處不需再斷言非空。
   const token = fetchVerificationToken(email)
-  expect(token).toBeTruthy()
 
   // ── 4. 走驗證頁（真瀏覽器 → 真 HTTP → 真後端 → 真 DB）───────────────
   await page.goto(`/verify-email?token=${encodeURIComponent(token)}`)

@@ -162,8 +162,44 @@ describe('resetAuthRateLimits', () => {
     expect(cmd).toContain('auth:*:ip:*')
   })
 
+  it('本機（非 CI）compose 失敗時退回 kubectl infra-dev redis', async () => {
+    vi.stubEnv('E2E_CI', '')
+    mockedExecSync
+      .mockImplementationOnce(() => {
+        throw new Error('compose unavailable')
+      })
+      .mockImplementationOnce(() => '')
+
+    const { resetAuthRateLimits } = await loadHelpers()
+
+    resetAuthRateLimits()
+
+    expect(mockedExecSync).toHaveBeenCalledTimes(2)
+    const kubectlCmd = mockedExecSync.mock.calls[1]?.[0] as string
+    expect(kubectlCmd).toContain('kubectl exec -n infra-dev deploy/redis')
+    // 密碼由 pod 自身 env 提供，不在此硬編
+    expect(kubectlCmd).toContain('$REDIS_PASSWORD')
+    expect(kubectlCmd).toContain('auth:*:ip:*')
+  })
+
+  it('CI 模式只走 compose，不嘗試 kubectl', async () => {
+    vi.stubEnv('E2E_CI', '1')
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    mockedExecSync.mockImplementationOnce(() => {
+      throw new Error('compose down')
+    })
+
+    const { resetAuthRateLimits } = await loadHelpers()
+
+    resetAuthRateLimits()
+
+    expect(mockedExecSync).toHaveBeenCalledTimes(1)
+    warnSpy.mockRestore()
+  })
+
   it('Redis 不可用時不得讓測試爆掉（限流未達上限時測試仍應能跑）', async () => {
     vi.stubEnv('E2E_CI', '1')
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
     mockedExecSync.mockImplementation(() => {
       throw new Error('redis unavailable')
     })
@@ -171,5 +207,22 @@ describe('resetAuthRateLimits', () => {
     const { resetAuthRateLimits } = await loadHelpers()
 
     expect(() => resetAuthRateLimits()).not.toThrow()
+
+    warnSpy.mockRestore()
+  })
+
+  it('所有路徑失敗時告警但不中斷測試', async () => {
+    vi.stubEnv('E2E_CI', '')
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    mockedExecSync.mockImplementation(() => {
+      throw new Error('all down')
+    })
+
+    const { resetAuthRateLimits } = await loadHelpers()
+
+    resetAuthRateLimits()
+
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('rate limit'))
+    warnSpy.mockRestore()
   })
 })

@@ -112,21 +112,41 @@ export function activateUser(email: string, role: string): void {
  * <p>限流本身的行為應由獨立的 test case 覆蓋（見設計文件 §4.2），
  * 不要靠「剛好撞到上限」來測。</p>
  *
- * <p>失敗不拋錯：限流未達上限時測試本來就能跑，不該因為清不掉而中斷。</p>
+ * <p>與 activateUser 同樣採多段管線：CI 走 e2e compose 的 redis；本地
+ * compose 不可用時退回 kubectl infra-dev 的 redis（密碼由 pod 自身
+ * $REDIS_PASSWORD 提供，不在此硬編）。</p>
+ *
+ * <p>失敗不拋錯：限流未達上限時測試本來就能跑，不該因為清不掉而中斷；
+ * 但全數路徑皆失敗時發出告警，避免「靜默 no-op」讓累積的計數繼續擋人。</p>
  */
 export function resetAuthRateLimits(): void {
   // 同時清 register 與 login 兩組計數（兩者皆為 per-IP，且 E2E 全部同 IP）
   const pattern = 'auth:*:ip:*'
-  const script = `for _,k in ipairs(redis.call('keys', ARGV[1])) do redis.call('del', k) end`
+  // Lua 字串用單引號，整段 EVAL 以雙引號包給 shell。
+  const composeScript = `for _,k in ipairs(redis.call('keys', ARGV[1])) do redis.call('del', k) end`
   const localComposeCommand =
     `docker compose -f "${COMPOSE_FILE}" exec -T redis redis-cli -a e2e_pass ` +
-    `--no-auth-warning EVAL "${script}" 0 "${pattern}"`
+    `--no-auth-warning EVAL "${composeScript}" 0 "${pattern}"`
 
-  try {
-    execSync(localComposeCommand, { stdio: 'pipe' })
-  } catch {
-    // 限流未達上限時測試仍可正常執行，故不中斷。
+  // kubectl 版本以 sh -c 包裹好讓 $REDIS_PASSWORD 由 pod 內 env 展開；
+  // 外層用單引號，故 Lua 字串改用雙引號，避免與腳本內的引號打架。
+  const kubectlScript = `for _,k in ipairs(redis.call("keys", ARGV[1])) do redis.call("del", k) end`
+  const kubectlCommand =
+    `kubectl exec -n infra-dev deploy/redis -- sh -c ` +
+    `'redis-cli -a "$REDIS_PASSWORD" --no-auth-warning EVAL "${kubectlScript}" 0 "${pattern}"'`
+
+  const commands = IS_CI ? [localComposeCommand] : [localComposeCommand, kubectlCommand]
+
+  for (const cmd of commands) {
+    try {
+      execSync(cmd, { stdio: 'pipe' })
+      return
+    } catch {
+      // 換下一條管線試。限流未達上限時測試仍可正常執行，故不中斷。
+    }
   }
+
+  console.warn('Could not reset auth rate limits — skipping (re-run may hit per-IP limits)')
 }
 
 /**
