@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import {
   useFormValidation,
@@ -12,8 +11,8 @@ import AuthFormLayout from '../components/auth/AuthFormLayout.vue';
 import FormField from '../components/ui/FormField.vue';
 import PasswordStrengthMeter from '../components/auth/PasswordStrengthMeter.vue';
 import PasswordRulesChecklist from '../components/auth/PasswordRulesChecklist.vue';
+import RegisterSuccess from '../components/auth/RegisterSuccess.vue';
 
-const router = useRouter();
 const authStore = useAuthStore();
 const { showToast } = useToast();
 
@@ -25,6 +24,16 @@ const password = ref('');
 
 /** 載入狀態 */
 const isLoading = ref(false);
+
+/**
+ * D1「右欄原地切換」：註冊成功後不跳頁，右欄改顯示 RegisterSuccess，
+ * 左側 hero 由 AuthFormLayout 維持不動。isSuccess 也同步關閉標準的
+ * 標題/副標題與「已有帳號？」footer，避免與成功畫面自帶的標題重複。
+ */
+const isSuccess = ref(false);
+const registeredEmail = ref('');
+const layoutTitle = computed(() => (isSuccess.value ? '' : '註冊'));
+const layoutSubtitle = computed(() => (isSuccess.value ? undefined : '建立您的帳號'));
 
 /** 表單驗證 */
 const { errors, validateForm, getPasswordStrength } = useFormValidation<{
@@ -75,8 +84,9 @@ async function handleSubmit() {
   isLoading.value = true;
   try {
     await authStore.register(formData);
-    showToast('註冊成功！請至信箱驗證您的帳號', 'success');
-    await router.push('/login');
+    // D1：不再用一閃即逝的 toast + 跳頁，改為右欄原地顯示持久的成功畫面。
+    registeredEmail.value = email.value;
+    isSuccess.value = true;
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : '註冊失敗，請稍後再試';
     showToast(message, 'error');
@@ -88,13 +98,22 @@ async function handleSubmit() {
 
 <template>
   <AuthFormLayout
-    title="註冊"
-    subtitle="建立您的帳號"
+    :title="layoutTitle"
+    :subtitle="layoutSubtitle"
     heroTitle="Start writing<br>your story."
     heroTagline="MY BLOG WEB. — EST 2023"
     titleTestId="auth-register-title"
   >
-    <form class="auth-form" @submit.prevent="handleSubmit">
+    <RegisterSuccess
+      v-if="isSuccess"
+      :email="registeredEmail"
+    />
+
+    <form
+      v-else
+      class="auth-form"
+      @submit.prevent="handleSubmit"
+    >
       <FormField
         data-testid="auth-register-field-email"
         v-model="email"
@@ -148,7 +167,10 @@ async function handleSubmit() {
       </button>
     </form>
 
-    <template #footer>
+    <template
+      v-if="!isSuccess"
+      #footer
+    >
       <span style="color: var(--ink)">已有帳號？</span>
       <RouterLink
         data-testid="auth-register-alt-link"
