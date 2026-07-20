@@ -193,14 +193,18 @@ describe('authService', () => {
       })
     })
 
-    it('verifyEmail 使用 apiClient.get 並將 token 作為 query param', async () => {
-      mockGet.mockResolvedValue(undefined)
+    // 後端契約是 POST + request body（AuthController: @PostMapping("/verify-email")
+    // + @RequestBody VerifyEmailRequest）。原本此處斷言 GET + query param，與後端不符，
+    // 使用者點信中連結會收到 "Request method 'GET' is not supported"。
+    // 另外 security.md 原則 8 明訂不得以 query param 傳遞 token（會外洩進日誌／瀏覽器歷史／Referer）。
+    it('verifyEmail 使用 apiClient.post 並將 token 放在 request body', async () => {
+      mockPost.mockResolvedValue(undefined)
 
       const { authService } = await import('./authService')
       await authService.verifyEmail('verify-token-xyz')
 
-      expect(mockGet).toHaveBeenCalledWith('/api/v1/auth/verify-email', {
-        params: { token: 'verify-token-xyz' },
+      expect(mockPost).toHaveBeenCalledWith('/api/v1/auth/verify-email', {
+        token: 'verify-token-xyz',
       })
     })
 
