@@ -50,3 +50,18 @@ export function submitForReviewMock(uuid: string): Promise<void> {
     }, 300)
   })
 }
+
+export function withdrawArticleMock(uuid: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      const article = editorArticleStore.find(a => a.uuid === uuid)
+      if (!article) {
+        reject(new Error(`文章 ${uuid} 不存在`))
+        return
+      }
+      article.status = 'DRAFT'
+      article.updatedAt = new Date().toISOString()
+      resolve()
+    }, 300)
+  })
+}

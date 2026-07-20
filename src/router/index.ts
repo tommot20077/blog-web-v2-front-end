@@ -146,7 +146,19 @@ const router = createRouter({
       component: () => import('../views/NotFoundView.vue')
     }
   ],
-  scrollBehavior() {
+  scrollBehavior(to, _from, savedPosition) {
+    // 錨點導航（例：導覽列 About 指向 /#about）：
+    // 原本無條件回傳 top:0，等於把 to.hash 整個吃掉，使用者按 About 只會跳回首頁頂端。
+    // top 偏移量用於避開固定在畫面上方的導覽列（.nav-wrap: top 18px + 高約 56px）。
+    if (to.hash) {
+      return { el: to.hash, behavior: 'smooth', top: 90 }
+    }
+
+    // 瀏覽器上一頁／下一頁：還原先前捲動位置，符合使用者預期
+    if (savedPosition) {
+      return savedPosition
+    }
+
     return { top: 0, behavior: 'smooth' }
   }
 });

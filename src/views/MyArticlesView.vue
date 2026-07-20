@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { myArticlesService } from '../api/myArticlesService'
 import { useToast } from '../composables/useToast'
+import ShellRail from '../components/layout/ShellRail.vue'
 import { ARTICLE_STATUS_LABELS } from '../types/editor'
 import type { MyArticle, ArticleStatusFilter } from '../types/editor'
 
@@ -13,6 +14,7 @@ const currentFilter = ref<ArticleStatusFilter>('ALL')
 const currentPage = ref(1)
 const totalPages = ref(1)
 const isLoading = ref(true)
+const withdrawingUuid = ref<string | null>(null)
 const PAGE_SIZE = 10
 
 async function fetchArticles() {
@@ -47,6 +49,19 @@ async function handleSubmit(uuid: string) {
   }
 }
 
+async function handleWithdraw(uuid: string) {
+  withdrawingUuid.value = uuid
+  try {
+    await myArticlesService.withdrawArticle(uuid)
+    showToast('已抽回文章', 'success')
+    await fetchArticles()
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : '抽回失敗', 'error')
+  } finally {
+    withdrawingUuid.value = null
+  }
+}
+
 async function handleDelete(uuid: string) {
   try {
     await myArticlesService.deleteArticle(uuid)
@@ -72,18 +87,13 @@ onMounted(fetchArticles)
   <div class="shell" data-testid="my-root">
 
     <!-- Left rail -->
-    <nav class="shell-rail">
-      <div class="brand">
-        <span class="mark" />
-        <span class="name">MY BLOG WEB.</span>
-      </div>
-
+    <ShellRail active="my-articles">
       <span class="rail-section">WORKSPACE</span>
 
-      <button class="rail-item active" data-testid="my-header-title">
+      <div class="rail-item" data-testid="my-header-title">
         我的文章
         <span class="n">{{ articles.length }}</span>
-      </button>
+      </div>
 
       <RouterLink to="/editor" class="rail-item" data-testid="my-new-btn">
         開始新文章
@@ -103,18 +113,14 @@ onMounted(fetchArticles)
       >
         {{ label }}
       </button>
-
-      <div class="rail-foot">
-        <RouterLink to="/">← Blog 首頁</RouterLink>
-      </div>
-    </nav>
+    </ShellRail>
 
     <!-- Main content -->
     <div class="shell-main">
 
       <!-- Back breadcrumb -->
       <div class="shell-back">
-        <span class="mono" style="font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted-2)">
+        <span class="mono" style="font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-2)">
           作者後台 · YUAN LUCA
         </span>
       </div>
@@ -157,26 +163,36 @@ onMounted(fetchArticles)
                 </span>
               </td>
               <td><time>{{ formatDate(article.updatedAt) }}</time></td>
-              <td class="ma-actions">
-                <RouterLink
-                  v-if="article.status === 'DRAFT' || article.status === 'REJECTED'"
-                  :to="`/editor/${article.uuid}`"
-                  class="ma-btn"
-                  :data-testid="'my-row-action-edit-' + article.uuid"
-                >編輯</RouterLink>
-                <button
-                  v-if="article.status === 'DRAFT'"
-                  type="button"
-                  class="ma-btn ma-btn--accent"
-                  @click="handleSubmit(article.uuid)"
-                >送出審核</button>
-                <button
-                  v-if="article.status === 'DRAFT'"
-                  type="button"
-                  class="ma-btn ma-btn--danger"
-                  :data-testid="'my-row-action-delete-' + article.uuid"
-                  @click="handleDelete(article.uuid)"
-                >刪除</button>
+              <td>
+                <div class="ma-actions">
+                  <RouterLink
+                    v-if="article.status === 'DRAFT' || article.status === 'REJECTED'"
+                    :to="`/editor/${article.uuid}`"
+                    class="ma-btn"
+                    :data-testid="'my-row-action-edit-' + article.uuid"
+                  >編輯</RouterLink>
+                  <button
+                    v-if="article.status === 'DRAFT'"
+                    type="button"
+                    class="ma-btn ma-btn--accent"
+                    @click="handleSubmit(article.uuid)"
+                  >送出審核</button>
+                  <button
+                    v-if="article.status === 'DRAFT'"
+                    type="button"
+                    class="ma-btn ma-btn--danger"
+                    :data-testid="'my-row-action-delete-' + article.uuid"
+                    @click="handleDelete(article.uuid)"
+                  >刪除</button>
+                  <button
+                    v-if="article.status === 'PENDING_REVIEW'"
+                    type="button"
+                    class="ma-btn"
+                    :data-testid="'my-row-action-withdraw-' + article.uuid"
+                    :disabled="withdrawingUuid === article.uuid"
+                    @click="handleWithdraw(article.uuid)"
+                  >抽回</button>
+                </div>
               </td>
             </tr>
             <tr
@@ -210,7 +226,7 @@ onMounted(fetchArticles)
 .ma-loading { padding: 3rem 0; display: flex; justify-content: center; }
 .ma-table { width: 100%; border-collapse: collapse; margin-top: 24px; }
 .ma-table th, .ma-table td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--divider); font-size: 13.5px; }
-.ma-table th { font-family: var(--f-mono); font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--muted-2); }
+.ma-table th { font-family: var(--f-mono); font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--ink-2); }
 .ma-status { display: inline-block; padding: 3px 10px; border-radius: 999px; font-family: var(--f-mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
 .ma-status.DRAFT { background: var(--bg-sub); color: var(--muted); }
 .ma-status.PUBLISHED { background: rgba(34,197,94,.12); color: #15803d; }

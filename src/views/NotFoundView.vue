@@ -174,7 +174,7 @@ function fmtDate(d: string) {
 .nf-suggest-label {
   font-size: 10px;
   letter-spacing: 0.2em;
-  color: var(--muted-2);
+  color: var(--ink-2);
   white-space: nowrap;
 }
 
@@ -201,7 +201,7 @@ function fmtDate(d: string) {
 .nf-d {
   font-family: var(--f-mono);
   font-size: 10px;
-  color: var(--muted-2);
+  color: var(--ink-2);
   letter-spacing: 0.06em;
   white-space: nowrap;
 }
@@ -222,7 +222,7 @@ function fmtDate(d: string) {
   font-size: 9.5px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--muted-2);
+  color: var(--ink-2);
   white-space: nowrap;
 }
 </style>

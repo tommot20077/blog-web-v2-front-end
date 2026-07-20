@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { bookmarkService } from '../api/bookmarkService'
 import { useToast } from '../composables/useToast'
+import ShellRail from '../components/layout/ShellRail.vue'
 import type { BookmarkArticleSummary } from '../api/real/bookmarkService'
 
 const { showToast } = useToast()
@@ -65,26 +66,7 @@ onMounted(fetchBookmarks)
 
 <template>
   <div class="shell" data-testid="bookmarks-root">
-    <nav class="shell-rail">
-      <div class="brand">
-        <span class="mark" />
-        <span class="name">MY BLOG WEB.</span>
-      </div>
-
-      <span class="rail-section">LIBRARY</span>
-
-      <button class="rail-item active" data-testid="bookmarks-header-title">
-        我的收藏
-        <span class="n">{{ total }}</span>
-      </button>
-
-      <RouterLink to="/my-articles" class="rail-item">我的文章</RouterLink>
-      <RouterLink to="/settings" class="rail-item">設定</RouterLink>
-
-      <div class="rail-foot">
-        <RouterLink to="/">← Blog 首頁</RouterLink>
-      </div>
-    </nav>
+    <ShellRail active="bookmarks" />
 
     <main class="shell-main">
       <div class="bm-head">
@@ -165,7 +147,7 @@ onMounted(fetchBookmarks)
   font-family: var(--f-mono);
   font-size: 10px;
   letter-spacing: .18em;
-  color: var(--muted-2);
+  color: var(--ink-2);
 }
 .bm-title {
   margin: 0;
@@ -255,7 +237,7 @@ onMounted(fetchBookmarks)
   margin-bottom: 8px;
   font-family: var(--f-mono);
   font-size: 11px;
-  color: var(--muted-2);
+  color: var(--ink-2);
 }
 .bm-content h2 {
   margin: 0 0 8px;

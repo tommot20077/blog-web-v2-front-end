@@ -88,8 +88,13 @@ async function resetAuthStore(page: Page): Promise<void> {
 
 async function uiLogin(page: Page, role: Role): Promise<void> {
   const creds = getCredentials(role)
+  // NavigationBar A1（頭像下拉選單）：登出按鈕現在收在選單裡，預設是關閉狀態
+  // （v-show，display:none），必須先點頭像展開選單才會變成 Playwright 認定的
+  // "visible"。頭像本身只在已登入時才會渲染，所以用它來判斷「是否已登入」。
+  const avatarButton = page.getByTestId('navbar-avatar')
   const logoutButton = page.getByTestId('navbar-logout-btn')
-  if (await logoutButton.isVisible().catch(() => false)) {
+  if (await avatarButton.isVisible().catch(() => false)) {
+    await avatarButton.click()
     await logoutButton.click()
     await expect(logoutButton).not.toBeVisible()
   }

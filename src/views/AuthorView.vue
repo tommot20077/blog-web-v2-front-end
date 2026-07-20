@@ -140,9 +140,9 @@ onMounted(async () => {
 .ap-page { min-height: 100vh; padding-top: 96px; }
 .ap-hero { display: grid; grid-template-columns: 160px 1fr auto; gap: 48px; padding: 48px 0 56px; align-items: start; }
 .ap-av { width: 160px; height: 160px; border-radius: 50%; background: linear-gradient(135deg, color-mix(in oklch, var(--accent) 30%, var(--bg-sub)), var(--bg-sub)); display: grid; place-items: center; font-family: var(--f-display); font-style: italic; font-weight: 500; font-size: 48px; color: var(--ink-2); letter-spacing: -0.04em; border: 1px solid var(--border); }
-.ap-eyebrow { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--muted-2); margin-bottom: 10px; }
+.ap-eyebrow { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--ink-2); margin-bottom: 10px; }
 .ap-name { font-family: var(--f-display); font-size: clamp(28px, 4vw, 52px); font-weight: 500; letter-spacing: -0.03em; margin: 0 0 6px; }
-.ap-role { font-size: 11px; letter-spacing: .16em; color: var(--muted-2); margin: 0 0 14px; }
+.ap-role { font-size: 11px; letter-spacing: .16em; color: var(--ink-2); margin: 0 0 14px; }
 .ap-bio { font-size: 14.5px; color: var(--muted); line-height: 1.7; margin: 0 0 16px; max-width: 50ch; }
 .ap-socials { display: flex; gap: 12px; align-items: center; }
 .ap-sep { color: var(--muted-2); }

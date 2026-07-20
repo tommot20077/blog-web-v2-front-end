@@ -42,4 +42,8 @@ export const myArticlesService = {
   async submitForReview(uuid: string): Promise<void> {
     return apiClient.post<unknown, void>(`/api/v1/articles/${uuid}/submit`)
   },
+
+  async withdrawArticle(uuid: string): Promise<void> {
+    return apiClient.post<unknown, void>(`/api/v1/articles/${uuid}/withdraw`)
+  },
 }

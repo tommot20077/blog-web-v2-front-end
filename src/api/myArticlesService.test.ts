@@ -87,5 +87,11 @@ describe('myArticlesService', () => {
       await myArticlesService.submitForReview('uuid-1')
       expect(apiClient.post).toHaveBeenCalledWith('/api/v1/articles/uuid-1/submit')
     })
+
+    it('withdrawArticle 呼叫 POST /api/v1/articles/:uuid/withdraw', async () => {
+      vi.mocked(apiClient.post).mockResolvedValue(undefined)
+      await myArticlesService.withdrawArticle('uuid-1')
+      expect(apiClient.post).toHaveBeenCalledWith('/api/v1/articles/uuid-1/withdraw')
+    })
   })
 })

@@ -61,7 +61,7 @@ const hasSeries = computed(() => series.value.length > 0)
     <!-- Page header -->
     <header class="tg-header wrap">
       <div class="tg-header-text">
-        <div class="tg-eyebrow mono" style="color:var(--muted-2)">
+        <div class="tg-eyebrow mono" style="color:var(--ink-2)">
           § tags &amp; series · {{ totalTags }} topics
         </div>
         <h1 class="tg-title">用主題<em>串起來看。</em></h1>
@@ -80,7 +80,7 @@ const hasSeries = computed(() => series.value.length > 0)
     <!-- Tag cloud -->
     <section class="tg-section wrap">
       <div class="tg-sec-h">
-        <span class="mono tg-sec-label" style="color:var(--muted-2)">Tag Cloud</span>
+        <span class="mono tg-sec-label" style="color:var(--ink-2)">Tag Cloud</span>
         <div class="tg-sec-line" />
       </div>
       <div v-if="isLoading" class="tg-state" data-testid="tags-loading">載入中…</div>
@@ -102,7 +102,7 @@ const hasSeries = computed(() => series.value.length > 0)
     <!-- Series（無資料時整段隱藏；與 tag cloud 獨立，tag 失敗仍可顯示） -->
     <section v-if="!isLoading && hasSeries" class="tg-section wrap">
       <div class="tg-sec-h" data-testid="tags-series-header">
-        <span class="mono tg-sec-label" style="color:var(--muted-2)">Series · 連載</span>
+        <span class="mono tg-sec-label" style="color:var(--ink-2)">Series · 連載</span>
         <div class="tg-sec-line" />
         <span class="mono tg-sec-meta" style="color:var(--muted)">{{ totalSeries }} series</span>
       </div>
@@ -189,9 +189,7 @@ const hasSeries = computed(() => series.value.length > 0)
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--surface);
-  transition: border-color 0.18s;
 }
-.tg-series-card:hover { border-color: var(--border-strong); }
 
 .tg-series-badge {
   font-family: var(--f-mono);

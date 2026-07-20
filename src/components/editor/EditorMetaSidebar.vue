@@ -263,7 +263,7 @@ async function onFileChange(e: Event) {
 .meta-tab-btn { flex: 1; padding: 5px 8px; border-radius: 6px; font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); transition: all 0.15s; }
 .meta-tab-btn.active { background: var(--ink); color: var(--bg); }
 .outline-panel { flex: 1; overflow-y: auto; padding: 4px 0; }
-.outline-empty { font-size: 12px; color: var(--muted-2); padding: 16px 8px; text-align: center; }
+.outline-empty { font-size: 12px; color: var(--muted); padding: 16px 8px; text-align: center; }
 .outline-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 2px; }
 .outline-item { font-size: 12.5px; color: var(--muted); padding: 6px 10px; border-radius: 6px; cursor: pointer; line-height: 1.4; transition: all 0.12s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .outline-item:hover { background: var(--bg-sub); color: var(--ink); }
