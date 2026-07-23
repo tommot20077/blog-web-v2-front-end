@@ -4,7 +4,8 @@ import { flushPromises } from '@vue/test-utils'
 import ArticleDetail from './ArticleDetail.vue'
 import { createTestRouter, createMockArticleDetail } from '../test-utils'
 import { articleService } from '../api/articleService'
-import type { ArticleCategory } from '../api/real/articleService'
+import type { ArticleCategory, ArticleDetailItem } from '../api/real/articleService'
+import type { TocEntry } from '../types/article'
 
 const {
   mockUsePersistedReadingProgress,
@@ -583,6 +584,118 @@ describe('ArticleDetail 頁面', () => {
       await fireEvent.click(scrollBtn)
 
       expect(scrollToSpy).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' })
+    })
+  })
+
+  describe('TOC 整合（T7）', () => {
+    it('.art-nav-dot 死點已移除', async () => {
+      const mockArticle = createMockArticleDetail()
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+      const { container } = await renderArticleDetail()
+      await flushPromises()
+
+      expect(container.querySelector('.art-nav-dot')).toBeNull()
+    })
+
+    it('文章含 toc 時渲染 ArticleToc 並傳入正確資料', async () => {
+      const toc: TocEntry[] = [
+        { id: 'heading-安裝步驟', text: '安裝步驟', level: 2 },
+        { id: 'heading-常見問題', text: '常見問題', level: 2 },
+      ]
+      const mockArticle = createMockArticleDetail({ toc })
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+      const { container } = await renderArticleDetail()
+      await flushPromises()
+
+      expect(container.querySelector('[data-testid="article-toc"]')).toBeInTheDocument()
+      expect(screen.getByTestId('toc-link-heading-安裝步驟')).toBeInTheDocument()
+      expect(screen.getByTestId('toc-link-heading-常見問題')).toBeInTheDocument()
+    })
+
+    it('toc 為空陣列時不渲染 ArticleToc（無空殼）', async () => {
+      const mockArticle = createMockArticleDetail({ toc: [] })
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+      const { container } = await renderArticleDetail()
+      await flushPromises()
+
+      expect(container.querySelector('[data-testid="article-toc"]')).not.toBeInTheDocument()
+    })
+
+    it('API 回應缺少 toc 欄位時（後端未上線前）不噴錯，且視為空陣列不渲染 ArticleToc', async () => {
+      const mockArticle = createMockArticleDetail()
+      delete (mockArticle as Partial<ArticleDetailItem>).toc
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+      const { container } = await renderArticleDetail()
+      await flushPromises()
+
+      expect(container.querySelector('[data-testid="article-title"]')).toBeInTheDocument()
+      expect(container.querySelector('[data-testid="article-toc"]')).not.toBeInTheDocument()
+    })
+
+    it('點擊 TOC 項目時捲動至對應標題', async () => {
+      const scrollIntoViewSpy = vi.fn()
+      Element.prototype.scrollIntoView = scrollIntoViewSpy
+      const toc: TocEntry[] = [{ id: 'heading-安裝步驟', text: '安裝步驟', level: 2 }]
+      const mockArticle = createMockArticleDetail({ toc, content: '## 安裝步驟\n內容' })
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+      mockUseMarkdownRenderer.mockImplementation(() => ({
+        renderedHtml: computed(() => '<h2 id="heading-安裝步驟">安裝步驟</h2><p>內容</p>'),
+        isReady: ref(true),
+      }))
+
+      await renderArticleDetail()
+      await flushPromises()
+      await nextTick()
+
+      await fireEvent.click(screen.getByTestId('toc-link-heading-安裝步驟'))
+
+      expect(scrollIntoViewSpy).toHaveBeenCalled()
+    })
+
+    it('深連結 #heading-xxx 進站時，內容非同步載入完成後補捲至該標題', async () => {
+      const scrollIntoViewSpy = vi.fn()
+      Element.prototype.scrollIntoView = scrollIntoViewSpy
+      const mockArticle = createMockArticleDetail({
+        toc: [{ id: 'heading-常見問題', text: '常見問題', level: 2 }],
+      })
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+      // renderedHtml 需隨 markdownSource（文章非同步載入完成後才有值）由空轉為有內容，
+      // 才能重現「內容非同步載入完成後才補捲」的真實時序，讓 watch(renderedHtml) 真的觸發一次變化。
+      mockUseMarkdownRenderer.mockImplementation((content: { value: string }) => ({
+        renderedHtml: computed(() => (content.value ? '<h2 id="heading-常見問題">常見問題</h2>' : '')),
+        isReady: ref(true),
+      }))
+
+      const router = createTestRouter('/articles/test-uuid#heading-常見問題')
+      await router.isReady()
+      render(ArticleDetail, { global: { plugins: [router] } })
+      await flushPromises()
+      await nextTick()
+      await nextTick()
+
+      expect(scrollIntoViewSpy).toHaveBeenCalled()
+    })
+
+    it('深連結目標不存在時不拋錯', async () => {
+      const scrollIntoViewSpy = vi.fn()
+      Element.prototype.scrollIntoView = scrollIntoViewSpy
+      const mockArticle = createMockArticleDetail({ toc: [] })
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+      const router = createTestRouter('/articles/test-uuid#heading-不存在')
+      await router.isReady()
+
+      await expect((async () => {
+        render(ArticleDetail, { global: { plugins: [router] } })
+        await flushPromises()
+        await nextTick()
+      })()).resolves.not.toThrow()
+
+      expect(scrollIntoViewSpy).not.toHaveBeenCalled()
     })
   })
 })

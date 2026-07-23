@@ -11,12 +11,14 @@ import { usePersistedReadingProgress } from '../composables/usePersistedReadingP
 import { useArticleHighlights } from '../composables/useArticleHighlights'
 import { useInlineArticleHighlights } from '../composables/useInlineArticleHighlights'
 import { useArticleTextSelection } from '../composables/useArticleTextSelection'
+import { useScrollSpy } from '../composables/useScrollSpy'
 import ActionBar from '../components/article/ActionBar.vue'
 import ReactionFooter from '../components/article/ReactionFooter.vue'
 import CommentSection from '../components/article/CommentSection.vue'
 import RelatedArticlesSection from '../components/article/RelatedArticlesSection.vue'
 import ArticleTextSelectionToolbar from '../components/article/ArticleTextSelectionToolbar.vue'
 import ArticleHighlightPanel from '../components/article/ArticleHighlightPanel.vue'
+import ArticleToc from '../components/article/ArticleToc.vue'
 import NotFoundView from './NotFoundView.vue'
 
 const route = useRoute()
@@ -59,6 +61,29 @@ watchEffect(() => {
     bookmarkState.bookmarked.value = article.value.bookmarked
   }
 })
+
+// 文章章節導覽（TOC）：防禦後端未上線前欄位缺失，一律視為空陣列。
+const toc = computed(() => article.value?.toc ?? [])
+const tocIds = computed(() => toc.value.map((entry) => entry.id))
+const { activeId } = useScrollSpy(tocIds)
+
+function scrollToHeading(id: string) {
+  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+// 深連結（例：/articles/xxx#heading-yyy）：文章內容非同步載入，路由層級的
+// scrollBehavior 執行當下標題元素通常還不存在，故於內容渲染完成後於此補捲一次。
+// 只補捲一次，避免 renderedHtml 之後再變動（如 highlight 套用觸發的重繪）時重複跳動。
+let hashScrolled = false
+watch(() => renderedHtml.value, async () => {
+  if (hashScrolled || !route.hash) return
+  await nextTick()
+  const target = document.getElementById(route.hash.slice(1))
+  if (target) {
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    hashScrolled = true
+  }
+}, { flush: 'post' })
 
 onMounted(() => window.scrollTo({ top: 0, behavior: 'auto' }))
 
@@ -217,11 +242,9 @@ const goBack = () => window.history.length > 1 ? router.back() : router.push('/a
         <CommentSection :article-uuid="article.uuid" />
       </div>
 
-      <!-- Side navigation dots -->
-      <div class="art-nav">
-        <div class="art-nav-dot active" />
-        <div class="art-nav-dot" />
-        <div class="art-nav-dot" />
+      <!-- 文章章節導覽（TOC） -->
+      <div class="art-toc-rail">
+        <ArticleToc :toc="toc" :active-id="activeId" @select="scrollToHeading" />
       </div>
     </article>
   </div>
@@ -302,4 +325,20 @@ html.dark .art-body :deep(:not(pre) > code) { color: var(--code-ink-dark, #ff7b7
   font-size: 16px; cursor: pointer; display: grid; place-items: center; transition: transform .2s;
 }
 .back-top-btn:hover { transform: translateY(-3px); }
+
+/* 文章章節導覽（TOC）側欄：取代原本 .art-nav 圓點的固定側邊定位。
+   內容為變長文字（非等距圓點），故加高度上限 + 捲動，避免長 TOC 溢出畫面。 */
+.art-toc-rail {
+  position: fixed;
+  right: 28px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 80;
+  width: 220px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+@media (max-width: 1100px) {
+  .art-toc-rail { display: none; }
+}
 </style>
