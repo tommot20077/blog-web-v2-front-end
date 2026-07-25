@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { shallowRef, ref, onMounted, onUnmounted } from 'vue'
+import { shallowRef, ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useEditorForm } from '../composables/useEditorForm'
 import { useMarkdownEditor } from '../composables/useMarkdownEditor'
 import { useMarkdownRenderer } from '../composables/useMarkdownRenderer'
 import { useWordCount } from '../composables/useWordCount'
 import { useEditorMode } from '../composables/useEditorMode'
+import { useEditorWordUnit } from '../composables/useEditorWordUnit'
 import { useToast } from '../composables/useToast'
 import { useEditorFocusMode } from '../composables/useEditorFocusMode'
 import { useEditorOutline } from '../composables/useEditorOutline'
@@ -41,7 +42,9 @@ _updateCursorLine = updateCursorLine
 const { renderedHtml } = useMarkdownRenderer(markdownContent)
 
 // ── Word count ─────────────────────────────────────────────────────────────
-const { wordCount } = useWordCount(markdownContent)
+const { wordCount, characterCount } = useWordCount(markdownContent)
+const { wordUnit } = useEditorWordUnit()
+const displayWordCount = computed(() => (wordUnit.value === 'words' ? wordCount.value : characterCount.value))
 
 // ── Editor mode (Write / Split / Preview) ───────────────────────────────────
 const { mode, setMode } = useEditorMode()
@@ -124,7 +127,7 @@ async function onSubmitForReview() {
         type="text"
         placeholder="文章標題..."
       />
-      <span class="editor-word-count">{{ wordCount }} 字</span>
+      <span class="editor-word-count" data-testid="editor-word-count">{{ displayWordCount }} 字</span>
 
       <!-- Editor mode segmented control (Write / Split / Preview) -->
       <div class="ed-mode" data-testid="editor-mode-toggle">
@@ -251,7 +254,7 @@ async function onSubmitForReview() {
       class="editor-focus-bar"
     >
       <span class="editor-focus-hint">ESC · Exit focus</span>
-      <span class="editor-word-count">{{ wordCount }} 字</span>
+      <span class="editor-word-count" data-testid="editor-focus-word-count">{{ displayWordCount }} 字</span>
       <button type="button" class="btn btn--ghost btn--sm" @click="exitFocusMode">
         Exit focus
       </button>

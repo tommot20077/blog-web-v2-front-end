@@ -5,6 +5,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import EditorView from './EditorView.vue'
 import { editorService } from '../api/editorService'
 import { categoryService } from '../api/categoryService'
+import { useMarkdownEditor } from '../composables/useMarkdownEditor'
 import { createMockEditorArticle } from '../test-utils/factories'
 
 // ── Mock vue-router ──────────────────────────────────────────────────────────
@@ -296,6 +297,36 @@ describe('EditorView', () => {
       expect(screen.getByTestId('editor-textarea').style.display).not.toBe('none')
       expect(screen.getByTestId('editor-preview').style.display).not.toBe('none')
       expect(localStorage.getItem('blog.edMode')).toBe('split')
+    })
+  })
+
+  // ── Word count unit switching ───────────────────────────────────────────
+  describe('word count unit switching', () => {
+    function mockMarkdownContent(text: string) {
+      vi.mocked(useMarkdownEditor).mockReturnValue({
+        editorView: ref(null),
+        markdownContent: ref(text),
+        wrapSelection: vi.fn(),
+        insertText: vi.fn(),
+        prefixLines: vi.fn(),
+        setContent: vi.fn(),
+        undo: vi.fn(),
+        redo: vi.fn(),
+      })
+    }
+
+    it("wordUnit = 'words' → 字數顯示採 wordCount（單詞數）", () => {
+      mockMarkdownContent('hello world')
+      localStorage.setItem('blog.settings.wordUnit', 'words')
+      renderEditor()
+      expect(screen.getByTestId('editor-word-count').textContent).toContain('2')
+    })
+
+    it("wordUnit = 'characters'（或未設定）→ 字數顯示採 characterCount（字元數）", () => {
+      mockMarkdownContent('hello world')
+      localStorage.setItem('blog.settings.wordUnit', 'characters')
+      renderEditor()
+      expect(screen.getByTestId('editor-word-count').textContent).toContain('10')
     })
   })
 })
