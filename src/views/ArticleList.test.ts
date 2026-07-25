@@ -122,6 +122,16 @@ describe('ArticleList 頁面', () => {
     }
   })
 
+  it('移除詩意副標「設計、前端與緩慢思考的記錄。」，只留大標 Articles.', async () => {
+    mockGetArticles.mockResolvedValue(createMockPageResult([]))
+    const { container, queryByText } = renderWithRouter(ArticleList)
+    await flushPromises()
+
+    expect(queryByText('設計、前端與緩慢思考的記錄。')).not.toBeInTheDocument()
+    expect(container.querySelector('.lede')).not.toBeInTheDocument()
+    expect(container.querySelector('.art-page-head h1')?.textContent).toContain('Articles.')
+  })
+
   it('切換到 List 視圖後使用 art-list 容器', async () => {
     const articles = buildArticles(6)
     mockGetArticles.mockResolvedValue(createMockPageResult(articles))

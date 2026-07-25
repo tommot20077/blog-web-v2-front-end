@@ -19,10 +19,7 @@ const readNextHref = computed(() =>
           <span>Yuan Luca — writing, slowly.</span>
         </div>
 
-        <h1 class="hero-title reveal d2" data-testid="hero-title">
-          慢慢把一件事，<br>
-          <span class="em">說</span><span class="accent">清</span>楚。
-        </h1>
+        <h1 class="hero-title reveal d2" data-testid="hero-title"></h1>
 
         <div class="hero-foot-min reveal d3">
           <span>Scroll ↓</span>

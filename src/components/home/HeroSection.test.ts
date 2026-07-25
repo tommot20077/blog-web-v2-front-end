@@ -34,6 +34,14 @@ describe('HeroSection', () => {
     expect(wrapper.find('.scroll-cue').exists()).toBe(true)
   })
 
+  it('移除詩意副標文案，hero-title 不再顯示舊文案「慢慢把一件事，說清楚。」', () => {
+    const wrapper = mount(HeroSection)
+    const title = wrapper.find('[data-testid="hero-title"]')
+    expect(title.text().trim()).toBe('')
+    expect(title.text()).not.toContain('慢慢把一件事')
+    expect(title.text()).not.toContain('清楚')
+  })
+
   it('傳入 latestArticleUuid 時 read-next 連結指向正確路徑', () => {
     const wrapper = mount(HeroSection, {
       props: { latestArticleUuid: 'abc-123' },
