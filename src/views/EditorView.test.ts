@@ -229,4 +229,73 @@ describe('EditorView', () => {
       })
     })
   })
+
+  // ── Editor mode switching ───────────────────────────────────────────────
+  describe('editor mode switching', () => {
+    it('預設（localStorage 無值）render split：editor 與 preview 面板皆可見', () => {
+      renderEditor()
+      expect(screen.getByTestId('editor-textarea').style.display).not.toBe('none')
+      expect(screen.getByTestId('editor-preview').style.display).not.toBe('none')
+    })
+
+    it("localStorage = 'write' → 只顯示編輯器，不顯示預覽", () => {
+      localStorage.setItem('blog.edMode', 'write')
+      renderEditor()
+      expect(screen.getByTestId('editor-textarea').style.display).not.toBe('none')
+      expect(screen.getByTestId('editor-preview').style.display).toBe('none')
+    })
+
+    it("localStorage = 'preview' → 只顯示預覽，不顯示編輯器", () => {
+      localStorage.setItem('blog.edMode', 'preview')
+      renderEditor()
+      expect(screen.getByTestId('editor-textarea').style.display).toBe('none')
+      expect(screen.getByTestId('editor-preview').style.display).not.toBe('none')
+    })
+
+    it("localStorage = 'split' → 兩個面板皆可見", () => {
+      localStorage.setItem('blog.edMode', 'split')
+      renderEditor()
+      expect(screen.getByTestId('editor-textarea').style.display).not.toBe('none')
+      expect(screen.getByTestId('editor-preview').style.display).not.toBe('none')
+    })
+
+    it('localStorage 為非法值 → 安全退回 split，不壞掉', () => {
+      localStorage.setItem('blog.edMode', 'garbage')
+      renderEditor()
+      expect(screen.getByTestId('editor-root')).toBeInTheDocument()
+      expect(screen.getByTestId('editor-textarea').style.display).not.toBe('none')
+      expect(screen.getByTestId('editor-preview').style.display).not.toBe('none')
+    })
+
+    it('點擊 Write 段 → 只顯示編輯器並寫入 localStorage', async () => {
+      const user = userEvent.setup()
+      renderEditor()
+      await user.click(screen.getByTestId('editor-mode-write'))
+
+      expect(screen.getByTestId('editor-textarea').style.display).not.toBe('none')
+      expect(screen.getByTestId('editor-preview').style.display).toBe('none')
+      expect(localStorage.getItem('blog.edMode')).toBe('write')
+    })
+
+    it('點擊 Preview 段 → 只顯示預覽並寫入 localStorage', async () => {
+      const user = userEvent.setup()
+      renderEditor()
+      await user.click(screen.getByTestId('editor-mode-preview'))
+
+      expect(screen.getByTestId('editor-textarea').style.display).toBe('none')
+      expect(screen.getByTestId('editor-preview').style.display).not.toBe('none')
+      expect(localStorage.getItem('blog.edMode')).toBe('preview')
+    })
+
+    it('由 write 點擊 Split 段 → 兩面板恢復可見並寫入 localStorage', async () => {
+      localStorage.setItem('blog.edMode', 'write')
+      const user = userEvent.setup()
+      renderEditor()
+      await user.click(screen.getByTestId('editor-mode-split'))
+
+      expect(screen.getByTestId('editor-textarea').style.display).not.toBe('none')
+      expect(screen.getByTestId('editor-preview').style.display).not.toBe('none')
+      expect(localStorage.getItem('blog.edMode')).toBe('split')
+    })
+  })
 })

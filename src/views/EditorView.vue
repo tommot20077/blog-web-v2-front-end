@@ -5,6 +5,7 @@ import { useEditorForm } from '../composables/useEditorForm'
 import { useMarkdownEditor } from '../composables/useMarkdownEditor'
 import { useMarkdownRenderer } from '../composables/useMarkdownRenderer'
 import { useWordCount } from '../composables/useWordCount'
+import { useEditorMode } from '../composables/useEditorMode'
 import { useToast } from '../composables/useToast'
 import { useEditorFocusMode } from '../composables/useEditorFocusMode'
 import { useEditorOutline } from '../composables/useEditorOutline'
@@ -41,6 +42,9 @@ const { renderedHtml } = useMarkdownRenderer(markdownContent)
 
 // ── Word count ─────────────────────────────────────────────────────────────
 const { wordCount } = useWordCount(markdownContent)
+
+// ── Editor mode (Write / Split / Preview) ───────────────────────────────────
+const { mode, setMode } = useEditorMode()
 
 // ── Form state ─────────────────────────────────────────────────────────────
 const {
@@ -121,6 +125,49 @@ async function onSubmitForReview() {
         placeholder="文章標題..."
       />
       <span class="editor-word-count">{{ wordCount }} 字</span>
+
+      <!-- Editor mode segmented control (Write / Split / Preview) -->
+      <div class="ed-mode" data-testid="editor-mode-toggle">
+        <button
+          type="button"
+          data-testid="editor-mode-write"
+          :class="{ active: mode === 'write' }"
+          title="只顯示編輯器"
+          @click="setMode('write')"
+        >
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
+            <path d="M2 3h12M2 7h12M2 11h8" />
+          </svg>
+          Write
+        </button>
+        <button
+          type="button"
+          data-testid="editor-mode-split"
+          :class="{ active: mode === 'split' }"
+          title="左寫 · 右看"
+          @click="setMode('split')"
+        >
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
+            <rect x="1.5" y="2" width="6" height="12" rx="1" />
+            <rect x="8.5" y="2" width="6" height="12" rx="1" fill="currentColor" opacity="0.15" />
+          </svg>
+          Split
+        </button>
+        <button
+          type="button"
+          data-testid="editor-mode-preview"
+          :class="{ active: mode === 'preview' }"
+          title="只顯示預覽"
+          @click="setMode('preview')"
+        >
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
+            <path d="M1.5 8s2.5-5 6.5-5 6.5 5 6.5 5-2.5 5-6.5 5S1.5 8 1.5 8z" />
+            <circle cx="8" cy="8" r="2" />
+          </svg>
+          Preview
+        </button>
+      </div>
+
       <button
         type="button"
         class="btn btn--ghost"
@@ -165,8 +212,9 @@ async function onSubmitForReview() {
 
     <!-- Split pane body -->
     <div class="editor-body">
-      <!-- Left: CodeMirror editor -->
+      <!-- Left: CodeMirror editor (v-show, not v-if — 保留 CodeMirror 實例，避免 mode 切換時重建) -->
       <div
+        v-show="mode !== 'preview'"
         ref="editorContainer"
         class="editor-pane"
         data-testid="editor-textarea"
@@ -174,6 +222,7 @@ async function onSubmitForReview() {
 
       <!-- Center: Markdown preview -->
       <div
+        v-show="mode !== 'write'"
         class="editor-preview prose"
         data-testid="editor-preview"
         v-html="renderedHtml"
