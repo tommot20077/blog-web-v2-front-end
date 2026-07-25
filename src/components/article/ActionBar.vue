@@ -10,6 +10,8 @@ defineProps<{
 defineEmits<{
   toggle: []
   toggleBookmark: []
+  share: []
+  viewMarkdown: []
 }>()
 </script>
 
@@ -39,9 +41,25 @@ defineEmits<{
       <span aria-hidden="true">{{ bookmarked ? '★' : '☆' }}</span>
     </button>
 
-    <!-- placeholders for future Stage: share / view-as-md -->
-    <button class="ab-btn disabled" disabled title="coming soon" aria-label="Share">↗</button>
-    <button class="ab-btn disabled" disabled title="coming soon" aria-label="View as Markdown">{ }</button>
+    <button
+      data-testid="article-share-action-bar"
+      class="ab-btn"
+      aria-label="分享文章"
+      title="分享文章"
+      @click="$emit('share')"
+    >
+      <span aria-hidden="true">↗</span>
+    </button>
+
+    <button
+      data-testid="article-view-markdown-action-bar"
+      class="ab-btn"
+      aria-label="以 Markdown 檢視"
+      title="以 Markdown 檢視"
+      @click="$emit('viewMarkdown')"
+    >
+      <span aria-hidden="true">{ }</span>
+    </button>
   </aside>
 </template>
 
@@ -74,10 +92,6 @@ defineEmits<{
 }
 .ab-btn.pulse {
   animation: pulse 350ms ease-out;
-}
-.ab-btn.disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
 }
 .ab-count {
   font-size: 11px;

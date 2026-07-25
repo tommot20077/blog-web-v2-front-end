@@ -55,4 +55,32 @@ describe('ActionBar', () => {
     expect(btn.attributes('disabled')).toBeDefined()
     expect(btn.classes()).toContain('pulse')
   })
+
+  it('分享按鈕不再 disabled', () => {
+    const wrapper = mount(ActionBar, { props: baseProps })
+    const btn = wrapper.find('[data-testid="article-share-action-bar"]')
+    expect(btn.exists()).toBe(true)
+    expect(btn.attributes('disabled')).toBeUndefined()
+    expect(btn.classes()).not.toContain('disabled')
+  })
+
+  it('點擊分享按鈕 → emit share', async () => {
+    const wrapper = mount(ActionBar, { props: baseProps })
+    await wrapper.find('[data-testid="article-share-action-bar"]').trigger('click')
+    expect(wrapper.emitted('share')).toHaveLength(1)
+  })
+
+  it('以 Markdown 檢視按鈕不再 disabled', () => {
+    const wrapper = mount(ActionBar, { props: baseProps })
+    const btn = wrapper.find('[data-testid="article-view-markdown-action-bar"]')
+    expect(btn.exists()).toBe(true)
+    expect(btn.attributes('disabled')).toBeUndefined()
+    expect(btn.classes()).not.toContain('disabled')
+  })
+
+  it('點擊以 Markdown 檢視按鈕 → emit viewMarkdown', async () => {
+    const wrapper = mount(ActionBar, { props: baseProps })
+    await wrapper.find('[data-testid="article-view-markdown-action-bar"]').trigger('click')
+    expect(wrapper.emitted('viewMarkdown')).toHaveLength(1)
+  })
 })

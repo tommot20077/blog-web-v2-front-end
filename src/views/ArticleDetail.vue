@@ -12,6 +12,8 @@ import { useArticleHighlights } from '../composables/useArticleHighlights'
 import { useInlineArticleHighlights } from '../composables/useInlineArticleHighlights'
 import { useArticleTextSelection } from '../composables/useArticleTextSelection'
 import ActionBar from '../components/article/ActionBar.vue'
+import MarkdownViewModal from '../components/article/MarkdownViewModal.vue'
+import { shareArticle } from '../components/article/shareArticle'
 import ReactionFooter from '../components/article/ReactionFooter.vue'
 import CommentSection from '../components/article/CommentSection.vue'
 import RelatedArticlesSection from '../components/article/RelatedArticlesSection.vue'
@@ -64,6 +66,13 @@ onMounted(() => window.scrollTo({ top: 0, behavior: 'auto' }))
 
 const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' })
 const goBack = () => window.history.length > 1 ? router.back() : router.push('/articles')
+
+// ActionBar 分享 / 以 Markdown 檢視：ActionBar 本身維持 presentational（只 emit），
+// 實際邏輯放在頁面層，因為這裡才有目前網址（window.location.href）與文章原始 content。
+const showMarkdownModal = ref(false)
+const handleShare = () => shareArticle(window.location.href)
+const openMarkdownModal = () => { showMarkdownModal.value = true }
+const closeMarkdownModal = () => { showMarkdownModal.value = false }
 </script>
 
 <template>
@@ -215,9 +224,18 @@ const goBack = () => window.history.length > 1 ? router.back() : router.push('/a
             :bookmark-pending="bookmarkState.isPending.value"
             @toggle="likeState.toggle"
             @toggle-bookmark="bookmarkState.toggle"
+            @share="handleShare"
+            @view-markdown="openMarkdownModal"
           />
         </div>
       </div>
+
+      <!-- Markdown 原始檔檢視彈窗 -->
+      <MarkdownViewModal
+        v-if="showMarkdownModal"
+        :content="article.content"
+        @close="closeMarkdownModal"
+      />
 
       <!-- Related articles -->
       <RelatedArticlesSection :article-uuid="article.uuid" />
