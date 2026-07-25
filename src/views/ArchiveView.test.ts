@@ -97,15 +97,6 @@ describe('ArchiveView', () => {
     expect(screen.queryAllByTestId('archive-year')).toHaveLength(0)
   })
 
-  it('大標改為「每一篇」，移除詩意副標「都還記得。」', async () => {
-    renderWithRouter(ArchiveView, {}, '/archive')
-    await flushPromises()
-
-    const title = screen.getByRole('heading', { level: 1 })
-    expect(title.textContent).toContain('每一篇')
-    expect(title.textContent).not.toContain('都還記得')
-  })
-
   it('服務錯誤 → 顯示 error 狀態，不崩潰', async () => {
     mockGetArchive.mockRejectedValue(new Error('boom'))
 

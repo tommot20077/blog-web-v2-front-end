@@ -122,16 +122,6 @@ describe('ArticleList 頁面', () => {
     }
   })
 
-  it('移除詩意副標「設計、前端與緩慢思考的記錄。」，只留大標 Articles.', async () => {
-    mockGetArticles.mockResolvedValue(createMockPageResult([]))
-    const { container, queryByText } = renderWithRouter(ArticleList)
-    await flushPromises()
-
-    expect(queryByText('設計、前端與緩慢思考的記錄。')).not.toBeInTheDocument()
-    expect(container.querySelector('.lede')).not.toBeInTheDocument()
-    expect(container.querySelector('.art-page-head h1')?.textContent).toContain('Articles.')
-  })
-
   it('切換到 List 視圖後使用 art-list 容器', async () => {
     const articles = buildArticles(6)
     mockGetArticles.mockResolvedValue(createMockPageResult(articles))
@@ -172,5 +162,16 @@ describe('ArticleList 頁面', () => {
       expect(container.querySelector('.art-active-filters')).toBeInTheDocument()
       expect(container.querySelector('.art-af')).toBeInTheDocument()
     }
+  })
+
+  // 頁首只保留 h1「Articles.」；原本 h1 下方那句獨立的 .lede 副標段落已移除。
+  // 注意：Home / Archive / Tags 那三句是 h1 主標本身（非副標），刻意保留，不在此列。
+  it('頁首移除 .lede 副標段落，只保留 h1', async () => {
+    mockGetArticles.mockResolvedValue(createMockPageResult([]))
+    const { container } = renderWithRouter(ArticleList)
+    await flushPromises()
+
+    expect(container.querySelector('.lede')).toBeNull()
+    expect(container.querySelector('.art-page-head h1')?.textContent).toBe('Articles.')
   })
 })

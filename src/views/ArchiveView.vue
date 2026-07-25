@@ -62,7 +62,7 @@ function fmtDate(d: string) {
     <header class="ar-header wrap">
       <div class="ar-header-text">
         <div class="ar-eyebrow mono" style="color:var(--ink-2)">§ ARCHIVE · 全部文章</div>
-        <h1 class="ar-title">每一篇</h1>
+        <h1 class="ar-title">每一篇<em>都還記得。</em></h1>
         <p class="ar-sub">從第一篇到現在，全部 {{ stats.total }} 篇按時間排好。</p>
       </div>
       <div class="ar-header-stats">
@@ -136,6 +136,7 @@ function fmtDate(d: string) {
   font-size: clamp(36px, 5vw, 64px); letter-spacing: -0.035em; line-height: 1;
   margin: 0 0 12px;
 }
+.ar-title em { font-style: italic; font-weight: 300; color: var(--muted); }
 .ar-sub { font-size: 14.5px; color: var(--muted); margin: 0; }
 .ar-header-stats { display: flex; gap: 24px; flex-shrink: 0; }
 .ar-stat { display: flex; flex-direction: column; align-items: flex-end; }

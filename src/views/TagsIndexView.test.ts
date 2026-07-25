@@ -123,15 +123,6 @@ describe('TagsIndexView', () => {
     expect(container.querySelector('[data-testid="tags-cloud"]')).toBeInTheDocument()
   })
 
-  it('大標改為「用主題」，移除詩意副標「串起來看。」', async () => {
-    const { container } = await renderWithRouterAsync(TagsIndexView, {}, '/tags')
-    await flushPromises()
-
-    const title = container.querySelector('.tg-title')
-    expect(title?.textContent).toContain('用主題')
-    expect(title?.textContent).not.toContain('串起來看')
-  })
-
   it('原始碼不再 import mock 假資料（allMockArticles）也無寫死 SERIES', () => {
     const src = readFileSync(
       resolve(process.cwd(), 'src/views/TagsIndexView.vue'),

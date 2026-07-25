@@ -64,7 +64,7 @@ const hasSeries = computed(() => series.value.length > 0)
         <div class="tg-eyebrow mono" style="color:var(--ink-2)">
           § tags &amp; series · {{ totalTags }} topics
         </div>
-        <h1 class="tg-title">用主題</h1>
+        <h1 class="tg-title">用主題<em>串起來看。</em></h1>
         <p class="tg-sub">
           不是每篇都獨立。同一個 tag 是觀點的延伸，同一個 series 是一段完整的論證。挑一個進去。
         </p>
@@ -129,6 +129,7 @@ const hasSeries = computed(() => series.value.length > 0)
   font-size: clamp(36px, 5vw, 60px); letter-spacing: -0.03em; line-height: 1;
   margin: 0 0 12px;
 }
+.tg-title em { font-style: italic; font-weight: 300; color: var(--muted); }
 .tg-sub { font-size: 14.5px; color: var(--muted); line-height: 1.7; max-width: 48ch; margin: 0; }
 .tg-header-stats { display: flex; gap: 24px; flex-shrink: 0; }
 .tg-stat { display: flex; flex-direction: column; align-items: flex-end; }
