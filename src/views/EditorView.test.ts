@@ -5,8 +5,10 @@ import { createPinia, setActivePinia } from 'pinia'
 import EditorView from './EditorView.vue'
 import { editorService } from '../api/editorService'
 import { categoryService } from '../api/categoryService'
+import { fileService } from '../api/fileService'
 import { useMarkdownEditor } from '../composables/useMarkdownEditor'
 import { createMockEditorArticle } from '../test-utils/factories'
+import type { FileUploadResponse } from '../types/editor'
 
 // ── Mock vue-router ──────────────────────────────────────────────────────────
 const mockRouterReplace = vi.fn()
@@ -19,6 +21,7 @@ vi.mock('vue-router', () => ({
 vi.mock('../api/editorService')
 vi.mock('../api/categoryService')
 vi.mock('../api/myArticlesService')
+vi.mock('../api/fileService')
 
 // ── Mock useToast ─────────────────────────────────────────────────────────────
 const mockShowToast = vi.fn()
@@ -56,6 +59,65 @@ function renderEditor(props: Record<string, unknown> = {}) {
     props,
     global: { plugins: [pinia] },
   })
+}
+
+function mockUploadResponse(overrides: Partial<FileUploadResponse> = {}): FileUploadResponse {
+  return {
+    id: 'file-1',
+    url: 'https://cdn.example.com/a.png',
+    width: 100,
+    height: 100,
+    size: 1024,
+    usageType: 'ARTICLE_CONTENT',
+    ...overrides,
+  }
+}
+
+// 讓 useMarkdownEditor mock 的 insertText/setContent 實際模擬 CodeMirror 語意：
+// insertText = 於游標（此處末端）插入；setContent = 整份文件覆寫。
+// 讓圖片上傳流程（依賴 markdownContent 讀寫）可在測試中被驗證。
+function setupMarkdownEditorMock(initialContent = '') {
+  const content = ref(initialContent)
+  const insertText = vi.fn((text: string) => { content.value += text })
+  const setContent = vi.fn((text: string) => { content.value = text })
+  vi.mocked(useMarkdownEditor).mockReturnValue({
+    editorView: ref(null),
+    markdownContent: content,
+    wrapSelection: vi.fn(),
+    insertText,
+    prefixLines: vi.fn(),
+    setContent,
+    undo: vi.fn(),
+    redo: vi.fn(),
+  })
+  return { content, insertText, setContent }
+}
+
+function makeDragEvent(type: string, files: File[]): Event {
+  const event = new Event(type, { bubbles: true, cancelable: true })
+  Object.defineProperty(event, 'dataTransfer', {
+    configurable: true,
+    value: {
+      types: files.length > 0 ? ['Files'] : [],
+      files,
+    },
+  })
+  return event
+}
+
+function makePasteEvent(files: File[]): Event {
+  const event = new Event('paste', { bubbles: true, cancelable: true })
+  Object.defineProperty(event, 'clipboardData', {
+    configurable: true,
+    value: {
+      items: files.map(f => ({
+        kind: 'file',
+        type: f.type,
+        getAsFile: () => f,
+      })),
+    },
+  })
+  return event
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
@@ -327,6 +389,185 @@ describe('EditorView', () => {
       localStorage.setItem('blog.settings.wordUnit', 'characters')
       renderEditor()
       expect(screen.getByTestId('editor-word-count').textContent).toContain('10')
+    })
+  })
+
+  // ── Task A：內文圖片上傳 ─────────────────────────────────────────────────
+  describe('內文圖片上傳', () => {
+    describe('工具列選檔上傳', () => {
+      it('選擇單一圖片後呼叫 uploadFile("ARTICLE_CONTENT") 並插入 markdown', async () => {
+        vi.mocked(fileService.uploadFile).mockResolvedValue(
+          mockUploadResponse({ url: 'https://cdn.example.com/toolbar.png' }),
+        )
+        const { content } = setupMarkdownEditorMock()
+        renderEditor()
+
+        const toolbarInput = document.querySelector('[data-testid="toolbar-image-input"]') as HTMLInputElement
+        const user = userEvent.setup()
+        const file = new File(['a'], 'toolbar.png', { type: 'image/png' })
+        await user.upload(toolbarInput, file)
+
+        await waitFor(() => {
+          expect(fileService.uploadFile).toHaveBeenCalledWith(file, 'ARTICLE_CONTENT')
+          expect(content.value).toBe('![toolbar.png](https://cdn.example.com/toolbar.png)')
+        })
+      })
+
+      it('上傳期間先插入「上傳中」佔位文字', async () => {
+        let resolveUpload: (v: FileUploadResponse) => void = () => {}
+        vi.mocked(fileService.uploadFile).mockImplementation(
+          () => new Promise((resolve) => { resolveUpload = resolve }),
+        )
+        const { content } = setupMarkdownEditorMock()
+        renderEditor()
+
+        const toolbarInput = document.querySelector('[data-testid="toolbar-image-input"]') as HTMLInputElement
+        const user = userEvent.setup()
+        await user.upload(toolbarInput, new File(['a'], 'pending.png', { type: 'image/png' }))
+
+        await waitFor(() => expect(content.value).toContain('上傳中'))
+        resolveUpload(mockUploadResponse({ url: 'https://cdn.example.com/pending.png' }))
+
+        await waitFor(() => {
+          expect(content.value).toBe('![pending.png](https://cdn.example.com/pending.png)')
+        })
+      })
+
+      it('多檔選擇時依序上傳並依序插入（先選的先完成插入）', async () => {
+        let resolveFirst: (v: FileUploadResponse) => void = () => {}
+        vi.mocked(fileService.uploadFile)
+          .mockImplementationOnce(() => new Promise((resolve) => { resolveFirst = resolve }))
+          .mockResolvedValueOnce(mockUploadResponse({ url: 'https://cdn.example.com/b.png' }))
+        const { content } = setupMarkdownEditorMock()
+        renderEditor()
+
+        const toolbarInput = document.querySelector('[data-testid="toolbar-image-input"]') as HTMLInputElement
+        const user = userEvent.setup()
+        await user.upload(toolbarInput, [
+          new File(['a'], 'a.png', { type: 'image/png' }),
+          new File(['b'], 'b.png', { type: 'image/png' }),
+        ])
+
+        // 第二個檔案應等第一個完成才開始上傳（sequential，非並行競態）
+        await waitFor(() => expect(content.value).toContain('上傳中'))
+        expect(fileService.uploadFile).toHaveBeenCalledTimes(1)
+
+        resolveFirst(mockUploadResponse({ url: 'https://cdn.example.com/a.png' }))
+
+        await waitFor(() => {
+          expect(fileService.uploadFile).toHaveBeenCalledTimes(2)
+          expect(content.value).toContain('a.png')
+          expect(content.value).toContain('b.png')
+        })
+        expect(content.value.indexOf('a.png')).toBeLessThan(content.value.indexOf('b.png'))
+      })
+
+      it('上傳失敗時顯示錯誤 toast，且不留下壞掉的佔位文字', async () => {
+        vi.mocked(fileService.uploadFile).mockRejectedValue(new Error('上傳逾時'))
+        const { content } = setupMarkdownEditorMock()
+        renderEditor()
+
+        const toolbarInput = document.querySelector('[data-testid="toolbar-image-input"]') as HTMLInputElement
+        const user = userEvent.setup()
+        await user.upload(toolbarInput, new File(['a'], 'bad.png', { type: 'image/png' }))
+
+        await waitFor(() => {
+          expect(mockShowToast).toHaveBeenCalledWith(expect.stringContaining('上傳逾時'), 'error')
+        })
+        expect(content.value).not.toContain('![')
+        expect(content.value).not.toContain('上傳中')
+      })
+    })
+
+    describe('拖曳上傳', () => {
+      it('拖曳檔案進入編輯器區域時顯示遮罩提示', async () => {
+        setupMarkdownEditorMock()
+        renderEditor()
+        const pane = screen.getByTestId('editor-textarea')
+
+        pane.dispatchEvent(makeDragEvent('dragenter', [new File(['a'], 'a.png', { type: 'image/png' })]))
+
+        await waitFor(() => {
+          expect(screen.getByTestId('editor-drop-overlay')).toBeInTheDocument()
+        })
+      })
+
+      it('dragleave 後遮罩消失，且不觸發上傳', async () => {
+        setupMarkdownEditorMock()
+        renderEditor()
+        const pane = screen.getByTestId('editor-textarea')
+        const file = new File(['a'], 'a.png', { type: 'image/png' })
+
+        pane.dispatchEvent(makeDragEvent('dragenter', [file]))
+        await waitFor(() => expect(screen.getByTestId('editor-drop-overlay')).toBeInTheDocument())
+
+        pane.dispatchEvent(makeDragEvent('dragleave', [file]))
+        await waitFor(() => expect(screen.queryByTestId('editor-drop-overlay')).not.toBeInTheDocument())
+
+        expect(fileService.uploadFile).not.toHaveBeenCalled()
+      })
+
+      it('放開拖放的圖片後呼叫 uploadFile 並插入 markdown，遮罩隱藏', async () => {
+        vi.mocked(fileService.uploadFile).mockResolvedValue(
+          mockUploadResponse({ url: 'https://cdn.example.com/photo.png' }),
+        )
+        const { content } = setupMarkdownEditorMock()
+        renderEditor()
+        const pane = screen.getByTestId('editor-textarea')
+        const file = new File(['a'], 'photo.png', { type: 'image/png' })
+
+        pane.dispatchEvent(makeDragEvent('dragenter', [file]))
+        pane.dispatchEvent(makeDragEvent('drop', [file]))
+
+        await waitFor(() => {
+          expect(fileService.uploadFile).toHaveBeenCalledWith(file, 'ARTICLE_CONTENT')
+          expect(content.value).toBe('![photo.png](https://cdn.example.com/photo.png)')
+        })
+        expect(screen.queryByTestId('editor-drop-overlay')).not.toBeInTheDocument()
+      })
+
+      it('拖放非圖片檔案時忽略，不呼叫 uploadFile', async () => {
+        setupMarkdownEditorMock()
+        renderEditor()
+        const pane = screen.getByTestId('editor-textarea')
+        const file = new File(['x'], 'doc.pdf', { type: 'application/pdf' })
+
+        pane.dispatchEvent(makeDragEvent('drop', [file]))
+        await new Promise(resolve => setTimeout(resolve, 0))
+
+        expect(fileService.uploadFile).not.toHaveBeenCalled()
+      })
+    })
+
+    describe('貼上上傳', () => {
+      it('貼上剪貼簿圖片會上傳並插入 markdown', async () => {
+        vi.mocked(fileService.uploadFile).mockResolvedValue(
+          mockUploadResponse({ url: 'https://cdn.example.com/clip.png' }),
+        )
+        const { content } = setupMarkdownEditorMock()
+        renderEditor()
+        const pane = screen.getByTestId('editor-textarea')
+        const file = new File(['a'], 'clip.png', { type: 'image/png' })
+
+        pane.dispatchEvent(makePasteEvent([file]))
+
+        await waitFor(() => {
+          expect(fileService.uploadFile).toHaveBeenCalledWith(file, 'ARTICLE_CONTENT')
+          expect(content.value).toBe('![clip.png](https://cdn.example.com/clip.png)')
+        })
+      })
+
+      it('貼上非圖片檔案時忽略，不呼叫 uploadFile', async () => {
+        setupMarkdownEditorMock()
+        renderEditor()
+        const pane = screen.getByTestId('editor-textarea')
+        const file = new File(['x'], 'doc.pdf', { type: 'application/pdf' })
+
+        pane.dispatchEvent(makePasteEvent([file]))
+        await new Promise(resolve => setTimeout(resolve, 0))
+
+        expect(fileService.uploadFile).not.toHaveBeenCalled()
+      })
     })
   })
 })

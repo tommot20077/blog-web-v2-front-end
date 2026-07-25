@@ -10,6 +10,7 @@ import { useEditorWordUnit } from '../composables/useEditorWordUnit'
 import { useToast } from '../composables/useToast'
 import { useEditorFocusMode } from '../composables/useEditorFocusMode'
 import { useEditorOutline } from '../composables/useEditorOutline'
+import { useEditorImageUpload } from '../composables/useEditorImageUpload'
 import { categoryService } from '../api/categoryService'
 import EditorToolbar from '../components/editor/EditorToolbar.vue'
 import EditorMetaSidebar from '../components/editor/EditorMetaSidebar.vue'
@@ -33,6 +34,50 @@ function onCursorChange(lineIndex: number) {
 }
 
 const { editorView, markdownContent, wrapSelection, insertText, prefixLines, setContent, undo, redo } = useMarkdownEditor(editorContainer, onCursorChange)
+
+// ── 內文圖片上傳（選檔 / 拖曳 / 貼上，皆走同一套上傳邏輯） ───────────────────
+const { uploadImages } = useEditorImageUpload({
+  insertText,
+  getContent: () => markdownContent.value,
+  setContent,
+})
+
+async function onInsertImages(files: File[]) {
+  await uploadImages(files)
+}
+
+const isDraggingImage = ref(false)
+let dragDepth = 0
+
+function onEditorDragEnter(e: DragEvent) {
+  if (e.dataTransfer?.types.includes('Files')) {
+    dragDepth++
+    isDraggingImage.value = true
+  }
+}
+
+function onEditorDragLeave() {
+  dragDepth = Math.max(0, dragDepth - 1)
+  if (dragDepth === 0) isDraggingImage.value = false
+}
+
+async function onEditorDrop(e: DragEvent) {
+  dragDepth = 0
+  isDraggingImage.value = false
+  const files = Array.from(e.dataTransfer?.files ?? [])
+  if (files.length > 0) await uploadImages(files)
+}
+
+async function onEditorPaste(e: ClipboardEvent) {
+  const items = Array.from(e.clipboardData?.items ?? [])
+  const imageFiles = items
+    .filter(item => item.kind === 'file' && item.type.startsWith('image/'))
+    .map(item => item.getAsFile())
+    .filter((f): f is File => f !== null)
+  if (imageFiles.length === 0) return
+  e.preventDefault()
+  await uploadImages(imageFiles)
+}
 
 // ── Editor outline ─────────────────────────────────────────────────────────
 const { outline, activeLineIndex, updateCursorLine, jumpToLine } = useEditorOutline(markdownContent, editorView)
@@ -211,6 +256,7 @@ async function onSubmitForReview() {
       @prefix-lines="prefixLines"
       @undo="undo"
       @redo="redo"
+      @insert-images="onInsertImages"
     />
 
     <!-- Split pane body -->
@@ -218,10 +264,23 @@ async function onSubmitForReview() {
       <!-- Left: CodeMirror editor (v-show, not v-if — 保留 CodeMirror 實例，避免 mode 切換時重建) -->
       <div
         v-show="mode !== 'preview'"
-        ref="editorContainer"
         class="editor-pane"
         data-testid="editor-textarea"
-      />
+        @dragenter.prevent="onEditorDragEnter"
+        @dragover.prevent
+        @dragleave.prevent="onEditorDragLeave"
+        @drop.prevent="onEditorDrop"
+        @paste="onEditorPaste"
+      >
+        <div ref="editorContainer" class="editor-pane-inner" />
+        <div
+          v-if="isDraggingImage"
+          class="editor-drop-overlay"
+          data-testid="editor-drop-overlay"
+        >
+          放開以插入圖片
+        </div>
+      </div>
 
       <!-- Center: Markdown preview -->
       <div
@@ -269,7 +328,22 @@ async function onSubmitForReview() {
 .editor-title-input { flex: 1; font-family: var(--f-display); font-size: 1.5rem; background: none; border: none; color: var(--ink); outline: none; }
 .editor-word-count { font-size: 0.875rem; color: var(--ink-muted, #888); white-space: nowrap; }
 .editor-body { flex: 1; display: flex; overflow: hidden; }
-.editor-pane { flex: 1; min-width: 0; overflow-y: auto; border-right: 1px solid var(--divider); }
+.editor-pane { position: relative; flex: 1; min-width: 0; overflow-y: auto; border-right: 1px solid var(--divider); }
+.editor-pane-inner { height: 100%; }
+.editor-drop-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--glass, rgba(255, 255, 255, 0.85));
+  border: 2px dashed var(--accent);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--accent);
+  pointer-events: none;
+  z-index: 10;
+}
 .editor-preview { flex: 1; min-width: 0; overflow-y: auto; padding: 2rem; font-family: var(--f-body); }
 
 /* Focus mode: dim all lines, highlight active */

@@ -144,13 +144,54 @@ describe('EditorToolbar', () => {
       expect(text).toContain('](')
     })
 
-    it('點擊圖片 emit insert-text 並帶圖片模板', async () => {
+  })
+
+  // ── 圖片上傳（Task A：改為觸發檔案選取，不再插入純文字模板） ────────────────
+  describe('圖片按鈕：觸發檔案選取', () => {
+    it('渲染隱藏的圖片檔案輸入框，限定圖片類型且允許多選', () => {
+      render(EditorToolbar)
+      const input = document.querySelector('[data-testid="toolbar-image-input"]') as HTMLInputElement
+      expect(input).toBeInTheDocument()
+      expect(input.accept).toBe('image/*')
+      expect(input.multiple).toBe(true)
+    })
+
+    it('點擊圖片按鈕觸發隱藏檔案輸入框的 click()，不再 emit insert-text', async () => {
       const user = userEvent.setup()
       const { emitted } = render(EditorToolbar)
+      const input = document.querySelector('[data-testid="toolbar-image-input"]') as HTMLInputElement
+      const clickSpy = vi.spyOn(input, 'click')
+
       await user.click(screen.getByTitle('圖片'))
-      const text = (emitted()['insert-text'][0] as string[])[0]
-      expect(text).toContain('![')
-      expect(text).toContain('](')
+
+      expect(clickSpy).toHaveBeenCalled()
+      expect(emitted()['insert-text']).toBeFalsy()
+    })
+
+    it('選擇檔案後 emit insert-images 並帶檔案陣列', async () => {
+      const user = userEvent.setup()
+      const { emitted } = render(EditorToolbar)
+      const input = document.querySelector('[data-testid="toolbar-image-input"]') as HTMLInputElement
+      const file = new File(['img'], 'photo.png', { type: 'image/png' })
+
+      await user.upload(input, file)
+
+      expect(emitted()['insert-images']).toBeTruthy()
+      expect((emitted()['insert-images'][0] as File[][])[0]).toEqual([file])
+    })
+
+    it('選擇多個檔案後 emit insert-images 帶完整檔案陣列', async () => {
+      const user = userEvent.setup()
+      const { emitted } = render(EditorToolbar)
+      const input = document.querySelector('[data-testid="toolbar-image-input"]') as HTMLInputElement
+      const file1 = new File(['a'], 'a.png', { type: 'image/png' })
+      const file2 = new File(['b'], 'b.png', { type: 'image/png' })
+
+      await user.upload(input, [file1, file2])
+
+      const files = (emitted()['insert-images'][0] as File[][])[0]
+      expect(files).toHaveLength(2)
+      expect(files).toEqual([file1, file2])
     })
   })
 
