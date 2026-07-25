@@ -8,6 +8,7 @@ import type {
   UpdateCategoryRequest,
   UpdateTagRequest,
 } from '../types/editor'
+import type { SearchIndexStatus } from '../types/search'
 
 export const adminService = {
   async getPendingArticles(page: number, size: number): Promise<PageResult<MyArticle>> {
@@ -98,5 +99,32 @@ export const adminService = {
     }
     const { adminService: svc } = await import('./real/adminService')
     return svc.reindexSearch()
+  },
+
+  async getCategoriesFull(): Promise<CategoryResponse[]> {
+    if (import.meta.env.VITE_USE_MOCK === 'true') {
+      const { adminService: svc } = await import('./mock/adminService')
+      return svc.getCategoriesFull()
+    }
+    const { adminService: svc } = await import('./real/adminService')
+    return svc.getCategoriesFull()
+  },
+
+  async getTagsFull(): Promise<AdminTagResponse[]> {
+    if (import.meta.env.VITE_USE_MOCK === 'true') {
+      const { adminService: svc } = await import('./mock/adminService')
+      return svc.getTagsFull()
+    }
+    const { adminService: svc } = await import('./real/adminService')
+    return svc.getTagsFull()
+  },
+
+  async getSearchStatus(): Promise<SearchIndexStatus> {
+    if (import.meta.env.VITE_USE_MOCK === 'true') {
+      const { adminService: svc } = await import('./mock/adminService')
+      return svc.getSearchStatus()
+    }
+    const { adminService: svc } = await import('./real/adminService')
+    return svc.getSearchStatus()
   },
 }

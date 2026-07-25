@@ -40,6 +40,38 @@ describe('adminService', () => {
       expect(result.status).toBe('REJECTED')
       expect(result.rejectReason).toBe('需要修改的詳細理由說明文字。')
     })
+
+    it('getCategoriesFull 委派 mock 並回傳陣列，含 description 與 sortOrder', async () => {
+      const result = await adminService.getCategoriesFull()
+      expect(Array.isArray(result)).toBe(true)
+      expect(result.length).toBeGreaterThanOrEqual(2)
+      result.forEach(category => {
+        expect(category).toHaveProperty('sortOrder')
+        expect(category).toHaveProperty('description')
+      })
+      expect(result.some(category => category.description === null)).toBe(true)
+    })
+
+    it('getTagsFull 委派 mock 並回傳陣列，含 color/icon/usageCount', async () => {
+      const result = await adminService.getTagsFull()
+      expect(Array.isArray(result)).toBe(true)
+      expect(result.length).toBeGreaterThanOrEqual(2)
+      result.forEach(tag => {
+        expect(tag).toHaveProperty('color')
+        expect(tag).toHaveProperty('icon')
+        expect(tag).toHaveProperty('usageCount')
+      })
+      expect(result.some(tag => tag.usageCount > 0)).toBe(true)
+      expect(result.some(tag => tag.usageCount === 0)).toBe(true)
+    })
+
+    it('getSearchStatus 委派 mock 並回傳 healthy=true 與正整數 documentCount', async () => {
+      const result = await adminService.getSearchStatus()
+      expect(result.healthy).toBe(true)
+      expect(typeof result.documentCount).toBe('number')
+      expect(result.documentCount).toBeGreaterThan(0)
+      expect(typeof result.lastReindexAt).toBe('string')
+    })
   })
 
   describe('API 模式 (VITE_USE_MOCK=false)', () => {
@@ -144,6 +176,30 @@ describe('adminService', () => {
       vi.spyOn(console, 'error').mockImplementation(() => {})
       const result = await adminService.getPendingCount()
       expect(result).toBe(0)
+    })
+
+    it('getCategoriesFull 呼叫 GET /api/v1/categories', async () => {
+      const mockResult = [{ uuid: 'cat-1', name: '架構', slug: 'architecture', description: null, sortOrder: 10 }]
+      vi.mocked(apiClient.get).mockResolvedValue(mockResult)
+      const result = await adminService.getCategoriesFull()
+      expect(result).toEqual(mockResult)
+      expect(apiClient.get).toHaveBeenCalledWith('/api/v1/categories')
+    })
+
+    it('getTagsFull 呼叫 GET /api/v1/tags/all', async () => {
+      const mockResult = [{ id: 'tag-1', name: 'Vue', slug: 'vue', usageCount: 5 }]
+      vi.mocked(apiClient.get).mockResolvedValue(mockResult)
+      const result = await adminService.getTagsFull()
+      expect(result).toEqual(mockResult)
+      expect(apiClient.get).toHaveBeenCalledWith('/api/v1/tags/all')
+    })
+
+    it('getSearchStatus 呼叫 GET /api/v1/admin/search/status', async () => {
+      const mockResult = { documentCount: 13, lastReindexAt: '2026-07-20T21:30:00', healthy: true }
+      vi.mocked(apiClient.get).mockResolvedValue(mockResult)
+      const result = await adminService.getSearchStatus()
+      expect(result).toEqual(mockResult)
+      expect(apiClient.get).toHaveBeenCalledWith('/api/v1/admin/search/status')
     })
   })
 })
