@@ -53,6 +53,30 @@ watch(() => renderedHtml.value, async () => {
   await inlineHighlightState.applyHighlights()
 }, { flush: 'post' })
 
+// TOC 點擊不跳轉的根因：後端 content_html 的 h2/h3 確實有 id，但本頁改用
+// markdownSource 走 useMarkdownRenderer 客端重渲染（見上方註解），markdown-it
+// 產出的標題不含任何 id。這裡不重新算一份 slug 演算法，而是直接依「文件順序」
+// 把後端算好的 toc[i].id 指派給內文第 i 個 h2/h3，保持「TOC 第 i 項 ↔ 內文
+// 第 i 個標題」的一致性，深連結與 scroll-spy 都仰賴這些 id 存在於 DOM。
+function assignHeadingIds() {
+  const container = articleBodyEl.value
+  if (!container) return
+  const headings = container.querySelectorAll('h2, h3')
+  const count = Math.min(headings.length, toc.value.length)
+  for (let i = 0; i < count; i += 1) {
+    const entry = toc.value[i]
+    if (entry) (headings[i] as HTMLElement).id = entry.id
+  }
+}
+
+// renderedHtml 會因 Shiki 高亮就緒而二次渲染（見 useMarkdownRenderer 註解）；
+// 每次都整份 v-html 換新 DOM 節點，所以每次都要重新指派，天然是 idempotent
+// （同一份 toc + 同樣的標題順序，重複執行結果不變）。
+watch(() => renderedHtml.value, async () => {
+  await nextTick()
+  assignHeadingIds()
+}, { flush: 'post' })
+
 // Once article loads, sync its initial interaction state.
 watchEffect(() => {
   if (article.value) {
@@ -78,6 +102,9 @@ let hashScrolled = false
 watch(() => renderedHtml.value, async () => {
   if (hashScrolled || !route.hash) return
   await nextTick()
+  // 防禦性地再指派一次：不依賴另一個 watch(renderedHtml) 的註冊順序保證
+  // （雖然目前確實排在它前面），確保深連結查找 id 之前，id 一定已經指派好。
+  assignHeadingIds()
   const target = document.getElementById(route.hash.slice(1))
   if (target) {
     target.scrollIntoView({ behavior: 'smooth', block: 'start' })
