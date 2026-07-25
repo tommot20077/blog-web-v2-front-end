@@ -86,6 +86,23 @@ describe('allMockArticles (Phase 1)', () => {
     });
   });
 
+  describe('tagRefs（供標籤連結使用，mock 層須與 real mapper 對齊）', () => {
+    it('每篇文章的 tagRefs 存在且與 tags 一一對應（name 相同）', () => {
+      for (const a of allMockArticles) {
+        expect(a.tagRefs).toBeDefined();
+        expect(a.tagRefs!.map(r => r.name)).toEqual(a.tags);
+      }
+    });
+
+    it('tagRefs 的 slug 為小寫、空白與斜線轉為連字號', () => {
+      for (const a of allMockArticles) {
+        for (const ref of a.tagRefs!) {
+          expect(ref.slug).toBe(ref.name.toLowerCase().replace(/\s+/g, '-').replace(/\//g, '-'));
+        }
+      }
+    });
+  });
+
   describe('每篇文章基本欄位', () => {
     it('title 不為空', () => {
       for (const a of allMockArticles) {

@@ -42,6 +42,18 @@ export interface ArticleCategory {
   slug: string
 }
 
+/**
+ * 帶 slug 的標籤參照，供標籤連結（RouterLink to `/tags/{slug}`）使用。
+ * 與既有的 `tags: string[]`（純名稱）並行存在，不取代它——
+ * `tags` 有 22 個 production 消費端（filter / editor form / archive 等），不可變更其語意。
+ * optional 是為了讓 mock data 與既有建構處不必全部改動即可通過型別檢查；
+ * UI 端在缺少 tagRefs 時應退回純文字渲染，不可噴錯或讓標籤消失。
+ */
+export interface ArticleTagRef {
+  name: string
+  slug: string
+}
+
 export interface ArticleItem {
   uuid: string
   title: string
@@ -53,6 +65,7 @@ export interface ArticleItem {
   commentCount: number
   publishedAt: string
   tags: string[]
+  tagRefs?: ArticleTagRef[]
   slug: string
   // List response 的分類名稱陣列；real backend list 尚未提供（mapper 設 []），
   // mock data 與 client-side category filter (useArticleFilters) 依賴此欄位
@@ -91,6 +104,7 @@ function mapArticle(raw: BackendArticleBase): ArticleItem {
     commentCount: raw.commentCount,
     publishedAt: raw.publishedAt,
     tags: raw.tags.map((t) => t.name),
+    tagRefs: raw.tags.map((t) => ({ name: t.name, slug: t.slug })),
     slug: raw.slug,
     // backend list response 尚未提供 categories；待後端補上後改 raw.categories.map(...)
     categories: [],

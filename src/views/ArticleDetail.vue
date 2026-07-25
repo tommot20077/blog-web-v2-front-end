@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch, watchEffect } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { useArticleDetail } from '../composables/useArticleDetail'
 import { useArticleLike } from '../composables/useArticleLike'
 import { useArticleBookmark } from '../composables/useArticleBookmark'
@@ -113,12 +113,24 @@ const goBack = () => window.history.length > 1 ? router.back() : router.push('/a
           <h1 class="art-hero-title" data-testid="article-title">{{ article.title }}</h1>
 
           <!-- Tags -->
+          <!-- tagRefs（含 slug）優先渲染為連向 /tags/{slug} 的連結；
+               缺失時（mock 模式 / 舊資料）退回純文字渲染，不噴錯、標籤不消失。 -->
           <div class="art-hero-tags" data-testid="article-tags">
-            <span
-              v-for="tag in article.tags"
-              :key="tag"
-              class="art-tag"
-            ># {{ tag }}</span>
+            <template v-if="article.tagRefs && article.tagRefs.length">
+              <RouterLink
+                v-for="tagRef in article.tagRefs"
+                :key="tagRef.slug"
+                :to="`/tags/${tagRef.slug}`"
+                class="art-tag"
+              ># {{ tagRef.name }}</RouterLink>
+            </template>
+            <template v-else>
+              <span
+                v-for="tag in article.tags"
+                :key="tag"
+                class="art-tag"
+              ># {{ tag }}</span>
+            </template>
           </div>
 
           <!-- Author / stats row -->

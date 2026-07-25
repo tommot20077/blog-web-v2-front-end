@@ -565,6 +565,62 @@ describe('ArticleDetail 頁面', () => {
     })
   })
 
+  describe('標籤連結', () => {
+    it('有 tagRefs 時，標籤渲染為連向 /tags/{slug} 的連結', async () => {
+      const mockArticle = createMockArticleDetail({
+        tags: ['Frontend', 'Vue'],
+        tagRefs: [
+          { name: 'Frontend', slug: 'frontend' },
+          { name: 'Vue', slug: 'vue' },
+        ],
+      })
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+      const { container } = await renderArticleDetail()
+      await flushPromises()
+
+      const tagsEl = container.querySelector('[data-testid="article-tags"]')!
+      const links = tagsEl.querySelectorAll('a')
+      expect(links).toHaveLength(2)
+      expect(links[0]).toHaveAttribute('href', '/tags/frontend')
+      expect(links[1]).toHaveAttribute('href', '/tags/vue')
+      expect(links[0]?.textContent).toContain('Frontend')
+      expect(links[1]?.textContent).toContain('Vue')
+    })
+
+    it('點擊標籤連結會導航至對應 tag 頁面', async () => {
+      const mockArticle = createMockArticleDetail({
+        tags: ['Frontend'],
+        tagRefs: [{ name: 'Frontend', slug: 'frontend' }],
+      })
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+      const { container, router } = await renderArticleDetail()
+      await flushPromises()
+
+      const link = container.querySelector('[data-testid="article-tags"] a')!
+      await fireEvent.click(link)
+      await flushPromises()
+
+      expect(router.currentRoute.value.path).toBe('/tags/frontend')
+    })
+
+    it('tagRefs 缺失時（mock 模式 / 舊資料）退回純文字渲染，不噴錯且標籤不消失', async () => {
+      const mockArticle = createMockArticleDetail({
+        tags: ['Vue', 'TypeScript'],
+      })
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+      const { container } = await renderArticleDetail()
+      await flushPromises()
+
+      const tagsEl = container.querySelector('[data-testid="article-tags"]')!
+      expect(tagsEl.querySelectorAll('a')).toHaveLength(0)
+      expect(tagsEl.textContent).toContain('Vue')
+      expect(tagsEl.textContent).toContain('TypeScript')
+    })
+  })
+
   describe('返回頂部按鈕', () => {
     it('點擊返回頂部按鈕呼叫 window.scrollTo({ top: 0 })', async () => {
       const scrollToSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
