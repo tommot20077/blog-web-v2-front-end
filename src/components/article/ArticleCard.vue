@@ -49,14 +49,29 @@ const goToDetail = () => {
 
       <!-- 底部：標籤 + 互動數據 -->
       <div class="flex items-center justify-between mt-auto">
+        <!-- tagRefs（含 slug）優先渲染為連向 /tags/{slug} 的連結，並阻止點擊冒泡至卡片本身的文章導航；
+             缺失時（mock 模式 / 舊資料）退回純文字渲染，不噴錯、標籤不消失。 -->
         <div class="flex flex-wrap gap-2">
-          <span
-            v-for="tag in article.tags"
-            :key="tag"
-            class="text-xs px-3 py-1 rounded-full border opacity-60 border-current hover:opacity-100 transition-opacity"
-          >
-            # {{ tag }}
-          </span>
+          <template v-if="article.tagRefs && article.tagRefs.length">
+            <RouterLink
+              v-for="tagRef in article.tagRefs"
+              :key="tagRef.slug"
+              :to="`/tags/${tagRef.slug}`"
+              @click.stop
+              class="text-xs px-3 py-1 rounded-full border opacity-60 border-current hover:opacity-100 transition-opacity"
+            >
+              # {{ tagRef.name }}
+            </RouterLink>
+          </template>
+          <template v-else>
+            <span
+              v-for="tag in article.tags"
+              :key="tag"
+              class="text-xs px-3 py-1 rounded-full border opacity-60 border-current hover:opacity-100 transition-opacity"
+            >
+              # {{ tag }}
+            </span>
+          </template>
         </div>
 
         <div class="flex items-center gap-3 text-xs opacity-50 shrink-0 ml-4">
