@@ -46,4 +46,15 @@ describe('SettingsView — 樹狀導覽 + query param deep-link', () => {
     await new Promise((resolve) => setTimeout(resolve, 0))
     expect(router.currentRoute.value.query.section).toBe('account')
   })
+
+  it('個人資料副標改為「管理你的公開個人資訊。」，不再顯示舊文案', async () => {
+    await renderWithRouterAsync(SettingsView, {}, '/settings')
+    expect(screen.getByText('管理你的公開個人資訊。')).toBeInTheDocument()
+    expect(screen.queryByText(/讓其他讀者認識你/)).not.toBeInTheDocument()
+  })
+
+  it('危險操作區塊不再有「匯出資料」按鈕', async () => {
+    await renderWithRouterAsync(SettingsView, {}, '/settings?section=danger')
+    expect(screen.queryByRole('button', { name: '匯出資料' })).not.toBeInTheDocument()
+  })
 })

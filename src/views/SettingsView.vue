@@ -16,7 +16,6 @@ const {
   editorMode, wordUnit, autosave, writingStatus, saveWriting,
   nComment, nLike, nReview, nFollow, nNewsletter, notifStatus, saveNotifications,
   deleteAccount,
-  showToast,
 } = useSettings()
 
 interface SettingsNavItem {
@@ -135,7 +134,7 @@ async function handleDeleteAccount() {
       <section v-if="activeSection === 'profile'" class="st-section">
         <div class="st-section-head">
           <h2>個人資料</h2>
-          <p>管理你的公開個人資訊，讓其他讀者認識你。</p>
+          <p>管理你的公開個人資訊。</p>
         </div>
 
         <!-- Avatar -->
@@ -351,7 +350,6 @@ async function handleDeleteAccount() {
             <div class="st-danger-title">匯出資料</div>
             <div class="st-danger-desc">下載你的所有文章、留言與個人資料的備份檔案。</div>
           </div>
-          <button type="button" class="st-btn-ghost" @click="showToast('資料匯出功能即將推出', 'info')">匯出資料</button>
         </div>
 
         <div class="st-danger-card danger">
