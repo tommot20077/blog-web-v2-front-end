@@ -37,6 +37,24 @@ describe('VerifyEmailView', () => {
     })
   })
 
+  it('驗證成功訊息不含驚嘆號', async () => {
+    vi.mocked(authService.verifyEmail).mockResolvedValue(undefined)
+
+    const { getByTestId } = await renderWithRouterAsync(
+      VerifyEmailView,
+      {},
+      '/verify-email?token=valid-token',
+    )
+
+    await waitFor(() => {
+      expect(getByTestId('auth-verify-success')).toBeInTheDocument()
+    })
+
+    const successBlock = getByTestId('auth-verify-success')
+    expect(successBlock.textContent).toContain('信箱驗證成功')
+    expect(successBlock.textContent).not.toContain('！')
+  })
+
   it('驗證失敗顯示錯誤', async () => {
     vi.mocked(authService.verifyEmail).mockRejectedValue(new Error('Token 已過期'))
 
