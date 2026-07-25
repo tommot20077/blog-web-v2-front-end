@@ -12,6 +12,8 @@ import { useEditorFocusMode } from '../composables/useEditorFocusMode'
 import { useEditorOutline } from '../composables/useEditorOutline'
 import { useEditorImageUpload } from '../composables/useEditorImageUpload'
 import { categoryService } from '../api/categoryService'
+import { articleVersionService } from '../api/real/articleVersionService'
+import type { VersionSummaryResponse } from '../api/real/articleVersionService'
 import EditorToolbar from '../components/editor/EditorToolbar.vue'
 import EditorMetaSidebar from '../components/editor/EditorMetaSidebar.vue'
 import type { CategoryOption } from '../types/editor'
@@ -152,6 +154,36 @@ async function onSubmitForReview() {
     showToast('已送出審核', 'success')
   } catch {
     showToast('送出失敗', 'error')
+  }
+}
+
+// ── 版本還原接線 ───────────────────────────────────────────────────────────
+// EditorMetaSidebar 的 History tab 在使用者確認後會呼叫 articleVersionService.restore()，
+// 後端此時已把文章還原成舊版本，但編輯器畫面仍停在舊的（新）內容。
+// 這裡收到 version-restored 後，改呼叫 getDetail() 取得完整內容並套用到編輯器狀態，
+// 讓畫面與伺服器保持一致；否則使用者接著按「儲存草稿」會把剛還原的版本立刻覆蓋回去。
+function getErrorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : '請稍後再試'
+}
+
+async function onVersionRestored(version: VersionSummaryResponse) {
+  const targetUuid = article.value?.uuid
+  if (!targetUuid) return
+
+  try {
+    const detail = await articleVersionService.getDetail(targetUuid, version.uuid)
+    title.value = detail.title
+    summary.value = detail.summary ?? ''
+    coverImageUrl.value = detail.coverImageUrl ?? null
+    categoryIds.value = detail.categoryId != null ? [String(detail.categoryId)] : []
+    tagNames.value = detail.tags ?? []
+    setContent(detail.content)
+    showToast('已套用還原版本的內容', 'success')
+  } catch (err) {
+    showToast(
+      '無法同步還原後的內容，畫面可能與伺服器不一致：' + getErrorMessage(err),
+      'error',
+    )
   }
 }
 </script>
@@ -299,11 +331,13 @@ async function onSubmitForReview() {
         :categories="categories"
         :outline="outline"
         :active-heading-line-index="activeLineIndex"
+        :article-uuid="article?.uuid ?? null"
         @update:summary="summary = $event"
         @update:cover-image-url="coverImageUrl = $event"
         @update:category-ids="categoryIds = $event"
         @update:tag-names="tagNames = $event"
         @jump-to-line="jumpToLine"
+        @version-restored="onVersionRestored"
       />
     </div>
 

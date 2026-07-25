@@ -6,6 +6,8 @@ import EditorView from './EditorView.vue'
 import { editorService } from '../api/editorService'
 import { categoryService } from '../api/categoryService'
 import { fileService } from '../api/fileService'
+import { articleVersionService } from '../api/real/articleVersionService'
+import type { VersionSummaryResponse, VersionDetailResponse } from '../api/real/articleVersionService'
 import { useMarkdownEditor } from '../composables/useMarkdownEditor'
 import { createMockEditorArticle } from '../test-utils/factories'
 import type { FileUploadResponse } from '../types/editor'
@@ -22,6 +24,7 @@ vi.mock('../api/editorService')
 vi.mock('../api/categoryService')
 vi.mock('../api/myArticlesService')
 vi.mock('../api/fileService')
+vi.mock('../api/real/articleVersionService')
 
 // ── Mock useToast ─────────────────────────────────────────────────────────────
 const mockShowToast = vi.fn()
@@ -568,6 +571,132 @@ describe('EditorView', () => {
 
         expect(fileService.uploadFile).not.toHaveBeenCalled()
       })
+    })
+  })
+
+  // ── Task B：版本還原接線 ─────────────────────────────────────────────────
+  describe('版本還原接線', () => {
+    const restoredVersion: VersionSummaryResponse = {
+      uuid: 'v-1',
+      type: 'MANUAL',
+      createdAt: '2026-07-20T10:00:00Z',
+      authorId: 1,
+      contentLength: 100,
+      note: '還原前快照',
+    }
+    const versionDetail: VersionDetailResponse = {
+      uuid: 'v-1',
+      type: 'MANUAL',
+      createdAt: '2026-07-20T10:00:00Z',
+      authorId: 1,
+      note: '還原前快照',
+      title: '還原後的標題',
+      slug: 'restored-title',
+      content: '# 還原後的內容',
+      status: 'DRAFT',
+      summary: '還原後的摘要',
+      categoryId: null,
+      coverImageUrl: null,
+      tags: ['Vue'],
+    }
+
+    async function restoreThroughUi(user: ReturnType<typeof userEvent.setup>) {
+      await waitFor(() => {
+        expect(screen.getByTestId('editor-title-input')).toBeInTheDocument()
+      })
+      await user.click(screen.getByRole('button', { name: /History/ }))
+      await waitFor(() => expect(screen.getByRole('button', { name: /Restore/ })).toBeInTheDocument())
+      await user.click(screen.getByRole('button', { name: /Restore/ }))
+    }
+
+    beforeEach(() => {
+      vi.mocked(articleVersionService.list).mockResolvedValue({
+        records: [restoredVersion], total: 1, current: 1, size: 20, pages: 1,
+      })
+      vi.stubGlobal('confirm', vi.fn().mockReturnValue(true))
+    })
+
+    afterEach(() => {
+      vi.unstubAllGlobals()
+    })
+
+    it('還原成功後呼叫 getDetail(articleUuid, versionUuid) 取得完整內容', async () => {
+      const mockArticle = createMockEditorArticle({ uuid: 'edit-uuid' })
+      vi.mocked(editorService.getArticleForEdit).mockResolvedValue(mockArticle)
+      vi.mocked(articleVersionService.restore).mockResolvedValue(undefined)
+      vi.mocked(articleVersionService.getDetail).mockResolvedValue(versionDetail)
+      setupMarkdownEditorMock()
+
+      const user = userEvent.setup()
+      renderEditor({ uuid: 'edit-uuid' })
+
+      await restoreThroughUi(user)
+
+      await waitFor(() => {
+        expect(articleVersionService.restore).toHaveBeenCalledWith('edit-uuid', 'v-1')
+        expect(articleVersionService.getDetail).toHaveBeenCalledWith('edit-uuid', 'v-1')
+      })
+    })
+
+    it('取得完整內容後套用到編輯器狀態（title 與 content 真的變了）', async () => {
+      const mockArticle = createMockEditorArticle({ uuid: 'edit-uuid', title: '還原前標題' })
+      vi.mocked(editorService.getArticleForEdit).mockResolvedValue(mockArticle)
+      vi.mocked(articleVersionService.restore).mockResolvedValue(undefined)
+      vi.mocked(articleVersionService.getDetail).mockResolvedValue(versionDetail)
+      const { setContent } = setupMarkdownEditorMock()
+
+      const user = userEvent.setup()
+      renderEditor({ uuid: 'edit-uuid' })
+
+      await restoreThroughUi(user)
+
+      await waitFor(() => {
+        const titleInput = screen.getByTestId('editor-title-input') as HTMLInputElement
+        expect(titleInput.value).toBe('還原後的標題')
+        expect(setContent).toHaveBeenCalledWith('# 還原後的內容')
+      })
+    })
+
+    it('套用還原內容後顯示成功提示', async () => {
+      const mockArticle = createMockEditorArticle({ uuid: 'edit-uuid' })
+      vi.mocked(editorService.getArticleForEdit).mockResolvedValue(mockArticle)
+      vi.mocked(articleVersionService.restore).mockResolvedValue(undefined)
+      vi.mocked(articleVersionService.getDetail).mockResolvedValue(versionDetail)
+      setupMarkdownEditorMock()
+
+      const user = userEvent.setup()
+      renderEditor({ uuid: 'edit-uuid' })
+
+      await restoreThroughUi(user)
+
+      await waitFor(() => {
+        expect(mockShowToast).toHaveBeenCalledWith(expect.stringContaining('還原'), 'success')
+      })
+    })
+
+    it('getDetail 失敗時顯示錯誤提示，且明確提醒畫面可能與伺服器不一致', async () => {
+      const mockArticle = createMockEditorArticle({ uuid: 'edit-uuid' })
+      vi.mocked(editorService.getArticleForEdit).mockResolvedValue(mockArticle)
+      vi.mocked(articleVersionService.restore).mockResolvedValue(undefined)
+      vi.mocked(articleVersionService.getDetail).mockRejectedValue(new Error('網路錯誤'))
+      const { setContent } = setupMarkdownEditorMock()
+
+      const user = userEvent.setup()
+      renderEditor({ uuid: 'edit-uuid' })
+
+      // 掛載時 loadArticle() 會先以原內容呼叫一次 setContent（既有行為，與還原無關）
+      await waitFor(() => expect(setContent).toHaveBeenCalledTimes(1))
+
+      await restoreThroughUi(user)
+
+      await waitFor(() => {
+        expect(mockShowToast).toHaveBeenCalledWith(
+          expect.stringMatching(/不一致/),
+          'error',
+        )
+      })
+      // getDetail 失敗代表沒有可套用的新內容，setContent 不應該再被多呼叫一次
+      expect(setContent).toHaveBeenCalledTimes(1)
     })
   })
 })
