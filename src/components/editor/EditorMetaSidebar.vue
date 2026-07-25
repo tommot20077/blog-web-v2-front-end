@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { ref, onUnmounted } from 'vue'
+import { ref, watch, onUnmounted } from 'vue'
 import { fileService } from '../../api/fileService'
 import { tagSuggestService } from '../../api/tagSuggestService'
+import { articleVersionService } from '../../api/real/articleVersionService'
+import type { VersionSummaryResponse } from '../../api/real/articleVersionService'
 import { useToast } from '../../composables/useToast'
 import type { CategoryOption, TagSuggestion } from '../../types/editor'
 import type { OutlineItem } from '../../composables/useEditorOutline'
@@ -14,6 +16,7 @@ const props = defineProps<{
   categories: CategoryOption[]
   outline: OutlineItem[]
   activeHeadingLineIndex: number
+  articleUuid?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -22,9 +25,14 @@ const emit = defineEmits<{
   'update:categoryIds': [value: string[]]
   'update:tagNames': [value: string[]]
   'jump-to-line': [lineIndex: number]
+  'version-restored': [version: VersionSummaryResponse]
 }>()
 
-const metaTab = ref<'meta' | 'outline'>('meta')
+const metaTab = ref<'meta' | 'outline' | 'history'>('meta')
+
+function getErrorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : '請稍後再試'
+}
 
 // ── 標籤 ──────────────────────────────────────────────────────────────────
 const tagInput = ref('')
@@ -92,12 +100,58 @@ async function onFileChange(e: Event) {
     const result = await fileService.uploadFile(file, 'ARTICLE_COVER')
     emit('update:coverImageUrl', result.url)
   } catch (err) {
-    const message = err instanceof Error ? err.message : '請稍後再試'
+    const message = getErrorMessage(err)
     uploadError.value = '上傳失敗：' + message
     showToast('上傳失敗：' + message, 'error')
   } finally {
     isUploading.value = false
     input.value = ''
+  }
+}
+
+// ── 版本歷史 ──────────────────────────────────────────────────────────────
+const historyLoading = ref(false)
+const historyError = ref('')
+const historyVersions = ref<VersionSummaryResponse[]>([])
+const restoringUuid = ref<string | null>(null)
+
+async function loadHistory() {
+  if (!props.articleUuid) return
+  historyLoading.value = true
+  historyError.value = ''
+  try {
+    const res = await articleVersionService.list(props.articleUuid, {})
+    historyVersions.value = res.records
+  } catch (err) {
+    historyError.value = getErrorMessage(err)
+  } finally {
+    historyLoading.value = false
+  }
+}
+
+watch(metaTab, (tab) => {
+  if (tab === 'history') loadHistory()
+})
+
+function formatVersionTime(iso: string): string {
+  const d = new Date(iso)
+  return d.toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+}
+
+async function onRestoreClick(version: VersionSummaryResponse) {
+  if (!props.articleUuid) return
+  const confirmed = window.confirm('確定要還原至此版本？這會覆蓋目前的草稿內容，此操作無法復原。')
+  if (!confirmed) return
+
+  restoringUuid.value = version.uuid
+  try {
+    await articleVersionService.restore(props.articleUuid, version.uuid)
+    emit('version-restored', version)
+    showToast('已還原至所選版本', 'success')
+  } catch (err) {
+    showToast('還原失敗：' + getErrorMessage(err), 'error')
+  } finally {
+    restoringUuid.value = null
   }
 }
 </script>
@@ -119,6 +173,12 @@ async function onFileChange(e: Event) {
         :class="{ active: metaTab === 'outline' }"
         @click="metaTab = 'outline'"
       >Outline</button>
+      <button
+        type="button"
+        class="meta-tab-btn"
+        :class="{ active: metaTab === 'history' }"
+        @click="metaTab = 'history'"
+      >History</button>
     </div>
 
     <div v-show="metaTab === 'meta'" class="flex flex-col gap-4">
@@ -255,6 +315,48 @@ async function onFileChange(e: Event) {
       </ul>
     </div>
 
+    <!-- History tab -->
+    <div v-show="metaTab === 'history'" class="history-panel">
+      <p v-if="!articleUuid" class="history-empty" data-testid="history-no-uuid">
+        文章儲存後即可查看版本歷史
+      </p>
+      <template v-else>
+        <p v-if="historyLoading" class="history-loading" data-testid="history-loading">載入中...</p>
+        <div v-else-if="historyError" class="history-error" data-testid="history-error">
+          <p>{{ historyError }}</p>
+          <button type="button" class="history-retry" @click="loadHistory">重試</button>
+        </div>
+        <p v-else-if="historyVersions.length === 0" class="history-empty" data-testid="history-empty">
+          尚無版本歷史
+        </p>
+        <ul v-else class="history-list">
+          <li
+            v-for="version in historyVersions"
+            :key="version.uuid"
+            class="history-row"
+            data-testid="history-row"
+          >
+            <span class="history-ts">{{ formatVersionTime(version.createdAt) }}</span>
+            <div class="history-body">
+              <div class="history-type">
+                <span class="history-badge" :class="version.type === 'MANUAL' ? 'manual' : 'auto'">
+                  {{ version.type === 'MANUAL' ? 'Manual' : 'Auto' }}
+                </span>
+                <span v-if="version.note" class="history-note">{{ version.note }}</span>
+              </div>
+              <div class="history-desc">{{ version.contentLength }} 字</div>
+            </div>
+            <button
+              type="button"
+              class="history-restore"
+              :disabled="restoringUuid === version.uuid"
+              @click="onRestoreClick(version)"
+            >{{ restoringUuid === version.uuid ? '還原中...' : 'Restore' }}</button>
+          </li>
+        </ul>
+      </template>
+    </div>
+
   </aside>
 </template>
 
@@ -271,4 +373,22 @@ async function onFileChange(e: Event) {
 .outline-level-1 { padding-left: 10px; font-weight: 500; }
 .outline-level-2 { padding-left: 22px; }
 .outline-level-3 { padding-left: 34px; }
+
+.history-panel { flex: 1; overflow-y: auto; padding: 4px 0; }
+.history-empty, .history-loading { font-size: 12px; color: var(--muted); padding: 16px 8px; text-align: center; }
+.history-error { font-size: 12px; color: var(--muted); padding: 12px 8px; text-align: center; display: flex; flex-direction: column; gap: 8px; align-items: center; }
+.history-retry { padding: 4px 12px; border-radius: 999px; border: 1px solid var(--divider); color: var(--ink); background: var(--bg-sub); font-size: 11px; cursor: pointer; }
+.history-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 2px; }
+.history-row { display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; border-radius: 6px; transition: background 0.12s; }
+.history-row:hover { background: var(--bg-sub); }
+.history-ts { font-family: var(--f-mono); font-size: 11px; color: var(--muted); white-space: nowrap; padding-top: 2px; }
+.history-body { flex: 1; min-width: 0; }
+.history-type { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink); }
+.history-badge { font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; padding: 1px 6px; border-radius: 999px; border: 1px solid var(--divider); color: var(--muted); }
+.history-badge.manual { color: var(--accent); border-color: var(--accent); }
+.history-note { color: var(--muted); font-size: 12px; }
+.history-desc { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+.history-restore { font-size: 11px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--divider); background: var(--bg); color: var(--ink); cursor: pointer; opacity: 0; transition: opacity 0.15s; }
+.history-row:hover .history-restore, .history-restore:focus-visible, .history-restore:disabled { opacity: 1; }
+.history-restore:disabled { cursor: not-allowed; color: var(--muted); }
 </style>
