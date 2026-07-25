@@ -1,13 +1,22 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { myArticlesService } from '../api/myArticlesService'
 import { useToast } from '../composables/useToast'
+import { useAuthStore } from '../stores/auth'
 import ShellRail from '../components/layout/ShellRail.vue'
 import { ARTICLE_STATUS_LABELS } from '../types/editor'
 import type { MyArticle, ArticleStatusFilter } from '../types/editor'
 
 const { showToast } = useToast()
+const authStore = useAuthStore()
+
+// 作者後台署名：顯示目前登入者暱稱，暱稱不存在時 fallback 為純「作者後台」
+// （避免渲染出 undefined 或孤立的「·」，Yuan 2026-07-26 文案稽核核准）
+const authorBackLabel = computed(() => {
+  const nickname = authStore.user?.nickname
+  return nickname ? `作者後台 · ${nickname}` : '作者後台'
+})
 
 const articles = ref<MyArticle[]>([])
 const currentFilter = ref<ArticleStatusFilter>('ALL')
@@ -121,7 +130,7 @@ onMounted(fetchArticles)
       <!-- Back breadcrumb -->
       <div class="shell-back">
         <span class="mono" style="font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-2)">
-          作者後台 · YUAN LUCA
+          {{ authorBackLabel }}
         </span>
       </div>
 
