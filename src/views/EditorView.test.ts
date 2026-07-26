@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { readFileSync } from 'node:fs'
 import { render, screen, waitFor } from '@testing-library/vue'
 import userEvent from '@testing-library/user-event'
 import { createPinia, setActivePinia } from 'pinia'
@@ -697,6 +698,92 @@ describe('EditorView', () => {
       })
       // getDetail 失敗代表沒有可套用的新內容，setContent 不應該再被多呼叫一次
       expect(setContent).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  // ── 工具列樣式對接（改用設計系統 .ed-topbar / .ed-btn 等 class） ─────────
+  describe('toolbar styling（design system 對接）', () => {
+    it('工具列容器使用 .ed-topbar，動作按鈕群包在 .ed-actions 內', () => {
+      renderEditor()
+      const saveBtn = screen.getByTestId('editor-save-btn')
+      expect(saveBtn.closest('.ed-topbar')).toBeInTheDocument()
+      expect(saveBtn.closest('.ed-actions')).toBeInTheDocument()
+    })
+
+    it('儲存草稿按鈕帶 ed-btn，但不帶 primary（次要層級）', () => {
+      renderEditor()
+      const saveBtn = screen.getByTestId('editor-save-btn')
+      expect(saveBtn).toHaveClass('ed-btn')
+      expect(saveBtn).not.toHaveClass('primary')
+    })
+
+    it('送出審核按鈕帶 ed-btn primary（主要層級，與儲存草稿有視覺區隔）', () => {
+      renderEditor()
+      const publishBtn = screen.getByTestId('editor-publish-btn')
+      expect(publishBtn).toHaveClass('ed-btn')
+      expect(publishBtn).toHaveClass('primary')
+    })
+
+    it('Focus 按鈕預設帶 ed-btn，不帶 primary，也不帶作用態 btn--active', () => {
+      renderEditor()
+      const focusBtn = screen.getByTestId('editor-focus-btn')
+      expect(focusBtn).toHaveClass('ed-btn')
+      expect(focusBtn).not.toHaveClass('primary')
+      expect(focusBtn).not.toHaveClass('btn--active')
+    })
+
+    it('開啟 focus mode 後，Focus 按鈕帶上 btn--active 作用態', async () => {
+      const user = userEvent.setup()
+      renderEditor()
+      await user.click(screen.getByTestId('editor-focus-btn'))
+      expect(screen.getByTestId('editor-focus-btn')).toHaveClass('btn--active')
+    })
+
+    it('標題輸入框使用 .ed-title-input（取代手刻的 .editor-title-input）', () => {
+      renderEditor()
+      expect(screen.getByTestId('editor-title-input')).toHaveClass('ed-title-input')
+    })
+
+    it('字數顯示帶 .ed-status，且不含自動儲存用的 .dot（自動儲存尚未實作，不可造假訊號）', () => {
+      renderEditor()
+      const wordCount = screen.getByTestId('editor-word-count')
+      expect(wordCount).toHaveClass('ed-status')
+      expect(wordCount.querySelector('.dot')).not.toBeInTheDocument()
+    })
+
+    it('全部既有 data-testid 仍可被選取到（防止改版打斷既有測試的選擇器）', async () => {
+      const mockArticle = createMockEditorArticle()
+      vi.mocked(editorService.createArticle).mockResolvedValue(mockArticle)
+      renderEditor()
+
+      expect(screen.getByTestId('editor-root')).toBeInTheDocument()
+      expect(screen.getByTestId('editor-title-input')).toBeInTheDocument()
+      expect(screen.getByTestId('editor-word-count')).toBeInTheDocument()
+      expect(screen.getByTestId('editor-mode-toggle')).toBeInTheDocument()
+      expect(screen.getByTestId('editor-mode-write')).toBeInTheDocument()
+      expect(screen.getByTestId('editor-mode-split')).toBeInTheDocument()
+      expect(screen.getByTestId('editor-mode-preview')).toBeInTheDocument()
+      expect(screen.getByTestId('editor-save-btn')).toBeInTheDocument()
+      expect(screen.getByTestId('editor-publish-btn')).toBeInTheDocument()
+      expect(screen.getByTestId('editor-focus-btn')).toBeInTheDocument()
+      expect(screen.getByTestId('editor-textarea')).toBeInTheDocument()
+      expect(screen.getByTestId('editor-preview')).toBeInTheDocument()
+    })
+
+    it('全檔不再使用死 class btn--ghost / btn--primary（含浮動 focus bar 的按鈕）', () => {
+      const source = readFileSync('src/views/EditorView.vue', 'utf8')
+      expect(source).not.toMatch(/btn--ghost/)
+      expect(source).not.toMatch(/btn--primary/)
+    })
+
+    it('死掉的手刻 class（.editor-meta / .editor-word-count / .editor-title-input）不再出現於檔案中', () => {
+      const source = readFileSync('src/views/EditorView.vue', 'utf8')
+      expect(source).not.toContain('class="editor-meta"')
+      expect(source).not.toContain('class="editor-word-count"')
+      expect(source).not.toContain('class="editor-title-input"')
+      expect(source).not.toContain('.editor-meta {')
+      expect(source).not.toContain('.editor-word-count {')
+      expect(source).not.toContain('.editor-title-input {')
     })
   })
 })

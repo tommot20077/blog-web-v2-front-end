@@ -196,89 +196,91 @@ async function onVersionRestored(version: VersionSummaryResponse) {
   >
 
     <!-- Meta bar (hidden in focus mode) -->
-    <div v-show="!isFocusMode" class="editor-meta">
+    <div v-show="!isFocusMode" class="ed-topbar">
       <input
         v-model="title"
-        class="editor-title-input"
+        class="ed-title-input"
         data-testid="editor-title-input"
         type="text"
         placeholder="文章標題..."
       />
-      <span class="editor-word-count" data-testid="editor-word-count">{{ displayWordCount }} 字</span>
+      <span class="ed-status" data-testid="editor-word-count">{{ displayWordCount }} 字</span>
 
-      <!-- Editor mode segmented control (Write / Split / Preview) -->
-      <div class="ed-mode" data-testid="editor-mode-toggle">
+      <div class="ed-actions">
+        <!-- Editor mode segmented control (Write / Split / Preview) -->
+        <div class="ed-mode" data-testid="editor-mode-toggle">
+          <button
+            type="button"
+            data-testid="editor-mode-write"
+            :class="{ active: mode === 'write' }"
+            title="只顯示編輯器"
+            @click="setMode('write')"
+          >
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
+              <path d="M2 3h12M2 7h12M2 11h8" />
+            </svg>
+            Write
+          </button>
+          <button
+            type="button"
+            data-testid="editor-mode-split"
+            :class="{ active: mode === 'split' }"
+            title="左寫 · 右看"
+            @click="setMode('split')"
+          >
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
+              <rect x="1.5" y="2" width="6" height="12" rx="1" />
+              <rect x="8.5" y="2" width="6" height="12" rx="1" fill="currentColor" opacity="0.15" />
+            </svg>
+            Split
+          </button>
+          <button
+            type="button"
+            data-testid="editor-mode-preview"
+            :class="{ active: mode === 'preview' }"
+            title="只顯示預覽"
+            @click="setMode('preview')"
+          >
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
+              <path d="M1.5 8s2.5-5 6.5-5 6.5 5 6.5 5-2.5 5-6.5 5S1.5 8 1.5 8z" />
+              <circle cx="8" cy="8" r="2" />
+            </svg>
+            Preview
+          </button>
+        </div>
+
         <button
           type="button"
-          data-testid="editor-mode-write"
-          :class="{ active: mode === 'write' }"
-          title="只顯示編輯器"
-          @click="setMode('write')"
+          class="ed-btn"
+          data-testid="editor-save-btn"
+          :disabled="isSaving || isLoadingArticle"
+          @click="onSaveDraft"
         >
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
-            <path d="M2 3h12M2 7h12M2 11h8" />
-          </svg>
-          Write
+          {{ isSaving ? '儲存中...' : '儲存草稿' }}
         </button>
         <button
           type="button"
-          data-testid="editor-mode-split"
-          :class="{ active: mode === 'split' }"
-          title="左寫 · 右看"
-          @click="setMode('split')"
+          class="ed-btn primary"
+          data-testid="editor-publish-btn"
+          :disabled="isSaving || isLoadingArticle"
+          @click="onSubmitForReview"
         >
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
-            <rect x="1.5" y="2" width="6" height="12" rx="1" />
-            <rect x="8.5" y="2" width="6" height="12" rx="1" fill="currentColor" opacity="0.15" />
-          </svg>
-          Split
+          送出審核
         </button>
         <button
           type="button"
-          data-testid="editor-mode-preview"
-          :class="{ active: mode === 'preview' }"
-          title="只顯示預覽"
-          @click="setMode('preview')"
+          class="ed-btn"
+          data-testid="editor-focus-btn"
+          :class="{ 'btn--active': isFocusMode }"
+          @click="toggleFocusMode"
+          :title="isFocusMode ? 'Exit focus (ESC)' : 'Focus mode'"
         >
           <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
-            <path d="M1.5 8s2.5-5 6.5-5 6.5 5 6.5 5-2.5 5-6.5 5S1.5 8 1.5 8z" />
-            <circle cx="8" cy="8" r="2" />
+            <path d="M2 5V2h3M11 2h3v3M14 11v3h-3M5 14H2v-3" />
           </svg>
-          Preview
+          {{ isFocusMode ? 'Exit focus' : 'Focus' }}
         </button>
       </div>
-
-      <button
-        type="button"
-        class="btn btn--ghost"
-        data-testid="editor-save-btn"
-        :disabled="isSaving || isLoadingArticle"
-        @click="onSaveDraft"
-      >
-        {{ isSaving ? '儲存中...' : '儲存草稿' }}
-      </button>
-      <button
-        type="button"
-        class="btn btn--primary"
-        data-testid="editor-publish-btn"
-        :disabled="isSaving || isLoadingArticle"
-        @click="onSubmitForReview"
-      >
-        送出審核
-      </button>
-      <button
-        type="button"
-        class="btn btn--ghost"
-        data-testid="editor-focus-btn"
-        :class="{ 'btn--active': isFocusMode }"
-        @click="toggleFocusMode"
-        :title="isFocusMode ? 'Exit focus (ESC)' : 'Focus mode'"
-      >
-        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
-          <path d="M2 5V2h3M11 2h3v3M14 11v3h-3M5 14H2v-3" />
-        </svg>
-        {{ isFocusMode ? 'Exit focus' : 'Focus' }}
-      </button>
     </div>
 
     <!-- Toolbar -->
@@ -347,8 +349,8 @@ async function onVersionRestored(version: VersionSummaryResponse) {
       class="editor-focus-bar"
     >
       <span class="editor-focus-hint">ESC · Exit focus</span>
-      <span class="editor-word-count" data-testid="editor-focus-word-count">{{ displayWordCount }} 字</span>
-      <button type="button" class="btn btn--ghost btn--sm" @click="exitFocusMode">
+      <span class="ed-status" data-testid="editor-focus-word-count">{{ displayWordCount }} 字</span>
+      <button type="button" class="ed-btn btn--sm" @click="exitFocusMode">
         Exit focus
       </button>
     </div>
@@ -358,9 +360,16 @@ async function onVersionRestored(version: VersionSummaryResponse) {
 
 <style scoped>
 .editor-shell { height: 100vh; display: flex; flex-direction: column; }
-.editor-meta { display: flex; gap: 1rem; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid var(--divider); }
-.editor-title-input { flex: 1; font-family: var(--f-display); font-size: 1.5rem; background: none; border: none; color: var(--ink); outline: none; }
-.editor-word-count { font-size: 0.875rem; color: var(--ink-muted, #888); white-space: nowrap; }
+
+/* .ed-topbar 覆寫：設計系統原生 4 欄（auto 1fr auto auto）第一欄留給「返回」連結，
+   本頁沒有這段內容；若不覆寫，該欄會是空的 auto 軌道但仍佔一份 gap，
+   把標題輸入框往右擠出多餘留白。收斂成 3 欄（1fr auto auto），
+   讓標題輸入框直接吃下最左側的 1fr（Vue scoped style 會自動附加
+   [data-v-*] 屬性選擇器，specificity 天生高於全域的 .ed-topbar，不受載入順序影響）。 */
+.ed-topbar { grid-template-columns: 1fr auto auto; }
+/* 設計系統原樣把 .ed-title-input 的 cursor 設為 none（等同隱藏插入點），
+   套用在真的可輸入的欄位上會讓打字時看不到游標，體驗有問題，故覆寫回 text。 */
+.ed-title-input { cursor: text; }
 .editor-body { flex: 1; display: flex; overflow: hidden; }
 .editor-pane { position: relative; flex: 1; min-width: 0; overflow-y: auto; border-right: 1px solid var(--divider); }
 .editor-pane-inner { height: 100%; }
@@ -410,6 +419,8 @@ async function onVersionRestored(version: VersionSummaryResponse) {
   color: var(--muted);
   text-transform: uppercase;
 }
+/* .ed-btn 尺寸／作用態的工具類：設計系統的 .ed-btn 只有預設／.primary 兩種樣式，
+   這兩個 modifier 補齊「小尺寸」（浮動 focus bar 用）與「切換鈕作用態」（Focus 按鈕開啟時）。 */
 .btn--sm { padding: 0.25rem 0.75rem; font-size: 0.75rem; }
 .btn--active { background: var(--ink); color: var(--bg); }
 </style>
