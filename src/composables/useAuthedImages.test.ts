@@ -55,9 +55,26 @@ describe('useAuthedImages', () => {
     const { containerRef } = mountHarness('<img src="/api/v1/files/f1/content" />')
     await flushPromises()
 
-    expect(apiClient.get).toHaveBeenCalledWith('/api/v1/files/f1/content', { responseType: 'blob' })
+    expect(apiClient.get).toHaveBeenCalledWith('/api/v1/files/f1/content', {
+      responseType: 'blob',
+      withCredentials: false,
+    })
     const img = containerRef.value!.querySelector('img')!
     expect(img.getAttribute('src')).toBe('blob:http://localhost/fake-1')
+  })
+
+  // ── withCredentials 覆寫：MinIO presigned URL redirect 回 wildcard CORS，
+  //    與全域 apiClient 的 withCredentials:true（credentials include）衝突會被瀏覽器擋下 ──
+  it('fetch blob 時 per-request 覆寫 withCredentials:false，避免 redirect 到 MinIO presigned URL 時因 wildcard CORS + credentials 被瀏覽器擋下', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue(new Blob(['x'], { type: 'image/png' }))
+
+    mountHarness('<img src="/api/v1/files/f1/content" />')
+    await flushPromises()
+
+    expect(apiClient.get).toHaveBeenCalledWith(
+      '/api/v1/files/f1/content',
+      expect.objectContaining({ withCredentials: false }),
+    )
   })
 
   // ── (b) 同一 src 兩張圖只抓一次 ──────────────────────────────────────────────

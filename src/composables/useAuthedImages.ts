@@ -48,7 +48,12 @@ export function useAuthedImages(
 
   async function fetchBlobUrl(src: string): Promise<string | null> {
     try {
-      const blob = await apiClient.get<unknown, Blob>(src, { responseType: 'blob' })
+      // apiClient 全域 withCredentials:true（憑證模式 include），但這支請求對 9010 靠 Authorization
+      // header 認證（interceptor 已加），不需要 cookie；若沿用 include，瀏覽器跟隨 302 導到 MinIO
+      // presigned URL（9000）時，因 MinIO 回應 Access-Control-Allow-Origin: *（wildcard）而
+      // credentials 模式為 include，會被瀏覽器 CORS 規則直接擋下（wildcard + credentials 不相容）。
+      // 故此處 per-request 覆寫為 false：對 9000 改靠 presigned query 簽章認證，不需要 cookie。
+      const blob = await apiClient.get<unknown, Blob>(src, { responseType: 'blob', withCredentials: false })
       return URL.createObjectURL(blob)
     } catch {
       return null
