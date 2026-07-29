@@ -380,4 +380,22 @@ html.dark .art-body :deep(:not(pre) > code) { color: var(--code-ink-dark, #ff7b7
 @media (max-width: 1100px) {
   .art-toc-rail { display: none; }
 }
+
+/* BUG-002 修復：.art-toc-rail 是 fixed 定位（right:28px + width:220px），
+   佔用視窗最右側 248px（=220+28），與置中的 .wrap（max-width:1360px，
+   全站 * { box-sizing: border-box } 下 max-width 含 padding）互相獨立、
+   不受下方 grid 版面影響。在 TOC 出現的斷點（>1100px）之後、直到 .wrap
+   因 max-width 而把內容往中間推得夠遠之前，這段區間（實測常見桌面寬度
+   1280/1366/1440/1536 都落在內）.art-action-rail 的 x 座標會落入 TOC
+   佔用的最右側 248px 範圍，兩者實體重疊；TOC 的 z-index:80 高於
+   ActionBar，滑鼠點擊 ♡/☆/↗/{} 會被 TOC 攔截、誤觸章節跳轉。
+   解法：與 TOC 顯示同一斷點下，直接讓 .art-content-layout 的右側保留
+   與 TOC 等寬（含緩衝）的留白，把 grid 內容整體往左推，讓 ActionBar
+   的可視範圍永遠落在 TOC 左側之外（viewport 越寬，.wrap 置中效果越
+   明顯，兩者間距只會更大，故此規則不設上限斷點）。 */
+@media (min-width: 1101px) {
+  .art-content-layout {
+    padding-right: 280px; /* 220(TOC寬) + 28(TOC右邊距) + 32(安全緩衝) */
+  }
+}
 </style>
