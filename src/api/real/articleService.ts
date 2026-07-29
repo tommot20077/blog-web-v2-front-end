@@ -1,7 +1,7 @@
 import apiClient from '../apiClient'
 import { mapPageResult } from '../utils'
 import type { BackendPageResult } from '../utils'
-import type { PageResult } from '../../types/editor'
+import type { PageResult, ArticleStatus } from '../../types/editor'
 
 interface TagSummaryResponse {
   id: string
@@ -34,6 +34,8 @@ interface BackendArticleDetail extends BackendArticleBase {
   categories: CategorySummaryResponse[]
   liked: boolean
   bookmarked?: boolean
+  /** 文章狀態；用於前端判斷未發布內容（DRAFT/PENDING_REVIEW/REJECTED）需改走帶認證的圖片載入 */
+  status?: ArticleStatus
 }
 
 export interface ArticleCategory {
@@ -64,6 +66,8 @@ export interface ArticleDetailItem extends Omit<ArticleItem, 'categories'> {
   categories: ArticleCategory[]
   liked: boolean
   bookmarked: boolean
+  /** 文章狀態；未發布（DRAFT/PENDING_REVIEW/REJECTED）時內文圖需改走帶認證的 blob 載入 */
+  status?: ArticleStatus
 }
 
 /**
@@ -104,6 +108,7 @@ function mapArticleDetail(raw: BackendArticleDetail): ArticleDetailItem {
     categories: (raw.categories ?? []).map((c) => ({ uuid: c.uuid, name: c.name, slug: c.slug })),
     liked: raw.liked,
     bookmarked: raw.bookmarked ?? false,
+    status: raw.status,
   }
 }
 

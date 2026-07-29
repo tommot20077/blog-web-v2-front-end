@@ -3,6 +3,7 @@ import { ref, onUnmounted } from 'vue'
 import { fileService } from '../../api/fileService'
 import { tagSuggestService } from '../../api/tagSuggestService'
 import { useToast } from '../../composables/useToast'
+import { useAuthedImages } from '../../composables/useAuthedImages'
 import type { CategoryOption, TagSuggestion } from '../../types/editor'
 import type { OutlineItem } from '../../composables/useEditorOutline'
 
@@ -82,6 +83,11 @@ const isUploading = ref(false)
 const uploadError = ref('')
 const { showToast } = useToast()
 
+// 草稿封面圖走 canRead 授權矩陣，改用帶認證的 blob 載入避免預覽 403 破圖
+// （會開編輯器的必是作者/管理員，永遠啟用）
+const coverPreviewEl = ref<HTMLElement | null>(null)
+useAuthedImages(coverPreviewEl, () => props.coverImageUrl)
+
 async function onFileChange(e: Event) {
   const input = e.target as HTMLInputElement
   const file = input.files?.[0]
@@ -128,6 +134,7 @@ async function onFileChange(e: Event) {
         <p class="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">封面圖</p>
         <div
           v-if="coverImageUrl"
+          ref="coverPreviewEl"
           class="relative rounded-xl overflow-hidden mb-2"
         >
           <img data-testid="cover-preview" :src="coverImageUrl" alt="封面圖預覽" class="w-full h-32 object-cover" />
