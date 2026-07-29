@@ -47,7 +47,12 @@ describe('useScrollSpy', () => {
       template: '<div />',
     })
     const wrapper = mount(Wrapper, { attachTo: document.body })
-    return { wrapper, idsRef, activeId: () => exposed!.activeId }
+    return {
+      wrapper,
+      idsRef,
+      activeId: () => exposed!.activeId,
+      resubscribe: () => exposed!.resubscribe(),
+    }
   }
 
   beforeEach(() => {
@@ -172,4 +177,62 @@ describe('useScrollSpy', () => {
 
     expect(disconnected).toBe(true)
   })
+
+  // ── BUG-001：resubscribe（給呼叫端在 DOM 更新後手動觸發重新訂閱）────────────
+  //
+  // 根因：ids（tocIds）在文章 API 回應時就 settle，通常早於 markdown 客端渲染
+  // 完成、heading id 才被指派進 DOM 的時間點，導致 mount 當下 setup() 找不到任何
+  // 元素可 observe。加上 Shiki 高亮就緒後 v-html 會整份換新 DOM 節點，即使第一輪
+  // 訂到了，observer 也抓著已被替換掉（detached）的舊節點。
+  //
+  // 解法：回傳 resubscribe()（即內部 setup 本身）讓呼叫端能在「確定 DOM 已更新」
+  // 的時間點主動重新訂閱；因為 setup() 內部一律先 teardown() 再重新查找、
+  // observe，天然同時涵蓋「元素從無到有」與「舊節點被整批替換」兩種情境。
+  describe('resubscribe（DOM 更新後手動重新訂閱）', () => {
+    it('(a) ids settle 時對應元素尚不存在，之後元素才出現，呼叫 resubscribe() 後才開始訂閱', () => {
+      stubIntersectionObserver()
+      const { resubscribe } = mountSpy(['heading-a'])
+
+      // mount 當下 DOM 還沒有這個 heading（模擬 markdown 尚未渲染完成、id 尚未指派）
+      expect(observedElements).toHaveLength(0)
+
+      const elA = makeHeading('heading-a')
+      resubscribe()
+
+      expect(observedElements).toEqual([elA])
+    })
+
+    it('(a) resubscribe() 訂閱到新出現的節點後，其 intersection 事件仍能正確更新 activeId', () => {
+      stubIntersectionObserver()
+      const { activeId, resubscribe } = mountSpy(['heading-a'])
+
+      const elA = makeHeading('heading-a')
+      resubscribe()
+      observerCallback!([makeEntry(elA, true)], {} as IntersectionObserver)
+
+      expect(activeId().value).toBe('heading-a')
+    })
+
+    it('(b) DOM 節點被整批替換（同 id、不同物件）後呼叫 resubscribe()：舊 observer disconnect、訂閱新節點而非舊節點', () => {
+      stubIntersectionObserver()
+      const elA1 = makeHeading('heading-a')
+      const { resubscribe } = mountSpy(['heading-a'])
+      expect(observedElements).toEqual([elA1])
+      expect(disconnected).toBe(false)
+
+      // 模擬 v-html 整份重繪：舊節點從文件移除，換上同 id 的新節點
+      elA1.remove()
+      const elA2 = makeHeading('heading-a')
+      observedElements = []
+      resubscribe()
+
+      expect(disconnected).toBe(true)
+      expect(observedElements).toEqual([elA2])
+      expect(observedElements).not.toContain(elA1)
+    })
+  })
+
+  // (c) 舊用法（不呼叫 resubscribe，只解構 activeId）行為不變 —— 由本檔其餘既有
+  // 測試（mount 後自動 observe、intersection 事件更新 activeId、ids 變動時重新
+  // 訂閱、unmount 時 disconnect 等）全數持續通過即為證據，此處不重複斷言。
 })

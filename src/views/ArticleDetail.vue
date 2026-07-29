@@ -43,6 +43,13 @@ usePersistedReadingProgress(articleUuidRef, progress)
 const likeState = useArticleLike(articleUuidRef, { liked: false, likeCount: 0 })
 const bookmarkState = useArticleBookmark(articleUuidRef, { bookmarked: false })
 
+// 文章章節導覽（TOC）：防禦後端未上線前欄位缺失，一律視為空陣列。
+// 提前在這裡宣告（而不是放到檔案後段）：下面 assignHeadingIds() 的 watch 需要
+// 呼叫 resubscribeScrollSpy() 修復 BUG-001（scroll-spy 抓不到晚出現的 heading）。
+const toc = computed(() => article.value?.toc ?? [])
+const tocIds = computed(() => toc.value.map((entry) => entry.id))
+const { activeId, resubscribe: resubscribeScrollSpy } = useScrollSpy(tocIds)
+
 async function createHighlightFromSelection(request: Parameters<typeof highlightState.createHighlight>[0]) {
   const created = await highlightState.createHighlight(request)
   if (created) selectionState.clearSelection()
@@ -72,9 +79,16 @@ function assignHeadingIds() {
 // renderedHtml 會因 Shiki 高亮就緒而二次渲染（見 useMarkdownRenderer 註解）；
 // 每次都整份 v-html 換新 DOM 節點，所以每次都要重新指派，天然是 idempotent
 // （同一份 toc + 同樣的標題順序，重複執行結果不變）。
+//
+// BUG-001 根因：tocIds 在文章 API 回應時就 settle，早於這裡指派 id 進 DOM 的
+// 時間點，useScrollSpy 內部 watch(ids, setup) 因此不會再次觸發，observer 訂閱
+// 不到任何 heading；加上這裡整份換新 DOM 節點，就算第一輪訂到了也會抓著
+// detached 的舊節點。指派完 id 之後呼叫 resubscribeScrollSpy()，讓 observer
+// 用目前「真正在 DOM 上」的節點重新訂閱。
 watch(() => renderedHtml.value, async () => {
   await nextTick()
   assignHeadingIds()
+  resubscribeScrollSpy()
 }, { flush: 'post' })
 
 // Once article loads, sync its initial interaction state.
@@ -85,11 +99,6 @@ watchEffect(() => {
     bookmarkState.bookmarked.value = article.value.bookmarked
   }
 })
-
-// 文章章節導覽（TOC）：防禦後端未上線前欄位缺失，一律視為空陣列。
-const toc = computed(() => article.value?.toc ?? [])
-const tocIds = computed(() => toc.value.map((entry) => entry.id))
-const { activeId } = useScrollSpy(tocIds)
 
 function scrollToHeading(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -104,7 +113,10 @@ watch(() => renderedHtml.value, async () => {
   await nextTick()
   // 防禦性地再指派一次：不依賴另一個 watch(renderedHtml) 的註冊順序保證
   // （雖然目前確實排在它前面），確保深連結查找 id 之前，id 一定已經指派好。
+  // 同理也防禦性地重新訂閱一次 scroll-spy（見上方 BUG-001 註解），不依賴
+  // 另一個 watch 的執行順序保證。
   assignHeadingIds()
+  resubscribeScrollSpy()
   const target = document.getElementById(route.hash.slice(1))
   if (target) {
     target.scrollIntoView({ behavior: 'smooth', block: 'start' })
