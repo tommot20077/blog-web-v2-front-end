@@ -96,10 +96,17 @@ async function uiLogin(page: Page, role: Role): Promise<void> {
   if (await avatarButton.isVisible().catch(() => false)) {
     await avatarButton.click()
     await logoutButton.click()
-    await expect(logoutButton).not.toBeVisible()
+    // NavigationBar.handleLogout() 的順序是 closeMenu() -> await authStore.logout() -> router.push('/')。
+    // 選單一收起 logoutButton 就不可見了，所以「logoutButton 不可見」只代表選單關掉，
+    // 不代表登出已完成；若此時就往 /login 走，會被後發的 router.push('/') 蓋掉而停在首頁。
+    // 頭像只在已登入時渲染，且是在 authStore.logout() resolve（clearState）後才消失；
+    // 再等導覽真的回到首頁，才能確定整段登出流程（含跳轉）都結束了。
+    await expect(avatarButton).toBeHidden()
+    await page.waitForURL((url) => url.pathname === '/', { timeout: 8000 })
   }
 
   await page.goto('/login')
+  await expect(page).toHaveURL(/\/login/)
   await page.getByTestId('auth-login-field-email').fill(creds.email)
   await page.getByTestId('auth-login-field-password').fill(creds.password)
   await page.getByTestId('auth-login-submit').click()
