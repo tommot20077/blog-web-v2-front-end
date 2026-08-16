@@ -2,6 +2,7 @@ import apiClient from '../apiClient'
 import { mapPageResult } from '../utils'
 import type { BackendPageResult } from '../utils'
 import type { PageResult } from '../../types/editor'
+import type { TocEntry } from '../../types/article'
 
 interface TagSummaryResponse {
   id: string
@@ -34,6 +35,9 @@ interface BackendArticleDetail extends BackendArticleBase {
   categories: CategorySummaryResponse[]
   liked: boolean
   bookmarked?: boolean
+  // 後端上線前欄位可能缺失（見 docs/superpowers/specs/2026-07-20-article-toc-design.md）；
+  // 無 heading 的文章回傳空陣列 []，非 null。
+  toc?: TocEntry[]
 }
 
 export interface ArticleCategory {
@@ -64,6 +68,8 @@ export interface ArticleDetailItem extends Omit<ArticleItem, 'categories'> {
   categories: ArticleCategory[]
   liked: boolean
   bookmarked: boolean
+  // 選填：後端未上線前欄位可能缺失，消費端（ArticleDetail.vue）需防禦性地視為 []。
+  toc?: TocEntry[]
 }
 
 /**
@@ -104,6 +110,7 @@ function mapArticleDetail(raw: BackendArticleDetail): ArticleDetailItem {
     categories: (raw.categories ?? []).map((c) => ({ uuid: c.uuid, name: c.name, slug: c.slug })),
     liked: raw.liked,
     bookmarked: raw.bookmarked ?? false,
+    toc: raw.toc,
   }
 }
 
