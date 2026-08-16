@@ -35,7 +35,13 @@ test('N1 註冊 → 信箱驗證 → 登入', async ({ page }) => {
   await page.getByTestId('auth-register-field-password').fill(password)
   await page.getByTestId('auth-register-submit').click()
 
-  // 註冊成功會導向 /login 並提示前往信箱驗證
+  // 註冊成功後刻意「不跳頁」：右欄原地切換為 RegisterSuccess（見 RegisterView.vue 的
+  // D1 註解），一閃即逝的 toast + 自動跳轉已被持久的成功畫面取代。使用者要前往登入頁
+  // 得自己點成功畫面上的連結——這裡就照真實使用者路徑走完那一步。
+  await expect(page.getByTestId('auth-register-success')).toBeVisible({ timeout: 15_000 })
+  // 使用者必須看得到驗證信寄到哪個信箱，否則「去收信」這步無從執行
+  await expect(page.getByTestId('auth-register-success-email')).toHaveText(email)
+  await page.getByTestId('auth-register-success-login').click()
   await page.waitForURL(/\/login/, { timeout: 15_000 })
 
   // ── 2. 驗證前不得能登入（帳號尚未啟用）──────────────────────────────

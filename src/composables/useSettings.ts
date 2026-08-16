@@ -35,13 +35,6 @@ export function useSettings() {
   const authStore = useAuthStore()
   const { showToast } = useToast()
 
-  // Active section persisted
-  const activeSection = ref(localStorage.getItem('blog.settings.section') || 'profile')
-  function setSection(s: string) {
-    activeSection.value = s
-    localStorage.setItem('blog.settings.section', s)
-  }
-
   // ── Profile ──
   const nickname = ref('')
   const bio = ref('')
@@ -162,7 +155,10 @@ export function useSettings() {
   }
 
   async function saveAccount() {
-    if (!pwCurrent.value || !pwNew.value) return
+    if (!pwCurrent.value || !pwNew.value) {
+      showToast('請輸入目前密碼與新密碼', 'error')
+      return
+    }
     if (pwNew.value !== pwConfirm.value) {
       showToast('新密碼不一致', 'error')
       return
@@ -262,7 +258,6 @@ export function useSettings() {
   }
 
   return {
-    activeSection, setSection,
     // Profile
     nickname, bio, location, website, avatarUrl, avatarFile, profileStatus, saveProfile,
     // Account

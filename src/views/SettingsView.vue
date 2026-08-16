@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import { ref, onUnmounted } from 'vue'
+import { ref, computed, onUnmounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useSettings } from '../composables/useSettings'
 import SettingToggle from '../components/settings/SettingToggle.vue'
 import SettingFieldGroup from '../components/settings/SettingFieldGroup.vue'
 import SettingSaveToast from '../components/settings/SettingSaveToast.vue'
 import PasswordRulesChecklist from '../components/auth/PasswordRulesChecklist.vue'
+import ShellRail from '../components/layout/ShellRail.vue'
 
 const {
-  activeSection, setSection,
   nickname, bio, location, website, avatarUrl, avatarFile, profileStatus, saveProfile,
   removeAvatar,
   email, pwCurrent, pwNew, pwConfirm, accountStatus, saveAccount,
@@ -18,14 +19,43 @@ const {
   showToast,
 } = useSettings()
 
-const navItems = [
-  { id: 'profile',       label: '個人資料',   icon: '👤' },
-  { id: 'account',       label: '帳號安全',   icon: '🔐' },
-  { id: 'social',        label: '社群連結',   icon: '🔗' },
-  { id: 'writing',       label: '寫作偏好',   icon: '✍️' },
-  { id: 'notifications', label: '通知設定',   icon: '🔔' },
-  { id: 'danger',        label: '危險操作',   icon: '⚠️', danger: true },
+interface SettingsNavItem {
+  id: string
+  label: string
+  danger?: boolean
+}
+
+const navItems: SettingsNavItem[] = [
+  { id: 'profile',       label: '個人資料' },
+  { id: 'account',       label: '帳號安全' },
+  { id: 'social',        label: '社群連結' },
+  { id: 'writing',       label: '寫作偏好' },
+  { id: 'notifications', label: '通知設定' },
+  { id: 'danger',        label: '危險操作',   danger: true },
 ]
+const SECTION_IDS = navItems.map((item) => item.id)
+
+/*
+ * 區塊狀態改由網址 query param 掌握（deep-link，Yuan 2026-07-19 定案）：
+ * - 不再用元件內部 ref／localStorage 記錄目前區塊，改讀 route.query.section，
+ *   讓重整、瀏覽器上一頁/下一頁、分享連結都能還原到正確區塊。
+ * - 無值或不合法值一律落回 'profile'，不拋錯、不顯示空白。
+ */
+const route = useRoute()
+const router = useRouter()
+
+const activeSection = computed(() => {
+  const raw = route.query.section
+  const value = Array.isArray(raw) ? raw[0] : raw
+  return value && SECTION_IDS.includes(value) ? value : 'profile'
+})
+
+function selectSection(id: string) {
+  if (id === activeSection.value) return
+  // push（而非 replace）：讓「上一頁」可以在區塊間逐步回退——這正是
+  // Yuan 提出併樹需求時點名的痛點（目前上一頁無法在區塊間回退）。
+  router.push({ query: { ...route.query, section: id } })
+}
 
 // Avatar drag state
 const isDragging = ref(false)
@@ -89,27 +119,15 @@ async function handleDeleteAccount() {
 </script>
 
 <template>
-  <div class="st-page">
-    <!-- Left rail sidebar -->
-    <aside class="st-rail">
-      <div class="st-rail-brand">
-        <div class="st-nav-head">設定</div>
-      </div>
-      <nav class="st-nav">
-        <button
-          v-for="item in navItems"
-          :key="item.id"
-          type="button"
-          class="st-nav-item"
-          :class="{ active: activeSection === item.id, danger: item.danger }"
-          @click="setSection(item.id)"
-        >
-          <span class="st-nav-icon">{{ item.icon }}</span>
-          {{ item.label }}
-        </button>
-      </nav>
-    </aside>
+  <div class="settings-shell">
+    <ShellRail
+      active="settings"
+      :settings-children="navItems"
+      :active-child-id="activeSection"
+      @select-child="selectSection"
+    />
 
+    <div class="st-page">
     <!-- Main content -->
     <main class="st-main">
 
@@ -346,6 +364,53 @@ async function handleDeleteAccount() {
       </section>
 
     </main>
+    </div>
   </div>
 </template>
+
+<style scoped>
+/*
+ * SettingsView 原本沒有 shell-rail（Yuan 回報：從 /bookmarks、/my-articles 進來後
+ * 沒有任何返回入口），後續併入共用 ShellRail。
+ *
+ * 樹狀併欄（2026-07-19）：原本並排的 .st-rail（區塊分頁）已移除，區塊切換改由
+ * ShellRail「設定」項目底下的樹狀子項驅動（見上方 settings-children prop）。
+ * .st-page 的 grid-template-columns 原本是 design source（settings.css）
+ * 定義的 `240px 1fr` 兩欄（240px 留給已移除的 .st-rail）。design source 不可
+ * 編輯，這裡以 scoped selector（天生帶 data-v 屬性，specificity 高於
+ * design css 的單一 class selector）覆寫成單欄，讓 .st-main 收回原本
+ * 留給 .st-rail 的欄寬。
+ */
+.settings-shell {
+  display: flex;
+  align-items: flex-start;
+  min-height: 100vh;
+}
+.settings-shell :deep(.shell-rail) {
+  width: 220px;
+  flex: 0 0 220px;
+}
+.settings-shell .st-page {
+  flex: 1;
+  min-width: 0;
+  grid-template-columns: 1fr;
+}
+@media (max-width: 768px) {
+  .settings-shell {
+    flex-direction: column;
+  }
+  /*
+   * flex-direction 改 column 後，主軸變成垂直方向：flex-basis（來自上面
+   * `flex: 0 0 220px`）會被 flex 排版演算法優先當成「主軸尺寸」使用，
+   * 直接蓋過 height，導致 rail 高度被錯誤鎖死在 220px（實測踩過這個坑）。
+   * 這裡明確把 flex-basis 歸零、改用 width:100% + height:auto，讓 rail
+   * 在手機版變成自然高度的水平區塊，堆疊在 .st-page 上方。
+   */
+  .settings-shell :deep(.shell-rail) {
+    flex: 0 1 auto;
+    width: 100%;
+    height: auto;
+  }
+}
+</style>
 

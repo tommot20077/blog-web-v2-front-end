@@ -4,10 +4,57 @@
 @import './assets/design/search.css';
 @import './assets/design/settings.css';
 
+/* ── Tailwind utilities only ─────────────────────────
+ * 刻意「不」引入 @tailwind base（preflight）：preflight 會全域重置
+ * 元素樣式，覆蓋上面手寫設計系統的既有外觀。
+ * 專案多個元件（Toast/MobileBottomNav/Editor/Auth 等）以 utility class
+ * 排版，缺此指令時那些 class 完全不會被產生 → 元件視覺塌陷。
+ * 詳見 .tailwind-audit.md
+ */
+@tailwind utilities;
+
 /* ── Vue-specific global patches ─────────────────── */
 
 /* Prevent horizontal overflow (BUG-003) */
 html, body { overflow-x: hidden; }
+
+/* ── New semantic token: --ok (「達成」語意綠) ─────────
+ * 不改 assets/design/*.css（designer source）。中性綠、與 accent 同明度階。
+ */
+:root { --ok: #3f8f5f; }
+[data-theme="dark"] { --ok: #6fbf8b; }
+
+/* ── 暗色階：Apple 色調（Yuan 選定 D3「Apple 柔和」）─────────
+ * 問題：原本 --bg #0d0d0f 配 --ink #ededef ≈ 15.9:1。數字高不是重點——
+ * 近純黑配近純白會產生 halation（白字邊緣發光、久看字會浮動），這才是刺眼來源。
+ * 解法（比照 apple.com）：兩端都收——背景抬離純黑、文字收掉純白。
+ * 本文對比降為 ≈ 13.2:1，仍遠高於 WCAG AA 的 4.5:1。
+ * 次級文字色 #c7c7cc / #98989d / #8e8e93 取自 Apple 實際使用的灰階。
+ * 不改 assets/design/*.css（designer source），在此覆寫；同特異性下後載入者勝。
+ */
+[data-theme="dark"] {
+  --bg: #1d1d1f;
+  --bg-sub: #242426;
+  --surface: #2b2b2e;
+  --ink: #e8e8ed;
+  --ink-2: #c7c7cc;
+  --muted: #98989d;
+  --muted-2: #8e8e93;
+  --border: rgba(255,255,255,0.13);
+  --border-strong: rgba(255,255,255,0.22);
+  --divider: rgba(255,255,255,0.10);
+  --glass: rgba(36,36,38,0.74);
+  --glass-border: rgba(255,255,255,0.11);
+}
+
+/* ── Auth pages: 消除 .auth-shell 與全域 footer 之間的死白 ──
+ * .footer { margin-top: 120px } 是 designer source（styles.css:327），不可編輯。
+ * .auth-shell（AuthFormLayout.vue）本身 min-height:100vh，已是一個獨立滿版畫面，
+ * 不需要再疊加 120px 的額外呼吸空間；footer 自身仍保有 border-top + padding-top:40px
+ * 提供視覺分隔，故只在 .footer 緊接在 .auth-shell 之後時歸零 margin-top。
+ * 只用相鄰選擇器命中「auth-shell 之後的 footer」，不影響其他頁面的 footer 間距。
+ */
+.auth-shell + .footer { margin-top: 0; }
 
 /* ── Skeleton loading animation ──────────────────── */
 @keyframes sk-shimmer {

@@ -15,6 +15,7 @@ vi.mock('../composables/useToast', () => ({
 const mockGetMyArticles = vi.mocked(myArticlesService.getMyArticles)
 const mockDeleteArticle = vi.mocked(myArticlesService.deleteArticle)
 const mockSubmitForReview = vi.mocked(myArticlesService.submitForReview)
+const mockWithdrawArticle = vi.mocked(myArticlesService.withdrawArticle)
 
 function buildDraftArticle(overrides = {}) {
   return createMockMyArticle({ status: 'DRAFT', title: '草稿文章', ...overrides })
@@ -232,6 +233,98 @@ describe('MyArticlesView', () => {
       expect(screen.queryByTestId('my-row-action-edit-pub-uuid')).not.toBeInTheDocument()
       expect(screen.queryByText('送出審核')).not.toBeInTheDocument()
       expect(screen.queryByTestId('my-row-action-delete-pub-uuid')).not.toBeInTheDocument()
+    })
+
+    it('PENDING_REVIEW 文章：顯示「抽回」按鈕', async () => {
+      mockGetMyArticles.mockResolvedValue(createMockPageResult([buildPendingArticle()]))
+      renderWithRouter(MyArticlesView)
+      await flushPromises()
+      expect(screen.getByTestId('my-row-action-withdraw-pending-uuid')).toBeInTheDocument()
+    })
+
+    it('DRAFT 文章：不顯示「抽回」按鈕', async () => {
+      const draft = buildDraftArticle({ uuid: 'draft-uuid' })
+      mockGetMyArticles.mockResolvedValue(createMockPageResult([draft]))
+      renderWithRouter(MyArticlesView)
+      await flushPromises()
+      expect(screen.queryByTestId('my-row-action-withdraw-draft-uuid')).not.toBeInTheDocument()
+    })
+
+    it('PUBLISHED 文章：不顯示「抽回」按鈕', async () => {
+      mockGetMyArticles.mockResolvedValue(createMockPageResult([buildPublishedArticle()]))
+      renderWithRouter(MyArticlesView)
+      await flushPromises()
+      expect(screen.queryByTestId('my-row-action-withdraw-pub-uuid')).not.toBeInTheDocument()
+    })
+
+    it('REJECTED 文章：不顯示「抽回」按鈕', async () => {
+      mockGetMyArticles.mockResolvedValue(createMockPageResult([buildRejectedArticle()]))
+      renderWithRouter(MyArticlesView)
+      await flushPromises()
+      expect(screen.queryByTestId('my-row-action-withdraw-rejected-uuid')).not.toBeInTheDocument()
+    })
+
+    it('點擊「抽回」呼叫 withdrawArticle(uuid)', async () => {
+      mockGetMyArticles.mockResolvedValue(createMockPageResult([buildPendingArticle()]))
+      mockWithdrawArticle.mockResolvedValue(undefined)
+
+      const user = userEvent.setup()
+      renderWithRouter(MyArticlesView)
+      await flushPromises()
+
+      await user.click(screen.getByTestId('my-row-action-withdraw-pending-uuid'))
+      await flushPromises()
+
+      expect(mockWithdrawArticle).toHaveBeenCalledWith('pending-uuid')
+    })
+
+    it('withdrawArticle 成功後重載列表並顯示 toast', async () => {
+      mockGetMyArticles.mockResolvedValue(createMockPageResult([buildPendingArticle()]))
+      mockWithdrawArticle.mockResolvedValue(undefined)
+
+      const user = userEvent.setup()
+      renderWithRouter(MyArticlesView)
+      await flushPromises()
+
+      await user.click(screen.getByTestId('my-row-action-withdraw-pending-uuid'))
+      await flushPromises()
+
+      // 重載（第二次呼叫）
+      expect(mockGetMyArticles).toHaveBeenCalledTimes(2)
+      expect(mockShowToast).toHaveBeenCalledWith(expect.any(String), 'success')
+    })
+
+    it('withdrawArticle 失敗時顯示後端回傳的錯誤訊息，不使用自訂死文案', async () => {
+      mockGetMyArticles.mockResolvedValue(createMockPageResult([buildPendingArticle()]))
+      mockWithdrawArticle.mockRejectedValue(new Error('文章狀態轉換不合法'))
+
+      const user = userEvent.setup()
+      renderWithRouter(MyArticlesView)
+      await flushPromises()
+
+      await user.click(screen.getByTestId('my-row-action-withdraw-pending-uuid'))
+      await flushPromises()
+
+      expect(mockShowToast).toHaveBeenCalledWith('文章狀態轉換不合法', 'error')
+    })
+
+    it('withdrawArticle 送出期間按鈕進入 disabled 狀態，避免重複點擊', async () => {
+      mockGetMyArticles.mockResolvedValue(createMockPageResult([buildPendingArticle()]))
+      let resolveWithdraw: () => void = () => {}
+      mockWithdrawArticle.mockReturnValue(new Promise((resolve) => { resolveWithdraw = () => resolve(undefined) }))
+
+      const user = userEvent.setup()
+      renderWithRouter(MyArticlesView)
+      await flushPromises()
+
+      const btn = screen.getByTestId('my-row-action-withdraw-pending-uuid')
+      await user.click(btn)
+      await flushPromises()
+
+      expect(btn).toBeDisabled()
+
+      resolveWithdraw()
+      await flushPromises()
     })
 
     it('點擊「送出審核」呼叫 submitForReview(uuid)', async () => {

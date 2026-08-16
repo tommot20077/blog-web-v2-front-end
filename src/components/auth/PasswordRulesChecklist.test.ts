@@ -51,4 +51,23 @@ describe('PasswordRulesChecklist', () => {
     expect(text).toContain('數字');
     expect(text).toContain('特殊字元');
   });
+
+  // B2「完成即淡出」：已達成規則須帶有 met class 作為降級樣式的掛鉤
+  // （淡出/縮小/刪除線/圓點變色全部靠 CSS `.met` selector 觸發）
+  it('B2：已達成規則的 <li> 應帶有 met class', () => {
+    const wrapper = mount(PasswordRulesChecklist, { props: { password: 'Test123!' } });
+    const rules = wrapper.findAll('[data-testid^="rule-"]');
+    expect(rules).toHaveLength(5);
+    rules.forEach(r => {
+      expect(r.classes()).toContain('met');
+    });
+  });
+
+  it('B2：未達成規則的 <li> 不應帶有 met class', () => {
+    const wrapper = mount(PasswordRulesChecklist, { props: { password: '' } });
+    const rules = wrapper.findAll('[data-testid^="rule-"]');
+    rules.forEach(r => {
+      expect(r.classes()).not.toContain('met');
+    });
+  });
 });

@@ -71,35 +71,30 @@ describe('useSettings', () => {
     })
   })
 
-  describe('localStorage 持久化', () => {
-    it('setSection 將 activeSection 寫入 localStorage', async () => {
+  describe('activeSection 狀態改由 SettingsView 透過路由 query 掌管（2026-07-19 樹狀導覽併欄）', () => {
+    it('useSettings() 不再回傳 activeSection / setSection（不再用 localStorage 記錄區塊）', async () => {
       const { useSettings } = await import('./useSettings')
-      let capturedSetSection: ((s: string) => void) | null = null
 
+      let captured: Record<string, unknown> | null = null
       const TestComp = makeTestComponent(() => {
-        const { setSection } = useSettings()
-        capturedSetSection = setSection
+        captured = useSettings() as unknown as Record<string, unknown>
         return {}
       })
 
       mount(TestComp)
-      capturedSetSection!('account')
-      expect(localStorage.getItem('blog.settings.section')).toBe('account')
+      expect(captured).not.toHaveProperty('activeSection')
+      expect(captured).not.toHaveProperty('setSection')
     })
 
-    it('activeSection 初始值從 localStorage 讀取', async () => {
-      localStorage.setItem('blog.settings.section', 'social')
+    it('不再寫入 blog.settings.section 到 localStorage', async () => {
       const { useSettings } = await import('./useSettings')
-
-      let capturedActiveSection: { value: string } | null = null
       const TestComp = makeTestComponent(() => {
-        const { activeSection } = useSettings()
-        capturedActiveSection = activeSection
+        useSettings()
         return {}
       })
 
       mount(TestComp)
-      expect(capturedActiveSection!.value).toBe('social')
+      expect(localStorage.getItem('blog.settings.section')).toBeNull()
     })
   })
 

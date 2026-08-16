@@ -171,11 +171,11 @@ function formatTime(iso: string): string {
   color: var(--ink, #0a0a0b);
 }
 .when {
-  color: var(--muted-2, #9a9aa0);
+  color: var(--muted, #6b6b70);
   font-size: 12px;
 }
 .edited {
-  color: var(--muted-2, #9a9aa0);
+  color: var(--muted, #6b6b70);
   font-size: 11px;
   font-style: italic;
 }

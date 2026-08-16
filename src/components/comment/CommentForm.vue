@@ -96,6 +96,18 @@ textarea {
   border-radius: 8px;
   resize: vertical;
   font: inherit;
+  /* 未指定 background/color 會落回瀏覽器預設的白底黑字，
+     深色模式下整塊變白（使用者回報）。明確綁定設計系統 token。 */
+  background: var(--surface);
+  color: var(--ink);
+  transition: border-color 0.2s;
+}
+textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+textarea::placeholder {
+  color: var(--muted-2);
 }
 .row {
   display: flex;

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { RouterLink } from 'vue-router'
+import ShellRail from '../components/layout/ShellRail.vue'
 
 type Period = '7d' | '30d' | '90d'
 const selectedPeriod = ref<Period>('30d')
@@ -68,29 +69,17 @@ const PEAK = computed(() => Math.max(...DAILY_VIEWS.value))
   <div class="shell" data-testid="stats-root">
 
     <!-- Left rail -->
-    <nav class="shell-rail">
-      <div class="brand">
-        <span class="mark" />
-        <span class="name">MY BLOG WEB.</span>
-      </div>
-
+    <ShellRail active="my-stats">
       <span class="rail-section">WORKSPACE</span>
-
-      <button class="rail-item active">站台數據</button>
-      <RouterLink to="/my-articles" class="rail-item">我的文章</RouterLink>
       <RouterLink to="/editor" class="rail-item">開始新文章</RouterLink>
-
-      <div class="rail-foot">
-        <RouterLink to="/">← Blog 首頁</RouterLink>
-      </div>
-    </nav>
+    </ShellRail>
 
     <!-- Main content -->
     <div class="shell-main">
 
       <!-- Sticky breadcrumb -->
       <div class="shell-back">
-        <span class="mono" style="font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted-2)">
+        <span class="mono" style="font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-2)">
           作者後台 · ANALYTICS
         </span>
       </div>
@@ -227,13 +216,13 @@ const PEAK = computed(() => Math.max(...DAILY_VIEWS.value))
 
 .st-card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
 
-.st-card-lbl { font-size: 9.5px; letter-spacing: 0.18em; color: var(--muted-2); }
+.st-card-lbl { font-size: 9.5px; letter-spacing: 0.18em; color: var(--ink-2); }
 
 .st-delta { font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.1em; color: #16a34a; }
 .st-delta.down { color: #dc2626; }
 
 .st-card-n { font-family: var(--f-display); font-size: 28px; font-weight: 500; letter-spacing: -0.02em; line-height: 1; margin-bottom: 4px; }
-.st-card-sub { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted-2); }
+.st-card-sub { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-2); }
 
 /* Panel */
 .st-panel {
@@ -252,7 +241,7 @@ const PEAK = computed(() => Math.max(...DAILY_VIEWS.value))
 }
 
 .st-panel-title { font-family: var(--f-display); font-size: 16px; font-weight: 500; letter-spacing: -0.01em; margin: 0; }
-.st-panel-meta { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted-2); }
+.st-panel-meta { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-2); }
 
 /* Sparkline chart */
 .st-chart {

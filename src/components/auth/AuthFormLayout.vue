@@ -19,7 +19,13 @@ defineProps<{
     <!-- Right form column -->
     <div class="auth-form-col">
       <div class="auth-form-col__inner">
-        <h1 class="auth-form-col__heading" :data-testid="titleTestId">{{ title }}</h1>
+        <h1
+          v-if="title"
+          class="auth-form-col__heading"
+          :data-testid="titleTestId"
+        >
+          {{ title }}
+        </h1>
         <p
           v-if="subtitle"
           data-testid="auth-subtitle"
@@ -52,7 +58,7 @@ defineProps<{
 
 /* Left hero panel */
 .auth-hero {
-  flex: 0 0 42%;
+  flex: 0 0 62%;
   background: var(--bg-sub, #ededed);
   border-right: 1px solid var(--border, rgba(10, 10, 11, 0.10));
   padding: 140px 56px 56px;
@@ -109,7 +115,7 @@ defineProps<{
 /* Right form column */
 .auth-form-col {
   flex: 1 1 0%;
-  padding: 140px 56px 56px;
+  padding: 140px 36px 56px;
   display: flex;
   flex-direction: column;
   background: var(--bg, #f4f4f4);

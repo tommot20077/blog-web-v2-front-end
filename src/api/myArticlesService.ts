@@ -27,4 +27,13 @@ export const myArticlesService = {
     const { myArticlesService: svc } = await import('./real/myArticlesService')
     return svc.submitForReview(uuid)
   },
+
+  async withdrawArticle(uuid: string): Promise<void> {
+    if (import.meta.env.VITE_USE_MOCK === 'true') {
+      const { myArticlesService: svc } = await import('./mock/myArticlesService')
+      return svc.withdrawArticle(uuid)
+    }
+    const { myArticlesService: svc } = await import('./real/myArticlesService')
+    return svc.withdrawArticle(uuid)
+  },
 }

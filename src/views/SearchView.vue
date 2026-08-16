@@ -198,7 +198,7 @@ onUnmounted(() => window.removeEventListener('keydown', onGlobalEscape))
                 <div>
                   <span class="sv-author-n" v-html="highlight(article.authorNickname, debouncedQuery)" />
                   <span style="color:var(--muted-2);margin:0 6px">·</span>
-                  <span style="font-family:var(--f-mono);font-size:10px;color:var(--muted-2)">
+                  <span style="font-family:var(--f-mono);font-size:10px;color:var(--ink-2)">
                     {{ article.publishedAt?.slice(0, 10) }}
                   </span>
                 </div>

@@ -188,7 +188,7 @@ const goBack = () => window.history.length > 1 ? router.back() : router.push('/a
 
           <!-- Article end -->
           <footer class="art-end">
-            <p class="mono" style="font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted-2)">END OF ARTICLE.</p>
+            <p class="mono" style="font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-2)">END OF ARTICLE.</p>
             <button @click="scrollToTop" class="back-top-btn">↑</button>
           </footer>
         </div>
@@ -211,7 +211,11 @@ const goBack = () => window.history.length > 1 ? router.back() : router.push('/a
       <RelatedArticlesSection :article-uuid="article.uuid" />
 
       <!-- Comment section -->
-      <CommentSection :article-uuid="article.uuid" />
+      <!-- 包 .wrap：CommentSection 自身無寬度限制，未包住會撐滿整個視窗寬度，
+           與上方 .art-cover / .art-content-layout 的欄寬不齊（max-width:1360px）。 -->
+      <div class="wrap">
+        <CommentSection :article-uuid="article.uuid" />
+      </div>
 
       <!-- Side navigation dots -->
       <div class="art-nav">
@@ -253,7 +257,7 @@ const goBack = () => window.history.length > 1 ? router.back() : router.push('/a
 .meta-line { display: flex; align-items: center; gap: 14px; }
 .avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--bg-sub); }
 .who b { font-family: var(--f-body); font-size: 14px; color: var(--ink); }
-.art-hero-stats { display: flex; gap: 20px; font-family: var(--f-mono); font-size: 11px; letter-spacing: .12em; color: var(--muted-2); text-transform: uppercase; }
+.art-hero-stats { display: flex; gap: 20px; font-family: var(--f-mono); font-size: 11px; letter-spacing: .12em; color: var(--ink-2); text-transform: uppercase; }
 .art-cover { padding: 48px 0 0; }
 .art-cover img { width: 100%; border-radius: 8px; display: block; }
 .art-content-layout {

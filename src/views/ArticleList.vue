@@ -352,7 +352,7 @@ function formatDate(d: string) {
             class="art-sentinel"
           >
             <div v-if="page * PER_PAGE < filtered.length" class="sk-pulse" style="width:100px;height:4px;" />
-            <span v-else-if="allArticles.length > 0" class="mono" style="font-size:11px;color:var(--muted-2);letter-spacing:.14em;text-transform:uppercase;">到底了</span>
+            <span v-else-if="allArticles.length > 0" class="mono" style="font-size:11px;color:var(--ink-2);letter-spacing:.14em;text-transform:uppercase;">到底了</span>
           </div>
         </div>
       </div>

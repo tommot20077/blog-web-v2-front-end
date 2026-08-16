@@ -61,7 +61,7 @@ function fmtDate(d: string) {
     <!-- Header -->
     <header class="ar-header wrap">
       <div class="ar-header-text">
-        <div class="ar-eyebrow mono" style="color:var(--muted-2)">§ ARCHIVE · 全部文章</div>
+        <div class="ar-eyebrow mono" style="color:var(--ink-2)">§ ARCHIVE · 全部文章</div>
         <h1 class="ar-title">每一篇<em>都還記得。</em></h1>
         <p class="ar-sub">從第一篇到現在，全部 {{ stats.total }} 篇按時間排好。</p>
       </div>
@@ -178,13 +178,13 @@ function fmtDate(d: string) {
   border-radius: 4px;
 }
 
-.ar-date { font-family: var(--f-mono); font-size: 10px; color: var(--muted-2); letter-spacing: 0.06em; white-space: nowrap; }
+.ar-date { font-family: var(--f-mono); font-size: 10px; color: var(--ink-2); letter-spacing: 0.06em; white-space: nowrap; }
 
 .ar-row-title { margin: 0; font-family: var(--f-display); font-size: 14.5px; font-weight: 500; color: var(--ink); }
 .ar-row:hover .ar-row-title { color: var(--accent); }
 
 .ar-row-tags { display: flex; gap: 6px; }
-.ar-tag { font-family: var(--f-mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted-2); white-space: nowrap; }
+.ar-tag { font-family: var(--f-mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-2); white-space: nowrap; }
 
 @media (max-width: 640px) {
   .ar-header { flex-direction: column; align-items: flex-start; gap: 16px; }

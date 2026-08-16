@@ -87,12 +87,22 @@ describe('RegisterView', () => {
     expect(screen.getByTestId('password-strength')).toBeTruthy();
   });
 
-  it('註冊成功顯示成功 toast 並導向 /login', async () => {
+  // D1「右欄原地切換」（Yuan 2026-07-19 定案）：
+  // 註冊成功後不再跳頁、不再彈一閃即逝的 toast，改為右欄原地換成
+  // 帶有 auth-register-success 的成功狀態畫面，並回顯註冊用 email。
+  // 舊斷言「顯示成功 toast 並導向 /login」對應的是已被明確廢棄的行為，故整條改寫，
+  // 而非弱化：新斷言同樣要求「不留在半殘狀態」，只是驗證的目標行為改變了。
+  it('註冊成功後右欄原地顯示成功畫面並回顯 email（不跳頁、不彈 toast）', async () => {
     const { router, pinia } = renderRegisterView();
     setActivePinia(pinia);
 
     const authStore = useAuthStore();
     authStore.register = vi.fn().mockResolvedValue(undefined);
+
+    // router setup 的初始 push('/register') 未 await，先等它 settle，
+    // 才能在提交後可靠地斷言「路徑沒有因為送出表單而改變」。
+    await router.isReady();
+    const pathBeforeSubmit = router.currentRoute.value.path;
 
     const emailInput = screen.getByPlaceholderText('請輸入 Email');
     const usernameInput = screen.getByPlaceholderText('請輸入使用者名稱（英文、數字）');
@@ -108,16 +118,20 @@ describe('RegisterView', () => {
     await fireEvent.click(button);
 
     await waitFor(() => {
-      const { toasts } = useToast();
-      const successToast = toasts.value.find(
-        t => t.message === '註冊成功！請至信箱驗證您的帳號' && t.type === 'success',
-      );
-      expect(successToast).toBeTruthy();
+      expect(screen.getByTestId('auth-register-success')).toBeTruthy();
     });
 
-    await waitFor(() => {
-      expect(router.currentRoute.value.path).toBe('/login');
-    });
+    expect(screen.getByTestId('auth-register-success-email').textContent).toContain(
+      'test@example.com',
+    );
+
+    // 送出表單不應觸發任何導航 —— 不再自動跳轉到 /login
+    expect(router.currentRoute.value.path).toBe(pathBeforeSubmit);
+
+    // 不再彈出「註冊成功」toast —— 已改為右欄原地呈現的持久成功畫面
+    const { toasts } = useToast();
+    const successToast = toasts.value.find(t => t.type === 'success');
+    expect(successToast).toBeFalsy();
   });
 
   it('註冊失敗顯示錯誤 toast', async () => {
