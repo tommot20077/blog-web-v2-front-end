@@ -206,6 +206,8 @@ describe('authService', () => {
       expect(mockPost).toHaveBeenCalledWith('/api/v1/auth/verify-email', {
         token: 'verify-token-xyz',
       })
+      // token 屬憑證，不得再經由 query string 傳遞
+      expect(mockGet).not.toHaveBeenCalled()
     })
 
     it('verifyEmailCode 使用 apiClient.post 呼叫後端驗證碼端點', async () => {
