@@ -10,7 +10,7 @@ import { fileService } from '../api/fileService'
 import { articleVersionService } from '../api/real/articleVersionService'
 import type { VersionSummaryResponse, VersionDetailResponse } from '../api/real/articleVersionService'
 import { useMarkdownEditor } from '../composables/useMarkdownEditor'
-import { createMockEditorArticle } from '../test-utils/factories'
+import { createMockEditorArticle, createMockCategoryOption } from '../test-utils/factories'
 import type { FileUploadResponse } from '../types/editor'
 
 // ── Mock vue-router ──────────────────────────────────────────────────────────
@@ -698,6 +698,55 @@ describe('EditorView', () => {
       })
       // getDetail 失敗代表沒有可套用的新內容，setContent 不應該再被多呼叫一次
       expect(setContent).toHaveBeenCalledTimes(1)
+    })
+
+    it('還原後同步內容不會改動 categoryIds（VersionDetailResponse 無 categoryId 欄位，不應清空使用者當前選擇）', async () => {
+      // 真實契約：VersionDetailResponse 沒有 categoryId 欄位（後端 VersionDetailResponse.java 只有
+      // uuid / type / note / createdAt / authorId / title / slug / content / summary / coverImageUrl / status / tags）。
+      const detailWithoutCategoryId: VersionDetailResponse = {
+        uuid: 'v-1',
+        type: 'MANUAL',
+        createdAt: '2026-07-20T10:00:00Z',
+        note: '還原前快照',
+        title: '還原後的標題',
+        slug: 'restored-title',
+        content: '# 還原後的內容',
+        status: 'DRAFT',
+        summary: '還原後的摘要',
+        coverImageUrl: null,
+        tags: ['Vue'],
+      }
+      vi.mocked(categoryService.getCategories).mockResolvedValue([
+        createMockCategoryOption({ id: 'cat-1', name: '分類一', slug: 'cat-1' }),
+      ])
+      const mockArticle = createMockEditorArticle({
+        uuid: 'edit-uuid',
+        categories: [createMockCategoryOption({ id: 'cat-1', name: '分類一', slug: 'cat-1' })],
+      })
+      vi.mocked(editorService.getArticleForEdit).mockResolvedValue(mockArticle)
+      vi.mocked(articleVersionService.restore).mockResolvedValue(undefined)
+      vi.mocked(articleVersionService.getDetail).mockResolvedValue(detailWithoutCategoryId)
+      setupMarkdownEditorMock()
+
+      const user = userEvent.setup()
+      renderEditor({ uuid: 'edit-uuid' })
+
+      // 還原前：使用者原本已選「分類一」
+      await waitFor(() => {
+        expect(screen.getByRole('checkbox', { name: '分類一' })).toBeChecked()
+      })
+
+      await restoreThroughUi(user)
+
+      // 還原流程已套用完畢（title 已變更為還原後的標題）
+      await waitFor(() => {
+        const titleInput = screen.getByTestId('editor-title-input') as HTMLInputElement
+        expect(titleInput.value).toBe('還原後的標題')
+      })
+
+      // categoryIds 應保留使用者原本選擇，不因還原被清空
+      await user.click(screen.getByRole('button', { name: /Meta/ }))
+      expect(screen.getByRole('checkbox', { name: '分類一' })).toBeChecked()
     })
   })
 

@@ -175,7 +175,7 @@ async function onVersionRestored(version: VersionSummaryResponse) {
     title.value = detail.title
     summary.value = detail.summary ?? ''
     coverImageUrl.value = detail.coverImageUrl ?? null
-    categoryIds.value = detail.categoryId != null ? [String(detail.categoryId)] : []
+    // VersionDetailResponse 沒有 categoryId 欄位（後端契約），保留使用者當前選擇，不清空。
     tagNames.value = detail.tags ?? []
     setContent(detail.content)
     showToast('已套用還原版本的內容', 'success')
