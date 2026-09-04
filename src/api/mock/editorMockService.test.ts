@@ -5,9 +5,11 @@ import {
   getArticleForEditMock,
 } from './editorMockService'
 import { resetEditorArticleStore } from './data'
+import { mockApiFailure, resetMockApiFailures } from './mockApiFailureState'
 
 beforeEach(() => {
   resetEditorArticleStore()
+  resetMockApiFailures()
 })
 
 describe('editorMockService', () => {
@@ -38,6 +40,20 @@ describe('editorMockService', () => {
       const fetched = await getArticleForEditMock(created.uuid)
       expect(fetched).not.toBeNull()
       expect(fetched?.title).toBe('可被查詢的文章')
+    })
+
+    it('請求已經在飛行中才註冊失敗時，該次請求仍然成功', async () => {
+      const inFlight = createArticleMock({
+        title: '飛行中的文章',
+        summary: '',
+        content: '',
+        coverImageUrl: null,
+        categoryIds: [],
+        tagNames: [],
+      })
+      mockApiFailure('/api/v1/articles', { message: '建立失敗' }, 500)
+
+      await expect(inFlight).resolves.toMatchObject({ title: '飛行中的文章' })
     })
   })
 
@@ -78,6 +94,20 @@ describe('editorMockService', () => {
           tagNames: [],
         })
       ).rejects.toThrow()
+    })
+
+    it('請求已經在飛行中才註冊失敗時，該次請求仍然成功', async () => {
+      const inFlight = updateArticleMock('editor-draft-1', {
+        title: '飛行中更新的標題',
+        summary: '',
+        content: '',
+        coverImageUrl: null,
+        categoryIds: [],
+        tagNames: [],
+      })
+      mockApiFailure('/api/v1/articles/editor-draft-1', { message: '更新失敗' }, 500)
+
+      await expect(inFlight).resolves.toMatchObject({ title: '飛行中更新的標題' })
     })
   })
 
