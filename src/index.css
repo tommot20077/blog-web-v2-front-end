@@ -24,6 +24,27 @@ html, body { overflow-x: hidden; }
 :root { --ok: #3f8f5f; }
 [data-theme="dark"] { --ok: #6fbf8b; }
 
+/* ── New semantic token: --danger（「錯誤/危險」語意紅）─────────
+ * 根因：全站曾用硬編碼 #b91c1c / #ef4444 / rgba(239,68,68,*)，沒有隨主題切換
+ * 的語意 token。暗色模式下對實際暗色背景（--bg #1d1d1f、--bg-sub #242426，
+ * 見下方「Apple 色調」覆寫區塊）僅 ≈2.4~2.6:1，遠低於 WCAG AA 文字門檻
+ * 4.5:1；亮色模式對 --bg #f4f4f4 已 ≈5.9:1，合格（純暗色模式的 bug）。
+ * 計算過程與斷言見 src/dangerToken.test.ts（真的算 WCAG 對比度，非字串比對）。
+ *
+ * --danger：一般「danger 文字」用色（錯誤訊息、badge、按鈕文字/邊框）。
+ *   亮色沿用既有 #b91c1c（不變動觀感）；暗色改用 #f87171
+ *   （對 --bg-sub ≈5.6:1、對 --bg ≈6.1:1，仍留有餘裕）。
+ * --danger-strong：白字配實心/近實心紅底時的基底紅（如「確認拒絕」「刪除」
+ *   按鈕），維持原本不隨主題變化的觀感，故不比照 --danger 分暗色版——
+ *   這類「白字配紅底」與「紅字配淡紅底」方向相反，換 token 時分開處理，
+ *   避免一律替換成同一個變數而改變視覺。原本各處 rgba(239,68,68,X) 的半透明
+ *   底色一律以 color-mix(in srgb, var(--danger-strong) X%, transparent) 推導，
+ *   數值與改版前完全等價（color-mix 與 transparent 混合等同該色的 alpha 版本）。
+ * 不改 assets/design/*.css（designer source），在此新增。
+ */
+:root { --danger: #b91c1c; --danger-strong: #ef4444; }
+[data-theme="dark"] { --danger: #f87171; }
+
 /* ── 暗色階：Apple 色調（Yuan 選定 D3「Apple 柔和」）─────────
  * 問題：原本 --bg #0d0d0f 配 --ink #ededef ≈ 15.9:1。數字高不是重點——
  * 近純黑配近純白會產生 halation（白字邊緣發光、久看字會浮動），這才是刺眼來源。
@@ -113,7 +134,7 @@ html, body { overflow-x: hidden; }
 .auth-link:hover { opacity: .75; }
 .auth-msg { padding: 12px 16px; border-radius: 10px; font-size: 14px; line-height: 1.6; text-align: center; }
 .auth-msg-success { background: rgba(34,197,94,.1); color: #15803d; }
-.auth-msg-error { background: rgba(239,68,68,.08); color: #b91c1c; }
+.auth-msg-error { background: color-mix(in srgb, var(--danger-strong) 8%, transparent); color: var(--danger); }
 .auth-msg-info { background: var(--bg-sub); color: var(--muted); }
 
 /* sr-only utility */
@@ -136,13 +157,13 @@ html, body { overflow-x: hidden; }
 .admin-btn { padding: 6px 14px; border-radius: 20px; font-size: 13px; cursor: pointer; transition: opacity .2s; border: none; }
 .admin-btn:hover { opacity: .8; }
 .admin-btn-approve { background: var(--accent); color: #fff; }
-.admin-btn-reject { background: rgba(239,68,68,.1); color: #b91c1c; border: 1px solid rgba(239,68,68,.2) !important; }
+.admin-btn-reject { background: color-mix(in srgb, var(--danger-strong) 10%, transparent); color: var(--danger); border: 1px solid color-mix(in srgb, var(--danger-strong) 20%, transparent) !important; }
 .admin-reject-form { margin-top: 12px; display: flex; flex-direction: column; gap: 10px; }
 .admin-reject-textarea { width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--glass-border); background: var(--glass); font-size: 14px; color: var(--ink); resize: none; outline: none; transition: border-color .2s; box-sizing: border-box; }
 .admin-reject-textarea:focus { border-color: var(--accent); }
 .admin-reject-actions { display: flex; gap: 8px; justify-content: flex-end; }
 .admin-btn-cancel { background: var(--glass); border: 1px solid var(--glass-border) !important; color: var(--ink); }
-.admin-btn-confirm-reject { background: rgba(239,68,68,.9); color: #fff; }
+.admin-btn-confirm-reject { background: color-mix(in srgb, var(--danger-strong) 90%, transparent); color: #fff; }
 .admin-btn-confirm-reject:disabled { opacity: .4; cursor: not-allowed; }
 .admin-empty { text-align: center; padding: 48px 0; color: var(--muted); font-family: var(--f-mono); font-size: 13px; letter-spacing: .08em; }
 .admin-loading { display: flex; justify-content: center; padding: 48px 0; gap: 8px; }
