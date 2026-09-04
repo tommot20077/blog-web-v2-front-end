@@ -34,16 +34,48 @@ html, body { overflow-x: hidden; }
  * --danger：一般「danger 文字」用色（錯誤訊息、badge、按鈕文字/邊框）。
  *   亮色沿用既有 #b91c1c（不變動觀感）；暗色改用 #f87171
  *   （對 --bg-sub ≈5.6:1、對 --bg ≈6.1:1，仍留有餘裕）。
- * --danger-strong：白字配實心/近實心紅底時的基底紅（如「確認拒絕」「刪除」
- *   按鈕），維持原本不隨主題變化的觀感，故不比照 --danger 分暗色版——
- *   這類「白字配紅底」與「紅字配淡紅底」方向相反，換 token 時分開處理，
- *   避免一律替換成同一個變數而改變視覺。原本各處 rgba(239,68,68,X) 的半透明
- *   底色一律以 color-mix(in srgb, var(--danger-strong) X%, transparent) 推導，
- *   數值與改版前完全等價（color-mix 與 transparent 混合等同該色的 alpha 版本）。
+ * --danger-strong：淡紅底（各處 color-mix(in srgb, var(--danger-strong) X%,
+ *   transparent) 半透明紅底）的基底紅，數值與改版前完全等價，禁止調深——
+ *   它同時是 20 個已驗證疊色斷言的背景基底（見 src/dangerToken.test.ts
+ *   「半透明 color-mix 疊色的合成背景對比度」describe），改它的值會連帶
+ *   改變所有淡紅底的色相，需重算全部 20 個斷言。
+ * --danger-solid：白字配實心/近實心紅底時的基底紅（「確認拒絕」「刪除」
+ *   按鈕），另立獨立 token、不沿用 --danger-strong，正是為了避免上述連動。
+ *   維持不隨主題變化的觀感（白字疊紅底不該隨主題切換），故不比照 --danger
+ *   分暗色版。色值 #bf3636 為 --danger-strong #ef4444 的 RGB 三色版同比例
+ *   縮放 80%（(239,68,68)*0.8 取整 = (191,54,54)，色相不變，因 G=B 比例
+ *   保持一致，不會偏向棕色）：
+ *     - 實色底配 #fff：contrast(#fff, #bf3636) ≈ 5.53:1
+ *     - .admin-btn-confirm-reject 的 90% 疊色（backdrop 為 --glass 疊在
+ *       --bg 上）：light ≈ 4.73:1、dark ≈ 6.23:1
+ *   三者皆 ≥ 4.5:1（WCAG AA），計算過程與斷言見 src/dangerToken.test.ts
+ *   「白字配紅底按鈕的對比度」describe。
+ * 這兩個「白字配紅底」token 與「紅字配淡紅底」（--danger 文字疊在
+ * --danger-strong 淡底上）方向相反，換色時分開處理，避免一律替換成同一個
+ * 變數而改變視覺或波及既有驗證過的斷言。
  * 不改 assets/design/*.css（designer source），在此新增。
  */
-:root { --danger: #b91c1c; --danger-strong: #ef4444; }
+:root { --danger: #b91c1c; --danger-strong: #ef4444; --danger-solid: #bf3636; }
 [data-theme="dark"] { --danger: #f87171; }
+
+/* -- New semantic token: --danger-solid-hover(白字配紅底按鈕的 hover 覆寫) --
+ * fix round 1(reviewer 自行延伸驗算發現,見 src/dangerToken.test.ts「hover
+ * 狀態的對比度」describe):.admin-btn-confirm-reject/.ma-btn--danger 原本
+ * hover 都靠 `opacity`(.8/.88)取得「有反應」的視覺效果,但 opacity 對整個
+ * 元素生效--白字與紅底一起變半透明再與 backdrop 合成,對比度因此掉回接近
+ * 修復前的原始 bug 數值:.admin-btn-confirm-reject light 模式僅 ≈3.42:1(不
+ * 合格),.ma-btn--danger light 模式僅 ≈4.57:1(現況壓線通過,餘裕僅 0.07,
+ * 無測試覆蓋、一碰即破)。
+ * 這裡改用「hover 時直接換一個更深的實色紅底」取代 opacity:不透明色不受
+ * backdrop 影響,兩個主題算出同一個對比度,不必再分別驗算 light/dark。
+ * 色值 #992b2b 為 --danger-solid #bf3636 等比例縮放 80%((191,54,54)*0.8
+ * 取整 = (153,43,43),色相不變,比照 --danger-solid 本身的推導方式):
+ *   - contrast(#fff, #992b2b) ~= 7.68:1(兩主題皆同,實色底不受 backdrop 影響)
+ *   遠高於 4.5:1,比原本壓線的 opacity 方案更穩健。
+ * 不沿用 --danger-strong/--danger-solid 本身(禁區:改了要重算既有 24 個
+ * 斷言),另立獨立 token。計算過程與斷言見 src/dangerToken.test.ts。
+ */
+:root { --danger-solid-hover: #992b2b; }
 
 /* ── 暗色階：Apple 色調（Yuan 選定 D3「Apple 柔和」）─────────
  * 問題：原本 --bg #0d0d0f 配 --ink #ededef ≈ 15.9:1。數字高不是重點——
@@ -163,8 +195,13 @@ html, body { overflow-x: hidden; }
 .admin-reject-textarea:focus { border-color: var(--accent); }
 .admin-reject-actions { display: flex; gap: 8px; justify-content: flex-end; }
 .admin-btn-cancel { background: var(--glass); border: 1px solid var(--glass-border) !important; color: var(--ink); }
-.admin-btn-confirm-reject { background: color-mix(in srgb, var(--danger-strong) 90%, transparent); color: #fff; }
+.admin-btn-confirm-reject { background: color-mix(in srgb, var(--danger-solid) 90%, transparent); color: #fff; transition: background-color .2s; }
 .admin-btn-confirm-reject:disabled { opacity: .4; cursor: not-allowed; }
+/* fix round 1:hover 改深色覆寫取代 opacity 壓底(見上方 --danger-solid-hover
+ * 說明)。用 .admin-btn.admin-btn-confirm-reject:hover(雙 class)取得比共用
+ * .admin-btn:hover 更高的 specificity,不必依賴來源順序;也不改共用規則本身,
+ * 其他 .admin-btn-*(approve/reject/cancel)的 hover 仍是 opacity:.8,不受影響。*/
+.admin-btn.admin-btn-confirm-reject:hover { background: var(--danger-solid-hover); opacity: 1; }
 .admin-empty { text-align: center; padding: 48px 0; color: var(--muted); font-family: var(--f-mono); font-size: 13px; letter-spacing: .08em; }
 .admin-loading { display: flex; justify-content: center; padding: 48px 0; gap: 8px; }
 .admin-loading-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); animation: bounce 1s infinite; }
