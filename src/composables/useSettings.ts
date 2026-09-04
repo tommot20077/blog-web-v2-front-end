@@ -58,7 +58,8 @@ export function useSettings() {
   const { status: socialStatus, withSave: withSocialSave } = useSaveStatus()
 
   // ── Writing Preferences (localStorage) ──
-  // Note: editorMode key 'blog.edMode' is read by EditorView.vue
+  // editorMode key 'blog.edMode' 與 useEditorMode.ts 共用：這裡改的是「預設值」，
+  // EditorView.vue 透過 useEditorMode() 在掛載時讀取、切換模式時立即寫回同一把 key。
   const editorMode = ref(localStorage.getItem('blog.edMode') || 'split')
   const wordUnit = ref(localStorage.getItem('blog.settings.wordUnit') || 'characters')
   const autosave = ref(localStorage.getItem('blog.settings.autosave') !== 'false')

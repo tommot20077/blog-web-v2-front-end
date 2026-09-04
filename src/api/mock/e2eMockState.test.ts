@@ -6,6 +6,7 @@ import { commentService } from './commentService'
 import { rejectArticleMock, getPendingArticlesMock } from './adminMockService'
 import { getMockArticleDetail } from './data'
 import { getTagBySlugMock, followTagMock } from './tagMockService'
+import { listArticleVersionsMock, restoreArticleVersionMock } from './articleVersionMockService'
 import { resetAllMockState, seedBookmark, seedLike } from './e2eMockState'
 
 describe('e2eMockState', () => {
@@ -65,5 +66,21 @@ describe('e2eMockState', () => {
 
     expect(detail?.liked).toBe(true)
     expect(detail?.bookmarked).toBe(true)
+  })
+
+  it('reset 會還原 restore 異動過的版本歷史與文章內容', async () => {
+    const before = await listArticleVersionsMock('editor-draft-1')
+
+    await restoreArticleVersionMock('editor-draft-1', 'version-draft-1-outline')
+
+    // 還原會多留一筆還原前的 AUTO stash 快照（對齊後端行為）
+    const afterRestore = await listArticleVersionsMock('editor-draft-1')
+    expect(afterRestore.total).toBe(before.total + 1)
+
+    resetAllMockState()
+
+    const afterReset = await listArticleVersionsMock('editor-draft-1')
+    expect(afterReset.total).toBe(before.total)
+    expect(afterReset.records.map(v => v.uuid)).toEqual(before.records.map(v => v.uuid))
   })
 })

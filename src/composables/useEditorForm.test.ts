@@ -73,6 +73,22 @@ describe('useEditorForm', () => {
 
       expect(article.value).toBeNull()
     })
+
+    it('loadArticle() 回傳載入到的文章，讓呼叫端可據以判斷是否載入成功', async () => {
+      vi.mocked(editorService.getArticleForEdit).mockResolvedValue(mockArticle)
+
+      const { loadArticle } = useEditorForm(mockArticle.uuid)
+
+      await expect(loadArticle()).resolves.toEqual(mockArticle)
+    })
+
+    it('loadArticle() 取不到文章時回傳 null（real service 失敗會吞例外回 null），呼叫端才分得出失敗', async () => {
+      vi.mocked(editorService.getArticleForEdit).mockResolvedValue(null)
+
+      const { loadArticle } = useEditorForm('nonexistent-uuid')
+
+      await expect(loadArticle()).resolves.toBeNull()
+    })
   })
 
   // ── isDirty 偵測 ───────────────────────────────────────────────────────────
