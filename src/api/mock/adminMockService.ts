@@ -10,12 +10,16 @@ import type {
 } from '../../types/editor'
 import type { SearchIndexStatus } from '../../types/search'
 import { editorArticleStore, toMyArticle } from './data'
+// mockApiFailure 的失敗狀態一律在「呼叫當下」判定，不在 setTimeout 回呼裡判定：
+// 否則測試在上一次載入還在飛行中時才註冊失敗，會把那次請求追溯成失敗，
+// 畫面因此多出一個非預期的錯誤 toast。
 import { createMockApiFailureError, getMockApiFailure } from './mockApiFailureState'
 
 export function getPendingArticlesMock(page: number, size: number): Promise<PageResult<MyArticle>> {
+  const failure = getMockApiFailure(`/api/v1/admin/articles/pending?page=${page}&size=${size}`)
+
   return new Promise((resolve, reject) => {
     setTimeout(() => {
-      const failure = getMockApiFailure(`/api/v1/admin/articles/pending?page=${page}&size=${size}`)
       if (failure) {
         reject(createMockApiFailureError(failure))
         return
