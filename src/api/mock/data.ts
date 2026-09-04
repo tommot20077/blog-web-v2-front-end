@@ -1,4 +1,4 @@
-import type { ArticleItem, ArticleDetailItem } from '../articleService';
+import type { ArticleItem, ArticleDetailItem, ArticleTagRef } from '../articleService';
 import type { TagDetailResponse } from '../tagService';
 import { mockMarkdownContent } from './mockArticleContent';
 import type { ArticleStatus, CategoryOption, TagSuggestion, QuotaInfo, EditorArticle, MyArticle, PendingArticle } from '../../types/editor';
@@ -212,11 +212,20 @@ const articles2025_2026: MockArticleItem[] = [
   },
 ];
 
+// 補上 tagRefs（含 slug），讓 mock 模式下的標籤也可點擊連到 /tags/{slug}。
+// 與 real articleService mapper 對齊：tags（字串陣列）維持不變，tagRefs 並行提供。
+function withTagRefs<T extends { tags: string[] }>(article: T): T & { tagRefs: ArticleTagRef[] } {
+  return {
+    ...article,
+    tagRefs: article.tags.map((name): ArticleTagRef => ({ name, slug: slugifyTag(name) })),
+  };
+}
+
 export const allMockArticles: MockArticleItem[] = [
   ...articles2023,
   ...articles2024,
   ...articles2025_2026,
-];
+].map(withTagRefs);
 
 export function getMockArticleDetail(uuid: string): ArticleDetailItem | null {
   const base = allMockArticles.find(a => a.uuid === uuid);

@@ -1,9 +1,11 @@
 import { flushPromises } from '@vue/test-utils'
+import { nextTick } from 'vue'
 import { render, screen, waitFor, within } from '@testing-library/vue'
 import userEvent from '@testing-library/user-event'
 import MyArticlesView from './MyArticlesView.vue'
-import { renderWithRouter, createMockMyArticle, createMockPageResult } from '../test-utils'
+import { renderWithRouter, createMockMyArticle, createMockPageResult, createMockUser } from '../test-utils'
 import { myArticlesService } from '../api/myArticlesService'
+import { useAuthStore } from '../stores/auth'
 
 vi.mock('../api/myArticlesService')
 
@@ -63,6 +65,36 @@ describe('MyArticlesView', () => {
       renderWithRouter(MyArticlesView)
       await flushPromises()
       expect(screen.getByTestId('my-new-btn')).toBeInTheDocument()
+    })
+  })
+
+  // ── 作者後台署名（動態暱稱） ────────────────────────────────────────────────
+  describe('作者後台署名', () => {
+    it('不再顯示寫死的 YUAN LUCA', async () => {
+      renderWithRouter(MyArticlesView)
+      await flushPromises()
+      expect(screen.queryByText(/YUAN LUCA/)).not.toBeInTheDocument()
+    })
+
+    it('已登入時顯示「作者後台 · {暱稱}」', async () => {
+      renderWithRouter(MyArticlesView)
+      const authStore = useAuthStore()
+      authStore.accessToken = 'test-token'
+      authStore.user = createMockUser({ nickname: 'Nick' })
+      await nextTick()
+      await flushPromises()
+
+      expect(screen.getByText('作者後台 · Nick')).toBeInTheDocument()
+    })
+
+    it('暱稱不存在時僅顯示「作者後台」，不出現 undefined 或孤立的「·」', async () => {
+      renderWithRouter(MyArticlesView)
+      await flushPromises()
+
+      const label = screen.getByText(/作者後台/)
+      expect(label.textContent?.trim()).toBe('作者後台')
+      expect(label.textContent).not.toContain('undefined')
+      expect(label.textContent).not.toContain('·')
     })
   })
 

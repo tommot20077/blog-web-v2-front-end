@@ -51,7 +51,7 @@ function submit() {
         @keydown.ctrl.enter.prevent="submit"
       />
       <div class="row">
-        <span class="hint">⌘ + Enter 送出 · 友善至上</span>
+        <span class="hint">⌘ + Enter 送出</span>
         <div class="actions">
           <button
             v-if="showCancel"

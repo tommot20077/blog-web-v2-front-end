@@ -13,12 +13,14 @@ const {
   mockUseArticleHighlights,
   mockUseInlineArticleHighlights,
   mockUseArticleTextSelection,
+  mockShareArticle,
 } = vi.hoisted(() => ({
   mockUsePersistedReadingProgress: vi.fn(),
   mockUseMarkdownRenderer: vi.fn(),
   mockUseArticleHighlights: vi.fn(),
   mockUseInlineArticleHighlights: vi.fn(),
   mockUseArticleTextSelection: vi.fn(),
+  mockShareArticle: vi.fn(),
 }))
 
 let mockApplyHighlights: ReturnType<typeof vi.fn>
@@ -63,6 +65,24 @@ vi.mock('../composables/useArticleBookmark', () => ({
     isPending: ref(false),
     toggle: vi.fn(),
   })),
+}))
+
+vi.mock('../components/article/shareArticle', () => ({
+  shareArticle: mockShareArticle,
+}))
+
+vi.mock('../components/article/MarkdownViewModal.vue', () => ({
+  default: {
+    name: 'MarkdownViewModal',
+    props: ['content'],
+    emits: ['close'],
+    template: `
+      <div data-testid="mock-markdown-modal">
+        <pre data-testid="mock-markdown-modal-content">{{ content }}</pre>
+        <button data-testid="mock-markdown-modal-close" @click="$emit('close')">close</button>
+      </div>
+    `,
+  },
 }))
 
 vi.mock('../composables/usePersistedReadingProgress', () => ({
@@ -148,6 +168,7 @@ describe('ArticleDetail 頁面', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
     mockUsePersistedReadingProgress.mockClear()
+    mockShareArticle.mockClear()
     mockApplyHighlights = vi.fn()
     mockHighlightsRef = ref([])
     mockCreateHighlight = vi.fn()
@@ -566,6 +587,62 @@ describe('ArticleDetail 頁面', () => {
     })
   })
 
+  describe('標籤連結', () => {
+    it('有 tagRefs 時，標籤渲染為連向 /tags/{slug} 的連結', async () => {
+      const mockArticle = createMockArticleDetail({
+        tags: ['Frontend', 'Vue'],
+        tagRefs: [
+          { name: 'Frontend', slug: 'frontend' },
+          { name: 'Vue', slug: 'vue' },
+        ],
+      })
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+      const { container } = await renderArticleDetail()
+      await flushPromises()
+
+      const tagsEl = container.querySelector('[data-testid="article-tags"]')!
+      const links = tagsEl.querySelectorAll('a')
+      expect(links).toHaveLength(2)
+      expect(links[0]).toHaveAttribute('href', '/tags/frontend')
+      expect(links[1]).toHaveAttribute('href', '/tags/vue')
+      expect(links[0]?.textContent).toContain('Frontend')
+      expect(links[1]?.textContent).toContain('Vue')
+    })
+
+    it('點擊標籤連結會導航至對應 tag 頁面', async () => {
+      const mockArticle = createMockArticleDetail({
+        tags: ['Frontend'],
+        tagRefs: [{ name: 'Frontend', slug: 'frontend' }],
+      })
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+      const { container, router } = await renderArticleDetail()
+      await flushPromises()
+
+      const link = container.querySelector('[data-testid="article-tags"] a')!
+      await fireEvent.click(link)
+      await flushPromises()
+
+      expect(router.currentRoute.value.path).toBe('/tags/frontend')
+    })
+
+    it('tagRefs 缺失時（mock 模式 / 舊資料）退回純文字渲染，不噴錯且標籤不消失', async () => {
+      const mockArticle = createMockArticleDetail({
+        tags: ['Vue', 'TypeScript'],
+      })
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+      const { container } = await renderArticleDetail()
+      await flushPromises()
+
+      const tagsEl = container.querySelector('[data-testid="article-tags"]')!
+      expect(tagsEl.querySelectorAll('a')).toHaveLength(0)
+      expect(tagsEl.textContent).toContain('Vue')
+      expect(tagsEl.textContent).toContain('TypeScript')
+    })
+  })
+
   describe('返回頂部按鈕', () => {
     it('點擊返回頂部按鈕呼叫 window.scrollTo({ top: 0 })', async () => {
       const scrollToSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
@@ -584,6 +661,63 @@ describe('ArticleDetail 頁面', () => {
       await fireEvent.click(scrollBtn)
 
       expect(scrollToSpy).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' })
+    })
+  })
+
+  describe('分享與 Markdown 檢視', () => {
+    it('點擊分享按鈕呼叫 shareArticle 並帶入目前網址', async () => {
+      const mockArticle = createMockArticleDetail()
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+      const { container } = await renderArticleDetail()
+      await flushPromises()
+
+      const shareBtn = container.querySelector('[data-testid="article-share-action-bar"]')!
+      await fireEvent.click(shareBtn)
+
+      expect(mockShareArticle).toHaveBeenCalledWith(window.location.href)
+    })
+
+    it('初始不顯示 Markdown 檢視彈窗', async () => {
+      const mockArticle = createMockArticleDetail()
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+      const { container } = await renderArticleDetail()
+      await flushPromises()
+
+      expect(container.querySelector('[data-testid="mock-markdown-modal"]')).not.toBeInTheDocument()
+    })
+
+    it('點擊「以 Markdown 檢視」按鈕開啟彈窗，內容等於 article.content 原始 markdown', async () => {
+      const mockArticle = createMockArticleDetail({ content: '# 原始 Markdown 內容' })
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+      const { container } = await renderArticleDetail()
+      await flushPromises()
+
+      const viewMarkdownBtn = container.querySelector('[data-testid="article-view-markdown-action-bar"]')!
+      await fireEvent.click(viewMarkdownBtn)
+
+      const modal = container.querySelector('[data-testid="mock-markdown-modal"]')
+      expect(modal).toBeInTheDocument()
+      expect(container.querySelector('[data-testid="mock-markdown-modal-content"]')).toHaveTextContent('# 原始 Markdown 內容')
+    })
+
+    it('彈窗 close 事件觸發後隱藏彈窗', async () => {
+      const mockArticle = createMockArticleDetail({ content: '# 原始 Markdown 內容' })
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+      const { container } = await renderArticleDetail()
+      await flushPromises()
+
+      const viewMarkdownBtn = container.querySelector('[data-testid="article-view-markdown-action-bar"]')!
+      await fireEvent.click(viewMarkdownBtn)
+      expect(container.querySelector('[data-testid="mock-markdown-modal"]')).toBeInTheDocument()
+
+      const closeBtn = container.querySelector('[data-testid="mock-markdown-modal-close"]')!
+      await fireEvent.click(closeBtn)
+
+      expect(container.querySelector('[data-testid="mock-markdown-modal"]')).not.toBeInTheDocument()
     })
   })
 

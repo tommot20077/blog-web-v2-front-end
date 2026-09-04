@@ -154,7 +154,7 @@ async function handleLogout() {
           >
             <div class="menu__head">
               <div class="menu__who" data-testid="navbar-user-greeting">
-                你好, {{ authStore.user?.nickname }}!
+                你好，{{ authStore.user?.nickname }}
               </div>
               <div class="menu__mail">{{ authStore.user?.email }}</div>
             </div>

@@ -15,8 +15,8 @@ function reload() {
       </div>
 
       <p class="err-tag">§ SERVER ERROR</p>
-      <h1 class="err-title">伺服器壞了，抱歉。</h1>
-      <p class="err-sub">這不是你的錯。我已經收到通知，正在查 log。<br />等三十秒再試，或先去別的頁面晃晃。</p>
+      <h1 class="err-title">伺服器發生錯誤。</h1>
+      <p class="err-sub">請稍後再試，或返回首頁。</p>
 
       <!-- CTAs -->
       <div class="se-actions">

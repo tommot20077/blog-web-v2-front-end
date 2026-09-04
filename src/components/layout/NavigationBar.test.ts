@@ -93,6 +93,19 @@ describe('NavigationBar', () => {
       expect(queryByTestId('navbar-login-btn')).not.toBeInTheDocument()
     })
 
+    it('已登入時問候語不含驚嘆號，並使用全形逗號「你好，{暱稱}」', async () => {
+      const { getByTestId } = renderWithRouter(NavigationBar)
+      const authStore = useAuthStore()
+      authStore.accessToken = 'test-token'
+      authStore.user = createMockUser({ nickname: 'TestUser' })
+      await nextTick()
+
+      const greeting = getByTestId('navbar-user-greeting')
+      expect(greeting.textContent).toContain('你好，TestUser')
+      expect(greeting.textContent).not.toContain('!')
+      expect(greeting.textContent).not.toContain('你好, ')
+    })
+
     it('點擊登出呼叫 store.logout 並導航至首頁', async () => {
       const { getByTestId, router } = renderWithRouter(NavigationBar)
       const authStore = useAuthStore()

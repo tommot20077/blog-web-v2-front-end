@@ -100,7 +100,7 @@ onMounted(() => {
       class="auth-form"
     >
       <div class="auth-msg auth-msg-success">
-        信箱驗證成功！
+        信箱驗證成功
       </div>
       <RouterLink
         to="/login"

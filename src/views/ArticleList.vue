@@ -108,7 +108,6 @@ function formatDate(d: string) {
     <div class="wrap">
       <div class="art-page-head">
         <h1>Articles.</h1>
-        <p class="lede">設計、前端與緩慢思考的記錄。</p>
       </div>
 
       <div class="art-page-body">

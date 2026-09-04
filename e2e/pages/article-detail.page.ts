@@ -19,7 +19,9 @@ export class ArticleDetailPage {
     this.loadingText = page.getByText('萃取文章細節中...')
     this.backButton = page.getByRole('button', { name: '回列表' })
     this.articleTitle = page.getByTestId('article-title')
-    this.articleTags = page.getByTestId('article-tags').locator('span')
+    // 標籤在 tagRefs 存在時渲染為 <RouterLink>（可點擊連到 /tags/{slug}），
+    // 缺失時才退回 <span>；用 role=link 對「行為」定位，兩種渲染結果都撈得到。
+    this.articleTags = page.getByTestId('article-tags').getByRole('link')
     this.articleContent = page.getByTestId('article-body')
     this.scrollToTopButton = page.locator('article footer button')
     this.endOfArticle = page.getByText('END OF ARTICLE.')

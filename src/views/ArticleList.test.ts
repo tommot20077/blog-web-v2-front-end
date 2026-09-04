@@ -163,4 +163,15 @@ describe('ArticleList 頁面', () => {
       expect(container.querySelector('.art-af')).toBeInTheDocument()
     }
   })
+
+  // 頁首只保留 h1「Articles.」；原本 h1 下方那句獨立的 .lede 副標段落已移除。
+  // 注意：Home / Archive / Tags 那三句是 h1 主標本身（非副標），刻意保留，不在此列。
+  it('頁首移除 .lede 副標段落，只保留 h1', async () => {
+    mockGetArticles.mockResolvedValue(createMockPageResult([]))
+    const { container } = renderWithRouter(ArticleList)
+    await flushPromises()
+
+    expect(container.querySelector('.lede')).toBeNull()
+    expect(container.querySelector('.art-page-head h1')?.textContent).toBe('Articles.')
+  })
 })
