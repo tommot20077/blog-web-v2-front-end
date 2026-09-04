@@ -29,3 +29,11 @@
 1. **文件地圖的狀態判定**——`todo.md`/`diff.md` 標「歷史」是依最後修改日期與內容過期跡象推斷,未逐項向 Yuan 確認;若其中有仍在使用的段落,請 Yuan 修正 `maintenance.md` §3。
 2. **agent-dispatch.md 的模型清單**(2026-07 快照)——會過時,檔內已標「用前查證」。
 3. **「上線前跑 E2E」的觸發時機**——依 repo 現況(playwright + docker-compose.e2e)推斷,實際節奏需 Yuan 校準。
+
+## 2026-09-04 分支整理紀錄(給下一個 session)
+
+- **main 落後 develop 99 commits,且 main 上有 6 個從未回流的 commit**(`3756219` router guard race、`b1c17d3` CI aggregating job、`1d6c6f6` mail health、`d206dc5` e2e 對齊驗證流程、`9b0b5d1` 驗證流程+Toast 重構、`7c88be6` v2 release)。逐項比對:`1d6c6f6` 的 `MANAGEMENT_HEALTH_MAIL_ENABLED: "false"` develop 已有等價內容;`b1c17d3` 的 aggregating job **develop 沒有**(branch protection 若指向該 job 名稱要注意);`3756219` 的 router guard 修法 develop 走了不同實作(develop 無 `ensureAuthReady`/`authReady` 等識別字)。**release 時不可直接 fast-forward,必須逐項確認**——這輪未動 main。
+- `integration/local-e2e` 是 2026-07~08 的本地多分支合併實驗線,已無 develop 沒有的價值:`ef72619`(密碼字元修正)與 develop PR #42 `7683438` 重複,且後者註解更完整(cherry-pick 會衝突,不要搬);`275968c` 的 `.editor-gap-audit.md` 已於本次移入 `ai-docs/2026-07-26-editor-gap-audit.md`。該分支本輪刪除。
+- `.worktrees/` 內殘留的舊 checkout(admin-console、article-toc、editor、file-access、pre-launch、tag-links)經 blob 比對確認內容全在 git 物件庫或已在 develop,已刪除。
+- **已知測試噪音**(違反 judgment §1「輸出 pristine」,尚未修):全套 `npx vitest run` 會噴 happy-dom 的 `DOMException [AbortError]`/`[NetworkError]`,根因是 `src/composables/useMarkdownRenderer.test.ts:93` 的 XSS 案例含 `<iframe src="https://example.com">`,DOMPurify 解析後 happy-dom 的 frame loader 真的發出 HTTPS 請求,teardown 時被 abort。修法建議:該案例改用 `about:blank` 或關閉 happy-dom frame loading。
+- repo 實際路徑已從 `D:\end\workspace\vue\blog-web-v2-front-end` 搬到 `D:\backup\backup\程式\workspace\vue\blog-web-v2-front-end`(後端同樣搬到 `D:\backup\backup\程式\workspace\java\`);CLAUDE.md「External Repositories」與 agent-dispatch.md 的姊妹檔路徑仍是舊的,待 Yuan 確認新路徑是長期位置再一併改。
