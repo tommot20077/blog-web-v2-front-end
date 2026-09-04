@@ -252,8 +252,8 @@ onMounted(fetchArticles)
 .ma-btn:disabled { opacity: .35; cursor: not-allowed; }
 .ma-btn--accent { background: var(--accent); border-color: var(--accent); color: #fff; }
 .ma-btn--accent:hover { opacity: .88; background: var(--accent); }
-.ma-btn--danger { background: var(--danger-strong); border-color: var(--danger-strong); color: #fff; }
-.ma-btn--danger:hover { opacity: .88; background: var(--danger-strong); }
+.ma-btn--danger { background: var(--danger-solid); border-color: var(--danger-solid); color: #fff; }
+.ma-btn--danger:hover { opacity: .88; background: var(--danger-solid); }
 .ma-reject-reason { background: color-mix(in srgb, var(--danger-strong) 5%, transparent); color: var(--danger); font-size: 13px; }
 .ma-pagination { display: flex; align-items: center; gap: 12px; margin-top: 28px; }
 </style>

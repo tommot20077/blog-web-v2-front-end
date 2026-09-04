@@ -34,15 +34,28 @@ html, body { overflow-x: hidden; }
  * --danger：一般「danger 文字」用色（錯誤訊息、badge、按鈕文字/邊框）。
  *   亮色沿用既有 #b91c1c（不變動觀感）；暗色改用 #f87171
  *   （對 --bg-sub ≈5.6:1、對 --bg ≈6.1:1，仍留有餘裕）。
- * --danger-strong：白字配實心/近實心紅底時的基底紅（如「確認拒絕」「刪除」
- *   按鈕），維持原本不隨主題變化的觀感，故不比照 --danger 分暗色版——
- *   這類「白字配紅底」與「紅字配淡紅底」方向相反，換 token 時分開處理，
- *   避免一律替換成同一個變數而改變視覺。原本各處 rgba(239,68,68,X) 的半透明
- *   底色一律以 color-mix(in srgb, var(--danger-strong) X%, transparent) 推導，
- *   數值與改版前完全等價（color-mix 與 transparent 混合等同該色的 alpha 版本）。
+ * --danger-strong：淡紅底（各處 color-mix(in srgb, var(--danger-strong) X%,
+ *   transparent) 半透明紅底）的基底紅，數值與改版前完全等價，禁止調深——
+ *   它同時是 20 個已驗證疊色斷言的背景基底（見 src/dangerToken.test.ts
+ *   「半透明 color-mix 疊色的合成背景對比度」describe），改它的值會連帶
+ *   改變所有淡紅底的色相，需重算全部 20 個斷言。
+ * --danger-solid：白字配實心/近實心紅底時的基底紅（「確認拒絕」「刪除」
+ *   按鈕），另立獨立 token、不沿用 --danger-strong，正是為了避免上述連動。
+ *   維持不隨主題變化的觀感（白字疊紅底不該隨主題切換），故不比照 --danger
+ *   分暗色版。色值 #bf3636 為 --danger-strong #ef4444 的 RGB 三色版同比例
+ *   縮放 80%（(239,68,68)*0.8 取整 = (191,54,54)，色相不變，因 G=B 比例
+ *   保持一致，不會偏向棕色）：
+ *     - 實色底配 #fff：contrast(#fff, #bf3636) ≈ 5.53:1
+ *     - .admin-btn-confirm-reject 的 90% 疊色（backdrop 為 --glass 疊在
+ *       --bg 上）：light ≈ 4.73:1、dark ≈ 6.23:1
+ *   三者皆 ≥ 4.5:1（WCAG AA），計算過程與斷言見 src/dangerToken.test.ts
+ *   「白字配紅底按鈕的對比度」describe。
+ * 這兩個「白字配紅底」token 與「紅字配淡紅底」（--danger 文字疊在
+ * --danger-strong 淡底上）方向相反，換色時分開處理，避免一律替換成同一個
+ * 變數而改變視覺或波及既有驗證過的斷言。
  * 不改 assets/design/*.css（designer source），在此新增。
  */
-:root { --danger: #b91c1c; --danger-strong: #ef4444; }
+:root { --danger: #b91c1c; --danger-strong: #ef4444; --danger-solid: #bf3636; }
 [data-theme="dark"] { --danger: #f87171; }
 
 /* ── 暗色階：Apple 色調（Yuan 選定 D3「Apple 柔和」）─────────
@@ -163,7 +176,7 @@ html, body { overflow-x: hidden; }
 .admin-reject-textarea:focus { border-color: var(--accent); }
 .admin-reject-actions { display: flex; gap: 8px; justify-content: flex-end; }
 .admin-btn-cancel { background: var(--glass); border: 1px solid var(--glass-border) !important; color: var(--ink); }
-.admin-btn-confirm-reject { background: color-mix(in srgb, var(--danger-strong) 90%, transparent); color: #fff; }
+.admin-btn-confirm-reject { background: color-mix(in srgb, var(--danger-solid) 90%, transparent); color: #fff; }
 .admin-btn-confirm-reject:disabled { opacity: .4; cursor: not-allowed; }
 .admin-empty { text-align: center; padding: 48px 0; color: var(--muted); font-family: var(--f-mono); font-size: 13px; letter-spacing: .08em; }
 .admin-loading { display: flex; justify-content: center; padding: 48px 0; gap: 8px; }
