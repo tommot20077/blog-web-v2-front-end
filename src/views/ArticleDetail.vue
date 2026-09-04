@@ -5,6 +5,7 @@ import { useArticleDetail } from '../composables/useArticleDetail'
 import { useArticleLike } from '../composables/useArticleLike'
 import { useArticleBookmark } from '../composables/useArticleBookmark'
 import { useMarkdownRenderer } from '../composables/useMarkdownRenderer'
+import { useAuthedImages } from '../composables/useAuthedImages'
 import { useWordCount } from '../composables/useWordCount'
 import { useReadingProgress } from '../composables/useReadingProgress'
 import { usePersistedReadingProgress } from '../composables/usePersistedReadingProgress'
@@ -49,6 +50,12 @@ const bookmarkState = useArticleBookmark(articleUuidRef, { bookmarked: false })
 const toc = computed(() => article.value?.toc ?? [])
 const tocIds = computed(() => toc.value.map((entry) => entry.id))
 const { activeId, resubscribe: resubscribeScrollSpy } = useScrollSpy(tocIds)
+
+// 作者檢視自己未發布（DRAFT/PENDING_REVIEW/REJECTED）文章時，內文圖走 canRead 授權矩陣，
+// 改用帶認證的 blob 載入避免 403 破圖。已發布文章走匿名 302 本來就通，不需要介入。
+useAuthedImages(articleBodyEl, () => renderedHtml.value, {
+  enabled: () => article.value?.status !== 'PUBLISHED',
+})
 
 async function createHighlightFromSelection(request: Parameters<typeof highlightState.createHighlight>[0]) {
   const created = await highlightState.createHighlight(request)

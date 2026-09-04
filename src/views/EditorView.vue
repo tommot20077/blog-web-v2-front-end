@@ -8,6 +8,7 @@ import { useWordCount } from '../composables/useWordCount'
 import { useToast } from '../composables/useToast'
 import { useEditorFocusMode } from '../composables/useEditorFocusMode'
 import { useEditorOutline } from '../composables/useEditorOutline'
+import { useAuthedImages } from '../composables/useAuthedImages'
 import { categoryService } from '../api/categoryService'
 import EditorToolbar from '../components/editor/EditorToolbar.vue'
 import EditorMetaSidebar from '../components/editor/EditorMetaSidebar.vue'
@@ -38,6 +39,10 @@ _updateCursorLine = updateCursorLine
 
 // ── Markdown preview ───────────────────────────────────────────────────────
 const { renderedHtml } = useMarkdownRenderer(markdownContent)
+
+// ── 未發布草稿圖片改走帶認證 blob 載入（會開編輯器的必是作者/管理員，永遠啟用）──────
+const editorPreviewEl = ref<HTMLElement | null>(null)
+useAuthedImages(editorPreviewEl, () => renderedHtml.value)
 
 // ── Word count ─────────────────────────────────────────────────────────────
 const { wordCount } = useWordCount(markdownContent)
@@ -174,6 +179,7 @@ async function onSubmitForReview() {
 
       <!-- Center: Markdown preview -->
       <div
+        ref="editorPreviewEl"
         class="editor-preview prose"
         data-testid="editor-preview"
         v-html="renderedHtml"

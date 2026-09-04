@@ -55,17 +55,26 @@ describe('fileService', () => {
       )
     })
 
-    it('uploadFile 會將 Docker 內部 MinIO hostname 轉成瀏覽器可讀 URL', async () => {
+    it('uploadFile 對後端回傳的相對路徑 url 原樣透傳（新契約：後端不再回傳絕對網址）', async () => {
+      const mockResponse = { id: 'f1', url: '/api/v1/files/f1/content', width: 800, height: 600, size: 1024, usageType: 'ARTICLE_COVER' as const }
+      vi.mocked(apiClient.post).mockResolvedValue(mockResponse)
+
+      const file = new File(['x'], 'img.png', { type: 'image/png' })
+      const result = await fileService.uploadFile(file, 'ARTICLE_COVER')
+
+      expect(result).toEqual(mockResponse)
+      expect(result.url).toBe('/api/v1/files/f1/content')
+    })
+
+    it('uploadFile 不再改寫 MinIO hostname（改寫補丁已移除，任何 url 一律原樣透傳）', async () => {
       const mockResponse = { id: 'f1', url: 'http://minio:9000/blog-files/img.png', width: 800, height: 600, size: 1024, usageType: 'ARTICLE_COVER' as const }
       vi.mocked(apiClient.post).mockResolvedValue(mockResponse)
 
       const file = new File(['x'], 'img.png', { type: 'image/png' })
       const result = await fileService.uploadFile(file, 'ARTICLE_COVER')
 
-      expect(result).toEqual({
-        ...mockResponse,
-        url: 'http://localhost:9000/blog-files/img.png',
-      })
+      expect(result).toEqual(mockResponse)
+      expect(result.url).toBe('http://minio:9000/blog-files/img.png')
     })
 
     it('API 錯誤時拋出錯誤', async () => {

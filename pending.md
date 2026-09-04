@@ -42,3 +42,20 @@
 2. 確認快照 `/api/v1/auth/verify-email` 已翻為 `post` + `VerifyEmailRequest` body schema、且與 `authService.verifyEmail` 一致後，刪除本項並移除 [api-contract.md](ai-docs/api-contract.md) 對應 ℹ️ 註記。
 
 **⚠️ 未上線前的隱形風險**：前端已送 POST。若在後端 #48 部署前先進 prod → 後端仍是 GET → **405 Method Not Allowed → 所有信箱驗證失敗**。兩個 PR 必須同批部署（後端先或同時），前端不可單獨搶先上線。
+
+---
+
+## 📌 契約快照待重抓 + 部署順序：檔案存取控制（後端 #54）
+**狀態**：`Pending`（綁定後端 blog-web-v2 #54 上線）
+**描述**：
+後端 #54 新增 `GET /api/v1/files/{id}/content`（302 導向 presigned MinIO URL，非位元組代理），並將 `FileUploadResponse.url` 的語意由絕對網址改為相對路徑。但 `api-reference/openapi.json` 仍是 **#54 前的快照**——缺少 `/api/v1/files/{id}/content` 端點，且 `FileUploadResponse.url` 仍宣告為未區分語意的 `type: string`，與現行程式的相對路徑語意不一致。
+
+**待解任務**：
+1. 後端 #54 合併上線後，依 [maintenance.md](ai-docs/maintenance.md) §2 **整份重抓** `openapi.json`（後端跑於本機 9010）：
+   `curl http://localhost:9010/v3/api-docs -o api-reference/openapi.json`
+2. 確認快照補上 `/api/v1/files/{id}/content`（302 回應）且 `FileUploadResponse.url` 語意與 `src/api/real/fileService.ts` 一致後，刪除本項。
+
+**⚠️ 未上線前的隱形風險**：
+- **部署順序**：後端 #54 必須先於（或同時於）本前端上線，不可讓前端單獨搶先。`normalizeUploadUrl` 補丁已隨本次改動移除——若舊後端仍回絕對網址（`http://minio:9000/...`），前端不再有任何攔截點修正它，所有新上傳的封面與內文圖會立刻破圖。
+- **基礎設施對齊**：後端 `minio.endpoint`（`MinioConfig.java`）同時供 server-side client 與 presigned URL 產生使用，必須是**瀏覽器可達**的公開 host。本 repo `docker-compose.e2e.yml:88` 的 `MINIO_ENDPOINT: http://minio:9000` 只適用容器內部網路——若部署拓撲直接沿用此值，302 `Location` 會帶出瀏覽器無法解析的內部 hostname，需與後端/infra 對齊改為公開可達位址（或新增 presigned 專用的公開 endpoint 設定）。
+- **人工驗證項（無自動化測試覆蓋）**：`useAuthedImages.ts` 以 `withCredentials:false` 因應 MinIO wildcard CORS + credentials 的瀏覽器行為，屬作者實測過的設計，但單元測試把 `apiClient` 整個 mock 掉，對「帶 `Authorization` 的 XHR 跟隨跨來源 302 導向 MinIO」這條路徑沒有任何自動化防護網。變更 MinIO endpoint 或 CORS 設定後，需人工在 dev server 走一次「開自己的草稿文章」，於 DevTools Network 確認該 `<img>` 最終正常載入。

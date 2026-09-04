@@ -2,27 +2,14 @@ import apiClient from '../apiClient'
 import type { FileUploadResponse, FileUsageType } from '../../types/editor'
 import type { FileListParams, FileMetadata } from '../../types/user'
 
-function normalizeUploadUrl(url: string): string {
-  try {
-    const parsed = new URL(url)
-    if (parsed.hostname === 'minio') {
-      parsed.hostname = window.location.hostname || 'localhost'
-    }
-    return parsed.toString()
-  } catch {
-    return url
-  }
-}
-
 export const fileService = {
   async uploadFile(file: File, usageType: FileUsageType): Promise<FileUploadResponse> {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('usageType', usageType)
-    const response = await apiClient.post<unknown, FileUploadResponse>('/api/v1/files/upload', formData, {
+    return apiClient.post<unknown, FileUploadResponse>('/api/v1/files/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
-    return { ...response, url: normalizeUploadUrl(response.url) }
   },
 
   async getFileMetadata(id: string): Promise<FileMetadata> {
