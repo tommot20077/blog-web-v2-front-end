@@ -41,6 +41,7 @@ vi.mock('../composables/useMarkdownEditor', () => ({
     wrapSelection: vi.fn(),
     insertText: vi.fn(),
     prefixLines: vi.fn(),
+    replaceRange: vi.fn(),
     setContent: vi.fn(),
     undo: vi.fn(),
     redo: vi.fn(),
@@ -77,24 +78,41 @@ function mockUploadResponse(overrides: Partial<FileUploadResponse> = {}): FileUp
   }
 }
 
-// 讓 useMarkdownEditor mock 的 insertText/setContent 實際模擬 CodeMirror 語意：
-// insertText = 於游標（此處末端）插入；setContent = 整份文件覆寫。
-// 讓圖片上傳流程（依賴 markdownContent 讀寫）可在測試中被驗證。
-function setupMarkdownEditorMock(initialContent = '') {
+// 讓 useMarkdownEditor mock 忠實模擬 CodeMirror 的游標語意：
+// insertText   = 插在游標處，游標移到插入內容之後
+// setContent   = 整份文件覆寫，游標落在文件最末
+// replaceRange = 局部 range 取代，游標留在取代後文字之後
+// 假替身若讓 insertText 恆為 append，就抹平了游標語意，多圖插入位置的 bug 會驗不出來。
+function setupMarkdownEditorMock(initialContent = '', initialCursor = initialContent.length) {
   const content = ref(initialContent)
-  const insertText = vi.fn((text: string) => { content.value += text })
-  const setContent = vi.fn((text: string) => { content.value = text })
+  let cursorPos = initialCursor
+  const insertText = vi.fn((text: string) => {
+    content.value = content.value.slice(0, cursorPos) + text + content.value.slice(cursorPos)
+    cursorPos += text.length
+  })
+  const setContent = vi.fn((text: string) => {
+    content.value = text
+    cursorPos = text.length
+  })
+  const replaceRange = vi.fn((search: string, insert: string) => {
+    const from = content.value.indexOf(search)
+    if (from === -1) return false
+    content.value = content.value.slice(0, from) + insert + content.value.slice(from + search.length)
+    cursorPos = from + insert.length
+    return true
+  })
   vi.mocked(useMarkdownEditor).mockReturnValue({
     editorView: ref(null),
     markdownContent: content,
     wrapSelection: vi.fn(),
     insertText,
     prefixLines: vi.fn(),
+    replaceRange,
     setContent,
     undo: vi.fn(),
     redo: vi.fn(),
   })
-  return { content, insertText, setContent }
+  return { content, insertText, setContent, replaceRange }
 }
 
 function makeDragEvent(type: string, files: File[]): Event {
@@ -464,6 +482,28 @@ describe('EditorView', () => {
           expect(content.value).toContain('b.png')
         })
         expect(content.value.indexOf('a.png')).toBeLessThan(content.value.indexOf('b.png'))
+      })
+
+      it('游標在文章中段時，多張圖片依序插在游標處，不會跑到文末', async () => {
+        vi.mocked(fileService.uploadFile)
+          .mockResolvedValueOnce(mockUploadResponse({ url: 'https://cdn.example.com/a.png' }))
+          .mockResolvedValueOnce(mockUploadResponse({ url: 'https://cdn.example.com/b.png' }))
+        // 游標停在「前段」之後，文件尾端還有「後段」
+        const { content } = setupMarkdownEditorMock('前段\n\n後段', 2)
+        renderEditor()
+
+        const toolbarInput = document.querySelector('[data-testid="toolbar-image-input"]') as HTMLInputElement
+        const user = userEvent.setup()
+        await user.upload(toolbarInput, [
+          new File(['a'], 'a.png', { type: 'image/png' }),
+          new File(['b'], 'b.png', { type: 'image/png' }),
+        ])
+
+        await waitFor(() => {
+          expect(content.value).toBe(
+            '前段![a.png](https://cdn.example.com/a.png)![b.png](https://cdn.example.com/b.png)\n\n後段',
+          )
+        })
       })
 
       it('上傳失敗時顯示錯誤 toast，且不留下壞掉的佔位文字', async () => {

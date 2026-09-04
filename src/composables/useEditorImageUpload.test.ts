@@ -22,18 +22,43 @@ function mockUploadResponse(overrides: Partial<FileUploadResponse> = {}): FileUp
   }
 }
 
-// 以一個可讀寫的 ref 模擬 CodeMirror 文件內容，insertText 模擬「插入於游標（此處末端）」、
-// setContent 模擬「整份文件覆寫」——與 useMarkdownEditor 的實際語意一致。
-function setup(initial = '') {
+// 忠實模擬 CodeMirror 的游標語意，讓「插在游標處」與「整份覆寫」的差別在測試中看得出來：
+//   insertText  = 插在游標處，游標移到插入內容之後
+//   setContent  = 整份文件覆寫；CM6 會把 selection 映射到取代範圍尾端＝文件最末
+//   replaceRange= 局部 range 取代，游標留在取代後文字之後
+// 舊版假替身的 insertText 恆為 append，抹平了游標語意，才會讓多圖插入位置的 bug 溜過去。
+function createFakeDoc(initial = '', cursor = initial.length) {
   const content = ref(initial)
-  const insertText = vi.fn((text: string) => { content.value += text })
-  const setContent = vi.fn((text: string) => { content.value = text })
-  const upload = useEditorImageUpload({
-    insertText,
-    getContent: () => content.value,
-    setContent,
+  let cursorPos = cursor
+
+  const insertText = vi.fn((text: string) => {
+    content.value = content.value.slice(0, cursorPos) + text + content.value.slice(cursorPos)
+    cursorPos += text.length
   })
-  return { ...upload, content, insertText, setContent }
+
+  const setContent = vi.fn((text: string) => {
+    content.value = text
+    cursorPos = text.length
+  })
+
+  const replaceRange = vi.fn((search: string, insert: string) => {
+    const from = content.value.indexOf(search)
+    if (from === -1) return false
+    content.value = content.value.slice(0, from) + insert + content.value.slice(from + search.length)
+    cursorPos = from + insert.length
+    return true
+  })
+
+  return { content, insertText, setContent, replaceRange, getContent: () => content.value }
+}
+
+function setup(initial = '', cursor = initial.length) {
+  const doc = createFakeDoc(initial, cursor)
+  const upload = useEditorImageUpload({
+    insertText: doc.insertText,
+    replaceRange: doc.replaceRange,
+  })
+  return { ...upload, ...doc }
 }
 
 describe('useEditorImageUpload', () => {
@@ -84,6 +109,23 @@ describe('useEditorImageUpload', () => {
 
     expect(fileService.uploadFile).toHaveBeenCalledTimes(2)
     expect(content.value.indexOf('a.png')).toBeLessThan(content.value.indexOf('b.png'))
+  })
+
+  it('在文章中段連續上傳多張圖片時，第 2 張以後仍插在前一張之後，不會跑到文末', async () => {
+    vi.mocked(fileService.uploadFile)
+      .mockResolvedValueOnce(mockUploadResponse({ url: 'https://cdn.example.com/a.png' }))
+      .mockResolvedValueOnce(mockUploadResponse({ url: 'https://cdn.example.com/b.png' }))
+    // 游標停在「前段」之後（第 2 個字元後），文件尾端還有「後段」
+    const { uploadImages, content } = setup('前段\n\n後段', 2)
+
+    await uploadImages([
+      new File(['a'], 'a.png', { type: 'image/png' }),
+      new File(['b'], 'b.png', { type: 'image/png' }),
+    ])
+
+    expect(content.value).toBe(
+      '前段![a.png](https://cdn.example.com/a.png)![b.png](https://cdn.example.com/b.png)\n\n後段',
+    )
   })
 
   it('上傳失敗時移除佔位文字（不留壞掉的 markdown）並顯示錯誤 toast', async () => {

@@ -98,6 +98,31 @@ export function useMarkdownEditor(
     }
   }
 
+  /**
+   * 以文件中第一個相符的字串為範圍做局部取代，游標留在取代後文字之後。
+   *
+   * 不走 setContent 整份覆寫：CM6 會把 selection 映射到取代範圍尾端（＝文件最末），
+   * 連續插入多張圖片時，第 2 張以後的佔位文字就會插到文件尾端而非游標處。
+   *
+   * @param search 要被取代的文字（例如上傳中的佔位文字）
+   * @param insert 取代後的文字
+   * @returns 是否找到並完成取代
+   */
+  function replaceRange(search: string, insert: string): boolean {
+    const view = editorView.value
+    if (!view) return false
+    const doc = view.state.doc.toString()
+    const from = doc.indexOf(search)
+    if (from === -1) return false
+    const to = from + search.length
+    view.dispatch({
+      changes: { from, to, insert },
+      selection: { anchor: from + insert.length },
+    })
+    markdownContent.value = doc.slice(0, from) + insert + doc.slice(to)
+    return true
+  }
+
   function setContent(content: string): void {
     const view = editorView.value
     if (!view) return
@@ -125,6 +150,7 @@ export function useMarkdownEditor(
     wrapSelection,
     insertText,
     prefixLines,
+    replaceRange,
     setContent,
     undo,
     redo,

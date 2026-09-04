@@ -33,13 +33,12 @@ function onCursorChange(lineIndex: number) {
   _updateCursorLine?.(lineIndex)
 }
 
-const { editorView, markdownContent, wrapSelection, insertText, prefixLines, setContent, undo, redo } = useMarkdownEditor(editorContainer, onCursorChange)
+const { editorView, markdownContent, wrapSelection, insertText, prefixLines, replaceRange, setContent, undo, redo } = useMarkdownEditor(editorContainer, onCursorChange)
 
 // ── 內文圖片上傳（選檔 / 拖曳 / 貼上，皆走同一套上傳邏輯） ───────────────────
 const { uploadImages } = useEditorImageUpload({
   insertText,
-  getContent: () => markdownContent.value,
-  setContent,
+  replaceRange,
 })
 
 async function onInsertImages(files: File[]) {
