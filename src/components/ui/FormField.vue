@@ -75,12 +75,12 @@ const isPassword = computed(() => props.type === 'password')
   font: inherit; font-size: 17px; color: var(--ink); transition: border-color .25s;
 }
 .field input:focus, .field-input-wrap input:focus { outline: none; border-bottom-color: var(--accent); }
-.field input.field-error { border-bottom-color: #ef4444; }
+.field input.field-error { border-bottom-color: var(--danger); }
 .field-eye {
   position: absolute; right: 0; top: 50%; transform: translateY(-50%);
   color: var(--muted); background: none; border: none; cursor: pointer; padding: 4px;
   transition: color .2s;
 }
 .field-eye:hover { color: var(--ink); }
-.field-err-msg { font-size: 12px; color: #ef4444; }
+.field-err-msg { font-size: 12px; color: var(--danger); }
 </style>

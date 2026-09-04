@@ -240,7 +240,7 @@ onMounted(fetchArticles)
 .ma-status.DRAFT { background: var(--bg-sub); color: var(--muted); }
 .ma-status.PUBLISHED { background: rgba(34,197,94,.12); color: #15803d; }
 .ma-status.PENDING_REVIEW { background: rgba(234,179,8,.12); color: #a16207; }
-.ma-status.REJECTED { background: rgba(239,68,68,.12); color: #b91c1c; }
+.ma-status.REJECTED { background: color-mix(in srgb, var(--danger-strong) 12%, transparent); color: var(--danger); }
 .ma-status.ARCHIVED { background: rgba(99,102,241,.12); color: #4338ca; }
 .ma-actions { display: flex; gap: 6px; align-items: center; }
 .ma-btn {
@@ -252,8 +252,8 @@ onMounted(fetchArticles)
 .ma-btn:disabled { opacity: .35; cursor: not-allowed; }
 .ma-btn--accent { background: var(--accent); border-color: var(--accent); color: #fff; }
 .ma-btn--accent:hover { opacity: .88; background: var(--accent); }
-.ma-btn--danger { background: #ef4444; border-color: #ef4444; color: #fff; }
-.ma-btn--danger:hover { opacity: .88; background: #ef4444; }
-.ma-reject-reason { background: rgba(239,68,68,.05); color: #b91c1c; font-size: 13px; }
+.ma-btn--danger { background: var(--danger-strong); border-color: var(--danger-strong); color: #fff; }
+.ma-btn--danger:hover { opacity: .88; background: var(--danger-strong); }
+.ma-reject-reason { background: color-mix(in srgb, var(--danger-strong) 5%, transparent); color: var(--danger); font-size: 13px; }
 .ma-pagination { display: flex; align-items: center; gap: 12px; margin-top: 28px; }
 </style>

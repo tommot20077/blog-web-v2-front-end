@@ -305,12 +305,12 @@ onMounted(fetchCategories)
 .cat-btn:hover { opacity: .8; }
 .cat-btn:disabled { opacity: .4; cursor: not-allowed; }
 .cat-btn-primary { background: var(--accent); color: #fff; border-color: transparent; }
-.cat-btn-danger { background: rgba(239,68,68,.1); color: #b91c1c; border-color: rgba(239,68,68,.2); }
+.cat-btn-danger { background: color-mix(in srgb, var(--danger-strong) 10%, transparent); color: var(--danger); border-color: color-mix(in srgb, var(--danger-strong) 20%, transparent); }
 
 .cat-load-error {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   padding: 16px 20px; margin-bottom: 8px; border-radius: 12px;
-  border: 1px solid rgba(239,68,68,.2); background: rgba(239,68,68,.08); color: #b91c1c;
+  border: 1px solid color-mix(in srgb, var(--danger-strong) 20%, transparent); background: color-mix(in srgb, var(--danger-strong) 8%, transparent); color: var(--danger);
   font-size: 14px;
 }
 .cat-load-error p { margin: 0; }

@@ -251,6 +251,6 @@ onMounted(() => {
 }
 .admin-stat-error {
   font-size: 14px;
-  color: #b91c1c;
+  color: var(--danger);
 }
 </style>

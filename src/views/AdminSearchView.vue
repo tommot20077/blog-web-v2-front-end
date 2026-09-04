@@ -167,7 +167,7 @@ onMounted(fetchStatus)
 }
 .search-status-error {
   font-size: 15px;
-  color: #b91c1c;
+  color: var(--danger);
 }
 
 .search-reindex-btn {
