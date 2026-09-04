@@ -36,7 +36,7 @@
 | `--ink` | `#e8e8ed` | 主要文字 | `src/index.css` |
 | `--ink-2` | `#c7c7cc` | 次要文字 | `src/index.css` |
 | `--muted` | `#98989d` | 弱化文字 | `src/index.css` |
-| `--glass` | `rgba(36,36,38,0.74)` | 玻璃面板背景（更透） | `styles.css` |
+| `--glass` | `rgba(36,36,38,0.74)` | 玻璃面板背景（更透） | `src/index.css`（覆寫 styles.css 的 `rgba(22,22,24,0.62)`） |
 | `--glass-border` | `rgba(255,255,255,0.11)` | 玻璃面板邊框 | `src/index.css` |
 | `--accent` | `#7BA8F5` | 強調色（隨主題微調） | `styles.css` |
 
