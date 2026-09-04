@@ -45,11 +45,32 @@ export function relativeLuminance(color: RgbColor): number {
 
 /** 計算兩個 hex 色碼之間的 WCAG 對比度（範圍 1:1 ~ 21:1），與傳入順序無關。 */
 export function contrastRatio(hexA: string, hexB: string): number {
-  const lumA = relativeLuminance(hexToRgb(hexA))
-  const lumB = relativeLuminance(hexToRgb(hexB))
+  return contrastRatioRgb(hexToRgb(hexA), hexToRgb(hexB))
+}
+
+/** 計算兩個 RgbColor 之間的 WCAG 對比度，與傳入順序無關（同 contrastRatio，但不必先轉 hex）。 */
+export function contrastRatioRgb(a: RgbColor, b: RgbColor): number {
+  const lumA = relativeLuminance(a)
+  const lumB = relativeLuminance(b)
   const lighter = Math.max(lumA, lumB)
   const darker = Math.min(lumA, lumB)
   return (lighter + 0.05) / (darker + 0.05)
+}
+
+/**
+ * 標準 alpha "over" 合成公式：out = alpha*src + (1-alpha)*dst（逐色版計算）。
+ *
+ * 用於算「半透明色疊在某底色上」實際渲染出的合成色——例如 CSS
+ * `color-mix(in srgb, var(--x) 8%, transparent)` 疊在頁面背景上的真實顏色，
+ * 而不是只拿 --x 本身的 flat 色去對背景算對比度（那樣算出的對比度會失真）。
+ * 可鏈式呼叫合成多層半透明疊色（如 --glass 疊在 --bg 上，再疊一層 color-mix 紅底）。
+ */
+export function compositeOver(src: RgbColor, alpha: number, dst: RgbColor): RgbColor {
+  return {
+    r: alpha * src.r + (1 - alpha) * dst.r,
+    g: alpha * src.g + (1 - alpha) * dst.g,
+    b: alpha * src.b + (1 - alpha) * dst.b,
+  }
 }
 
 /** WCAG AA 一般文字（非大字級）最低對比度需求。 */
