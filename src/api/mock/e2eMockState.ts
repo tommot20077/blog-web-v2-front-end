@@ -1,5 +1,5 @@
 import { resetAuthMockState } from './authMockData'
-import { resetEditorArticleStore } from './data'
+import { resetArticleVersionStore, resetEditorArticleStore } from './data'
 import { resetBookmarkMockState, seedBookmark as seedBookmarkState } from './bookmarkService'
 import { resetArticleLikeMockState, seedArticleLike } from './articleLikeService'
 import { resetCommentMockState, seedComment } from './commentService'
@@ -14,6 +14,7 @@ import {
 export function resetAllMockState(): void {
   resetAuthMockState()
   resetEditorArticleStore()
+  resetArticleVersionStore()
   resetBookmarkMockState()
   resetArticleLikeMockState()
   resetCommentMockState()

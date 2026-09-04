@@ -1,7 +1,8 @@
 import type { ArticleItem, ArticleDetailItem } from '../articleService';
 import type { TagDetailResponse } from '../tagService';
 import { mockMarkdownContent } from './mockArticleContent';
-import type { CategoryOption, TagSuggestion, QuotaInfo, EditorArticle, MyArticle, PendingArticle } from '../../types/editor';
+import type { ArticleStatus, CategoryOption, TagSuggestion, QuotaInfo, EditorArticle, MyArticle, PendingArticle } from '../../types/editor';
+import type { VersionType } from '../real/articleVersionService';
 import { MOCK_AUTHOR_PROFILES } from './profiles';
 import { ALL_MOCK_TAGS } from './tagRegistry';
 import { isArticleBookmarked, isArticleLiked } from './articleInteractionMockState';
@@ -374,6 +375,63 @@ export let editorArticleStore: EditorArticle[] = cloneEditorArticleStore();
 
 export function resetEditorArticleStore(): void {
   editorArticleStore = cloneEditorArticleStore();
+}
+
+// ── 文章版本快照（編輯器 History tab 用） ────────────────────────────────────
+// 對齊後端 ArticleVersion：快照存的是「當時的文章內容」，restore 會把它寫回文章本體。
+// tagNames 存標籤名稱，只為了讓 mock 還原後的文章狀態正確；後端
+// VersionDetailResponse.tags 是 tag UUID，而本 mock 不對外暴露 getDetail，故不會混淆。
+export interface MockArticleVersion {
+  uuid: string;
+  articleUuid: string;
+  type: VersionType;
+  createdAt: string;
+  note: string | null;
+  title: string;
+  content: string;
+  summary: string;
+  coverImageUrl: string | null;
+  status: ArticleStatus;
+  tagNames: string[];
+}
+
+export const mockArticleVersions: MockArticleVersion[] = [
+  {
+    uuid: 'version-draft-1-outline',
+    articleUuid: 'editor-draft-1',
+    type: 'MANUAL',
+    createdAt: '2026-03-05T09:30:00Z',
+    note: '大綱定稿',
+    title: 'Vue 3 Composition API 草稿（大綱版）',
+    content: '# Vue 3 Composition API\n\n## 大綱\n\n1. setup()\n2. ref 與 reactive\n3. 生命週期',
+    summary: '只有大綱的早期版本。',
+    coverImageUrl: null,
+    status: 'DRAFT',
+    tagNames: ['Vue'],
+  },
+  {
+    uuid: 'version-draft-1-auto',
+    articleUuid: 'editor-draft-1',
+    type: 'AUTO',
+    createdAt: '2026-03-12T14:05:00Z',
+    note: null,
+    title: 'Vue 3 Composition API 草稿',
+    content: '# Vue 3 Composition API\n\nDraft content.\n\n## setup()\n\n初稿補上 setup 說明。',
+    summary: '一篇關於 Composition API 的草稿。',
+    coverImageUrl: null,
+    status: 'DRAFT',
+    tagNames: ['Vue', 'TypeScript'],
+  },
+];
+
+function cloneArticleVersion(version: MockArticleVersion): MockArticleVersion {
+  return { ...version, tagNames: [...version.tagNames] };
+}
+
+export let articleVersionStore: MockArticleVersion[] = mockArticleVersions.map(cloneArticleVersion);
+
+export function resetArticleVersionStore(): void {
+  articleVersionStore = mockArticleVersions.map(cloneArticleVersion);
 }
 
 export function toMyArticle(a: EditorArticle): MyArticle {

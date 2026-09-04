@@ -1,15 +1,16 @@
+import { readFileSync } from 'node:fs'
 import { render, screen, waitFor } from '@testing-library/vue'
 import userEvent from '@testing-library/user-event'
 import EditorMetaSidebar from './EditorMetaSidebar.vue'
 import { fileService } from '../../api/fileService'
 import { tagSuggestService } from '../../api/tagSuggestService'
-import { articleVersionService } from '../../api/real/articleVersionService'
-import type { VersionSummaryResponse, VersionPageResponse } from '../../api/real/articleVersionService'
+import { articleVersionService } from '../../api/articleVersionService'
+import type { VersionSummaryResponse, VersionPageResponse } from '../../api/articleVersionService'
 import { createMockCategoryOption } from '../../test-utils/factories'
 
 vi.mock('../../api/fileService')
 vi.mock('../../api/tagSuggestService')
-vi.mock('../../api/real/articleVersionService')
+vi.mock('../../api/articleVersionService')
 
 const mockShowToast = vi.fn()
 vi.mock('../../composables/useToast', () => ({
@@ -241,6 +242,16 @@ describe('EditorMetaSidebar', () => {
       vi.mocked(articleVersionService.list).mockReset()
       vi.mocked(articleVersionService.restore).mockReset()
       mockShowToast.mockClear()
+    })
+
+    it('版本歷史走 api/ facade，不直接 import api/real/（否則 mock 模式下 History 必壞）', () => {
+      // code-standards.md §Mock 資料分離（CRITICAL）：業務程式碼透過 facade 的 dynamic import()
+      // 條件載入 mock。直接 import api/real/ 會讓 npm run dev:mock 與 E2E_MOCK=1 下的
+      // History tab 打到不存在的後端，永遠停在錯誤狀態。
+      const source = readFileSync('src/components/editor/EditorMetaSidebar.vue', 'utf8')
+
+      expect(source).not.toContain('api/real/articleVersionService')
+      expect(source).toContain("from '../../api/articleVersionService'")
     })
 
     it('顯示 History tab 按鈕', () => {

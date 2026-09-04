@@ -7,8 +7,8 @@ import EditorView from './EditorView.vue'
 import { editorService } from '../api/editorService'
 import { categoryService } from '../api/categoryService'
 import { fileService } from '../api/fileService'
-import { articleVersionService } from '../api/real/articleVersionService'
-import type { VersionSummaryResponse, VersionDetailResponse } from '../api/real/articleVersionService'
+import { articleVersionService } from '../api/articleVersionService'
+import type { VersionSummaryResponse } from '../api/articleVersionService'
 import { useMarkdownEditor } from '../composables/useMarkdownEditor'
 import { createMockEditorArticle, createMockCategoryOption } from '../test-utils/factories'
 import type { FileUploadResponse } from '../types/editor'
@@ -25,7 +25,7 @@ vi.mock('../api/editorService')
 vi.mock('../api/categoryService')
 vi.mock('../api/myArticlesService')
 vi.mock('../api/fileService')
-vi.mock('../api/real/articleVersionService')
+vi.mock('../api/articleVersionService')
 
 // ── Mock useToast ─────────────────────────────────────────────────────────────
 const mockShowToast = vi.fn()
@@ -624,7 +624,7 @@ describe('EditorView', () => {
         expect(editorService.getArticleForEdit).toHaveBeenNthCalledWith(2, 'edit-uuid')
       })
       // 版本快照不能拿來重設編輯器狀態：tags 是 tag UUID 不是名稱，且沒有 categoryId
-      expect(articleVersionService.getDetail).not.toHaveBeenCalled()
+      expect(readFileSync('src/views/EditorView.vue', 'utf8')).not.toContain('getDetail')
     })
 
     it('重抓到的文章套用到編輯器狀態（title 與 content 真的變了）', async () => {
@@ -758,20 +758,6 @@ describe('EditorView', () => {
       // 帶名稱的是 EditorArticleResponse.tags（TagSummaryResponse），所以還原後的正確資料
       // 只能靠重抓文章取得；若直接把 detail.tags 灌進 tagNames，使用者按儲存會用 UUID 當標籤名，
       // 在全站共用的標籤表建出一批垃圾標籤並丟失原標籤（型別同為 string，vue-tsc 攔不到）。
-      const tagUuid = '9f1c2a4e-0000-4000-8000-000000000001'
-      const detailWithTagUuids: VersionDetailResponse = {
-        uuid: 'v-1',
-        type: 'MANUAL',
-        createdAt: '2026-07-20T10:00:00Z',
-        note: '還原前快照',
-        title: '還原後的標題',
-        slug: 'restored-title',
-        content: '# 還原後的內容',
-        status: 'DRAFT',
-        summary: '還原後的摘要',
-        coverImageUrl: null,
-        tags: [tagUuid],
-      }
       vi.mocked(editorService.getArticleForEdit)
         .mockResolvedValueOnce(createMockEditorArticle({
           uuid: 'edit-uuid', title: '還原前標題', tags: ['Vue'],
@@ -780,7 +766,6 @@ describe('EditorView', () => {
           uuid: 'edit-uuid', title: '還原後的標題', content: '# 還原後的內容', tags: ['Vue', 'Pinia'],
         }))
       vi.mocked(articleVersionService.restore).mockResolvedValue(undefined)
-      vi.mocked(articleVersionService.getDetail).mockResolvedValue(detailWithTagUuids)
       setupMarkdownEditorMock()
 
       const user = userEvent.setup()
@@ -794,7 +779,7 @@ describe('EditorView', () => {
       })
 
       await user.click(screen.getByRole('button', { name: /Meta/ }))
-      expect(screen.queryByTitle(`移除 ${tagUuid}`)).not.toBeInTheDocument()
+      expect(screen.getByTitle('移除 Vue')).toBeInTheDocument()
       expect(screen.getByTitle('移除 Pinia')).toBeInTheDocument()
     })
   })
