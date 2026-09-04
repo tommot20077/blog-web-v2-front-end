@@ -42,3 +42,17 @@
 2. 確認快照 `/api/v1/auth/verify-email` 已翻為 `post` + `VerifyEmailRequest` body schema、且與 `authService.verifyEmail` 一致後，刪除本項並移除 [api-contract.md](ai-docs/api-contract.md) 對應 ℹ️ 註記。
 
 **⚠️ 未上線前的隱形風險**：前端已送 POST。若在後端 #48 部署前先進 prod → 後端仍是 GET → **405 Method Not Allowed → 所有信箱驗證失敗**。兩個 PR 必須同批部署（後端先或同時），前端不可單獨搶先上線。
+
+---
+
+## 📌 契約快照待重抓：admin 搜尋索引狀態端點（後端 #55）
+**狀態**：`Pending`（綁定後端 blog-web-v2 #55 上線）
+**描述**：
+前端 `src/api/real/adminService.ts`（`getSearchStatus`）呼叫 `GET /api/v1/admin/search/status`，並以 `src/types/search.ts` 的 `SearchIndexStatus { documentCount: number | null; lastReindexAt: string | null; healthy: boolean }` 對應回應。此端點不是前端發明契約——已查證後端 blog-web-v2 develop 分支：`AdminSearchController`（`@RequestMapping("/api/v1/admin/search")`）以 `@GetMapping("/status")` 提供，回傳 `ApiResponse<SearchIndexStatusResponse>`，`SearchIndexStatusResponse` 欄位為 `Long documentCount` / `String lastReindexAt` / `boolean healthy`，與前端型別完全一致。但 `api-reference/openapi.json` 目前只登記了同資源下的 `/api/v1/admin/search/reindex`，**未收錄 `/status`**——快照落後於後端 **#55**。
+
+**待解任務**：
+1. 後端 #55 合併上線後，依 [maintenance.md](ai-docs/maintenance.md) §2 **整份重抓** `openapi.json`（後端跑於本機 9010）：
+   `curl http://localhost:9010/v3/api-docs -o api-reference/openapi.json`
+2. 確認快照已收錄 `GET /api/v1/admin/search/status` 且回應 schema 與 `SearchIndexStatus` 一致後，刪除本項。
+
+**⚠️ 未上線前的隱形風險**：前端 `AdminSearchView` 已呼叫此端點。**後端 #55 需先於或同時於本前端上線**，否則 admin 搜尋索引頁的狀態查詢會 **404**，管理員看不到索引狀態、也無法判斷是否需要重建索引。
