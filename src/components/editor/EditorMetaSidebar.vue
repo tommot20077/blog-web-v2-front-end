@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { ref, watch, onUnmounted } from 'vue'
+import { ref, computed, watch, onUnmounted } from 'vue'
 import { fileService } from '../../api/fileService'
 import { tagSuggestService } from '../../api/tagSuggestService'
 import { articleVersionService } from '../../api/articleVersionService'
 import type { VersionSummaryResponse } from '../../api/articleVersionService'
 import { useToast } from '../../composables/useToast'
 import { useAuthedImages } from '../../composables/useAuthedImages'
-import type { CategoryOption, TagSuggestion } from '../../types/editor'
+import type { ArticleStatus, CategoryOption, TagSuggestion } from '../../types/editor'
 import type { OutlineItem } from '../../composables/useEditorOutline'
 
 const props = defineProps<{
@@ -18,6 +18,7 @@ const props = defineProps<{
   outline: OutlineItem[]
   activeHeadingLineIndex: number
   articleUuid?: string | null
+  articleStatus?: ArticleStatus | null
 }>()
 
 const emit = defineEmits<{
@@ -143,6 +144,22 @@ function formatVersionTime(iso: string): string {
   const d = new Date(iso)
   return d.toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
+
+// ── 還原按鈕依文章狀態 gating ────────────────────────────────────────────────
+// 對齊後端 fix/restore-content-freeze：PENDING_REVIEW / PUBLISHED / ARCHIVED 狀態下
+// 內容凍結，POST .../restore 改回 400（A0209）。這裡只是提前擋（UX），不是安全邊界——
+// 停用判斷只看目前 articleStatus，真正的授權與狀態檢查仍在後端；
+// 停用文案具體到能指引下一步，DRAFT / REJECTED 不受影響，維持原本可還原。
+const RESTORE_BLOCKED_REASONS: Partial<Record<ArticleStatus, string>> = {
+  PENDING_REVIEW: '送審中的文章內容已凍結，無法還原舊版本。請至「我的文章」抽回為草稿後再試',
+  PUBLISHED: '已發布的文章內容已凍結，無法還原舊版本',
+  ARCHIVED: '已封存的文章內容已凍結，無法還原舊版本',
+}
+
+const restoreDisabledReason = computed<string | undefined>(() => {
+  if (!props.articleStatus) return undefined
+  return RESTORE_BLOCKED_REASONS[props.articleStatus]
+})
 
 async function onRestoreClick(version: VersionSummaryResponse) {
   if (!props.articleUuid) return
@@ -356,7 +373,8 @@ async function onRestoreClick(version: VersionSummaryResponse) {
             <button
               type="button"
               class="history-restore"
-              :disabled="restoringUuid === version.uuid"
+              :disabled="restoringUuid === version.uuid || !!restoreDisabledReason"
+              :title="restoreDisabledReason"
               @click="onRestoreClick(version)"
             >{{ restoringUuid === version.uuid ? '還原中...' : 'Restore' }}</button>
           </li>

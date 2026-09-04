@@ -76,5 +76,51 @@ describe('articleVersionMockService', () => {
         restoreArticleVersionMock('editor-published-1', 'version-draft-1-outline'),
       ).rejects.toThrow(/不存在/)
     })
+
+    // ── 內容凍結狀態下 reject（對齊後端 fix/restore-content-freeze，A0209） ─────
+    // 真實後端在 PENDING_REVIEW / PUBLISHED / ARCHIVED 狀態下拒絕 restore（400 A0209）。
+    // mock 之前完全沒有狀態判斷，這幾種狀態下 restore 永遠成功，與真實環境行為分岔，
+    // 也讓 EditorMetaSidebar 的前端 gating 測試在 mock 模式下驗不到真正的失敗路徑。
+    describe('內容凍結狀態下拒絕還原（對齊後端 A0209）', () => {
+      it.each([
+        ['editor-pending-1', 'version-pending-1-auto', 'PENDING_REVIEW'],
+        ['editor-published-2', 'version-published-2-auto', 'PUBLISHED'],
+        ['editor-archived-1', 'version-archived-1-auto', 'ARCHIVED'],
+      ] as const)('%s（%s）reject 且訊息帶 A0209', async (articleUuid, versionUuid) => {
+        await expect(
+          restoreArticleVersionMock(articleUuid, versionUuid),
+        ).rejects.toThrow(/A0209/)
+      })
+
+      it('凍結狀態 reject 時不應留下任何 stash 快照（真正擋下操作，不是先做了才報錯）', async () => {
+        const versionsBefore = await listArticleVersionsMock('editor-pending-1')
+
+        await expect(
+          restoreArticleVersionMock('editor-pending-1', 'version-pending-1-auto'),
+        ).rejects.toThrow()
+
+        const versionsAfter = await listArticleVersionsMock('editor-pending-1')
+        expect(versionsAfter.total).toBe(versionsBefore.total)
+      })
+
+      it('凍結狀態 reject 時文章內容不應被覆寫', async () => {
+        const before = await getArticleForEditMock('editor-archived-1')
+
+        await expect(
+          restoreArticleVersionMock('editor-archived-1', 'version-archived-1-auto'),
+        ).rejects.toThrow()
+
+        const after = await getArticleForEditMock('editor-archived-1')
+        expect(after?.content).toBe(before?.content)
+      })
+    })
+
+    // ── DRAFT / REJECTED 不受影響（守住不修過頭） ────────────────────
+    it('REJECTED 狀態的文章仍可正常還原（未被誤擋）', async () => {
+      await restoreArticleVersionMock('editor-rejected-1', 'version-rejected-1-auto')
+
+      const article = await getArticleForEditMock('editor-rejected-1')
+      expect(article?.content).toContain('退回前的自動快照')
+    })
   })
 })

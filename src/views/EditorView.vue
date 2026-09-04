@@ -337,6 +337,7 @@ async function onVersionRestored() {
         :outline="outline"
         :active-heading-line-index="activeLineIndex"
         :article-uuid="article?.uuid ?? null"
+        :article-status="article?.status ?? null"
         @update:summary="summary = $event"
         @update:cover-image-url="coverImageUrl = $event"
         @update:category-ids="categoryIds = $event"
