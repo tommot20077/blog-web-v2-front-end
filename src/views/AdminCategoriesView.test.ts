@@ -80,6 +80,32 @@ describe('AdminCategoriesView', () => {
       expect(mockShowToast).toHaveBeenCalledWith(expect.any(String), 'error')
       expect(screen.queryByTestId('loading')).not.toBeInTheDocument()
     })
+
+    it('getCategoriesFull 失敗時顯示獨立的錯誤狀態與重試按鈕，且不顯示空狀態文案', async () => {
+      mockGetCategoriesFull.mockRejectedValue(new Error('network error'))
+      renderWithRouter(AdminCategoriesView)
+      await flushPromises()
+
+      expect(screen.getByTestId('admin-categories-error')).toBeInTheDocument()
+      expect(screen.getByTestId('admin-categories-retry-btn')).toBeInTheDocument()
+      expect(screen.queryByText('目前沒有分類')).not.toBeInTheDocument()
+    })
+
+    it('載入失敗後點擊重試按鈕會重新呼叫 getCategoriesFull，成功後離開錯誤狀態', async () => {
+      mockGetCategoriesFull.mockRejectedValueOnce(new Error('network error'))
+      const user = userEvent.setup()
+      renderWithRouter(AdminCategoriesView)
+      await flushPromises()
+      expect(screen.getByTestId('admin-categories-error')).toBeInTheDocument()
+
+      mockGetCategoriesFull.mockResolvedValueOnce([buildCategory()])
+      await user.click(screen.getByTestId('admin-categories-retry-btn'))
+      await flushPromises()
+
+      expect(mockGetCategoriesFull).toHaveBeenCalledTimes(2)
+      expect(screen.queryByTestId('admin-categories-error')).not.toBeInTheDocument()
+      expect(screen.getByTestId('admin-categories-row-cat-uuid-1')).toBeInTheDocument()
+    })
   })
 
   // ── 新增分類 ───────────────────────────────────────────────────────────────

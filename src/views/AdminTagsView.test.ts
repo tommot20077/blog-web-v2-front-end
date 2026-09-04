@@ -107,6 +107,32 @@ describe('AdminTagsView', () => {
       expect(mockShowToast).toHaveBeenCalledWith(expect.any(String), 'error')
       expect(screen.queryByTestId('loading')).not.toBeInTheDocument()
     })
+
+    it('getTagsFull 失敗時顯示獨立的錯誤狀態與重試按鈕，且不顯示空狀態文案', async () => {
+      mockGetTagsFull.mockRejectedValue(new Error('network error'))
+      renderWithRouter(AdminTagsView)
+      await flushPromises()
+
+      expect(screen.getByTestId('admin-tags-error')).toBeInTheDocument()
+      expect(screen.getByTestId('admin-tags-retry-btn')).toBeInTheDocument()
+      expect(screen.queryByText('目前沒有標籤')).not.toBeInTheDocument()
+    })
+
+    it('載入失敗後點擊重試按鈕會重新呼叫 getTagsFull，成功後離開錯誤狀態', async () => {
+      mockGetTagsFull.mockRejectedValueOnce(new Error('network error'))
+      const user = userEvent.setup()
+      renderWithRouter(AdminTagsView)
+      await flushPromises()
+      expect(screen.getByTestId('admin-tags-error')).toBeInTheDocument()
+
+      mockGetTagsFull.mockResolvedValueOnce([buildTag()])
+      await user.click(screen.getByTestId('admin-tags-retry-btn'))
+      await flushPromises()
+
+      expect(mockGetTagsFull).toHaveBeenCalledTimes(2)
+      expect(screen.queryByTestId('admin-tags-error')).not.toBeInTheDocument()
+      expect(screen.getByTestId('admin-tags-row-tag-uuid-1')).toBeInTheDocument()
+    })
   })
 
   // ── 編輯標籤 ───────────────────────────────────────────────────────────────

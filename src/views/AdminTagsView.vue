@@ -23,6 +23,9 @@ const { showToast } = useToast()
 
 const tags = ref<AdminTagResponse[]>([])
 const isLoading = ref(true)
+// 載入失敗需與空狀態區分：清單為 [] 不代表「沒有資料」，也可能是後端掛了，
+// 讓管理員誤讀為資料不存在而重建已存在的標籤；此旗標驅動獨立的錯誤狀態與重試入口。
+const loadError = ref(false)
 
 // 表單狀態：null = 未開啟；開啟時記錄目前編輯中標籤的 id
 const editingId = ref<string | null>(null)
@@ -40,9 +43,11 @@ const deletingId = ref<string | null>(null)
 
 async function fetchTags() {
   isLoading.value = true
+  loadError.value = false
   try {
     tags.value = await adminService.getTagsFull()
   } catch (error) {
+    loadError.value = true
     showToast(error instanceof Error ? error.message : '載入標籤失敗，請稍後再試', 'error')
   } finally {
     isLoading.value = false
@@ -175,6 +180,19 @@ onMounted(fetchTags)
           <span class="admin-loading-dot" style="animation-delay:300ms" />
         </div>
 
+        <!-- 載入失敗：與空狀態區分，避免管理員誤讀為「資料不存在」 -->
+        <div v-else-if="loadError" class="tag-load-error" data-testid="admin-tags-error" role="alert">
+          <p>標籤載入失敗，請稍後再試</p>
+          <button
+            type="button"
+            class="tag-btn"
+            data-testid="admin-tags-retry-btn"
+            @click="fetchTags"
+          >
+            重新載入
+          </button>
+        </div>
+
         <!-- 空狀態 -->
         <div v-else-if="tags.length === 0" class="admin-empty">
           目前沒有標籤
@@ -271,6 +289,14 @@ onMounted(fetchTags)
 .tag-btn:disabled { opacity: .4; cursor: not-allowed; }
 .tag-btn-primary { background: var(--accent); color: #fff; border-color: transparent; }
 .tag-btn-danger { background: rgba(239,68,68,.1); color: #b91c1c; border-color: rgba(239,68,68,.2); }
+
+.tag-load-error {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 16px 20px; margin-bottom: 8px; border-radius: 12px;
+  border: 1px solid rgba(239,68,68,.2); background: rgba(239,68,68,.08); color: #b91c1c;
+  font-size: 14px;
+}
+.tag-load-error p { margin: 0; }
 
 .tag-form {
   display: flex; flex-direction: column; gap: 14px; padding: 20px;

@@ -18,6 +18,9 @@ const { showToast } = useToast()
 
 const categories = ref<CategoryResponse[]>([])
 const isLoading = ref(true)
+// 載入失敗需與空狀態區分：清單為 [] 不代表「沒有資料」，也可能是後端掛了，
+// 讓管理員誤讀為資料不存在而重建已存在的分類；此旗標驅動獨立的錯誤狀態與重試入口。
+const loadError = ref(false)
 
 // 表單狀態：null = 未開啟；'create' 新增；'edit' 編輯（editingUuid 記錄目標）
 const formMode = ref<'create' | 'edit' | null>(null)
@@ -35,9 +38,11 @@ const deletingUuid = ref<string | null>(null)
 
 async function fetchCategories() {
   isLoading.value = true
+  loadError.value = false
   try {
     categories.value = await adminService.getCategoriesFull()
   } catch (error) {
+    loadError.value = true
     showToast(error instanceof Error ? error.message : '載入分類失敗，請稍後再試', 'error')
   } finally {
     isLoading.value = false
@@ -195,6 +200,19 @@ onMounted(fetchCategories)
           <span class="admin-loading-dot" style="animation-delay:300ms" />
         </div>
 
+        <!-- 載入失敗：與空狀態區分，避免管理員誤讀為「資料不存在」 -->
+        <div v-else-if="loadError" class="cat-load-error" data-testid="admin-categories-error" role="alert">
+          <p>分類載入失敗，請稍後再試</p>
+          <button
+            type="button"
+            class="cat-btn"
+            data-testid="admin-categories-retry-btn"
+            @click="fetchCategories"
+          >
+            重新載入
+          </button>
+        </div>
+
         <!-- 空狀態 -->
         <div v-else-if="categories.length === 0" class="admin-empty">
           目前沒有分類
@@ -288,6 +306,14 @@ onMounted(fetchCategories)
 .cat-btn:disabled { opacity: .4; cursor: not-allowed; }
 .cat-btn-primary { background: var(--accent); color: #fff; border-color: transparent; }
 .cat-btn-danger { background: rgba(239,68,68,.1); color: #b91c1c; border-color: rgba(239,68,68,.2); }
+
+.cat-load-error {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 16px 20px; margin-bottom: 8px; border-radius: 12px;
+  border: 1px solid rgba(239,68,68,.2); background: rgba(239,68,68,.08); color: #b91c1c;
+  font-size: 14px;
+}
+.cat-load-error p { margin: 0; }
 
 .cat-form {
   display: flex; flex-direction: column; gap: 14px; padding: 20px;
