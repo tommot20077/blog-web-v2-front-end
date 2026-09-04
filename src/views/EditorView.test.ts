@@ -585,21 +585,6 @@ describe('EditorView', () => {
       contentLength: 100,
       note: '還原前快照',
     }
-    const versionDetail: VersionDetailResponse = {
-      uuid: 'v-1',
-      type: 'MANUAL',
-      createdAt: '2026-07-20T10:00:00Z',
-      authorId: 1,
-      note: '還原前快照',
-      title: '還原後的標題',
-      slug: 'restored-title',
-      content: '# 還原後的內容',
-      status: 'DRAFT',
-      summary: '還原後的摘要',
-      categoryId: null,
-      coverImageUrl: null,
-      tags: ['Vue'],
-    }
 
     async function restoreThroughUi(user: ReturnType<typeof userEvent.setup>) {
       await waitFor(() => {
@@ -621,29 +606,36 @@ describe('EditorView', () => {
       vi.unstubAllGlobals()
     })
 
-    it('還原成功後呼叫 getDetail(articleUuid, versionUuid) 取得完整內容', async () => {
-      const mockArticle = createMockEditorArticle({ uuid: 'edit-uuid' })
-      vi.mocked(editorService.getArticleForEdit).mockResolvedValue(mockArticle)
+    it('還原成功後改以「重抓文章」取得還原後的資料（restore 端點只回 Void，不帶內容）', async () => {
+      vi.mocked(editorService.getArticleForEdit).mockResolvedValue(
+        createMockEditorArticle({ uuid: 'edit-uuid' }),
+      )
       vi.mocked(articleVersionService.restore).mockResolvedValue(undefined)
-      vi.mocked(articleVersionService.getDetail).mockResolvedValue(versionDetail)
       setupMarkdownEditorMock()
 
       const user = userEvent.setup()
       renderEditor({ uuid: 'edit-uuid' })
 
+      await waitFor(() => expect(editorService.getArticleForEdit).toHaveBeenCalledTimes(1))
       await restoreThroughUi(user)
 
       await waitFor(() => {
         expect(articleVersionService.restore).toHaveBeenCalledWith('edit-uuid', 'v-1')
-        expect(articleVersionService.getDetail).toHaveBeenCalledWith('edit-uuid', 'v-1')
+        expect(editorService.getArticleForEdit).toHaveBeenNthCalledWith(2, 'edit-uuid')
       })
+      // 版本快照不能拿來重設編輯器狀態：tags 是 tag UUID 不是名稱，且沒有 categoryId
+      expect(articleVersionService.getDetail).not.toHaveBeenCalled()
     })
 
-    it('取得完整內容後套用到編輯器狀態（title 與 content 真的變了）', async () => {
-      const mockArticle = createMockEditorArticle({ uuid: 'edit-uuid', title: '還原前標題' })
-      vi.mocked(editorService.getArticleForEdit).mockResolvedValue(mockArticle)
+    it('重抓到的文章套用到編輯器狀態（title 與 content 真的變了）', async () => {
+      vi.mocked(editorService.getArticleForEdit)
+        .mockResolvedValueOnce(createMockEditorArticle({
+          uuid: 'edit-uuid', title: '還原前標題', content: '# 還原前的內容',
+        }))
+        .mockResolvedValue(createMockEditorArticle({
+          uuid: 'edit-uuid', title: '還原後的標題', content: '# 還原後的內容',
+        }))
       vi.mocked(articleVersionService.restore).mockResolvedValue(undefined)
-      vi.mocked(articleVersionService.getDetail).mockResolvedValue(versionDetail)
       const { setContent } = setupMarkdownEditorMock()
 
       const user = userEvent.setup()
@@ -662,7 +654,6 @@ describe('EditorView', () => {
       const mockArticle = createMockEditorArticle({ uuid: 'edit-uuid' })
       vi.mocked(editorService.getArticleForEdit).mockResolvedValue(mockArticle)
       vi.mocked(articleVersionService.restore).mockResolvedValue(undefined)
-      vi.mocked(articleVersionService.getDetail).mockResolvedValue(versionDetail)
       setupMarkdownEditorMock()
 
       const user = userEvent.setup()
@@ -675,11 +666,11 @@ describe('EditorView', () => {
       })
     })
 
-    it('getDetail 失敗時顯示錯誤提示，且明確提醒畫面可能與伺服器不一致', async () => {
-      const mockArticle = createMockEditorArticle({ uuid: 'edit-uuid' })
-      vi.mocked(editorService.getArticleForEdit).mockResolvedValue(mockArticle)
+    it('重抓文章拋錯時顯示錯誤提示，且明確提醒畫面可能與伺服器不一致', async () => {
+      vi.mocked(editorService.getArticleForEdit)
+        .mockResolvedValueOnce(createMockEditorArticle({ uuid: 'edit-uuid' }))
+        .mockRejectedValue(new Error('網路錯誤'))
       vi.mocked(articleVersionService.restore).mockResolvedValue(undefined)
-      vi.mocked(articleVersionService.getDetail).mockRejectedValue(new Error('網路錯誤'))
       const { setContent } = setupMarkdownEditorMock()
 
       const user = userEvent.setup()
@@ -696,36 +687,48 @@ describe('EditorView', () => {
           'error',
         )
       })
-      // getDetail 失敗代表沒有可套用的新內容，setContent 不應該再被多呼叫一次
+      // 重抓失敗代表沒有可套用的新內容，setContent 不應該再被多呼叫一次
       expect(setContent).toHaveBeenCalledTimes(1)
     })
 
-    it('還原後同步內容不會改動 categoryIds（VersionDetailResponse 無 categoryId 欄位，不應清空使用者當前選擇）', async () => {
-      // 真實契約：VersionDetailResponse 沒有 categoryId 欄位（後端 VersionDetailResponse.java 只有
-      // uuid / type / note / createdAt / authorId / title / slug / content / summary / coverImageUrl / status / tags）。
-      const detailWithoutCategoryId: VersionDetailResponse = {
-        uuid: 'v-1',
-        type: 'MANUAL',
-        createdAt: '2026-07-20T10:00:00Z',
-        note: '還原前快照',
-        title: '還原後的標題',
-        slug: 'restored-title',
-        content: '# 還原後的內容',
-        status: 'DRAFT',
-        summary: '還原後的摘要',
-        coverImageUrl: null,
-        tags: ['Vue'],
-      }
+    it('重抓文章回 null 時顯示錯誤提示（real service 失敗會吞例外回 null，不會拋）', async () => {
+      vi.mocked(editorService.getArticleForEdit)
+        .mockResolvedValueOnce(createMockEditorArticle({ uuid: 'edit-uuid' }))
+        .mockResolvedValue(null)
+      vi.mocked(articleVersionService.restore).mockResolvedValue(undefined)
+      const { setContent } = setupMarkdownEditorMock()
+
+      const user = userEvent.setup()
+      renderEditor({ uuid: 'edit-uuid' })
+
+      await waitFor(() => expect(setContent).toHaveBeenCalledTimes(1))
+
+      await restoreThroughUi(user)
+
+      await waitFor(() => {
+        expect(mockShowToast).toHaveBeenCalledWith(
+          expect.stringMatching(/不一致/),
+          'error',
+        )
+      })
+      expect(setContent).toHaveBeenCalledTimes(1)
+    })
+
+    it('還原後分類仍為重抓文章的分類，不被清空（後端 restore 不還原 categories）', async () => {
+      // 後端 VersioningService.restore() 的已知限制：categories 不在還原範圍內
+      //（ArticleVersion 只有永遠為 null 的單值 categoryId 欄位），
+      // 所以重抓回來的文章仍帶原本的分類，畫面不該因為還原而變成未選。
       vi.mocked(categoryService.getCategories).mockResolvedValue([
         createMockCategoryOption({ id: 'cat-1', name: '分類一', slug: 'cat-1' }),
       ])
-      const mockArticle = createMockEditorArticle({
+      const articleWithCategory = createMockEditorArticle({
         uuid: 'edit-uuid',
         categories: [createMockCategoryOption({ id: 'cat-1', name: '分類一', slug: 'cat-1' })],
       })
-      vi.mocked(editorService.getArticleForEdit).mockResolvedValue(mockArticle)
+      vi.mocked(editorService.getArticleForEdit)
+        .mockResolvedValueOnce(articleWithCategory)
+        .mockResolvedValue({ ...articleWithCategory, title: '還原後的標題', content: '# 還原後的內容' })
       vi.mocked(articleVersionService.restore).mockResolvedValue(undefined)
-      vi.mocked(articleVersionService.getDetail).mockResolvedValue(detailWithoutCategoryId)
       setupMarkdownEditorMock()
 
       const user = userEvent.setup()
@@ -744,9 +747,55 @@ describe('EditorView', () => {
         expect(titleInput.value).toBe('還原後的標題')
       })
 
-      // categoryIds 應保留使用者原本選擇，不因還原被清空
+      // 分類仍為勾選，不因還原被清空
       await user.click(screen.getByRole('button', { name: /Meta/ }))
       expect(screen.getByRole('checkbox', { name: '分類一' })).toBeChecked()
+    })
+
+    it('還原後的標籤來自重抓的文章（名稱），不會把版本快照的 tag UUID 當成標籤名', async () => {
+      // 契約真相：VersionDetailResponse.tags 是 List<UUID>（後端 VersioningService 以
+      // tagFacade.findTagIdsByArticleUuid() 賦值），是 tag ID 不是名稱；restore 端點只回 Void。
+      // 帶名稱的是 EditorArticleResponse.tags（TagSummaryResponse），所以還原後的正確資料
+      // 只能靠重抓文章取得；若直接把 detail.tags 灌進 tagNames，使用者按儲存會用 UUID 當標籤名，
+      // 在全站共用的標籤表建出一批垃圾標籤並丟失原標籤（型別同為 string，vue-tsc 攔不到）。
+      const tagUuid = '9f1c2a4e-0000-4000-8000-000000000001'
+      const detailWithTagUuids: VersionDetailResponse = {
+        uuid: 'v-1',
+        type: 'MANUAL',
+        createdAt: '2026-07-20T10:00:00Z',
+        note: '還原前快照',
+        title: '還原後的標題',
+        slug: 'restored-title',
+        content: '# 還原後的內容',
+        status: 'DRAFT',
+        summary: '還原後的摘要',
+        coverImageUrl: null,
+        tags: [tagUuid],
+      }
+      vi.mocked(editorService.getArticleForEdit)
+        .mockResolvedValueOnce(createMockEditorArticle({
+          uuid: 'edit-uuid', title: '還原前標題', tags: ['Vue'],
+        }))
+        .mockResolvedValue(createMockEditorArticle({
+          uuid: 'edit-uuid', title: '還原後的標題', content: '# 還原後的內容', tags: ['Vue', 'Pinia'],
+        }))
+      vi.mocked(articleVersionService.restore).mockResolvedValue(undefined)
+      vi.mocked(articleVersionService.getDetail).mockResolvedValue(detailWithTagUuids)
+      setupMarkdownEditorMock()
+
+      const user = userEvent.setup()
+      renderEditor({ uuid: 'edit-uuid' })
+
+      await restoreThroughUi(user)
+
+      await waitFor(() => {
+        const titleInput = screen.getByTestId('editor-title-input') as HTMLInputElement
+        expect(titleInput.value).toBe('還原後的標題')
+      })
+
+      await user.click(screen.getByRole('button', { name: /Meta/ }))
+      expect(screen.queryByTitle(`移除 ${tagUuid}`)).not.toBeInTheDocument()
+      expect(screen.getByTitle('移除 Pinia')).toBeInTheDocument()
     })
   })
 

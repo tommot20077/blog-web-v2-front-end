@@ -12,8 +12,6 @@ import { useEditorFocusMode } from '../composables/useEditorFocusMode'
 import { useEditorOutline } from '../composables/useEditorOutline'
 import { useEditorImageUpload } from '../composables/useEditorImageUpload'
 import { categoryService } from '../api/categoryService'
-import { articleVersionService } from '../api/real/articleVersionService'
-import type { VersionSummaryResponse } from '../api/real/articleVersionService'
 import EditorToolbar from '../components/editor/EditorToolbar.vue'
 import EditorMetaSidebar from '../components/editor/EditorMetaSidebar.vue'
 import type { CategoryOption } from '../types/editor'
@@ -160,24 +158,23 @@ async function onSubmitForReview() {
 // ── 版本還原接線 ───────────────────────────────────────────────────────────
 // EditorMetaSidebar 的 History tab 在使用者確認後會呼叫 articleVersionService.restore()，
 // 後端此時已把文章還原成舊版本，但編輯器畫面仍停在舊的（新）內容。
-// 這裡收到 version-restored 後，改呼叫 getDetail() 取得完整內容並套用到編輯器狀態，
-// 讓畫面與伺服器保持一致；否則使用者接著按「儲存草稿」會把剛還原的版本立刻覆蓋回去。
+//
+// 還原後的正確資料一律以「重抓文章」為準，不用 version detail 重設編輯器：
+//   1. restore 端點回 ApiResponse<Void>，本來就不帶內容；
+//   2. VersionDetailResponse.tags 是 List<UUID>（後端以 tagFacade.findTagIdsByArticleUuid()
+//      賦值），是 tag ID 不是名稱——灌進 tagNames 再儲存會用 UUID 當標籤名，
+//      在全站共用的標籤表建出垃圾標籤並丟失原標籤；且 VersionDetailResponse 也沒有 categoryId。
+//   3. GET /api/v1/articles/{uuid}/edit 回的 EditorArticleResponse 才帶標籤名稱與分類。
+// 不重設畫面則使用者接著按「儲存草稿」會把剛還原的版本立刻覆蓋回去，所以必須重抓。
 function getErrorMessage(err: unknown): string {
   return err instanceof Error ? err.message : '請稍後再試'
 }
 
-async function onVersionRestored(version: VersionSummaryResponse) {
-  const targetUuid = article.value?.uuid
-  if (!targetUuid) return
-
+async function onVersionRestored() {
   try {
-    const detail = await articleVersionService.getDetail(targetUuid, version.uuid)
-    title.value = detail.title
-    summary.value = detail.summary ?? ''
-    coverImageUrl.value = detail.coverImageUrl ?? null
-    // VersionDetailResponse 沒有 categoryId 欄位（後端契約），保留使用者當前選擇，不清空。
-    tagNames.value = detail.tags ?? []
-    setContent(detail.content)
+    const restored = await loadArticle()
+    if (!restored) throw new Error('讀不到還原後的文章')
+    setContent(restored.content)
     showToast('已套用還原版本的內容', 'success')
   } catch (err) {
     showToast(
