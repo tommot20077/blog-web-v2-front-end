@@ -63,6 +63,11 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   // 成功回應（2xx）
   (response) => {
+    // 二進位內容（如 GET /api/v1/files/{id}/content 以 blob 取回）不是 ApiResponse envelope，
+    // 直接回傳原始資料，不嘗試解包。
+    if (response.config?.responseType === 'blob') {
+      return response.data
+    }
     const body = response.data as ApiResponse<unknown>
     if (isSuccessCode(body.code)) {
       return body.data as never
