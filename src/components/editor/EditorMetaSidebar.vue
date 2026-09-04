@@ -151,7 +151,7 @@ function formatVersionTime(iso: string): string {
 // 停用判斷只看目前 articleStatus，真正的授權與狀態檢查仍在後端；
 // 停用文案具體到能指引下一步，DRAFT / REJECTED 不受影響，維持原本可還原。
 const RESTORE_BLOCKED_REASONS: Partial<Record<ArticleStatus, string>> = {
-  PENDING_REVIEW: '送審中的文章內容已凍結，無法還原舊版本，請先抽回為草稿',
+  PENDING_REVIEW: '送審中的文章內容已凍結，無法還原舊版本。請至「我的文章」抽回為草稿後再試',
   PUBLISHED: '已發布的文章內容已凍結，無法還原舊版本',
   ARCHIVED: '已封存的文章內容已凍結，無法還原舊版本',
 }
