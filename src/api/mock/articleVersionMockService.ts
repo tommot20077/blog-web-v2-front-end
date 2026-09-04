@@ -4,8 +4,15 @@ import type {
   VersionSummaryResponse,
 } from '../real/articleVersionService'
 import { articleVersionStore, editorArticleStore, type MockArticleVersion } from './data'
+import type { ArticleStatus } from '../../types/editor'
 
 const MOCK_DELAY = 300
+
+// 對齊後端 fix/restore-content-freeze（A0209）：PENDING_REVIEW / PUBLISHED / ARCHIVED
+// 狀態下文章內容已凍結，restore 一律拒絕。mock 必須跟真實後端行為一致，
+// 否則 mock 模式下這幾種狀態的還原永遠成功，真實環境卻回 400，兩邊行為分岔，
+// 也讓 EditorMetaSidebar 的前端 gating 測試在 mock 下驗不到真正的失敗路徑。
+const RESTORE_CONTENT_FROZEN_STATUSES: readonly ArticleStatus[] = ['PENDING_REVIEW', 'PUBLISHED', 'ARCHIVED']
 
 function toSummary(version: MockArticleVersion): VersionSummaryResponse {
   return {
@@ -78,6 +85,12 @@ export function restoreArticleVersionMock(articleUuid: string, versionUuid: stri
       }
 
       const current = editorArticleStore[index]!
+
+      if (RESTORE_CONTENT_FROZEN_STATUSES.includes(current.status)) {
+        reject(new Error(`（A0209）文章目前狀態為 ${current.status}，內容已凍結，無法還原`))
+        return
+      }
+
       const now = new Date().toISOString()
 
       articleVersionStore.push({
