@@ -86,16 +86,37 @@ async function resetAuthStore(page: Page): Promise<void> {
   })
 }
 
+async function isAuthenticatedInApp(page: Page): Promise<boolean> {
+  return page.evaluate(() => {
+    const pinia = (window as unknown as { __pinia?: AppPinia }).__pinia
+    const authStore = pinia?._s?.get('auth')
+
+    // 與 router guard 的 authStore.isAuthenticated 同一個判準（!!accessToken）
+    return Boolean(authStore?.accessToken)
+  }).catch(() => false)
+}
+
 async function uiLogin(page: Page, role: Role): Promise<void> {
   const creds = getCredentials(role)
-  // NavigationBar A1（頭像下拉選單）：登出按鈕現在收在選單裡，預設是關閉狀態
-  // （v-show，display:none），必須先點頭像展開選單才會變成 Playwright 認定的
-  // "visible"。頭像本身只在已登入時才會渲染，所以用它來判斷「是否已登入」。
-  const avatarButton = page.getByTestId('navbar-avatar')
-  const logoutButton = page.getByTestId('navbar-logout-btn')
-  if (await avatarButton.isVisible().catch(() => false)) {
+
+  // 換帳號必須先真的登出：/login 是 guestOnly，還登入著就會被守衛導回 '/'。
+  //
+  // 「是否已登入」不能用頭像看不看得到來判斷。登出入口只掛在 NavigationBar 上，
+  // 而 App.vue 的 isShellOrFull 會讓 layout 為 shell / full / admin 的頁面
+  // （/my-articles、/settings、/editor、/admin/*）整個不渲染 NavigationBar；
+  // 在這些頁面上頭像本來就不存在，用它判斷會靜默略過登出，接著停在 '/' 而不是
+  // /login。改問 app 自己的 auth store（權威來源），確認登入中就先回首頁，
+  // 讓 NavigationBar 存在之後再走完整的登出 UI。
+  if (await isAuthenticatedInApp(page)) {
+    await page.goto('/')
+
+    // NavigationBar A1（頭像下拉選單）：登出按鈕收在選單裡，預設關閉狀態
+    // （v-show，display:none），必須先點頭像展開選單才會變成 Playwright 認定的
+    // "visible"。用 toBeVisible 等頭像掛上，避免剛 router.push 完 DOM 還沒更新。
+    const avatarButton = page.getByTestId('navbar-avatar')
+    await expect(avatarButton).toBeVisible()
     await avatarButton.click()
-    await logoutButton.click()
+    await page.getByTestId('navbar-logout-btn').click()
     // NavigationBar.handleLogout() 的順序是 closeMenu() -> await authStore.logout() -> router.push('/')。
     // 選單一收起 logoutButton 就不可見了，所以「logoutButton 不可見」只代表選單關掉，
     // 不代表登出已完成；若此時就往 /login 走，會被後發的 router.push('/') 蓋掉而停在首頁。
