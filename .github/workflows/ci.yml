@@ -170,3 +170,38 @@ jobs:
       - name: Tear down E2E stack
         if: always()
         run: docker compose -f docker-compose.e2e.yml down -v
+
+  # 匯總 job：branch ruleset 的 required status check 指向這一個 job，
+  # 之後增減 CI job 時只需改本檔的 needs，不必同步改 repo ruleset 設定。
+  # 注意 e2e-integration 只在 pull_request 事件執行（push 時為 skipped），
+  # 故 skipped 視為通過；其餘任何非 success 一律擋下。
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    needs: [unit-and-component-tests, build, coverage, e2e-tests, e2e-integration]
+    if: always()
+    steps:
+      - name: Verify all required checks passed
+        run: |
+          declare -A results=(
+            [unit-and-component-tests]="${{ needs.unit-and-component-tests.result }}"
+            [build]="${{ needs.build.result }}"
+            [coverage]="${{ needs.coverage.result }}"
+            [e2e-tests]="${{ needs.e2e-tests.result }}"
+            [e2e-integration]="${{ needs.e2e-integration.result }}"
+          )
+          failed=0
+          for job in "${!results[@]}"; do
+            result="${results[$job]}"
+            if [ "$result" = "success" ] || [ "$result" = "skipped" ]; then
+              echo "OK       $job: $result"
+            else
+              echo "FAILED   $job: $result"
+              failed=1
+            fi
+          done
+          if [ "$failed" -ne 0 ]; then
+            echo "::error::One or more required checks did not pass"
+            exit 1
+          fi
+          echo "All required checks passed"
