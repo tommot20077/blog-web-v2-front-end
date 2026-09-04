@@ -253,7 +253,11 @@ onMounted(fetchArticles)
 .ma-btn--accent { background: var(--accent); border-color: var(--accent); color: #fff; }
 .ma-btn--accent:hover { opacity: .88; background: var(--accent); }
 .ma-btn--danger { background: var(--danger-solid); border-color: var(--danger-solid); color: #fff; }
-.ma-btn--danger:hover { opacity: .88; background: var(--danger-solid); }
+/* fix round 1:hover 改深色覆寫(--danger-solid-hover,見 src/index.css)取代
+ * opacity 壓底--opacity 對整個元素生效,白字也會被拉暗,對比度掉回接近原始
+ * bug 數值(light 模式修復前 ~=4.57:1,餘裕僅 0.07)。.ma-btn 已有
+ * transition: all .15s,hover 換色會沿用該 transition 自動漸變。*/
+.ma-btn--danger:hover { opacity: 1; background: var(--danger-solid-hover); border-color: var(--danger-solid-hover); }
 .ma-reject-reason { background: color-mix(in srgb, var(--danger-strong) 5%, transparent); color: var(--danger); font-size: 13px; }
 .ma-pagination { display: flex; align-items: center; gap: 12px; margin-top: 28px; }
 </style>

@@ -58,6 +58,25 @@ html, body { overflow-x: hidden; }
 :root { --danger: #b91c1c; --danger-strong: #ef4444; --danger-solid: #bf3636; }
 [data-theme="dark"] { --danger: #f87171; }
 
+/* -- New semantic token: --danger-solid-hover(白字配紅底按鈕的 hover 覆寫) --
+ * fix round 1(reviewer 自行延伸驗算發現,見 src/dangerToken.test.ts「hover
+ * 狀態的對比度」describe):.admin-btn-confirm-reject/.ma-btn--danger 原本
+ * hover 都靠 `opacity`(.8/.88)取得「有反應」的視覺效果,但 opacity 對整個
+ * 元素生效--白字與紅底一起變半透明再與 backdrop 合成,對比度因此掉回接近
+ * 修復前的原始 bug 數值:.admin-btn-confirm-reject light 模式僅 ≈3.42:1(不
+ * 合格),.ma-btn--danger light 模式僅 ≈4.57:1(現況壓線通過,餘裕僅 0.07,
+ * 無測試覆蓋、一碰即破)。
+ * 這裡改用「hover 時直接換一個更深的實色紅底」取代 opacity:不透明色不受
+ * backdrop 影響,兩個主題算出同一個對比度,不必再分別驗算 light/dark。
+ * 色值 #992b2b 為 --danger-solid #bf3636 等比例縮放 80%((191,54,54)*0.8
+ * 取整 = (153,43,43),色相不變,比照 --danger-solid 本身的推導方式):
+ *   - contrast(#fff, #992b2b) ~= 7.68:1(兩主題皆同,實色底不受 backdrop 影響)
+ *   遠高於 4.5:1,比原本壓線的 opacity 方案更穩健。
+ * 不沿用 --danger-strong/--danger-solid 本身(禁區:改了要重算既有 24 個
+ * 斷言),另立獨立 token。計算過程與斷言見 src/dangerToken.test.ts。
+ */
+:root { --danger-solid-hover: #992b2b; }
+
 /* ── 暗色階：Apple 色調（Yuan 選定 D3「Apple 柔和」）─────────
  * 問題：原本 --bg #0d0d0f 配 --ink #ededef ≈ 15.9:1。數字高不是重點——
  * 近純黑配近純白會產生 halation（白字邊緣發光、久看字會浮動），這才是刺眼來源。
@@ -176,8 +195,13 @@ html, body { overflow-x: hidden; }
 .admin-reject-textarea:focus { border-color: var(--accent); }
 .admin-reject-actions { display: flex; gap: 8px; justify-content: flex-end; }
 .admin-btn-cancel { background: var(--glass); border: 1px solid var(--glass-border) !important; color: var(--ink); }
-.admin-btn-confirm-reject { background: color-mix(in srgb, var(--danger-solid) 90%, transparent); color: #fff; }
+.admin-btn-confirm-reject { background: color-mix(in srgb, var(--danger-solid) 90%, transparent); color: #fff; transition: background-color .2s; }
 .admin-btn-confirm-reject:disabled { opacity: .4; cursor: not-allowed; }
+/* fix round 1:hover 改深色覆寫取代 opacity 壓底(見上方 --danger-solid-hover
+ * 說明)。用 .admin-btn.admin-btn-confirm-reject:hover(雙 class)取得比共用
+ * .admin-btn:hover 更高的 specificity,不必依賴來源順序;也不改共用規則本身,
+ * 其他 .admin-btn-*(approve/reject/cancel)的 hover 仍是 opacity:.8,不受影響。*/
+.admin-btn.admin-btn-confirm-reject:hover { background: var(--danger-solid-hover); opacity: 1; }
 .admin-empty { text-align: center; padding: 48px 0; color: var(--muted); font-family: var(--f-mono); font-size: 13px; letter-spacing: .08em; }
 .admin-loading { display: flex; justify-content: center; padding: 48px 0; gap: 8px; }
 .admin-loading-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); animation: bounce 1s infinite; }

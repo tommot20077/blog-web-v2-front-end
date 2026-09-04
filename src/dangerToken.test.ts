@@ -432,3 +432,124 @@ describe('白字配紅底按鈕的對比度（.ma-btn--danger 實色底、.admin
     })
   })
 })
+
+/**
+ * ── danger 按鈕 hover 狀態的對比度（fix round 1，reviewer 自行延伸驗算發現）──
+ *
+ * 上面「白字配紅底按鈕」describe 只驗證 rest 狀態，但 hover 正是使用者
+ * 點擊「確認退回」／「刪除」前最可能看到的狀態。修復前，兩顆按鈕的 hover
+ * 都靠 `opacity` 取得「有反應」的視覺效果：
+ * - `.admin-btn-confirm-reject` 沒有自己的 hover 規則，靠共用的
+ *   `.admin-btn:hover { opacity: .8 }` 生效。
+ * - `.ma-btn--danger:hover` 自帶 `opacity: .88`。
+ *
+ * 但 CSS 的 `opacity` 語意與 `color-mix` 不同：`opacity` 作用在**整個元素**
+ * ——前景（白字）與背景一起變半透明，再與 backdrop 合成，而不是只調暗背景。
+ * 對兩顆「白字配紅底」按鈕而言，這會把文字也往 backdrop（淺色系）拉，
+ * 對比度因此掉回接近修復前的原始 bug 數值。
+ *
+ * 下面不假設任何特定修法，而是直接從實際 CSS 解析 hover 狀態最終渲染出的
+ * `background`（找不到 hover 專屬宣告時，fallback 回 base 規則——代表
+ * hover 沒有覆寫背景，沿用 rest 的疊色）與 `opacity`（同樣有 fallback 鏈，
+ * 回共用的 `.admin-btn:hover` / `.ma-btn:hover`），照 CSS 合成語意精確計算：
+ *   1. 先解析 background 宣告本身的「自身色 + 自身 alpha」：
+ *      `color-mix(in srgb, var(--x) N%, transparent)` → alpha = N%；
+ *      `var(--x)` → alpha = 1（不透明）。
+ *   2. `opacity` 對整個元素生效：前景（白字，本身 alpha=1）與上一步的
+ *      背景（自身色 + 自身 alpha）都要再乘上 opacity，才與 backdrop 合成
+ *      （等價於對同一個 backdrop 做 nested compositeOver，見
+ *      contrastRatio.test.ts 的 compositeOver 案例：
+ *      compositeOver(compositeOver(src,a1,dst),a2,dst) = compositeOver(src,a1*a2,dst)）。
+ * 這樣寫，同一組斷言在「修復前（opacity 壓底）」與「修復後（改深色覆寫，
+ * opacity 還原為 1）」都能用真正渲染出的色碼算出真實對比度，不必在改完
+ * CSS 後回頭重寫測試本身。
+ */
+describe('danger 按鈕 hover 狀態的對比度（修復前靠 opacity 壓底，會掉回接近原始 bug 的對比度）', () => {
+  const themes: Theme[] = ['light', 'dark']
+
+  /** 解析 background 宣告，回傳「自身色（尚未乘 opacity）+ 自身 alpha」。 */
+  function resolveBackgroundSelf(bgDecl: string, theme: Theme): { rgb: RgbColor; alpha: number } {
+    const mixMatch = bgDecl.match(/^color-mix\(in srgb,\s*var\((--[\w-]+)\)\s+([\d.]+)%,\s*transparent\)$/)
+    if (mixMatch) {
+      return { rgb: hexToRgb(resolveThemeToken(mixMatch[1], theme)), alpha: Number(mixMatch[2]) / 100 }
+    }
+    const varMatch = bgDecl.match(/^var\((--[\w-]+)\)$/)
+    if (varMatch) {
+      return { rgb: hexToRgb(resolveThemeToken(varMatch[1], theme)), alpha: 1 }
+    }
+    throw new Error(`無法解析 background 宣告：${bgDecl}`)
+  }
+
+  /**
+   * 算某個 hover 情境「真正會被畫出來」的文字色與背景色（皆已合成 opacity 與 backdrop）。
+   * `hoverSelector` 找不到宣告時 fallback 到 `baseSelector`（background 沒被 hover
+   * 覆寫，沿用 rest 的宣告）或 `sharedHoverSelector`（opacity 是共用 hover 規則給的）。
+   */
+  function resolveHoverRendered(params: {
+    css: string
+    hoverSelector: string
+    baseSelector: string
+    sharedHoverSelector: string
+    backdrop: RgbColor
+    theme: Theme
+  }): { text: RgbColor; bg: RgbColor } {
+    const { css, hoverSelector, baseSelector, sharedHoverSelector, backdrop, theme } = params
+
+    const bgDecl =
+      findDeclaration(css, hoverSelector, 'background') ?? findDeclaration(css, baseSelector, 'background')
+    if (bgDecl === undefined) throw new Error(`找不到 ${hoverSelector} 或 ${baseSelector} 的 background 宣告`)
+
+    const opacityDecl =
+      findDeclaration(css, hoverSelector, 'opacity') ?? findDeclaration(css, sharedHoverSelector, 'opacity') ?? '1'
+    const opacity = Number(opacityDecl)
+
+    const self = resolveBackgroundSelf(bgDecl, theme)
+    const bg = compositeOver(self.rgb, self.alpha * opacity, backdrop)
+    const text = compositeOver(hexToRgb('#fff'), 1 * opacity, backdrop)
+    return { text, bg }
+  }
+
+  describe('.admin-btn-confirm-reject:hover（backdrop 同 rest：.admin-card { --glass } 疊在 body { --bg } 上，兩層合成）', () => {
+    it.each(themes)(
+      '%s 模式：hover 狀態合成對比度需達 WCAG AA 4.5:1（MEDIUM，reviewer 發現：修復前 opacity:.8 由共用的 .admin-btn:hover 帶入，light 模式應為 RED；改深色覆寫後應為 GREEN）',
+      (theme) => {
+        let backdrop = hexToRgb(resolveThemeToken('--bg', theme))
+        const glass = parseRgba(resolveThemeToken('--glass', theme))
+        backdrop = compositeOver(glass.rgb, glass.alpha, backdrop)
+
+        const { text, bg } = resolveHoverRendered({
+          css: indexCss,
+          hoverSelector: '.admin-btn-confirm-reject:hover',
+          baseSelector: '.admin-btn-confirm-reject',
+          sharedHoverSelector: '.admin-btn:hover',
+          backdrop,
+          theme,
+        })
+
+        const ratio = contrastRatioRgb(text, bg)
+        expect(ratio).toBeGreaterThanOrEqual(WCAG_AA_NORMAL_TEXT)
+      },
+    )
+  })
+
+  describe('.ma-btn--danger:hover（backdrop 同 rest：.ma-table 內無額外面板，backdrop 即 body { --bg }）', () => {
+    it.each(themes)(
+      '%s 模式：hover 狀態合成對比度需達 WCAG AA 4.5:1（LOW，reviewer 發現：修復前 opacity:.88 自帶在 .ma-btn--danger:hover 本身，餘裕過薄且無測試覆蓋）',
+      (theme) => {
+        const backdrop = hexToRgb(resolveThemeToken('--bg', theme))
+
+        const { text, bg } = resolveHoverRendered({
+          css: myArticlesVue,
+          hoverSelector: '.ma-btn--danger:hover',
+          baseSelector: '.ma-btn--danger',
+          sharedHoverSelector: '.ma-btn:hover',
+          backdrop,
+          theme,
+        })
+
+        const ratio = contrastRatioRgb(text, bg)
+        expect(ratio).toBeGreaterThanOrEqual(WCAG_AA_NORMAL_TEXT)
+      },
+    )
+  })
+})
