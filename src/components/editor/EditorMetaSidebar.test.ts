@@ -410,5 +410,95 @@ describe('EditorMetaSidebar', () => {
         expect(emitted()['version-restored']).toBeFalsy()
       })
     })
+
+    // ── 還原按鈕依文章狀態 gating ─────────────────────────────────────────────
+    // 後端 fix/restore-content-freeze：PENDING_REVIEW / PUBLISHED / ARCHIVED 狀態下
+    // 內容凍結，POST .../restore 改回 400（A0209）。前端提前擋下，避免使用者按下去才碰壁。
+    describe('還原按鈕依文章狀態 gating', () => {
+      beforeEach(() => {
+        vi.mocked(articleVersionService.list).mockResolvedValue(pageResponse)
+      })
+
+      it.each([
+        ['PENDING_REVIEW', /送審中/],
+        ['PUBLISHED', /已發布/],
+        ['ARCHIVED', /已封存/],
+      ] as const)('文章狀態為 %s 時，還原按鈕 disabled 且顯示具體原因', async (status, reasonPattern) => {
+        const user = userEvent.setup()
+        render(EditorMetaSidebar, {
+          props: { ...defaultProps, articleUuid: 'article-1', articleStatus: status },
+        })
+
+        await user.click(screen.getByRole('button', { name: /History/ }))
+        await waitFor(() => expect(screen.getAllByRole('button', { name: /Restore/ })).toHaveLength(2))
+
+        for (const btn of screen.getAllByRole('button', { name: /Restore/ })) {
+          expect(btn).toBeDisabled()
+          expect(btn.getAttribute('title')).toMatch(reasonPattern)
+        }
+      })
+
+      it('PENDING_REVIEW 的停用原因具體指引下一步（先抽回），不是只寫「無法還原」', async () => {
+        const user = userEvent.setup()
+        render(EditorMetaSidebar, {
+          props: { ...defaultProps, articleUuid: 'article-1', articleStatus: 'PENDING_REVIEW' },
+        })
+
+        await user.click(screen.getByRole('button', { name: /History/ }))
+        await waitFor(() => expect(screen.getAllByRole('button', { name: /Restore/ })).toHaveLength(2))
+
+        const title = screen.getAllByRole('button', { name: /Restore/ })[0]!.getAttribute('title')
+        expect(title).toContain('抽回')
+      })
+
+      it.each(['DRAFT', 'REJECTED'] as const)('文章狀態為 %s 時，還原按鈕仍可用（守住不修過頭）', async (status) => {
+        const user = userEvent.setup()
+        render(EditorMetaSidebar, {
+          props: { ...defaultProps, articleUuid: 'article-1', articleStatus: status },
+        })
+
+        await user.click(screen.getByRole('button', { name: /History/ }))
+        await waitFor(() => expect(screen.getAllByRole('button', { name: /Restore/ })).toHaveLength(2))
+
+        for (const btn of screen.getAllByRole('button', { name: /Restore/ })) {
+          expect(btn).not.toBeDisabled()
+          expect(btn.getAttribute('title')).toBeFalsy()
+        }
+      })
+
+      it('未帶 articleStatus（既有呼叫端尚未跟進）時，還原按鈕維持原本可用行為，不因新 prop 而炸開', async () => {
+        const user = userEvent.setup()
+        render(EditorMetaSidebar, {
+          props: { ...defaultProps, articleUuid: 'article-1' },
+        })
+
+        await user.click(screen.getByRole('button', { name: /History/ }))
+        await waitFor(() => expect(screen.getAllByRole('button', { name: /Restore/ })).toHaveLength(2))
+
+        expect(screen.getAllByRole('button', { name: /Restore/ })[0]).not.toBeDisabled()
+      })
+
+      it('狀態於使用者停留期間改變（前端仍顯示可還原）時，後端回 403 仍要顯示可讀錯誤 toast——gating 是 UX，後端才是最終權威', async () => {
+        vi.mocked(articleVersionService.restore).mockRejectedValue(new Error('目前狀態不允許還原'))
+        vi.stubGlobal('confirm', vi.fn().mockReturnValue(true))
+        const user = userEvent.setup()
+        const { emitted } = render(EditorMetaSidebar, {
+          // 本地仍是 DRAFT（gating 判為可還原），模擬另一分頁已把文章送審、後端狀態已變但前端未同步
+          props: { ...defaultProps, articleUuid: 'article-1', articleStatus: 'DRAFT' },
+        })
+
+        await user.click(screen.getByRole('button', { name: /History/ }))
+        await waitFor(() => expect(screen.getAllByRole('button', { name: /Restore/ })).toHaveLength(2))
+
+        await user.click(screen.getAllByRole('button', { name: /Restore/ })[0])
+
+        await waitFor(() => {
+          expect(articleVersionService.restore).toHaveBeenCalled()
+          expect(mockShowToast).toHaveBeenCalledWith('還原失敗：目前狀態不允許還原', 'error')
+        })
+        expect(emitted()['version-restored']).toBeFalsy()
+        vi.unstubAllGlobals()
+      })
+    })
   })
 })

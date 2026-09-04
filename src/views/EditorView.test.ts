@@ -916,6 +916,46 @@ describe('EditorView', () => {
       expect(screen.getByTitle('移除 Vue')).toBeInTheDocument()
       expect(screen.getByTitle('移除 Pinia')).toBeInTheDocument()
     })
+
+    // ── 文章狀態傳遞給 EditorMetaSidebar（還原按鈕 gating 的前提） ─────────────
+    // 後端 fix/restore-content-freeze 收緊 restore 端點：PENDING_REVIEW / PUBLISHED /
+    // ARCHIVED 狀態下內容凍結會 400。EditorMetaSidebar 只能靠自己拿不到的 status 做 gating，
+    // 這裡驗證 EditorView 確實把 article.status 傳下去，而不是只在元件內部測過就忘了接線。
+    describe('文章狀態傳遞給 EditorMetaSidebar', () => {
+      it('文章狀態為 PENDING_REVIEW 時，History tab 的還原按鈕 disabled', async () => {
+        vi.mocked(editorService.getArticleForEdit).mockResolvedValue(
+          createMockEditorArticle({ uuid: 'edit-uuid', status: 'PENDING_REVIEW' }),
+        )
+        setupMarkdownEditorMock()
+
+        const user = userEvent.setup()
+        renderEditor({ uuid: 'edit-uuid' })
+
+        await waitFor(() => expect(screen.getByTestId('editor-title-input')).toBeInTheDocument())
+        await user.click(screen.getByRole('button', { name: /History/ }))
+
+        await waitFor(() => {
+          expect(screen.getByRole('button', { name: /Restore/ })).toBeDisabled()
+        })
+      })
+
+      it('文章狀態為 DRAFT 時，History tab 的還原按鈕仍可用', async () => {
+        vi.mocked(editorService.getArticleForEdit).mockResolvedValue(
+          createMockEditorArticle({ uuid: 'edit-uuid', status: 'DRAFT' }),
+        )
+        setupMarkdownEditorMock()
+
+        const user = userEvent.setup()
+        renderEditor({ uuid: 'edit-uuid' })
+
+        await waitFor(() => expect(screen.getByTestId('editor-title-input')).toBeInTheDocument())
+        await user.click(screen.getByRole('button', { name: /History/ }))
+
+        await waitFor(() => {
+          expect(screen.getByRole('button', { name: /Restore/ })).not.toBeDisabled()
+        })
+      })
+    })
   })
 
   // ── 工具列樣式對接（改用設計系統 .ed-topbar / .ed-btn 等 class） ─────────
