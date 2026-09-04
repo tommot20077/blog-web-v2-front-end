@@ -104,6 +104,36 @@ describe('real articleService 標籤映射（tags 防迴歸 + tagRefs 新增）'
   })
 })
 
+describe('real articleService.getArticleByUuid', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('回應含 status 欄位時，原樣映射到 ArticleDetailItem.status（供 canRead 授權矩陣未發布內容的前端判斷使用）', async () => {
+    const backend = {
+      uuid: 'u-1',
+      title: '草稿文章',
+      summary: '摘要',
+      coverImageUrl: null,
+      authorNickname: 'Author',
+      viewCount: 0,
+      likeCount: 0,
+      commentCount: 0,
+      publishedAt: '',
+      tags: [],
+      slug: 'draft-article',
+      content: '# draft',
+      categories: [],
+      liked: false,
+      bookmarked: false,
+      status: 'DRAFT',
+    }
+    vi.mocked(apiClient.get).mockResolvedValue(backend)
+
+    const result = await articleService.getArticleByUuid('u-1')
+
+    expect(result?.status).toBe('DRAFT')
+  })
+})
+
 describe('real articleService.getArchive', () => {
   beforeEach(() => vi.clearAllMocks())
 

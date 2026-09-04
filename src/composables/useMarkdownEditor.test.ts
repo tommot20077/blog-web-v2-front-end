@@ -137,6 +137,11 @@ describe('useMarkdownEditor', () => {
     expect(typeof state.prefixLines).toBe('function')
   })
 
+  it('提供 replaceRange 方法', () => {
+    const { state } = mountHarness()
+    expect(typeof state.replaceRange).toBe('function')
+  })
+
   it('提供 setContent 方法', () => {
     const { state } = mountHarness()
     expect(typeof state.setContent).toBe('function')
@@ -187,6 +192,32 @@ describe('useMarkdownEditor', () => {
       const { state } = mountHarness(container)
       state.insertText('## 標題\n\n')
       expect(mockDispatch).toHaveBeenCalled()
+    })
+  })
+
+  describe('replaceRange — EditorView 存在時', () => {
+    it('以局部 range 取代命中的文字，游標留在取代後文字之後（不整份覆寫、不把游標帶到文末）', () => {
+      const container = document.createElement('div')
+      const { state } = mountHarness(container)
+
+      const replaced = state.replaceRange('initial', '![a.png](url)')
+
+      expect(replaced).toBe(true)
+      expect(mockDispatch).toHaveBeenCalledWith({
+        changes: { from: 0, to: 7, insert: '![a.png](url)' },
+        selection: { anchor: 13 },
+      })
+      expect(state.markdownContent.value).toBe('![a.png](url) content')
+    })
+
+    it('文件中找不到目標文字時不 dispatch，回傳 false', () => {
+      const container = document.createElement('div')
+      const { state } = mountHarness(container)
+
+      const replaced = state.replaceRange('不存在的佔位文字', 'x')
+
+      expect(replaced).toBe(false)
+      expect(mockDispatch).not.toHaveBeenCalled()
     })
   })
 

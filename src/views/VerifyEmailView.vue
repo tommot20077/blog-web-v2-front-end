@@ -2,19 +2,22 @@
 /**
  * 信箱驗證頁面
  * 從 URL 取得 token 後自動進行驗證
+ *
+ * token 屬憑證，於進入頁面時一次性讀入並立即從網址移除，避免留在瀏覽器
+ * 歷史、書籤或被連結分享出去。故 token 存為 ref 快照而非 route.query 的
+ * computed —— 後者會在網址清空後變為空字串，使畫面誤判為「無效連結」。
  */
-import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { authService } from '../api/authService'
 import AuthFormLayout from '../components/auth/AuthFormLayout.vue'
 import FormField from '../components/ui/FormField.vue'
 
 const route = useRoute()
+const router = useRouter()
 
-const token = computed(() => {
-  const t = route.query.token
-  return typeof t === 'string' ? t : ''
-})
+const initialToken = route.query.token
+const token = ref(typeof initialToken === 'string' ? initialToken : '')
 
 const isLoading = ref(false)
 const isSuccess = ref(false)
@@ -57,6 +60,11 @@ const handleResend = async () => {
 }
 
 onMounted(() => {
+  if (token.value) {
+    // 與 verify 各自獨立，不 await：清網址不應延後驗證送出
+    const { token: _omitted, ...rest } = route.query
+    void router.replace({ query: rest })
+  }
   verify()
 })
 </script>

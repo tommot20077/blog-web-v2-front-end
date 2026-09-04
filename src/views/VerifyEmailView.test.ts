@@ -23,6 +23,27 @@ describe('VerifyEmailView', () => {
     expect(authService.verifyEmail).toHaveBeenCalledWith('valid-token')
   })
 
+  it('讀取 token 後立即從網址移除，且不影響驗證流程', async () => {
+    vi.mocked(authService.verifyEmail).mockResolvedValue(undefined)
+
+    const { router, getByTestId } = await renderWithRouterAsync(
+      VerifyEmailView,
+      {},
+      '/verify-email?token=valid-token',
+    )
+
+    // token 留在網址會進入瀏覽器歷史、書籤與分享連結
+    await waitFor(() => {
+      expect(router.currentRoute.value.query.token).toBeUndefined()
+    })
+
+    // 清掉網址參數後，驗證仍須以原 token 送出，且成功畫面不得被誤判為「無效連結」
+    expect(authService.verifyEmail).toHaveBeenCalledWith('valid-token')
+    await waitFor(() => {
+      expect(getByTestId('auth-verify-success')).toBeInTheDocument()
+    })
+  })
+
   it('驗證成功顯示成功訊息', async () => {
     vi.mocked(authService.verifyEmail).mockResolvedValue(undefined)
 

@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
-import type { Page } from '@playwright/test'
+import type { APIRequestContext, Page } from '@playwright/test'
+import { getCredentials } from '../fixtures/auth'
 
 /**
  * UI Layout Regression（T6–T9）— RED 釘樁測試
@@ -12,19 +13,55 @@ import type { Page } from '@playwright/test'
  * （不得裁切、必須水平排列、必須有提示、密度不得超過上限），不寫死具體設計值。
  */
 
-// 已知可用帳號（已驗證、ADMIN，可進 /editor；ADMIN 角色繼承通過 AUTHOR 權限檢查）
-const ADMIN_EMAIL = 'yuan.test@example.com'
-const ADMIN_PASSWORD = 'Test1234!'
-// 已存在的草稿文章（實測會重現與 /editor 新建頁完全相同的樣式塌陷）
-const EXISTING_DRAFT_UUID = 'd7327218-35f9-44d2-b83c-b45a5142660e'
+// 帳號一律取自 global-setup 播種的 AUTHOR（reader/author/admin 三者中唯一同時
+// 具備 ARTICLE_CREATE/EDIT 又不會在導覽列多出「後台」項目的角色）。
+// 注意：本檔原本寫死 `yuan.test@example.com` 與一個開發機上的草稿 UUID —— 兩者
+// 都只存在於 Yuan 的本機 DB，CI 是全新資料庫，於是 loginUI 的 waitForURL 必然逾時
+// （CI 實測 T6–T9 五支全掛在 spec:27，錯誤為 waitForURL 5000ms exceeded）。
+const CREDS = getCredentials('author')
+const BACKEND = process.env.VITE_API_BASE_URL || 'http://localhost:8080'
 
 async function loginUI(page: Page) {
   await page.goto('/login')
   await page.waitForURL(/\/login/, { timeout: 5000 })
-  await page.getByTestId('auth-login-field-email').fill(ADMIN_EMAIL)
-  await page.getByTestId('auth-login-field-password').fill(ADMIN_PASSWORD)
+  await page.getByTestId('auth-login-field-email').fill(CREDS.email)
+  await page.getByTestId('auth-login-field-password').fill(CREDS.password)
   await page.getByTestId('auth-login-submit').click()
   await page.waitForURL((url) => !url.pathname.startsWith('/login'), { timeout: 5000 })
+}
+
+/**
+ * 以 API 建立一篇屬於 AUTHOR 的草稿，供 T6-a / T6-b 開啟 /editor/{uuid}。
+ * 沿用 editor-edit-existing.spec.ts 既有慣例（API 建 → 測 → finally 刪），
+ * 讓本檔不依賴任何預先存在的資料，本機與 CI 行為一致。
+ */
+async function apiLoginAsAuthor(request: APIRequestContext): Promise<string> {
+  const res = await request.post(`${BACKEND}/api/v1/auth/login`, {
+    data: { identifier: CREDS.email, password: CREDS.password },
+  })
+  expect(res.ok(), `API 登入失敗（HTTP ${res.status()}），無法建立測試用草稿`).toBeTruthy()
+  return (await res.json()).data.accessToken
+}
+
+async function createDraft(request: APIRequestContext, token: string): Promise<string> {
+  const res = await request.post(`${BACKEND}/api/v1/articles`, {
+    headers: { Authorization: `Bearer ${token}` },
+    data: {
+      title: `UI Layout Regression Draft ${Date.now()}`,
+      summary: 'layout regression fixture',
+      content: '# Layout fixture\n\nfixture body',
+      categoryIds: [],
+      tagNames: [],
+    },
+  })
+  expect(res.ok(), `建立測試用草稿失敗（HTTP ${res.status()}）`).toBeTruthy()
+  return (await res.json()).data.uuid
+}
+
+async function deleteDraft(request: APIRequestContext, token: string, uuid: string) {
+  await request.delete(`${BACKEND}/api/v1/articles/${uuid}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
 }
 
 // SPA 內部導航（沿用既有慣例：透過 App 掛在 window 上的 __router，避免整頁重新載入
@@ -40,10 +77,13 @@ async function spaNavigate(page: Page, path: string) {
 test.describe('UI Layout Regression (T6-T9)', () => {
 
   // ── T6-a: /editor 工具列按鈕應水平排列 ─────────────────────────────────────
-  test('T6-a: /editor 工具列按鈕應水平排列（不得被拆成多列）', async ({ page }) => {
-    await loginUI(page)
-    await page.goto(`/editor/${EXISTING_DRAFT_UUID}`)
-    await page.getByTestId('editor-root').waitFor({ state: 'visible', timeout: 5000 })
+  test('T6-a: /editor 工具列按鈕應水平排列（不得被拆成多列）', async ({ page, request }) => {
+    const token = await apiLoginAsAuthor(request)
+    const draftUuid = await createDraft(request, token)
+    try {
+      await loginUI(page)
+      await page.goto(`/editor/${draftUuid}`)
+      await page.getByTestId('editor-root').waitFor({ state: 'visible', timeout: 5000 })
 
     // 實測發現：EditorToolbar.vue 用 `flex flex-wrap` 排列按鈕群組，群組間以一個
     // <div>（分隔線）隔開。Tailwind 失效後 <div> 退化成 block 元素，會強制換行；
@@ -52,40 +92,49 @@ test.describe('UI Layout Regression (T6-T9)', () => {
     // （已實測驗證：H1/H2 兩者 y 座標永遠相同）。真正能反映「群組被垂直堆疊」的
     // 斷言，是比較橫跨不同群組的按鈕（各群組的第一顆），這裡取 6 個群組各自的
     // 代表按鈕，斷言它們的 y 座標範圍（spread）夠小，才代表整條工具列在同一行。
-    const groupFirstButtonTitles = ['H1', '粗體', '程式碼區塊', '有序列表', '連結', '復原']
-    const ys: number[] = []
-    for (const title of groupFirstButtonTitles) {
-      const box = await page.getByTitle(title, { exact: true }).boundingBox()
-      expect(box, `找不到工具列按鈕（title="${title}"），可能是選擇器失效而非樣式問題`).not.toBeNull()
-      ys.push(box!.y)
+      const groupFirstButtonTitles = ['H1', '粗體', '程式碼區塊', '有序列表', '連結', '復原']
+      const ys: number[] = []
+      for (const title of groupFirstButtonTitles) {
+        const box = await page.getByTitle(title, { exact: true }).boundingBox()
+        expect(box, `找不到工具列按鈕（title="${title}"），可能是選擇器失效而非樣式問題`).not.toBeNull()
+        ys.push(box!.y)
+      }
+      const spread = Math.max(...ys) - Math.min(...ys)
+      expect(
+        spread,
+        `工具列 6 個按鈕群組的第一顆按鈕應在同一行（y 座標差 < 8px），實際 y 座標範圍達 ${spread}px，` +
+        `代表工具列被拆成多列垂直堆疊（Tailwind flex 排版失效）`,
+      ).toBeLessThan(8)
+    } finally {
+      await deleteDraft(request, token, draftUuid)
     }
-    const spread = Math.max(...ys) - Math.min(...ys)
-    expect(
-      spread,
-      `工具列 6 個按鈕群組的第一顆按鈕應在同一行（y 座標差 < 8px），實際 y 座標範圍達 ${spread}px，` +
-      `代表工具列被拆成多列垂直堆疊（Tailwind flex 排版失效）`,
-    ).toBeLessThan(8)
   })
 
   // ── T6-b: /editor META 面板標籤輸入框不應是瀏覽器原生外觀 ─────────────────────
-  test('T6-b: /editor META 面板標籤輸入框不應呈現瀏覽器原生未樣式化外觀', async ({ page }) => {
-    await loginUI(page)
-    await page.goto(`/editor/${EXISTING_DRAFT_UUID}`)
-    await page.getByTestId('editor-root').waitFor({ state: 'visible', timeout: 5000 })
+  test('T6-b: /editor META 面板標籤輸入框不應呈現瀏覽器原生未樣式化外觀', async ({ page, request }) => {
+    const token = await apiLoginAsAuthor(request)
+    const draftUuid = await createDraft(request, token)
+    try {
+      await loginUI(page)
+      await page.goto(`/editor/${draftUuid}`)
+      await page.getByTestId('editor-root').waitFor({ state: 'visible', timeout: 5000 })
 
-    // EditorMetaSidebar.vue 的標籤輸入框套用 `rounded-xl border ...`（Tailwind）。
-    // 實測：Tailwind 失效時 computed border-radius 為 "0px"、border 退化成瀏覽器
-    // 原生的 "2px inset rgb(118, 118, 118)"（Chromium 表單控制項預設外觀）。
-    // border-radius 是最不會受深色模式 / 背景色等其他因素干擾的穩健訊號。
-    const tagInput = page.getByPlaceholder('輸入標籤後按 Enter')
-    await expect(tagInput).toBeVisible({ timeout: 5000 })
-    const borderRadius = await tagInput.evaluate((el) => getComputedStyle(el).borderRadius)
-    const radiusPx = parseFloat(borderRadius)
-    expect(
-      radiusPx,
-      `標籤輸入框 border-radius 應 > 0（對應 Tailwind "rounded-xl" = 12px），` +
-      `實際 computed border-radius="${borderRadius}"，等同瀏覽器原生未樣式化外觀`,
-    ).toBeGreaterThan(0)
+      // EditorMetaSidebar.vue 的標籤輸入框套用 `rounded-xl border ...`（Tailwind）。
+      // 實測：Tailwind 失效時 computed border-radius 為 "0px"、border 退化成瀏覽器
+      // 原生的 "2px inset rgb(118, 118, 118)"（Chromium 表單控制項預設外觀）。
+      // border-radius 是最不會受深色模式 / 背景色等其他因素干擾的穩健訊號。
+      const tagInput = page.getByPlaceholder('輸入標籤後按 Enter')
+      await expect(tagInput).toBeVisible({ timeout: 5000 })
+      const borderRadius = await tagInput.evaluate((el) => getComputedStyle(el).borderRadius)
+      const radiusPx = parseFloat(borderRadius)
+      expect(
+        radiusPx,
+        `標籤輸入框 border-radius 應 > 0（對應 Tailwind "rounded-xl" = 12px），` +
+        `實際 computed border-radius="${borderRadius}"，等同瀏覽器原生未樣式化外觀`,
+      ).toBeGreaterThan(0)
+    } finally {
+      await deleteDraft(request, token, draftUuid)
+    }
   })
 
   // ── T7: /bookmarks 於 768×824 視窗下站名 logo 不得被裁切 ─────────────────────

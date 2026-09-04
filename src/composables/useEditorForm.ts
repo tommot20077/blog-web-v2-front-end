@@ -22,12 +22,18 @@ export function useEditorForm(uuid?: string) {
     isDirty.value = true
   })
 
-  async function loadArticle(): Promise<void> {
-    if (!currentUuid.value) return
+  /**
+   * 依 currentUuid 取回文章並填入表單欄位。
+   *
+   * 回傳載入到的文章；取不到時回傳 null 並保留現有欄位不動
+   *（real service 失敗會吞例外回 null，呼叫端只能靠回傳值分辨成功與失敗）。
+   */
+  async function loadArticle(): Promise<EditorArticle | null> {
+    if (!currentUuid.value) return null
     isLoadingArticle.value = true
     try {
       const data = await editorService.getArticleForEdit(currentUuid.value)
-      if (!data) return
+      if (!data) return null
       article.value = data
       title.value = data.title
       summary.value = data.summary
@@ -35,6 +41,7 @@ export function useEditorForm(uuid?: string) {
       categoryIds.value = data.categories.map(c => c.id)
       tagNames.value = [...data.tags]
       isDirty.value = false
+      return data
     } finally {
       isLoadingArticle.value = false
     }
