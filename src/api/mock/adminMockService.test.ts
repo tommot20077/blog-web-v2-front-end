@@ -1,13 +1,38 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import {
+  getPendingArticlesMock,
   publishArticleMock,
   rejectArticleMock,
   getPendingCountMock,
+  getCategoriesFullMock,
+  getTagsFullMock,
+  getSearchStatusMock,
 } from './adminMockService'
 import { resetEditorArticleStore } from './data'
+import { mockApiFailure, resetMockApiFailures } from './mockApiFailureState'
 
 beforeEach(() => {
   resetEditorArticleStore()
+  resetMockApiFailures()
+})
+
+describe('mockApiFailure 的生效時機', () => {
+  it('註冊失敗後才發出的請求會失敗', async () => {
+    mockApiFailure('**/api/v1/admin/articles/pending*', { message: '載入失敗' }, 500)
+
+    await expect(getPendingArticlesMock(1, 10)).rejects.toThrow('載入失敗')
+  })
+
+  it('請求已經在飛行中才註冊失敗時，該次請求仍然成功', async () => {
+    // e2e 的 mockApiFailure 是在「上一次載入還沒回來」時註冊的；若失敗狀態是在
+    // Promise resolve 當下才判定，飛行中的請求會被追溯成失敗，畫面因此多出一個
+    // 錯誤 toast（e2e 會撞上 strict mode violation）。失敗狀態必須在呼叫當下決定。
+    const inFlight = getPendingArticlesMock(1, 10)
+    mockApiFailure('**/api/v1/admin/articles/pending*', { message: '載入失敗' }, 500)
+
+    const result = await inFlight
+    expect(result.records.length).toBeGreaterThan(0)
+  })
 })
 
 describe('getPendingCountMock', () => {
@@ -48,5 +73,58 @@ describe('rejectArticleMock', () => {
     await expect(
       rejectArticleMock('no-such-uuid', '原因')
     ).rejects.toThrow()
+  })
+})
+
+describe('getCategoriesFullMock', () => {
+  it('回傳至少 2 筆分類，含 description 與 sortOrder', async () => {
+    const result = await getCategoriesFullMock()
+    expect(result.length).toBeGreaterThanOrEqual(2)
+    result.forEach(category => {
+      expect(category).toHaveProperty('uuid')
+      expect(category).toHaveProperty('name')
+      expect(category).toHaveProperty('slug')
+      expect(category).toHaveProperty('sortOrder')
+      expect(category).toHaveProperty('description')
+    })
+  })
+
+  it('至少一筆 description 為 null，覆蓋 null 情境', async () => {
+    const result = await getCategoriesFullMock()
+    expect(result.some(category => category.description === null)).toBe(true)
+  })
+})
+
+describe('getTagsFullMock', () => {
+  it('回傳至少 2 筆標籤，含 color/icon/description/usageCount', async () => {
+    const result = await getTagsFullMock()
+    expect(result.length).toBeGreaterThanOrEqual(2)
+    result.forEach(tag => {
+      expect(tag).toHaveProperty('id')
+      expect(tag).toHaveProperty('name')
+      expect(tag).toHaveProperty('slug')
+      expect(tag).toHaveProperty('color')
+      expect(tag).toHaveProperty('icon')
+      expect(tag).toHaveProperty('description')
+      expect(tag).toHaveProperty('usageCount')
+    })
+  })
+
+  it('至少一筆 usageCount > 0、一筆 usageCount = 0，供刪除防呆情境測試', async () => {
+    const result = await getTagsFullMock()
+    expect(result.some(tag => tag.usageCount > 0)).toBe(true)
+    expect(result.some(tag => tag.usageCount === 0)).toBe(true)
+  })
+})
+
+describe('getSearchStatusMock', () => {
+  it('回傳 healthy=true、documentCount 為正整數、lastReindexAt 為 ISO 字串', async () => {
+    const result = await getSearchStatusMock()
+    expect(result.healthy).toBe(true)
+    expect(typeof result.documentCount).toBe('number')
+    expect(result.documentCount).toBeGreaterThan(0)
+    expect(Number.isInteger(result.documentCount)).toBe(true)
+    expect(typeof result.lastReindexAt).toBe('string')
+    expect(() => new Date(result.lastReindexAt as string).toISOString()).not.toThrow()
   })
 })

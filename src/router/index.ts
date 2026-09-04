@@ -12,7 +12,7 @@ declare module 'vue-router' {
     requiresAuth?: boolean
     requiredRole?: UserRole
     guestOnly?: boolean
-    layout?: 'default' | 'shell' | 'full'
+    layout?: 'default' | 'shell' | 'full' | 'admin'
   }
 }
 
@@ -102,10 +102,34 @@ const router = createRouter({
       meta: { requiresAuth: true, layout: 'shell' as const }
     },
     {
+      path: '/admin',
+      name: 'admin-dashboard',
+      component: () => import('../views/AdminDashboardView.vue'),
+      meta: { requiresAuth: true, requiredRole: 'ADMIN' as UserRole, layout: 'admin' as const }
+    },
+    {
       path: '/admin/review',
       name: 'admin-review',
       component: () => import('../views/AdminReviewView.vue'),
-      meta: { requiresAuth: true, requiredRole: 'ADMIN' as UserRole }
+      meta: { requiresAuth: true, requiredRole: 'ADMIN' as UserRole, layout: 'admin' as const }
+    },
+    {
+      path: '/admin/categories',
+      name: 'admin-categories',
+      component: () => import('../views/AdminCategoriesView.vue'),
+      meta: { requiresAuth: true, requiredRole: 'ADMIN' as UserRole, layout: 'admin' as const }
+    },
+    {
+      path: '/admin/tags',
+      name: 'admin-tags',
+      component: () => import('../views/AdminTagsView.vue'),
+      meta: { requiresAuth: true, requiredRole: 'ADMIN' as UserRole, layout: 'admin' as const }
+    },
+    {
+      path: '/admin/search',
+      name: 'admin-search',
+      component: () => import('../views/AdminSearchView.vue'),
+      meta: { requiresAuth: true, requiredRole: 'ADMIN' as UserRole, layout: 'admin' as const }
     },
     {
       path: '/tags',

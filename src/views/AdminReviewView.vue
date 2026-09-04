@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { adminService } from '../api/adminService'
 import { useToast } from '../composables/useToast'
+import AdminRail from '../components/layout/AdminRail.vue'
 import type { MyArticle } from '../types/editor'
 
 const { showToast } = useToast()
@@ -78,7 +79,11 @@ onMounted(fetchArticles)
 </script>
 
 <template>
-  <div class="admin-wrap">
+  <div class="shell" data-testid="admin-review-shell">
+    <AdminRail active="admin-review" />
+
+    <main class="shell-main">
+    <div class="admin-wrap">
     <!-- 標題 -->
     <h1 class="admin-title">
       待審核文章
@@ -180,5 +185,7 @@ onMounted(fetchArticles)
         下一頁
       </button>
     </div>
+    </div>
+    </main>
   </div>
 </template>

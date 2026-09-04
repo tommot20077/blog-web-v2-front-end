@@ -45,10 +45,34 @@ function createTestRouter() {
       // 測試用：需要認證的路由
       { path: '/dashboard', name: 'dashboard', component: StubComponent, meta: { requiresAuth: true } },
       { path: '/bookmarks', name: 'bookmarks', component: StubComponent, meta: { requiresAuth: true, layout: 'shell' } },
-      // 測試用：需要特定角色的路由
+      // 測試用：需要特定角色的路由（admin 後台路由群，Task A4）
       {
         path: '/admin',
-        name: 'admin',
+        name: 'admin-dashboard',
+        component: StubComponent,
+        meta: { requiresAuth: true, requiredRole: 'ADMIN' as UserRole },
+      },
+      {
+        path: '/admin/review',
+        name: 'admin-review',
+        component: StubComponent,
+        meta: { requiresAuth: true, requiredRole: 'ADMIN' as UserRole },
+      },
+      {
+        path: '/admin/categories',
+        name: 'admin-categories',
+        component: StubComponent,
+        meta: { requiresAuth: true, requiredRole: 'ADMIN' as UserRole },
+      },
+      {
+        path: '/admin/tags',
+        name: 'admin-tags',
+        component: StubComponent,
+        meta: { requiresAuth: true, requiredRole: 'ADMIN' as UserRole },
+      },
+      {
+        path: '/admin/search',
+        name: 'admin-search',
         component: StubComponent,
         meta: { requiresAuth: true, requiredRole: 'ADMIN' as UserRole },
       },
@@ -281,8 +305,130 @@ describe('Router Guard — requiredRole', () => {
     const router = createTestRouter()
     await router.push('/admin')
 
-    expect(router.currentRoute.value.name).toBe('admin')
+    // A4：/admin 現為 admin-dashboard（admin 後台總覽），路由名稱同步更新
+    expect(router.currentRoute.value.name).toBe('admin-dashboard')
     expect(router.currentRoute.value.path).toBe('/admin')
+  })
+})
+
+describe('Router Guard — requiredRole（Admin 路由群，Task A4）', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    mockShowToast.mockClear()
+  })
+
+  function setAdminUser(authStore: ReturnType<typeof useAuthStore>) {
+    authStore.accessToken = 'fake-token'
+    authStore.user = {
+      uuid: 'admin-uuid',
+      email: 'admin@test.com',
+      nickname: 'Admin',
+      avatarUrl: null,
+      role: 'ADMIN',
+      emailVerified: true,
+      createdAt: '2024-01-01',
+    }
+  }
+
+  function setNonAdminUser(authStore: ReturnType<typeof useAuthStore>) {
+    authStore.accessToken = 'fake-token'
+    authStore.user = {
+      uuid: 'user-uuid',
+      email: 'user@test.com',
+      nickname: 'User',
+      avatarUrl: null,
+      role: 'USER',
+      emailVerified: true,
+      createdAt: '2024-01-01',
+    }
+  }
+
+  it('/admin/review 角色不符時重導首頁並顯示 toast', async () => {
+    const authStore = useAuthStore()
+    setNonAdminUser(authStore)
+
+    const router = createTestRouter()
+    await router.push('/admin/review')
+
+    expect(router.currentRoute.value.name).toBe('home')
+    expect(mockShowToast).toHaveBeenCalledWith('權限不足', 'error')
+  })
+
+  it('/admin/review 角色符合時允許存取', async () => {
+    const authStore = useAuthStore()
+    setAdminUser(authStore)
+
+    const router = createTestRouter()
+    await router.push('/admin/review')
+
+    expect(router.currentRoute.value.name).toBe('admin-review')
+    expect(router.currentRoute.value.path).toBe('/admin/review')
+  })
+
+  it('/admin/categories 角色不符時重導首頁並顯示 toast', async () => {
+    const authStore = useAuthStore()
+    setNonAdminUser(authStore)
+
+    const router = createTestRouter()
+    await router.push('/admin/categories')
+
+    expect(router.currentRoute.value.name).toBe('home')
+    expect(mockShowToast).toHaveBeenCalledWith('權限不足', 'error')
+  })
+
+  it('/admin/categories 角色符合時允許存取', async () => {
+    const authStore = useAuthStore()
+    setAdminUser(authStore)
+
+    const router = createTestRouter()
+    await router.push('/admin/categories')
+
+    expect(router.currentRoute.value.name).toBe('admin-categories')
+    expect(router.currentRoute.value.path).toBe('/admin/categories')
+  })
+
+  it('/admin/tags 角色不符時重導首頁並顯示 toast', async () => {
+    const authStore = useAuthStore()
+    setNonAdminUser(authStore)
+
+    const router = createTestRouter()
+    await router.push('/admin/tags')
+
+    expect(router.currentRoute.value.name).toBe('home')
+    expect(mockShowToast).toHaveBeenCalledWith('權限不足', 'error')
+  })
+
+  it('/admin/tags 角色符合時允許存取', async () => {
+    const authStore = useAuthStore()
+    setAdminUser(authStore)
+
+    const router = createTestRouter()
+    await router.push('/admin/tags')
+
+    expect(router.currentRoute.value.name).toBe('admin-tags')
+    expect(router.currentRoute.value.path).toBe('/admin/tags')
+  })
+
+  it('/admin/search 角色不符時重導首頁並顯示 toast', async () => {
+    const authStore = useAuthStore()
+    setNonAdminUser(authStore)
+
+    const router = createTestRouter()
+    await router.push('/admin/search')
+
+    expect(router.currentRoute.value.name).toBe('home')
+    expect(mockShowToast).toHaveBeenCalledWith('權限不足', 'error')
+  })
+
+  it('/admin/search 角色符合時允許存取', async () => {
+    const authStore = useAuthStore()
+    setAdminUser(authStore)
+
+    const router = createTestRouter()
+    await router.push('/admin/search')
+
+    expect(router.currentRoute.value.name).toBe('admin-search')
+    expect(router.currentRoute.value.path).toBe('/admin/search')
   })
 })
 

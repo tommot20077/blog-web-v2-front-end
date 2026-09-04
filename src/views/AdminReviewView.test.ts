@@ -294,4 +294,14 @@ describe('AdminReviewView', () => {
       expect(mockGetPendingArticles).toHaveBeenCalledWith(2, 10)
     })
   })
+
+  // ── Admin 殼層（Task A4：套上 AdminRail） ───────────────────────────────────
+  describe('Admin 殼層', () => {
+    it('包含 AdminRail，且「待審」項目為 active', async () => {
+      renderWithRouter(AdminReviewView)
+      await flushPromises()
+      expect(screen.getByTestId('admin-rail')).toBeInTheDocument()
+      expect(screen.getByTestId('admin-rail-link-admin-review').className).toContain('active')
+    })
+  })
 })

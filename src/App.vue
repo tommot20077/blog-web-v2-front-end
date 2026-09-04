@@ -22,8 +22,10 @@ const { observe } = useGlobalReveal()
 // Re-observe reveal elements after each route transition
 router.afterEach(() => nextTick(() => observe()))
 
+// 'admin' 加入（Task A4）：admin 後台頁面靠 AdminRail 自帶導覽，
+// 同樣不需要公開站台的 NavigationBar / AppFooter / MobileBottomNav
 const isShellOrFull = computed(() =>
-  route.meta.layout === 'shell' || route.meta.layout === 'full'
+  route.meta.layout === 'shell' || route.meta.layout === 'full' || route.meta.layout === 'admin'
 )
 
 const onGlobalKeyDown = (e: KeyboardEvent) => {

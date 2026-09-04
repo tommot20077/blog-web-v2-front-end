@@ -86,23 +86,38 @@ async function resetAuthStore(page: Page): Promise<void> {
   })
 }
 
+async function isAuthenticatedInApp(page: Page): Promise<boolean> {
+  // 不吞錯：這裡的結果直接決定 uiLogin 是否略過登出、直衝 /login。若 evaluate
+  // 真的失敗（例如頁面正巧在導覽中，execution context 被摧毀），吞成 false
+  // 會讓呼叫端誤判成「未登入」而跳過必要的登出，最後在 /login 的 guestOnly
+  // 守衛上失敗、噴出一個難查根因的逾時錯誤。讓錯誤直接浮出，才能在源頭看見。
+  return page.evaluate(() => {
+    const pinia = (window as unknown as { __pinia?: AppPinia }).__pinia
+    const authStore = pinia?._s?.get('auth')
+
+    // 與 router guard 的 authStore.isAuthenticated 同一個判準（!!accessToken）
+    return Boolean(authStore?.accessToken)
+  })
+}
+
 async function uiLogin(page: Page, role: Role): Promise<void> {
   const creds = getCredentials(role)
-  // NavigationBar A1（頭像下拉選單）：登出按鈕現在收在選單裡，預設是關閉狀態
-  // （v-show，display:none），必須先點頭像展開選單才會變成 Playwright 認定的
-  // "visible"。頭像本身只在已登入時才會渲染，所以用它來判斷「是否已登入」。
-  const avatarButton = page.getByTestId('navbar-avatar')
-  const logoutButton = page.getByTestId('navbar-logout-btn')
-  if (await avatarButton.isVisible().catch(() => false)) {
-    await avatarButton.click()
-    await logoutButton.click()
-    // NavigationBar.handleLogout() 的順序是 closeMenu() -> await authStore.logout() -> router.push('/')。
-    // 選單一收起 logoutButton 就不可見了，所以「logoutButton 不可見」只代表選單關掉，
-    // 不代表登出已完成；若此時就往 /login 走，會被後發的 router.push('/') 蓋掉而停在首頁。
-    // 頭像只在已登入時渲染，且是在 authStore.logout() resolve（clearState）後才消失；
-    // 再等導覽真的回到首頁，才能確定整段登出流程（含跳轉）都結束了。
-    await expect(avatarButton).toBeHidden()
-    await page.waitForURL((url) => url.pathname === '/', { timeout: 8000 })
+
+  // 換帳號必須先真的登出：/login 是 guestOnly，還登入著就會被守衛導回 '/'。
+  //
+  // 「是否已登入」不能用頭像看不看得到來判斷。登出入口只掛在 NavigationBar 上，
+  // 而 App.vue 的 isShellOrFull 會讓 layout 為 shell / full / admin 的頁面
+  // （/my-articles、/settings、/editor、/admin/*）整個不渲染 NavigationBar；
+  // 在這些頁面上頭像本來就不存在，用它判斷會靜默略過登出。改問 app 自己的
+  // auth store（權威來源）判斷是否登入中。
+  //
+  // 登出動作本身直接呼叫 resetAuthStore（→ authStore.logout()），不繞 UI：
+  // logout() 不做任何 router.push（見 src/stores/auth.ts），不必依賴
+  // NavigationBar 是否有渲染、也不必等回首頁再展開頭像選單去點登出按鈕。
+  // 登出 UI 本身的覆蓋率不受影響：另有 e2e/mock/auth-flow.spec.ts:51-54 與
+  // e2e/integration/auth-logout.spec.ts 專測。
+  if (await isAuthenticatedInApp(page)) {
+    await resetAuthStore(page)
   }
 
   await page.goto('/login')

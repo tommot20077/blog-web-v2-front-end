@@ -1,5 +1,8 @@
 import type { ArticleFormData, EditorArticle } from '../../types/editor'
 import { editorArticleStore, mockCategories } from './data'
+// mockApiFailure 的失敗狀態一律在「呼叫當下」判定，不在 setTimeout 回呼裡判定：
+// 否則測試在上一次載入還在飛行中時才註冊失敗，會把那次請求追溯成失敗，
+// 畫面因此多出一個非預期的錯誤 toast。
 import { createMockApiFailureError, getMockApiFailure } from './mockApiFailureState'
 
 function generateUuid(): string {
@@ -7,9 +10,10 @@ function generateUuid(): string {
 }
 
 export function createArticleMock(data: ArticleFormData): Promise<EditorArticle> {
+  const failure = getMockApiFailure('/api/v1/articles')
+
   return new Promise((resolve, reject) => {
     setTimeout(() => {
-      const failure = getMockApiFailure('/api/v1/articles')
       if (failure) {
         reject(createMockApiFailureError(failure))
         return
@@ -36,9 +40,10 @@ export function createArticleMock(data: ArticleFormData): Promise<EditorArticle>
 }
 
 export function updateArticleMock(uuid: string, data: ArticleFormData): Promise<EditorArticle> {
+  const failure = getMockApiFailure(`/api/v1/articles/${uuid}`)
+
   return new Promise((resolve, reject) => {
     setTimeout(() => {
-      const failure = getMockApiFailure(`/api/v1/articles/${uuid}`)
       if (failure) {
         reject(createMockApiFailureError(failure))
         return
