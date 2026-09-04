@@ -11,6 +11,7 @@ import { useToast } from '../composables/useToast'
 import { useEditorFocusMode } from '../composables/useEditorFocusMode'
 import { useEditorOutline } from '../composables/useEditorOutline'
 import { useEditorImageUpload } from '../composables/useEditorImageUpload'
+import { useAuthedImages } from '../composables/useAuthedImages'
 import { categoryService } from '../api/categoryService'
 import EditorToolbar from '../components/editor/EditorToolbar.vue'
 import EditorMetaSidebar from '../components/editor/EditorMetaSidebar.vue'
@@ -84,6 +85,10 @@ _updateCursorLine = updateCursorLine
 
 // ── Markdown preview ───────────────────────────────────────────────────────
 const { renderedHtml } = useMarkdownRenderer(markdownContent)
+
+// ── 未發布草稿圖片改走帶認證 blob 載入（會開編輯器的必是作者/管理員，永遠啟用）──────
+const editorPreviewEl = ref<HTMLElement | null>(null)
+useAuthedImages(editorPreviewEl, () => renderedHtml.value)
 
 // ── Word count ─────────────────────────────────────────────────────────────
 const { wordCount, characterCount } = useWordCount(markdownContent)
@@ -312,9 +317,11 @@ async function onVersionRestored() {
         </div>
       </div>
 
-      <!-- Center: Markdown preview -->
+      <!-- Center: Markdown preview (v-show, not v-if — 保留元素在 DOM 中，
+           useAuthedImages 的 editorPreviewEl 才不會在 mode 切換時失效) -->
       <div
         v-show="mode !== 'write'"
+        ref="editorPreviewEl"
         class="editor-preview prose"
         data-testid="editor-preview"
         v-html="renderedHtml"

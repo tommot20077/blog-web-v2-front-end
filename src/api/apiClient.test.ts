@@ -188,6 +188,19 @@ describe('apiClient', () => {
 
       expect(() => responseFulfilled(mockResponse)).toThrow('用戶不存在')
     })
+
+    it('responseType 為 blob 時直接回傳 response.data，不嘗試解包 ApiResponse envelope（供帶認證圖片抓取使用）', () => {
+      const blob = new Blob(['fake-image-bytes'], { type: 'image/png' })
+      const mockResponse = {
+        data: blob,
+        status: 200,
+        config: { responseType: 'blob' },
+      } as unknown as AxiosResponse
+
+      const result = responseFulfilled(mockResponse)
+
+      expect(result).toBe(blob)
+    })
   })
 
   // ============================================================

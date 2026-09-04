@@ -12,6 +12,7 @@ import type { VersionSummaryResponse } from '../api/articleVersionService'
 import { useMarkdownEditor } from '../composables/useMarkdownEditor'
 import { createMockEditorArticle, createMockCategoryOption } from '../test-utils/factories'
 import type { FileUploadResponse } from '../types/editor'
+import apiClient from '../api/apiClient'
 
 // ── Mock vue-router ──────────────────────────────────────────────────────────
 const mockRouterReplace = vi.fn()
@@ -26,6 +27,19 @@ vi.mock('../api/categoryService')
 vi.mock('../api/myArticlesService')
 vi.mock('../api/fileService')
 vi.mock('../api/articleVersionService')
+// useAuthedImages（editor-preview 與 EditorMetaSidebar 的封面縮圖都會用到）走這支
+// 拿草稿圖片的 blob，手動 mock 成與 useAuthedImages.test.ts 相同的 shape。
+vi.mock('../api/apiClient', () => ({
+  default: { get: vi.fn() },
+}))
+
+// URL.createObjectURL / revokeObjectURL：happy-dom 未完整支援，手動掛上 mock
+// （與 useAuthedImages.test.ts 相同作法）。
+let blobCounter = 0
+const createObjectURLMock = vi.fn()
+const revokeObjectURLMock = vi.fn()
+;(globalThis.URL as unknown as { createObjectURL: typeof createObjectURLMock }).createObjectURL = createObjectURLMock
+;(globalThis.URL as unknown as { revokeObjectURL: typeof revokeObjectURLMock }).revokeObjectURL = revokeObjectURLMock
 
 // ── Mock useToast ─────────────────────────────────────────────────────────────
 const mockShowToast = vi.fn()
@@ -381,6 +395,86 @@ describe('EditorView', () => {
       expect(screen.getByTestId('editor-textarea').style.display).not.toBe('none')
       expect(screen.getByTestId('editor-preview').style.display).not.toBe('none')
       expect(localStorage.getItem('blog.edMode')).toBe('split')
+    })
+  })
+
+  // ── useAuthedImages 整合：mode 切換下 editorPreviewEl 是否仍有效 ─────────────
+  // 背景（develop 合併 PR#45 + 本分支 PR#46 的接合處）：
+  // useAuthedImages 只 watch renderedHtml（trigger），不 watch container ref 本身
+  // （見 src/composables/useAuthedImages.ts 的 `watch(trigger, ...)`）。
+  // 若 editor-preview 面板改用 v-if（而非目前 EditorView.vue 用的 v-show），
+  // Write 模式下該 div 根本不在 DOM 中，editorPreviewEl.value 會是 null，
+  // useAuthedImages 的 scan() 會在 `if (!container) return` 提早結束；
+  // 之後切到 Preview/Split 模式時 Vue 才建立該 div 並塞回 ref，但因為沒有任何東西
+  // watch container ref 本身，不會觸發重新掃描（除非使用者剛好又編輯了內容），
+  // 草稿裡的未發布圖片會維持在 403 的原始 src 上，使用者看到破圖。
+  // 這裡守住的不變量：不論目前顯示的是哪個 mode，preview 容器都必須已經在 DOM 中，
+  // 使得掛載當下的 immediate scan 就能掃到內文圖片並換成 blob src。
+  describe('useAuthedImages integration (mode 切換下 editorPreviewEl 是否仍有效)', () => {
+    beforeEach(() => {
+      blobCounter = 0
+      createObjectURLMock.mockReset()
+      createObjectURLMock.mockImplementation(() => `blob:http://localhost/fake-${++blobCounter}`)
+      revokeObjectURLMock.mockReset()
+    })
+
+    function mockMarkdownContentWithImage() {
+      vi.mocked(useMarkdownEditor).mockReturnValue({
+        editorView: ref(null),
+        markdownContent: ref('<img src="/api/v1/files/f1/content" />'),
+        wrapSelection: vi.fn(),
+        insertText: vi.fn(),
+        prefixLines: vi.fn(),
+        replaceRange: vi.fn(),
+        setContent: vi.fn(),
+        undo: vi.fn(),
+        redo: vi.fn(),
+      })
+    }
+
+    it('mode=write（preview 面板 display:none 但仍在 DOM）時，內文圖片仍會被掃到並換成 blob src', async () => {
+      localStorage.setItem('blog.edMode', 'write')
+      vi.mocked(apiClient.get).mockResolvedValue(new Blob(['x'], { type: 'image/png' }))
+      mockMarkdownContentWithImage()
+
+      renderEditor()
+
+      // 不切換 mode，直接在掛載當下（write 模式）等待掃描完成 —
+      // 若容器在 write 模式下不存在於 DOM（v-if 退化），這裡永遠等不到 apiClient.get 被呼叫。
+      await waitFor(() => {
+        expect(apiClient.get).toHaveBeenCalledWith(
+          '/api/v1/files/f1/content',
+          expect.objectContaining({ responseType: 'blob' }),
+        )
+      })
+
+      const previewPane = screen.getByTestId('editor-preview')
+      expect(previewPane.style.display).toBe('none')
+      const img = previewPane.querySelector('img')
+      expect(img).not.toBeNull()
+      expect(img!.getAttribute('src')).toMatch(/^blob:/)
+    })
+
+    it('write → preview 切換後，圖片已是 blob src（不是切換當下才臨時補抓）', async () => {
+      localStorage.setItem('blog.edMode', 'write')
+      vi.mocked(apiClient.get).mockResolvedValue(new Blob(['x'], { type: 'image/png' }))
+      mockMarkdownContentWithImage()
+
+      const user = userEvent.setup()
+      renderEditor()
+
+      await waitFor(() => {
+        expect(apiClient.get).toHaveBeenCalledTimes(1)
+      })
+
+      await user.click(screen.getByTestId('editor-mode-preview'))
+
+      const previewPane = screen.getByTestId('editor-preview')
+      expect(previewPane.style.display).not.toBe('none')
+      const img = previewPane.querySelector('img')!
+      expect(img.getAttribute('src')).toMatch(/^blob:/)
+      // 切換 mode 本身不該再觸發任何一次新的 fetch（早在 write 模式掛載時就已抓好）。
+      expect(apiClient.get).toHaveBeenCalledTimes(1)
     })
   })
 
