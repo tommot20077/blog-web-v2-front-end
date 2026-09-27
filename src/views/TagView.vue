@@ -45,7 +45,7 @@ onMounted(async () => {
   isLoading.value = true
   try {
     const [articlesRes, tagsRes, detailRes] = await Promise.allSettled([
-      articleService.getArticles(1, 100, '全部', tagName.value),
+      articleService.getArticles(1, 100, '全部', '', { tags: [slug.value] }),
       tagService.getHotTags(20),
       tagService.getTagBySlug(slug.value),
     ])

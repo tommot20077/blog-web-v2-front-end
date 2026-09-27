@@ -1,9 +1,15 @@
-import type { ArticleItem, ArticleDetailItem, ArchiveItem } from '../articleService';
+import type { ArticleItem, ArticleDetailItem, ArchiveItem, ArticleListFilters } from '../articleService';
 import type { PageResult } from '../../types/editor';
 import { allMockArticles, getMockArticleDetail } from './data';
 
 // 模擬後端分頁與過濾邏輯
-export function getArticlesMock(page: number, size: number, category: string, keyword: string): Promise<PageResult<ArticleItem>> {
+export function getArticlesMock(
+  page: number,
+  size: number,
+  category: string,
+  keyword: string,
+  filters: ArticleListFilters = {},
+): Promise<PageResult<ArticleItem>> {
   return new Promise((resolve) => {
     setTimeout(() => {
       let filtered = allMockArticles;
@@ -23,6 +29,16 @@ export function getArticlesMock(page: number, size: number, category: string, ke
         filtered = filtered.filter(a =>
           a.categories.some(c => c.toLowerCase() === category.toLowerCase())
         )
+      }
+
+      // 3. 伺服器端篩選（與後端 tags／categorySlug 參數同語意，避免 mock 與 real 再度漂移）
+      const tagSlugs = filters.tags ?? [];
+      if (tagSlugs.length > 0) {
+        filtered = filtered.filter(a => tagSlugs.every(s => (a.tagRefs ?? []).some(r => r.slug === s)))
+      }
+      const categorySlugs = filters.categorySlugs ?? [];
+      if (categorySlugs.length > 0) {
+        filtered = filtered.filter(a => a.categories.some(c => categorySlugs.includes(c.toLowerCase())))
       }
 
       const total = filtered.length;

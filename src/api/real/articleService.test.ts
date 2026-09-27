@@ -167,3 +167,54 @@ describe('real articleService.getArchive', () => {
     await expect(articleService.getArchive()).rejects.toThrow('Network failure')
   })
 })
+
+describe('real articleService.getArticles 篩選參數（後端 2026-09-27 契約）', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  const emptyPage = { records: [], current: 1, size: 10, pages: 0, total: 0 }
+
+  function sentParams(): Record<string, unknown> {
+    const call = vi.mocked(apiClient.get).mock.calls[0]
+    return (call?.[1] as { params: Record<string, unknown> }).params
+  }
+
+  it('未帶篩選 → 只送 page 與 size（向下相容）', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue(emptyPage)
+
+    await articleService.getArticles(1, 10, '全部', '')
+
+    expect(sentParams()).toEqual({ page: 1, size: 10 })
+  })
+
+  it('tags → 以逗號分隔的單一 tags 參數送出（axios 預設的 tags[]= 後端不認得）', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue(emptyPage)
+
+    await articleService.getArticles(1, 100, '全部', '', { tags: ['vue-3', 'tdd'] })
+
+    expect(sentParams()).toEqual({ page: 1, size: 100, tags: 'vue-3,tdd' })
+  })
+
+  it('categorySlugs → 以逗號分隔的單一 categorySlug 參數送出', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue(emptyPage)
+
+    await articleService.getArticles(1, 1000, '全部', '', { categorySlugs: ['frontend', 'backend'] })
+
+    expect(sentParams()).toEqual({ page: 1, size: 1000, categorySlug: 'frontend,backend' })
+  })
+
+  it('既有的單一 category 參數與 categorySlugs 合併，且不重複', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue(emptyPage)
+
+    await articleService.getArticles(1, 10, 'Frontend', '', { categorySlugs: ['frontend', 'life'] })
+
+    expect(sentParams()).toEqual({ page: 1, size: 10, categorySlug: 'frontend,life' })
+  })
+
+  it('空陣列視同未篩選，不送出空字串參數', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue(emptyPage)
+
+    await articleService.getArticles(1, 10, '全部', '', { tags: [], categorySlugs: [] })
+
+    expect(sentParams()).toEqual({ page: 1, size: 10 })
+  })
+})

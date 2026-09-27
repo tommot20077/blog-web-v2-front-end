@@ -94,6 +94,17 @@ export interface ArticleDetailItem extends Omit<ArticleItem, 'categories'> {
  * 對應後端 ArticleArchiveResponse（uuid / title / slug / publishedAt / tags）
  * tags 為標籤名稱字串陣列；後端已依 publishedAt 由新到舊排序。
  */
+/**
+ * 公開文章列表的伺服器端篩選（後端 2026-09-27 起支援，見 api-contract.md「公開文章列表查詢」）。
+ * 多值一律以逗號分隔的單一參數送出——axios 預設把陣列序列化成 `key[]=a&key[]=b`，後端不認得。
+ */
+export interface ArticleListFilters {
+  /** 標籤 slug，AND：文章須同時帶有全部標籤 */
+  tags?: string[]
+  /** 分類 slug，OR：屬於任一分類即可 */
+  categorySlugs?: string[]
+}
+
 export interface ArchiveItem {
   uuid: string
   title: string
@@ -134,14 +145,27 @@ function mapArticleDetail(raw: BackendArticleDetail): ArticleDetailItem {
 }
 
 export const articleService = {
-  async getArticles(page: number, size: number, category: string, _keyword: string): Promise<PageResult<ArticleItem>> {
+  async getArticles(
+    page: number,
+    size: number,
+    category: string,
+    _keyword: string,
+    filters: ArticleListFilters = {},
+  ): Promise<PageResult<ArticleItem>> {
     try {
       const params: Record<string, string | number> = {
         page,
         size,
       }
+      const categorySlugs = [...(filters.categorySlugs ?? [])]
       if (category && category !== '全部') {
-        params.categorySlug = category.toLowerCase()
+        categorySlugs.push(category.toLowerCase())
+      }
+      if (categorySlugs.length > 0) {
+        params.categorySlug = [...new Set(categorySlugs)].join(',')
+      }
+      if (filters.tags && filters.tags.length > 0) {
+        params.tags = filters.tags.join(',')
       }
       const data = await apiClient.get<unknown, BackendPageResult<BackendArticleBase>>('/api/v1/articles', { params })
       return mapPageResult(data, mapArticle)
