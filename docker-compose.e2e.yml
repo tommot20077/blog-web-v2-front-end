@@ -35,19 +35,22 @@ services:
       retries: 10
       start_period: 30s
 
-  minio:
-    image: minio/minio
-    command: server /data --console-address ":9001"
+  # S3 相容物件儲存。MinIO 官方映像檔已無法匿名拉取，與後端、infra 一致改用 SeaweedFS；
+  # 映像檔預設執行 `weed mini`（master + volume + filer + S3 於單一容器），S3 在 8333。
+  # 對外仍開 9000，讓瀏覽器載入上傳預覽的 port 不變。
+  seaweedfs:
+    image: chrislusf/seaweedfs:4.47
     ports:
-      - "9000:9000"
+      - "9000:8333"
     environment:
-      MINIO_ROOT_USER: e2e_minio
-      MINIO_ROOT_PASSWORD: e2e_minio_pass
+      AWS_ACCESS_KEY_ID: e2e_s3
+      AWS_SECRET_ACCESS_KEY: e2e_s3_pass
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8333/healthz"]
       interval: 5s
       timeout: 3s
-      retries: 10
+      retries: 20
+      start_period: 10s
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.17.4
@@ -85,9 +88,10 @@ services:
       ELASTICSEARCH_URIS: http://elasticsearch:9200
       ELASTICSEARCH_USERNAME: elastic
       ELASTICSEARCH_PASSWORD: e2e_elastic_pass
-      MINIO_ENDPOINT: http://minio:9000
-      MINIO_ACCESS_KEY: e2e_minio
-      MINIO_SECRET_KEY: e2e_minio_pass
+      # 後端仍以 MinIO Java SDK 連線，變數名稱沿用 MINIO_*
+      MINIO_ENDPOINT: http://seaweedfs:8333
+      MINIO_ACCESS_KEY: e2e_s3
+      MINIO_SECRET_KEY: e2e_s3_pass
       MINIO_BUCKET: blog-files
       APP_CORS_ALLOWED_ORIGINS: http://localhost:5500
       JWT_EXPIRATION: "86400000"
@@ -100,7 +104,7 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-      minio:
+      seaweedfs:
         condition: service_healthy
       elasticsearch:
         condition: service_healthy
