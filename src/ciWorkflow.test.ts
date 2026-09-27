@@ -148,14 +148,39 @@ describe('frontend CI workflow', () => {
     expect(backendService).toContain('MANAGEMENT_HEALTH_MAIL_ENABLED: "false"')
   })
 
-  it('real-backend E2E exposes MinIO public port for browser-loaded upload previews', () => {
+  it('real-backend E2E exposes the S3 public port 9000 for browser-loaded upload previews (SeaweedFS S3 listens on 8333)', () => {
     const compose = readFileSync('docker-compose.e2e.yml', 'utf8')
-    const minioStart = compose.indexOf('  minio:')
-    const minioEnd = compose.indexOf('  elasticsearch:', minioStart)
-    const minioService = compose.slice(minioStart, minioEnd)
+    const s3Start = compose.indexOf('  seaweedfs:')
+    const s3End = compose.indexOf('  elasticsearch:', s3Start)
+    const s3Service = compose.slice(s3Start, s3End)
 
-    expect(minioService).toContain('ports:')
-    expect(minioService).toContain('"9000:9000"')
+    expect(s3Start).toBeGreaterThan(-1)
+    expect(s3Service).toContain('ports:')
+    expect(s3Service).toContain('"9000:8333"')
+  })
+
+  // minio/minio 已無法匿名拉取（pull access denied），e2e-integration 因此在 Start E2E stack 就失敗。
+  // 後端與 infra 已於 2026-09-27 改用 SeaweedFS，e2e 堆疊須一致。
+  it('real-backend E2E uses a pinned SeaweedFS image instead of the no-longer-pullable minio/minio', () => {
+    const compose = readFileSync('docker-compose.e2e.yml', 'utf8')
+
+    expect(compose).not.toContain('minio/minio')
+    expect(compose).toContain('image: chrislusf/seaweedfs:4.47')
+  })
+
+  it('real-backend E2E backend reaches the S3 endpoint over the compose network with matching credentials', () => {
+    const compose = readFileSync('docker-compose.e2e.yml', 'utf8')
+    const backendStart = compose.indexOf('  backend:')
+    const backendService = compose.slice(backendStart)
+    const s3Start = compose.indexOf('  seaweedfs:')
+    const s3Service = compose.slice(s3Start, compose.indexOf('  elasticsearch:', s3Start))
+
+    expect(backendService).toContain('MINIO_ENDPOINT: http://seaweedfs:8333')
+    expect(backendService).toContain('MINIO_ACCESS_KEY: e2e_s3')
+    expect(backendService).toContain('MINIO_SECRET_KEY: e2e_s3_pass')
+    expect(s3Service).toContain('AWS_ACCESS_KEY_ID: e2e_s3')
+    expect(s3Service).toContain('AWS_SECRET_ACCESS_KEY: e2e_s3_pass')
+    expect(backendService).toMatch(/seaweedfs:\s+condition: service_healthy/)
   })
 
   it('production build tsconfig excludes test-only files', () => {
