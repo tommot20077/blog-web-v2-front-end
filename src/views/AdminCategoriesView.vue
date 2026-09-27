@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { adminService } from '../api/adminService'
 import { useToast } from '../composables/useToast'
 import AdminRail from '../components/layout/AdminRail.vue'
@@ -31,6 +31,17 @@ const form = reactive({
   slug: '',
   description: '',
   sortOrder: 0,
+})
+
+// slug 格式：與後端 Category.SLUG_PATTERN 完全一致（2026-09-27 起建立／更新時不符即 400）。
+// 逗號是文章列表 categorySlug 多值參數的分隔符、大寫會被列表查詢轉小寫後錯過，故兩者皆不允許。
+const CATEGORY_SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/
+const slugError = computed(() => {
+  const slug = form.slug.trim()
+  if (slug === '') return null // 空白沿用後端 @NotBlank 回報，不在此重複
+  return CATEGORY_SLUG_PATTERN.test(slug)
+    ? null
+    : 'Slug 只能使用小寫英數字與單一連字號，且不可以連字號開頭或結尾'
 })
 
 // 刪除確認狀態
@@ -73,6 +84,7 @@ function closeForm() {
 }
 
 async function submitForm() {
+  if (slugError.value) return
   isSubmitting.value = true
   const payload = {
     name: form.name.trim(),
@@ -154,6 +166,9 @@ onMounted(fetchCategories)
           <div class="cat-form-row">
             <label for="cat-form-slug">Slug</label>
             <input id="cat-form-slug" v-model="form.slug" data-testid="admin-categories-form-slug" />
+            <p v-if="slugError" class="cat-form-error" data-testid="admin-categories-form-slug-error">
+              {{ slugError }}
+            </p>
           </div>
           <div class="cat-form-row">
             <label for="cat-form-description">描述</label>
@@ -185,7 +200,7 @@ onMounted(fetchCategories)
               type="button"
               class="cat-btn cat-btn-primary"
               data-testid="admin-categories-form-submit"
-              :disabled="isSubmitting"
+              :disabled="isSubmitting || !!slugError"
               @click="submitForm"
             >
               {{ formMode === 'edit' ? '儲存' : '新增' }}
@@ -331,6 +346,7 @@ onMounted(fetchCategories)
   transition: border-color .2s;
 }
 .cat-form-row input:focus { border-color: var(--accent); }
+.cat-form-error { margin: 0; font-size: 12px; color: var(--danger); }
 .cat-form-actions { display: flex; gap: 8px; justify-content: flex-end; }
 
 .cat-table { width: 100%; border-collapse: collapse; font-size: 14px; }

@@ -109,6 +109,52 @@ describe('AdminCategoriesView', () => {
   })
 
   // ── 新增分類 ───────────────────────────────────────────────────────────────
+  describe('slug 格式驗證（對齊後端 Category.SLUG_PATTERN，2026-09-27 起不符回 400）', () => {
+    it.each(['Web Dev', 'Backend', 'a,b', 'c++', '-api', 'api-', 'a--b'])(
+      '輸入不合格的 slug「%s」→ 顯示格式錯誤、停用送出，且不呼叫 API',
+      async (badSlug) => {
+        const user = userEvent.setup()
+        renderWithRouter(AdminCategoriesView)
+        await flushPromises()
+
+        await user.click(screen.getByTestId('admin-categories-add-btn'))
+        await user.type(screen.getByTestId('admin-categories-form-name'), '測試')
+        await user.type(screen.getByTestId('admin-categories-form-slug'), badSlug)
+
+        expect(screen.getByTestId('admin-categories-form-slug-error')).toBeInTheDocument()
+        expect(screen.getByTestId('admin-categories-form-submit')).toBeDisabled()
+        await user.click(screen.getByTestId('admin-categories-form-submit'))
+        expect(mockCreateCategory).not.toHaveBeenCalled()
+      },
+    )
+
+    it('輸入合格的 slug → 不顯示錯誤，送出按鈕可用', async () => {
+      const user = userEvent.setup()
+      renderWithRouter(AdminCategoriesView)
+      await flushPromises()
+
+      await user.click(screen.getByTestId('admin-categories-add-btn'))
+      await user.type(screen.getByTestId('admin-categories-form-slug'), 'web-dev-2')
+
+      expect(screen.queryByTestId('admin-categories-form-slug-error')).not.toBeInTheDocument()
+      expect(screen.getByTestId('admin-categories-form-submit')).toBeEnabled()
+    })
+
+    it('編輯既有分類時改成不合格的 slug 同樣被擋下', async () => {
+      const user = userEvent.setup()
+      renderWithRouter(AdminCategoriesView)
+      await flushPromises()
+
+      await user.click(screen.getByTestId('admin-categories-edit-cat-uuid-1'))
+      const slugInput = screen.getByTestId('admin-categories-form-slug')
+      await user.clear(slugInput)
+      await user.type(slugInput, 'Tech News')
+
+      expect(screen.getByTestId('admin-categories-form-slug-error')).toBeInTheDocument()
+      expect(screen.getByTestId('admin-categories-form-submit')).toBeDisabled()
+    })
+  })
+
   describe('新增分類', () => {
     it('點「新增分類」開啟表單，四欄初始為空', async () => {
       const user = userEvent.setup()
