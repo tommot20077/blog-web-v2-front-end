@@ -3,6 +3,11 @@ import { flushPromises } from '@vue/test-utils'
 import ArticleList from './ArticleList.vue'
 import { renderWithRouter, createMockArticle, createMockPageResult } from '../test-utils'
 import { articleService } from '../api/articleService'
+import { categoryService } from '../api/categoryService'
+
+vi.mock('../api/categoryService', () => ({
+  categoryService: { getCategories: vi.fn() },
+}))
 
 vi.mock('../api/articleService', () => ({
   articleService: {
@@ -12,6 +17,7 @@ vi.mock('../api/articleService', () => ({
 }))
 
 const mockGetArticles = vi.mocked(articleService.getArticles)
+const mockGetCategories = vi.mocked(categoryService.getCategories)
 
 function buildArticles(count: number, overrides: Record<string, unknown> = {}) {
   return Array.from({ length: count }, (_, i) =>
@@ -28,10 +34,60 @@ describe('ArticleList 頁面', () => {
       this.unobserve = vi.fn()
     })
     localStorage.clear()
+    mockGetCategories.mockResolvedValue([
+      { id: 'c1', name: '後端', slug: 'backend' },
+      { id: 'c2', name: '生活', slug: 'life' },
+    ])
   })
 
   afterEach(() => {
     vi.unstubAllGlobals()
+  })
+
+  describe('分類篩選（伺服器端）', () => {
+    it('分類選項取自 categoryService，以名稱顯示（不再寫死）', async () => {
+      mockGetArticles.mockResolvedValue(createMockPageResult(buildArticles(2)))
+      const { getAllByTestId } = renderWithRouter(ArticleList)
+      await flushPromises()
+
+      expect(getAllByTestId('category-option').map(el => el.textContent?.trim())).toEqual(['後端', '生活'])
+    })
+
+    it('勾選分類 → 以該分類 slug 重新向後端取文章', async () => {
+      mockGetArticles.mockResolvedValue(createMockPageResult(buildArticles(2)))
+      const { getAllByTestId } = renderWithRouter(ArticleList)
+      await flushPromises()
+
+      await fireEvent.click(getAllByTestId('category-option')[0]!)
+      await flushPromises()
+
+      expect(mockGetArticles).toHaveBeenLastCalledWith(1, 1000, '全部', '', { categorySlugs: ['backend'] })
+    })
+
+    it('後端依分類回傳的文章照常顯示，不因列表回應沒有 categories 而被前端濾掉（原本選任何分類都會清空列表）', async () => {
+      mockGetArticles.mockResolvedValueOnce(createMockPageResult(buildArticles(3)))
+      mockGetArticles.mockResolvedValueOnce(createMockPageResult(buildArticles(2, { categories: [] })))
+      const { getAllByTestId, getAllByRole } = renderWithRouter(ArticleList)
+      await flushPromises()
+
+      await fireEvent.click(getAllByTestId('category-option')[0]!)
+      await flushPromises()
+
+      expect(getAllByRole('article')).toHaveLength(2)
+    })
+
+    it('已選分類在 active filters 以名稱顯示（而非 slug）', async () => {
+      mockGetArticles.mockResolvedValue(createMockPageResult(buildArticles(2)))
+      const { getAllByTestId, container } = renderWithRouter(ArticleList)
+      await flushPromises()
+
+      await fireEvent.click(getAllByTestId('category-option')[0]!)
+      await flushPromises()
+
+      const activeFilters = container.querySelector('.art-active-filters')
+      expect(activeFilters?.textContent).toContain('後端')
+      expect(activeFilters?.textContent).not.toContain('backend')
+    })
   })
 
   it('初始載入顯示 loading 骨架', async () => {

@@ -44,11 +44,8 @@ export function useArticleFilters() {
     if (selTags.value.length)
       r = r.filter(a => selTags.value.every(t => a.tags.includes(t)))
 
-    if (selCats.value.length)
-      r = r.filter(a => {
-        const cats = a.categories ?? []
-        return cats.some(cat => selCats.value.some(c => c.toLowerCase() === cat.toLowerCase()))
-      })
+    // 分類不在此過濾：列表 API 不回傳 categories，前端過濾只會把文章全數濾掉。
+    // 分類篩選由呼叫端以 selCats（slug）交給後端 categorySlug 參數處理。
 
     if (selAuthors.value.length)
       r = r.filter(a => selAuthors.value.includes(a.authorNickname))

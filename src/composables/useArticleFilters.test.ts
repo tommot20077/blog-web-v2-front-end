@@ -181,29 +181,16 @@ describe('useArticleFilters', () => {
     expect(result[0].uuid).toBe('a1')
   })
 
-  it('category filter 使用 OR 邏輯：符合任一 category 即可', async () => {
+  it('filterAndSort 不以 categories 過濾：分類篩選交由伺服器端（列表 API 不回傳 categories，前端過濾只會把文章全數濾掉）', async () => {
     const articles = [
       makeArticle({ uuid: 'a1', categories: ['Frontend'] }),
       makeArticle({ uuid: 'a2', categories: ['Backend'] }),
-      makeArticle({ uuid: 'a3', categories: ['Life'] }),
+      makeArticle({ uuid: 'a3', categories: [] }),
     ]
     const { filterAndSort, toggleCat } = await loadFilters()
-    toggleCat('Frontend')
-    toggleCat('Backend')
+    toggleCat('frontend')
     const result = filterAndSort(articles)
-    expect(result).toHaveLength(2)
-  })
-
-  it('category filter 大小寫不敏感：選 Frontend 可匹配 category frontend（整合後端小寫 slug）', async () => {
-    const articles = [
-      makeArticle({ uuid: 'a1', categories: ['frontend'] }),
-      makeArticle({ uuid: 'a2', categories: ['Backend'] }),
-    ]
-    const { filterAndSort, toggleCat } = await loadFilters()
-    toggleCat('Frontend')
-    const result = filterAndSort(articles)
-    expect(result).toHaveLength(1)
-    expect(result[0].uuid).toBe('a1')
+    expect(result).toHaveLength(3)
   })
 
   it('sort popular 依 viewCount 降序', async () => {
