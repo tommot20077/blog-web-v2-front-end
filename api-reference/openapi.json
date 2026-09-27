@@ -11,7 +11,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost:9010",
+      "url": "http://localhost",
       "description": "Generated server url"
     }
   ],
@@ -65,7 +65,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseSeries"
+                  "$ref": "#/components/schemas/ApiResponseSeriesSummaryResponse"
                 }
               }
             }
@@ -804,8 +804,7 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "format": "int32",
-              "default": 1
+              "format": "int32"
             }
           },
           {
@@ -814,8 +813,7 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "format": "int32",
-              "default": 20
+              "format": "int32"
             }
           }
         ],
@@ -854,7 +852,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseSeries"
+                  "$ref": "#/components/schemas/ApiResponseSeriesSummaryResponse"
                 }
               }
             }
@@ -868,21 +866,16 @@
           "file-controller"
         ],
         "operationId": "uploadFile",
-        "parameters": [
-          {
-            "name": "usageType",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "AVATAR",
-                "ARTICLE_COVER",
-                "ARTICLE_CONTENT"
-              ]
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/FileUploadRequest"
+              }
             }
-          }
-        ],
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "OK",
@@ -945,6 +938,70 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/verify-email": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "驗證電子信箱",
+        "description": "透過驗證信中的 Token 啟用帳號",
+        "operationId": "verifyEmail",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyEmailRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/verify-email-code": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "使用驗證碼驗證電子信箱",
+        "description": "透過驗證信中的 6 位數驗證碼啟用帳號",
+        "operationId": "verifyEmailCode",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyEmailCodeRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "OK",
@@ -1196,8 +1253,7 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "format": "int32",
-              "default": 1
+              "format": "int32"
             }
           },
           {
@@ -1206,12 +1262,54 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "format": "int32",
-              "default": 10
+              "format": "int32"
+            }
+          },
+          {
+            "name": "tags",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
             }
           },
           {
             "name": "categorySlug",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "authorUuids",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "publishedWithinDays",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
             "in": "query",
             "required": false,
             "schema": {
@@ -1254,6 +1352,37 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResponseEditorArticleResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/articles/{uuid}/withdraw": {
+      "post": {
+        "tags": [
+          "article-controller"
+        ],
+        "operationId": "withdrawArticle",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseArticleResponse"
                 }
               }
             }
@@ -1438,7 +1567,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseArticleVersion"
+                  "$ref": "#/components/schemas/ApiResponseVersionDetailResponse"
                 }
               }
             }
@@ -1479,7 +1608,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseArticleVersion"
+                  "$ref": "#/components/schemas/ApiResponseVersionDetailResponse"
                 }
               }
             }
@@ -1626,7 +1755,7 @@
         "tags": [
           "Comment"
         ],
-        "summary": "列出文章留言（含軟刪除佔位）",
+        "summary": "列出文章留言（匿名可存取，含軟刪除佔位）",
         "operationId": "list_2",
         "parameters": [
           {
@@ -1644,8 +1773,7 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "format": "int32",
-              "default": 1
+              "format": "int32"
             }
           },
           {
@@ -1654,8 +1782,7 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "format": "int32",
-              "default": 20
+              "format": "int32"
             }
           },
           {
@@ -1834,19 +1961,113 @@
         }
       }
     },
+    "/api/v1/admin/articles/{uuid}/unarchive": {
+      "post": {
+        "tags": [
+          "admin-article-controller"
+        ],
+        "operationId": "unarchiveArticle",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseArticleResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/articles/{uuid}/archive": {
+      "post": {
+        "tags": [
+          "admin-article-controller"
+        ],
+        "operationId": "archiveArticle",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseArticleResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/users/me/profile": {
       "patch": {
         "tags": [
           "User"
         ],
         "summary": "更新個人資料",
-        "description": "更新當前登入用戶的暱稱與個人簡介",
+        "description": "更新當前登入用戶的暱稱、個人簡介、網站、社群連結、頭貼與所在地",
         "operationId": "updateProfile",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/UpdateProfileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/me/notifications": {
+      "patch": {
+        "tags": [
+          "User"
+        ],
+        "summary": "更新通知偏好",
+        "description": "更新當前登入用戶的留言、按讚、審核、追蹤與電子報通知偏好",
+        "operationId": "updateNotifications",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotificationPreferencesRequest"
               }
             }
           },
@@ -2008,8 +2229,7 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "format": "int32",
-              "default": 1
+              "format": "int32"
             }
           },
           {
@@ -2018,8 +2238,7 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "format": "int32",
-              "default": 20
+              "format": "int32"
             }
           }
         ],
@@ -2139,12 +2358,32 @@
         }
       }
     },
+    "/api/v1/tags/all": {
+      "get": {
+        "tags": [
+          "tag-controller"
+        ],
+        "operationId": "getAllTags",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListTag"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/series/{slug}": {
       "get": {
         "tags": [
           "Series"
         ],
-        "summary": "Series 詳情（含我的進度）",
+        "summary": "Series 詳情（匿名可存取，登入時含我的進度）",
         "operationId": "get_2",
         "parameters": [
           {
@@ -2208,8 +2447,7 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "format": "int32",
-              "default": 1
+              "format": "int32"
             }
           },
           {
@@ -2218,8 +2456,7 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "format": "int32",
-              "default": 10
+              "format": "int32"
             }
           }
         ],
@@ -2448,6 +2685,30 @@
         }
       }
     },
+    "/api/v1/files/{id}/content": {
+      "get": {
+        "tags": [
+          "file-controller"
+        ],
+        "operationId": "getFileContent",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/categories": {
       "get": {
         "tags": [
@@ -2491,38 +2752,6 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResponseCategoryResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/auth/verify-email": {
-      "get": {
-        "tags": [
-          "Auth"
-        ],
-        "summary": "驗證電子信箱",
-        "description": "透過驗證信中的 Token 啟用帳號",
-        "operationId": "verifyEmail",
-        "parameters": [
-          {
-            "name": "token",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponseVoid"
                 }
               }
             }
@@ -2592,8 +2821,7 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "format": "int32",
-              "default": 1
+              "format": "int32"
             }
           },
           {
@@ -2602,8 +2830,7 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "format": "int32",
-              "default": 20
+              "format": "int32"
             }
           }
         ],
@@ -2744,8 +2971,7 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "format": "int32",
-              "default": 1
+              "format": "int32"
             }
           },
           {
@@ -2754,8 +2980,7 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "format": "int32",
-              "default": 10
+              "format": "int32"
             }
           },
           {
@@ -2788,6 +3013,46 @@
         }
       }
     },
+    "/api/v1/articles/archive": {
+      "get": {
+        "tags": [
+          "article-controller"
+        ],
+        "operationId": "getArchive",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListArticleArchiveResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/search/status": {
+      "get": {
+        "tags": [
+          "admin-search-controller"
+        ],
+        "operationId": "status",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSearchIndexStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/articles/pending": {
       "get": {
         "tags": [
@@ -2801,8 +3066,7 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "format": "int32",
-              "default": 1
+              "format": "int32"
             }
           },
           {
@@ -2811,8 +3075,7 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "format": "int32",
-              "default": 10
+              "format": "int32"
             }
           }
         ],
@@ -2888,7 +3151,7 @@
           }
         }
       },
-      "ApiResponseSeries": {
+      "ApiResponseSeriesSummaryResponse": {
         "type": "object",
         "properties": {
           "code": {
@@ -2898,7 +3161,7 @@
             "type": "string"
           },
           "data": {
-            "$ref": "#/components/schemas/Series"
+            "$ref": "#/components/schemas/SeriesSummaryResponse"
           },
           "timestamp": {
             "type": "integer",
@@ -2906,13 +3169,24 @@
           }
         }
       },
-      "Series": {
+      "AuthorSummary": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int64"
+          "uuid": {
+            "type": "string",
+            "format": "uuid"
           },
+          "nickname": {
+            "type": "string"
+          },
+          "avatarUrl": {
+            "type": "string"
+          }
+        }
+      },
+      "SeriesSummaryResponse": {
+        "type": "object",
+        "properties": {
           "uuid": {
             "type": "string",
             "format": "uuid"
@@ -2929,9 +3203,8 @@
           "coverImageUrl": {
             "type": "string"
           },
-          "authorId": {
-            "type": "integer",
-            "format": "int64"
+          "author": {
+            "$ref": "#/components/schemas/AuthorSummary"
           },
           "articleCount": {
             "type": "integer",
@@ -3157,21 +3430,6 @@
           }
         }
       },
-      "AuthorSummary": {
-        "type": "object",
-        "properties": {
-          "uuid": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "nickname": {
-            "type": "string"
-          },
-          "avatarUrl": {
-            "type": "string"
-          }
-        }
-      },
       "CommentResponse": {
         "type": "object",
         "properties": {
@@ -3356,6 +3614,12 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "toc": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TocEntry"
+            }
           }
         }
       },
@@ -3374,13 +3638,28 @@
           }
         }
       },
+      "TocEntry": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "level": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "UpdateProgressRequest": {
         "type": "object",
         "properties": {
           "progress": {
             "type": "number",
-            "maximum": 1.000,
-            "minimum": 0.000
+            "maximum": 1.0,
+            "minimum": 0.0
           },
           "lastHeading": {
             "type": "string",
@@ -3474,7 +3753,8 @@
           "slug": {
             "type": "string",
             "maxLength": 60,
-            "minLength": 0
+            "minLength": 0,
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
           },
           "description": {
             "type": "string",
@@ -3516,7 +3796,7 @@
           "newPassword": {
             "type": "string",
             "description": "新密碼（8~50 字元）",
-            "pattern": "^(?=.*[A-Za-z])(?=.*\\d).{8,50}$"
+            "pattern": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&#])[A-Za-z\\d@$!%*?&#]{8,50}$"
           }
         },
         "required": [
@@ -3550,6 +3830,35 @@
         "required": [
           "slug",
           "title"
+        ]
+      },
+      "FileUploadRequest": {
+        "type": "object",
+        "description": "Multipart 檔案上傳請求",
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "description": "要上傳的檔案（必填）"
+          },
+          "usageType": {
+            "type": "string",
+            "description": "檔案用途（必填）",
+            "enum": [
+              "AVATAR",
+              "ARTICLE_COVER",
+              "ARTICLE_CONTENT"
+            ]
+          },
+          "articleUuid": {
+            "type": "string",
+            "format": "uuid",
+            "description": "要一併綁定的文章 UUID（可選）"
+          }
+        },
+        "required": [
+          "file",
+          "usageType"
         ]
       },
       "ApiResponseFileUploadResponse": {
@@ -3602,6 +3911,40 @@
           }
         }
       },
+      "VerifyEmailRequest": {
+        "type": "object",
+        "description": "信箱驗證請求",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "信箱驗證 Token"
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "VerifyEmailCodeRequest": {
+        "type": "object",
+        "description": "信箱驗證碼請求",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "電子信箱",
+            "example": "user@example.com"
+          },
+          "code": {
+            "type": "string",
+            "description": "6 位數驗證碼",
+            "example": 123456,
+            "pattern": "\\d{6}"
+          }
+        },
+        "required": [
+          "code",
+          "email"
+        ]
+      },
       "ResetPasswordRequest": {
         "type": "object",
         "description": "重設密碼請求",
@@ -3613,7 +3956,7 @@
           "newPassword": {
             "type": "string",
             "description": "新密碼（8~50 字元）",
-            "pattern": "^(?=.*[A-Za-z])(?=.*\\d).{8,50}$"
+            "pattern": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&#])[A-Za-z\\d@$!%*?&#]{8,50}$"
           }
         },
         "required": [
@@ -3648,7 +3991,7 @@
             "type": "string",
             "description": "密碼",
             "example": "password123",
-            "pattern": "^(?=.*[A-Za-z])(?=.*\\d).{8,50}$"
+            "pattern": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&#])[A-Za-z\\d@$!%*?&#]{8,50}$"
           },
           "username": {
             "type": "string",
@@ -3876,6 +4219,12 @@
           },
           "seriesNav": {
             "$ref": "#/components/schemas/SeriesNavigation"
+          },
+          "toc": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TocEntry"
+            }
           }
         }
       },
@@ -3931,7 +4280,7 @@
           }
         }
       },
-      "ApiResponseArticleVersion": {
+      "ApiResponseVersionDetailResponse": {
         "type": "object",
         "properties": {
           "code": {
@@ -3941,7 +4290,7 @@
             "type": "string"
           },
           "data": {
-            "$ref": "#/components/schemas/ArticleVersion"
+            "$ref": "#/components/schemas/VersionDetailResponse"
           },
           "timestamp": {
             "type": "integer",
@@ -3949,27 +4298,22 @@
           }
         }
       },
-      "ArticleVersion": {
+      "VersionDetailResponse": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int64"
-          },
           "uuid": {
             "type": "string",
             "format": "uuid"
           },
-          "articleId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "authorId": {
-            "type": "integer",
-            "format": "int64"
-          },
           "type": {
             "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
           },
           "title": {
             "type": "string"
@@ -3983,10 +4327,6 @@
           "summary": {
             "type": "string"
           },
-          "categoryId": {
-            "type": "integer",
-            "format": "int64"
-          },
           "coverImageUrl": {
             "type": "string"
           },
@@ -3999,13 +4339,6 @@
               "type": "string",
               "format": "uuid"
             }
-          },
-          "note": {
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
           }
         }
       },
@@ -4080,7 +4413,8 @@
           "slug": {
             "type": "string",
             "maxLength": 60,
-            "minLength": 0
+            "minLength": 0,
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
           },
           "description": {
             "type": "string",
@@ -4128,10 +4462,62 @@
             "example": {
               "twitter": "@user"
             }
+          },
+          "avatarUrl": {
+            "type": "string",
+            "description": "頭貼 URL",
+            "example": "https://cdn.example.com/avatar.png",
+            "maxLength": 512,
+            "minLength": 0
+          },
+          "location": {
+            "type": "string",
+            "description": "所在地",
+            "example": "Taipei",
+            "maxLength": 100,
+            "minLength": 0
           }
         },
         "required": [
           "nickname"
+        ]
+      },
+      "NotificationPreferencesRequest": {
+        "type": "object",
+        "description": "更新通知偏好請求",
+        "properties": {
+          "comment": {
+            "type": "boolean",
+            "description": "留言通知",
+            "example": true
+          },
+          "like": {
+            "type": "boolean",
+            "description": "按讚通知",
+            "example": true
+          },
+          "review": {
+            "type": "boolean",
+            "description": "審核結果通知",
+            "example": true
+          },
+          "follow": {
+            "type": "boolean",
+            "description": "追蹤通知",
+            "example": true
+          },
+          "newsletter": {
+            "type": "boolean",
+            "description": "電子報訂閱",
+            "example": true
+          }
+        },
+        "required": [
+          "comment",
+          "follow",
+          "like",
+          "newsletter",
+          "review"
         ]
       },
       "ApiResponseUserProfileResponse": {
@@ -4185,6 +4571,10 @@
             "type": "string",
             "description": "社群連結（JSON 格式，可為 null）"
           },
+          "location": {
+            "type": "string",
+            "description": "所在地（可為 null）"
+          },
           "role": {
             "type": "string",
             "description": "使用者角色",
@@ -4202,6 +4592,26 @@
             "type": "string",
             "format": "date-time",
             "description": "帳號建立時間"
+          },
+          "notificationComment": {
+            "type": "boolean",
+            "description": "留言通知偏好"
+          },
+          "notificationLike": {
+            "type": "boolean",
+            "description": "按讚通知偏好"
+          },
+          "notificationReview": {
+            "type": "boolean",
+            "description": "審核結果通知偏好"
+          },
+          "notificationFollow": {
+            "type": "boolean",
+            "description": "追蹤通知偏好"
+          },
+          "notificationNewsletter": {
+            "type": "boolean",
+            "description": "電子報訂閱偏好"
           }
         }
       },
@@ -4271,9 +4681,6 @@
           "originalName": {
             "type": "string"
           },
-          "storagePath": {
-            "type": "string"
-          },
           "contentType": {
             "type": "string"
           },
@@ -4307,6 +4714,10 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "articleUuid": {
+            "type": "string",
+            "format": "uuid"
           },
           "new": {
             "type": "boolean"
@@ -4582,42 +4993,6 @@
             "items": {
               "$ref": "#/components/schemas/SeriesSummaryResponse"
             }
-          }
-        }
-      },
-      "SeriesSummaryResponse": {
-        "type": "object",
-        "properties": {
-          "uuid": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "title": {
-            "type": "string"
-          },
-          "slug": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "coverImageUrl": {
-            "type": "string"
-          },
-          "author": {
-            "$ref": "#/components/schemas/AuthorSummary"
-          },
-          "articleCount": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
           }
         }
       },
@@ -4946,83 +5321,9 @@
             "type": "string",
             "format": "date-time"
           },
-          "authorId": {
-            "type": "integer",
-            "format": "int64"
-          },
           "contentLength": {
             "type": "integer",
             "format": "int32"
-          }
-        }
-      },
-      "ApiResponseVersionDetailResponse": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string"
-          },
-          "message": {
-            "type": "string"
-          },
-          "data": {
-            "$ref": "#/components/schemas/VersionDetailResponse"
-          },
-          "timestamp": {
-            "type": "integer",
-            "format": "int64"
-          }
-        }
-      },
-      "VersionDetailResponse": {
-        "type": "object",
-        "properties": {
-          "uuid": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "type": {
-            "type": "string"
-          },
-          "note": {
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "authorId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "title": {
-            "type": "string"
-          },
-          "slug": {
-            "type": "string"
-          },
-          "content": {
-            "type": "string"
-          },
-          "summary": {
-            "type": "string"
-          },
-          "categoryId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "coverImageUrl": {
-            "type": "string"
-          },
-          "status": {
-            "type": "string"
-          },
-          "tags": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            }
           }
         }
       },
@@ -5134,6 +5435,85 @@
             "items": {
               "$ref": "#/components/schemas/CommentResponse"
             }
+          }
+        }
+      },
+      "ApiResponseListArticleArchiveResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArticleArchiveResponse"
+            }
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ArticleArchiveResponse": {
+        "type": "object",
+        "properties": {
+          "uuid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ApiResponseSearchIndexStatusResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/SearchIndexStatusResponse"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "SearchIndexStatusResponse": {
+        "type": "object",
+        "properties": {
+          "documentCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "lastReindexAt": {
+            "type": "string"
+          },
+          "healthy": {
+            "type": "boolean"
           }
         }
       },

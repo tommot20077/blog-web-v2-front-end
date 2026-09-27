@@ -101,6 +101,45 @@ describe('articleMockService', () => {
       }
     });
 
+    it('tags（單一 slug）→ 只回傳帶有該標籤的文章（與後端 tags 參數語意一致）', async () => {
+      const slug = allMockArticles[0]!.tagRefs![0]!.slug;
+      const expected = allMockArticles.filter(a => a.tagRefs!.some(r => r.slug === slug)).length;
+
+      const promise = getArticlesMock(1, 100, '全部', '', { tags: [slug] });
+      await vi.advanceTimersByTimeAsync(600);
+      const result = await promise;
+
+      expect(result.total).toBe(expected);
+      for (const article of result.records) {
+        expect(article.tagRefs!.map(r => r.slug)).toContain(slug);
+      }
+    });
+
+    it('tags（多個 slug）→ AND：文章須同時帶有全部標籤', async () => {
+      const [first, second] = allMockArticles.find(a => a.tagRefs!.length >= 2)!.tagRefs!;
+      const slugs = [first!.slug, second!.slug];
+      const expected = allMockArticles.filter(a => slugs.every(s => a.tagRefs!.some(r => r.slug === s))).length;
+
+      const promise = getArticlesMock(1, 100, '全部', '', { tags: slugs });
+      await vi.advanceTimersByTimeAsync(600);
+      const result = await promise;
+
+      expect(result.total).toBe(expected);
+      expect(result.total).toBeLessThan(allMockArticles.length);
+    });
+
+    it('categorySlugs → OR：屬於任一分類即可（slug 對應分類名稱轉小寫）', async () => {
+      const expected = allMockArticles.filter(a =>
+        a.categories.some(c => ['frontend', 'life'].includes(c.toLowerCase()))).length;
+
+      const promise = getArticlesMock(1, 100, '全部', '', { categorySlugs: ['frontend', 'life'] });
+      await vi.advanceTimersByTimeAsync(600);
+      const result = await promise;
+
+      expect(result.total).toBe(expected);
+      expect(result.total).toBeGreaterThan(0);
+    });
+
     it("category '全部' → 不過濾，回傳全部文章", async () => {
       const total = allMockArticles.length;
       const promise = getArticlesMock(1, total, '全部', '');

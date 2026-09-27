@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { articleService, type ArticleItem } from '../api/articleService'
+import { categoryService } from '../api/categoryService'
+import type { CategoryOption } from '../types/editor'
 import { useArticleFilters } from '../composables/useArticleFilters'
 
 // ── Data ────────────────────────────────────────────────────────────────────
@@ -18,15 +20,25 @@ const {
   clearAll, totalActive, filterAndSort,
 } = useArticleFilters()
 
-// ── Fetch (once, client-side) ────────────────────────────────────────────────
+// ── Fetch ────────────────────────────────────────────────────────────────────
+// 分類由後端篩選（categorySlug），其餘條件仍在前端處理。
+// 以序號保證只採用最新一次請求：快速切換分類時，較早的回應可能較晚抵達。
+let fetchSeq = 0
 async function fetchAll() {
+  const seq = ++fetchSeq
   isLoading.value = true
   try {
-    const result = await articleService.getArticles(1, 1000, '全部', '')
-    allArticles.value = result.records
+    const result = await articleService.getArticles(1, 1000, '全部', '', { categorySlugs: [...selCats.value] })
+    if (seq === fetchSeq) allArticles.value = result.records
   } finally {
-    isLoading.value = false
+    if (seq === fetchSeq) isLoading.value = false
   }
+}
+
+// ── Categories（取自後端，以 slug 為值、名稱顯示）─────────────────────────────
+const categoryOptions = ref<CategoryOption[]>([])
+function categoryName(slug: string) {
+  return categoryOptions.value.find(c => c.slug === slug)?.name ?? slug
 }
 
 // ── Derived ──────────────────────────────────────────────────────────────────
@@ -64,7 +76,9 @@ const DATE_OPTIONS = [
 ] as const
 
 function handleToggleTag(t: string) { toggleTag(t); resetPage() }
-function handleToggleCat(c: string) { toggleCat(c); resetPage() }
+function handleToggleCat(slug: string) { toggleCat(slug) }
+// 分類變動（含「清除全部」）一律重新向後端取文章
+watch(selCats, () => { resetPage(); fetchAll() })
 function handleToggleAuthor(a: string) { toggleAuthor(a); resetPage() }
 function handleDateRange(r: 'any'|'30'|'90'|'365') { setDateRange(r); resetPage() }
 function handleSort(s: 'latest'|'popular'|'commented') { setSort(s); resetPage() }
@@ -86,6 +100,9 @@ let ioObserver: IntersectionObserver | null = null
 
 onMounted(() => {
   fetchAll()
+  categoryService.getCategories()
+    .then(list => { categoryOptions.value = list })
+    .catch(() => { categoryOptions.value = [] })
   ioObserver = new IntersectionObserver(([e]) => {
     if (!e) return
     if (e.isIntersecting && paging.value === 'infinite' && page.value * PER_PAGE < filtered.value.length) {
@@ -134,19 +151,20 @@ function formatDate(d: string) {
               </div>
             </div>
 
-            <!-- Category (uses tags as categories) -->
+            <!-- Category（取自 /api/v1/categories，由後端篩選） -->
             <div class="art-rail-group">
               <h5>Category</h5>
               <div>
                 <label
-                  v-for="cat in ['Frontend', 'Backend', 'Essay', 'Design', 'DevOps']"
-                  :key="cat"
+                  v-for="cat in categoryOptions"
+                  :key="cat.slug"
                   class="art-check"
-                  @click.prevent="handleToggleCat(cat)"
+                  data-testid="category-option"
+                  @click.prevent="handleToggleCat(cat.slug)"
                 >
-                  <input type="checkbox" :checked="selCats.includes(cat)" readonly />
+                  <input type="checkbox" :checked="selCats.includes(cat.slug)" readonly />
                   <span class="box" />
-                  <span class="l">{{ cat }}</span>
+                  <span class="l">{{ cat.name }}</span>
                 </label>
               </div>
             </div>
@@ -201,7 +219,7 @@ function formatDate(d: string) {
                   #{{ t }}<button @click="handleToggleTag(t)">×</button>
                 </span>
                 <span v-for="c in selCats" :key="'c-'+c" class="art-af">
-                  {{ c }}<button @click="handleToggleCat(c)">×</button>
+                  {{ categoryName(c) }}<button @click="handleToggleCat(c)">×</button>
                 </span>
                 <span v-for="a in selAuthors" :key="'a-'+a" class="art-af">
                   @{{ a }}<button @click="handleToggleAuthor(a)">×</button>

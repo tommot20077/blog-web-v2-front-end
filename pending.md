@@ -18,35 +18,8 @@
 
 ---
 
-## 📌 契約快照待重抓：version / series DTO（後端 #50 / H4）
-**狀態**：`Pending`（綁定後端 blog-web-v2 #50 上線）
-**描述**：
-前端型別（PR #39）已先行對齊後端 H4 的 DTO 化——`create`/`update` 回 `SeriesSummaryResponse`、`createManual`/`promote` 回 `VersionDetailResponse`，並移除 Version DTO 的 `authorId` / `categoryId`。但 `api-reference/openapi.json` 仍是 **#50 前的快照**（仍宣告 `ApiResponseSeries`、`ApiResponseArticleVersion`，及 Version DTO 的 `authorId`/`categoryId`），與現行型別**相矛盾**。
-
-**待解任務**：
-1. 後端 #50 合併上線後，依 [maintenance.md](ai-docs/maintenance.md) §2 **整份重抓** `openapi.json`。
-2. 比對 `src/api/real/{seriesService,articleVersionService}.ts` 與快照一致後，刪除本項。
-
-**⚠️ 未上線前的隱形風險**：型別領先已部署契約。目前安全**僅因這四個方法無任何頁面消費**；一旦有人接「版本歷史 / 誰建立此快照」UI 並期待舊 `authorId`，或此前端先於 #50 進 prod，型別會靜默說謊（`apiClient` 無回應 schema 驗證層）。
-
----
-
-## 📌 契約快照待重抓：verifyEmail 改 POST + body（後端 #48 / H6）
-**狀態**：`Pending`（綁定後端 blog-web-v2 #48 上線）
-**描述**：
-後端 #48（H6）將 `/api/v1/auth/verify-email` 由 `GET ?token=` 改為 `POST` + request body `{ token }`（token 屬憑證，不得經 query string 傳遞——會進 access log 與瀏覽器歷史；後端新增 `VerifyEmailRequest`，`token` 標 `@NotBlank`）。前端 `src/api/real/authService.ts`（PR #38）已對齊為 `apiClient.post('/api/v1/auth/verify-email', { token })`，並在 `VerifyEmailView` 進頁即把 token 從網址移除。但 `api-reference/openapi.json` 仍是 **#48 前的快照**（宣告 `GET` + `token` query param），與現行程式**相矛盾**。
-
-**待解任務**：
-1. 後端 #48 合併上線後，依 [maintenance.md](ai-docs/maintenance.md) §2 **整份重抓** `openapi.json`（後端跑於本機 9010）：
-   `curl http://localhost:9010/v3/api-docs -o api-reference/openapi.json`
-2. 確認快照 `/api/v1/auth/verify-email` 已翻為 `post` + `VerifyEmailRequest` body schema、且與 `authService.verifyEmail` 一致後，刪除本項並移除 [api-contract.md](ai-docs/api-contract.md) 對應 ℹ️ 註記。
-
-**⚠️ 未上線前的隱形風險**：前端已送 POST。若在後端 #48 部署前先進 prod → 後端仍是 GET → **405 Method Not Allowed → 所有信箱驗證失敗**。兩個 PR 必須同批部署（後端先或同時），前端不可單獨搶先上線。
-
----
-
-## 📌 契約快照待重抓 + 部署順序：檔案存取控制（後端 #54）
-**狀態**：`Pending`（綁定後端 blog-web-v2 #54 上線）
+## 📌 契約快照待補註解 + 部署順序：檔案存取控制（後端 #54）
+**狀態**：`Pending`——2026-09-27 已整份重抓快照：`GET /api/v1/files/{id}/content` **已收錄**，但快照宣告回應為 `200` 而非實際的 `302`，且 `FileUploadResponse.url` 仍只宣告 `type: string`、未描述「相對路徑」語意。下方結案條件第 2 點因此尚未滿足——需後端在該端點補 `@ApiResponse(responseCode = "302")`、在 `url` 補 `@Schema(description = ...)` 後再重抓。另：物件儲存已於 2026-09-27 由 MinIO 改為 SeaweedFS（後端仍以 MinIO Java SDK 連線），下方「瀏覽器可達」的風險同樣適用。
 **描述**：
 後端 #54 新增 `GET /api/v1/files/{id}/content`（302 導向 presigned MinIO URL，非位元組代理），並將 `FileUploadResponse.url` 的語意由絕對網址改為相對路徑。但 `api-reference/openapi.json` 仍是 **#54 前的快照**——缺少 `/api/v1/files/{id}/content` 端點，且 `FileUploadResponse.url` 仍宣告為未區分語意的 `type: string`，與現行程式的相對路徑語意不一致。
 
@@ -59,17 +32,3 @@
 - **部署順序**：後端 #54 必須先於（或同時於）本前端上線，不可讓前端單獨搶先。`normalizeUploadUrl` 補丁已隨本次改動移除——若舊後端仍回絕對網址（`http://minio:9000/...`），前端不再有任何攔截點修正它，所有新上傳的封面與內文圖會立刻破圖。
 - **基礎設施對齊**：後端 `minio.endpoint`（`MinioConfig.java`）同時供 server-side client 與 presigned URL 產生使用，必須是**瀏覽器可達**的公開 host。本 repo `docker-compose.e2e.yml:88` 的 `MINIO_ENDPOINT: http://minio:9000` 只適用容器內部網路——若部署拓撲直接沿用此值，302 `Location` 會帶出瀏覽器無法解析的內部 hostname，需與後端/infra 對齊改為公開可達位址（或新增 presigned 專用的公開 endpoint 設定）。
 - **人工驗證項（無自動化測試覆蓋）**：`useAuthedImages.ts` 以 `withCredentials:false` 因應 MinIO wildcard CORS + credentials 的瀏覽器行為，屬作者實測過的設計，但單元測試把 `apiClient` 整個 mock 掉，對「帶 `Authorization` 的 XHR 跟隨跨來源 302 導向 MinIO」這條路徑沒有任何自動化防護網。變更 MinIO endpoint 或 CORS 設定後，需人工在 dev server 走一次「開自己的草稿文章」，於 DevTools Network 確認該 `<img>` 最終正常載入。
-
----
-
-## 📌 契約快照待重抓：admin 搜尋索引狀態端點（後端 #55）
-**狀態**：`Pending`（綁定後端 blog-web-v2 #55 上線）
-**描述**：
-前端 `src/api/real/adminService.ts`（`getSearchStatus`）呼叫 `GET /api/v1/admin/search/status`，並以 `src/types/search.ts` 的 `SearchIndexStatus { documentCount: number | null; lastReindexAt: string | null; healthy: boolean }` 對應回應。此端點不是前端發明契約——已查證後端 blog-web-v2 develop 分支：`AdminSearchController`（`@RequestMapping("/api/v1/admin/search")`）以 `@GetMapping("/status")` 提供，回傳 `ApiResponse<SearchIndexStatusResponse>`，`SearchIndexStatusResponse` 欄位為 `Long documentCount` / `String lastReindexAt` / `boolean healthy`，與前端型別完全一致。但 `api-reference/openapi.json` 目前只登記了同資源下的 `/api/v1/admin/search/reindex`，**未收錄 `/status`**——快照落後於後端 **#55**。
-
-**待解任務**：
-1. 後端 #55 合併上線後，依 [maintenance.md](ai-docs/maintenance.md) §2 **整份重抓** `openapi.json`（後端跑於本機 9010）：
-   `curl http://localhost:9010/v3/api-docs -o api-reference/openapi.json`
-2. 確認快照已收錄 `GET /api/v1/admin/search/status` 且回應 schema 與 `SearchIndexStatus` 一致後，刪除本項。
-
-**⚠️ 未上線前的隱形風險**：前端 `AdminSearchView` 已呼叫此端點。**後端 #55 需先於或同時於本前端上線**，否則 admin 搜尋索引頁的狀態查詢會 **404**，管理員看不到索引狀態、也無法判斷是否需要重建索引。

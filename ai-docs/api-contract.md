@@ -28,14 +28,32 @@ interface PageResult<T> {
 }
 ```
 
+### 分頁參數驗證（後端 2026-09-27 起）
+
+所有分頁端點的 `page` / `size` 超出範圍時回 **400（`A0001`）**，不再靜默修正：`page < 1`、`size < 1`、`size > 1000`、非整數皆然。未帶參數時採各端點預設值。`size` 上限預計降到 100（前端改伺服器端分頁後），屆時 `size > 100` 亦為 400。
+
+### 公開文章列表查詢（`GET /api/v1/articles`）
+
+| 參數 | 語意 | 備註 |
+|---|---|---|
+| `tags` | 標籤 **slug**，**AND**（文章須同時帶有全部） | 多值以逗號分隔；後端轉小寫、去重 |
+| `categorySlug` | 分類 **slug**，**OR** | 同上；單值呼叫語意不變 |
+| `authorUuids` | 作者 UUID，OR | UUID 格式錯誤回 400 |
+| `publishedWithinDays` | 只取最近 N 天發布者 | ≤ 0 視為不篩選 |
+| `sort` | `latest`（預設，依發布時間）／`popular`（瀏覽數）／`commented`（留言數） | 未知值退回 `latest` |
+
+- 多值參數任一**超過 20 個回 400（`A0210`）**，不截斷
+- 多值請以**逗號分隔的單一參數**傳送（`tags=a,b`）——axios 預設把陣列序列化成 `tags[]=a&tags[]=b`，後端不認得
+- 分類 slug 自後端 V23 起限定 `^[a-z0-9]+(-[a-z0-9]+)*$`（建立／更新分類時不符回 400）
+
 ## ID Convention
 
 *   所有外部實體 ID 均為 **UUID**（`string`）
 *   內部 PK（`Long`）永不暴露給前端
 
-> ℹ️ version / series 端點於後端 **#50（H4）** 完成 DTO 化：`POST /series`、`PUT /series/{uuid}` 回 `SeriesSummaryResponse`（含 `author` 物件，非 `authorId`）；`POST /versions/manual`、`.../promote` 回 `VersionDetailResponse`，且 Version DTO 已移除內部 `authorId` / `categoryId`。前端型別已於 PR #39 對齊，惟 **`api-reference/openapi.json` 快照待 #50 上線後整份重抓**——在此之前快照仍是舊形狀（仍宣告 `ApiResponseSeries`、`ApiResponseArticleVersion` 及 Version DTO 的 `authorId`/`categoryId`），以本註記為準。追蹤見 [pending.md](../pending.md)。
+> ℹ️ version / series 端點於後端 **#50（H4）** 完成 DTO 化：`POST /series`、`PUT /series/{uuid}` 回 `SeriesSummaryResponse`（含 `author` 物件，非 `authorId`）；`POST /versions/manual`、`.../promote` 回 `VersionDetailResponse`，且 Version DTO 已移除內部 `authorId` / `categoryId`。前端型別已於 PR #39 對齊；**快照已於 2026-09-27 整份重抓**，已反映上述 DTO 化（不再宣告 `ApiResponseSeries`、`ApiResponseArticleVersion` 及 Version DTO 的 `authorId`/`categoryId`）。
 >
-> ℹ️ 信箱驗證端點於後端 **#48（H6）** 改為 `POST /api/v1/auth/verify-email`，body `{ token }`（token 屬憑證，不再走 query string，避免進入 access log 與瀏覽器歷史；後端以 `VerifyEmailRequest` + `@NotBlank` 驗證）。前端 `authService.verifyEmail` 已於 PR #38 對齊為 `apiClient.post(...)`，惟 **`api-reference/openapi.json` 快照待 #48 上線後整份重抓**——在此之前快照仍宣告舊形狀（`GET /api/v1/auth/verify-email` + `token` query param），以本註記為準。追蹤見 [pending.md](../pending.md)。
+> ℹ️ 信箱驗證端點於後端 **#48（H6）** 改為 `POST /api/v1/auth/verify-email`，body `{ token }`（token 屬憑證，不再走 query string，避免進入 access log 與瀏覽器歷史；後端以 `VerifyEmailRequest` + `@NotBlank` 驗證）。前端 `authService.verifyEmail` 已於 PR #38 對齊為 `apiClient.post(...)`；**快照已於 2026-09-27 整份重抓**，已改宣告 `POST` + `VerifyEmailRequest`。
 
 ## Auth Flow
 

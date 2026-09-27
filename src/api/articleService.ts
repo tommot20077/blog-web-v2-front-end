@@ -1,15 +1,21 @@
-export type { ArticleItem, ArticleDetailItem, ArchiveItem, ArticleTagRef } from './real/articleService'
-import type { ArticleItem, ArticleDetailItem, ArchiveItem } from './real/articleService'
+export type { ArticleItem, ArticleDetailItem, ArchiveItem, ArticleTagRef, ArticleListFilters } from './real/articleService'
+import type { ArticleItem, ArticleDetailItem, ArchiveItem, ArticleListFilters } from './real/articleService'
 import type { PageResult } from '../types/editor'
 
 export const articleService = {
-  async getArticles(page: number, size: number, category: string, keyword: string): Promise<PageResult<ArticleItem>> {
+  async getArticles(
+    page: number,
+    size: number,
+    category: string,
+    keyword: string,
+    filters: ArticleListFilters = {},
+  ): Promise<PageResult<ArticleItem>> {
     if (import.meta.env.VITE_USE_MOCK === 'true') {
       const { articleService: svc } = await import('./mock/articleService')
-      return svc.getArticles(page, size, category, keyword)
+      return svc.getArticles(page, size, category, keyword, filters)
     }
     const { articleService: svc } = await import('./real/articleService')
-    return svc.getArticles(page, size, category, keyword)
+    return svc.getArticles(page, size, category, keyword, filters)
   },
 
   async getArticleByUuid(uuid: string): Promise<ArticleDetailItem | null> {
