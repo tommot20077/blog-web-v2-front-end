@@ -89,12 +89,12 @@ describe('useMarkdownRenderer', () => {
     expect(renderedHtml.value).not.toContain('</script>')
   })
 
-  it('允許的 HTML 標籤：iframe 應被保留', () => {
+  it('XSS 防護：iframe 應被移除（決策紀錄 §3，XSS-01）', () => {
     const content = ref('<iframe src="https://example.com"></iframe>')
     const { renderedHtml } = useMarkdownRenderer(content)
 
-    expect(renderedHtml.value).toContain('<iframe')
-    expect(renderedHtml.value).toContain('</iframe>')
+    expect(renderedHtml.value).not.toContain('<iframe')
+    expect(renderedHtml.value).not.toContain('</iframe>')
   })
 
   it('任務清單：含 checkbox input', () => {

@@ -4,6 +4,34 @@ import taskLists from 'markdown-it-task-lists';
 import DOMPurify from 'dompurify';
 import type { HighlighterGeneric } from '@shikijs/types'
 
+/** 允許的單一 Shiki 宣告：`--shiki-xxx: #hex` 或單純關鍵字（italic / bold / underline…）。 */
+const SHIKI_DECLARATION = /^--shiki-[a-z-]+\s*:\s*(?:#[0-9a-f]{3,8}|[a-z-]+)$/i;
+
+/** 整個 style 值是否僅由 Shiki 宣告構成（不含 url()、position 等任何其他內容）。 */
+const isShikiStyleValue = (value: string): boolean => {
+  const declarations = value.split(';').map((part) => part.trim()).filter(Boolean);
+  return declarations.length > 0 && declarations.every((declaration) => SHIKI_DECLARATION.test(declaration));
+};
+
+/**
+ * 專屬的 DOMPurify 實例：hook 只掛在這個實例，不影響其他直接使用全域 DOMPurify 的元件。
+ * 延遲建立，避免 module 載入時就需要 window。
+ */
+let purifier: ReturnType<typeof DOMPurify> | null = null;
+const getPurifier = () => {
+  if (purifier) return purifier;
+  const instance = DOMPurify(window);
+  instance.addHook('uponSanitizeAttribute', (node, data) => {
+    if (data.attrName !== 'style') return;
+    const insideShikiBlock = node.closest?.('pre.shiki') != null;
+    if (!(insideShikiBlock && isShikiStyleValue(data.attrValue))) {
+      data.keepAttr = false;
+    }
+  });
+  purifier = instance;
+  return instance;
+};
+
 /**
  * useMarkdownRenderer
  * 
@@ -17,6 +45,11 @@ import type { HighlighterGeneric } from '@shikijs/types'
  * 
  * Shiki 為非同步載入，初始化完成前先用 markdown-it 的預設 <pre><code> 渲染，
  * Shiki 就緒後自動重新渲染一次。
+ *
+ * 消毒策略（決策紀錄 §3，XSS-01 / XSS-02）：
+ *   - 不允許 iframe
+ *   - style 屬性只保留在 Shiki 程式碼區塊（pre.shiki 及其子元素），且值必須是
+ *     Shiki 實際輸出的 `--shiki-*: <色碼|關鍵字>` 宣告；其餘元素一律移除 style
  */
 export function useMarkdownRenderer(markdownContent: Ref<string>) {
   const renderedHtml = ref('');
@@ -33,9 +66,10 @@ export function useMarkdownRenderer(markdownContent: Ref<string>) {
   // 2. 立刻做一次初始渲染（無高亮版本），讓使用者不用等 Shiki 載入
   const render = () => {
     const rawHtml = md.render(markdownContent.value || '');
-    renderedHtml.value = DOMPurify.sanitize(rawHtml, {
-      ADD_TAGS: ['iframe', 'input', 's', 'del', 'strike'],  // 允許影片、task list checkbox、刪除線
-      ADD_ATTR: ['target', 'rel', 'class', 'style', 'type', 'checked', 'disabled'],
+    renderedHtml.value = getPurifier().sanitize(rawHtml, {
+      ADD_TAGS: ['input', 's', 'del', 'strike'],  // 允許 task list checkbox、刪除線（iframe 已移除，見檔頭）
+      // style 不在此列：DOMPurify 預設允許 style，改由 getPurifier() 的 hook 限縮到 Shiki 區塊
+      ADD_ATTR: ['target', 'rel', 'class', 'type', 'checked', 'disabled'],
       ALLOW_DATA_ATTR: false,
     });
   };
