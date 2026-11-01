@@ -1,7 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { createApp, defineComponent, h } from 'vue'
 import { CanceledError } from 'axios'
-import { installGlobalErrorHandling, GLOBAL_ERROR_TOAST_MESSAGE } from './globalErrorHandling'
+import { createRouter, createMemoryHistory } from 'vue-router'
+import {
+  installGlobalErrorHandling,
+  GLOBAL_ERROR_TOAST_MESSAGE,
+  APP_UPDATED_TOAST_MESSAGE,
+} from './globalErrorHandling'
+import { isChunkLoadError } from './chunkLoadError'
 import { markErrorHandled } from './errorReporting'
 import { useToast } from '../composables/useToast'
 
@@ -150,6 +156,103 @@ describe('installGlobalErrorHandling', () => {
       expect(errorSpy).not.toHaveBeenCalled()
       expect(toasts.value).toHaveLength(0)
       // afterEach 會再呼叫一次 teardown，需為冪等
+    })
+  })
+  describe('chunk 載入失敗（部署後舊分頁）', () => {
+    const CHUNK_MESSAGES = [
+      'Failed to fetch dynamically imported module: https://x.test/assets/Foo-abc.js',
+      'Importing a module script failed.',
+      'error loading dynamically imported module: https://x.test/assets/Foo-abc.js',
+    ]
+
+    it.each(CHUNK_MESSAGES)('isChunkLoadError 辨識：%s', (message) => {
+      expect(isChunkLoadError(new TypeError(message))).toBe(true)
+    })
+
+    it('isChunkLoadError 不誤判一般錯誤', () => {
+      expect(isChunkLoadError(new Error('Network Error'))).toBe(false)
+      expect(isChunkLoadError(null)).toBe(false)
+      expect(isChunkLoadError('Failed to fetch dynamically imported module')).toBe(false)
+    })
+
+    it('router.onError 收到 chunk 錯誤：出現更新提示（含重新整理動作），沒有通用 toast', async () => {
+      teardown()
+      const reload = vi.fn()
+      const router = createRouter({
+        history: createMemoryHistory(),
+        routes: [
+          { path: '/', component: { render: () => null } },
+          {
+            path: '/lazy',
+            component: () => Promise.reject(new TypeError(CHUNK_MESSAGES[0])),
+          },
+        ],
+      })
+      teardown = installGlobalErrorHandling(createApp({ render: () => null }), { router, reload })
+      router.push('/')
+      await router.isReady()
+
+      await router.push('/lazy').catch(() => {})
+
+      expect(toasts.value).toHaveLength(1)
+      expect(toasts.value[0].message).toBe(APP_UPDATED_TOAST_MESSAGE)
+      expect(toasts.value.some((t) => t.message === GLOBAL_ERROR_TOAST_MESSAGE)).toBe(false)
+      expect(toasts.value[0].action?.label).toBe('重新整理')
+      toasts.value[0].action?.onClick()
+      expect(reload).toHaveBeenCalledTimes(1)
+    })
+
+    it('router.onError 收到非 chunk 錯誤：只記錄，不提示（維持原本只 log 的行為）', async () => {
+      teardown()
+      const router = createRouter({
+        history: createMemoryHistory(),
+        routes: [
+          { path: '/', component: { render: () => null } },
+          { path: '/bad', component: () => Promise.reject(new Error('some guard failure')) },
+        ],
+      })
+      teardown = installGlobalErrorHandling(createApp({ render: () => null }), { router })
+      router.push('/')
+      await router.isReady()
+      errorSpy.mockClear()
+
+      await router.push('/bad').catch(() => {})
+
+      expect(errorSpy).toHaveBeenCalled()
+      expect(toasts.value).toHaveLength(0)
+    })
+
+    it('vite:preloadError 事件：出現更新提示且不走通用 toast', () => {
+      const event = new Event('vite:preloadError') as Event & { payload: unknown }
+      event.payload = new TypeError(CHUNK_MESSAGES[1])
+
+      window.dispatchEvent(event)
+
+      expect(toasts.value).toHaveLength(1)
+      expect(toasts.value[0].message).toBe(APP_UPDATED_TOAST_MESSAGE)
+    })
+
+    it('同一次載入內多個 chunk 錯誤（preloadError + rejection + 不同錯誤物件）只提示一次', () => {
+      const e1 = new TypeError(CHUNK_MESSAGES[0])
+      const preload = new Event('vite:preloadError') as Event & { payload: unknown }
+      preload.payload = e1
+
+      window.dispatchEvent(preload)
+      dispatchRejection(e1)
+      dispatchRejection(new TypeError(CHUNK_MESSAGES[2]))
+
+      expect(toasts.value).toHaveLength(1)
+      expect(toasts.value[0].message).toBe(APP_UPDATED_TOAST_MESSAGE)
+    })
+
+    it('teardown 後不再監聽 vite:preloadError', () => {
+      teardown()
+      const event = new Event('vite:preloadError') as Event & { payload: unknown }
+      event.payload = new TypeError(CHUNK_MESSAGES[0])
+
+      window.dispatchEvent(event)
+
+      expect(toasts.value).toHaveLength(0)
     })
   })
 })

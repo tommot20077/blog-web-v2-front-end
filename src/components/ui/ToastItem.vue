@@ -34,6 +34,17 @@ const indicatorColorMap: Record<ToastType, string> = {
       {{ toast.message }}
     </p>
 
+    <!-- 選用動作按鈕（例如「重新整理」） -->
+    <button
+      v-if="toast.action"
+      data-testid="toast-action"
+      class="shrink-0 self-center rounded-full px-3 py-1 text-xs font-medium transition-opacity hover:opacity-80"
+      style="background: var(--ink); color: var(--bg);"
+      @click="toast.action.onClick()"
+    >
+      {{ toast.action.label }}
+    </button>
+
     <!-- 關閉按鈕 -->
     <button
       data-testid="toast-close"

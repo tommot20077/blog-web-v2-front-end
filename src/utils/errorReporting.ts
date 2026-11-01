@@ -57,3 +57,21 @@ export function getComponentName(instance: ComponentPublicInstance | null | unde
   const options = instance?.$options as { name?: string; __name?: string } | undefined
   return options?.name ?? options?.__name ?? 'Anonymous'
 }
+
+/**
+ * Vue errorCaptured 的 info 是否代表 render／setup 階段的錯誤。
+ *
+ * 只有這兩類才代表「該區塊畫不出來」，ErrorBoundary 才應以 fallback 取代；
+ * async lifecycle hook／event handler 的 rejection（如 onMounted(async) 內 API 失敗）
+ * 頁面其實已渲染完成，不能整頁替換。
+ *
+ * 依據 @vue/runtime-core 的 handleError：
+ * - 開發模式 info = ErrorTypeStrings[type]（'setup function' / 'render function' …）
+ * - production info = `https://vuejs.org/error-reference/#runtime-${type}`，
+ *   ErrorCodes.SETUP_FUNCTION = 0、RENDER_FUNCTION = 1
+ */
+export function isRenderPhaseError(info: string | undefined | null): boolean {
+  if (!info) return false
+  if (info === 'render function' || info === 'setup function') return true
+  return /#runtime-[01]$/.test(info)
+}

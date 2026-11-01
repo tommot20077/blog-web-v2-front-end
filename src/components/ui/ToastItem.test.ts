@@ -56,4 +56,19 @@ describe('ToastItem', () => {
     });
     expect(wrapper.find('[data-testid="toast-indicator"]').classes()).toContain('bg-blue-500');
   });
+  it('有 action 時渲染動作按鈕，點擊呼叫 onClick', async () => {
+    const onClick = vi.fn();
+    const wrapper = mount(ToastItem, {
+      props: { toast: createToast({ action: { label: '重新整理', onClick } }) },
+    });
+    const btn = wrapper.find('[data-testid="toast-action"]');
+    expect(btn.text()).toBe('重新整理');
+    await btn.trigger('click');
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('沒有 action 時不渲染動作按鈕', () => {
+    const wrapper = mount(ToastItem, { props: { toast: createToast() } });
+    expect(wrapper.find('[data-testid="toast-action"]').exists()).toBe(false);
+  });
 });

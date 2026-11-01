@@ -6,6 +6,7 @@ import {
   isErrorHandled,
   isIgnorableError,
   getComponentName,
+  isRenderPhaseError,
 } from './errorReporting'
 
 describe('errorReporting', () => {
@@ -93,6 +94,33 @@ describe('errorReporting', () => {
     it('沒有名稱或沒有 instance 時回傳 Anonymous', () => {
       expect(getComponentName({ $options: {} } as never)).toBe('Anonymous')
       expect(getComponentName(null)).toBe('Anonymous')
+    })
+  })
+  describe('isRenderPhaseError（依 Vue errorCaptured 的 info 判斷來源）', () => {
+    it('開發模式字串：render function / setup function 為 render 階段', () => {
+      expect(isRenderPhaseError('render function')).toBe(true)
+      expect(isRenderPhaseError('setup function')).toBe(true)
+    })
+
+    it('production 模式 URL：#runtime-1(render) / #runtime-0(setup) 為 render 階段', () => {
+      expect(isRenderPhaseError('https://vuejs.org/error-reference/#runtime-1')).toBe(true)
+      expect(isRenderPhaseError('https://vuejs.org/error-reference/#runtime-0')).toBe(true)
+    })
+
+    it('lifecycle hook／事件處理／watcher 不是 render 階段', () => {
+      for (const info of [
+        'mounted hook',
+        'component event handler',
+        'native event handler',
+        'watcher callback',
+        'https://vuejs.org/error-reference/#runtime-6',
+        'https://vuejs.org/error-reference/#runtime-5',
+        'https://vuejs.org/error-reference/#runtime-10',
+        'https://vuejs.org/error-reference/#runtime-m',
+        '',
+      ]) {
+        expect(isRenderPhaseError(info)).toBe(false)
+      }
     })
   })
 })
