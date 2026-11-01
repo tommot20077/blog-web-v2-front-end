@@ -23,7 +23,8 @@ export default defineConfig({
     // 避免 SameSite=Strict 把 refresh token cookie 視為跨 site 而擋掉
     baseURL: 'http://localhost:5500',
     actionTimeout: 8000,
-    trace: 'on-first-retry',
+    trace: 'retain-on-failure',
+    video: 'retain-on-failure',
     screenshot: 'only-on-failure',
     locale: 'zh-TW',
   },
