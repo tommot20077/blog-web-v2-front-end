@@ -58,7 +58,7 @@ jobs:
           retention-days: 14
 
   e2e-tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # Playwright 1.58 不支援 ubuntu-latest（26.04）的 Chromium 安裝，固定 24.04
     timeout-minutes: 20
     needs: [unit-and-component-tests, build]
     steps:
@@ -81,7 +81,7 @@ jobs:
           retention-days: 14
 
   e2e-integration:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # Playwright 1.58 不支援 ubuntu-latest（26.04）的 Chromium 安裝，固定 24.04
     timeout-minutes: 45
     if: github.event_name == 'pull_request'
     needs: [unit-and-component-tests, build]
