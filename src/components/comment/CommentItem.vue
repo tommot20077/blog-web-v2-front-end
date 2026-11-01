@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import DOMPurify from 'dompurify'
+import { createHtmlSanitizer } from '../../utils/htmlSanitizer'
 import type { CommentItem as CommentItemType } from '../../types/comment'
 import { useCommentLike } from '../../composables/useCommentLike'
 import { useCommentPermissions } from '../../composables/useCommentPermissions'
@@ -49,7 +49,9 @@ const deletedLabel = computed(() => {
 })
 
 // 防 XSS：backend 已用 OWASP HtmlSanitizer 過濾，前端再 DOMPurify 多一層；mock 走同 path
-const sanitizedHtml = computed(() => DOMPurify.sanitize(props.comment.contentHtml ?? ''))
+// 使用收緊設定的獨立實例：禁 style 元素 / style 屬性 / form / iframe / 非 checkbox input（留言不需要 Shiki 例外）
+const commentSanitizer = createHtmlSanitizer()
+const sanitizedHtml = computed(() => commentSanitizer.sanitize(props.comment.contentHtml ?? ''))
 
 function formatTime(iso: string): string {
   const d = new Date(iso)
