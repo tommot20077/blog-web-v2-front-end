@@ -10,11 +10,18 @@ const TOAST_TYPE = {
 
 type ToastType = (typeof TOAST_TYPE)[keyof typeof TOAST_TYPE];
 
+interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
+
 interface ToastMessage {
   id: string;
   message: string;
   type: ToastType;
   duration: number;
+  /** 選用：toast 附帶的動作按鈕（例如「重新整理」） */
+  action?: ToastAction;
 }
 
 const MAX_TOASTS = 5;
@@ -29,9 +36,14 @@ const toasts = ref<ToastMessage[]>([]);
 const timers = new Map<string, ReturnType<typeof setTimeout>>();
 
 export function useToast() {
-  const showToast = (message: string, type: ToastType = 'info', duration = 4000) => {
+  const showToast = (
+    message: string,
+    type: ToastType = 'info',
+    duration = 4000,
+    action?: ToastAction,
+  ) => {
     const id = `toast-${++idCounter}`;
-    const toast: ToastMessage = { id, message, type, duration };
+    const toast: ToastMessage = { id, message, type, duration, ...(action ? { action } : {}) };
 
     toasts.value.push(toast);
 
@@ -71,4 +83,4 @@ export function useToast() {
   };
 }
 
-export type { ToastType, ToastMessage };
+export type { ToastType, ToastMessage, ToastAction };

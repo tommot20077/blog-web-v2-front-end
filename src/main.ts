@@ -5,11 +5,14 @@ import './index.css'
 import router from './router'
 import App from './App.vue'
 import apiClient from './api/apiClient'
+import { installGlobalErrorHandling } from './utils/globalErrorHandling'
 
 const pinia = createPinia()
 const head = createUnhead()
 
 const app = createApp(App)
+// FE-01：全域錯誤處理（errorHandler / unhandledrejection / error），須在 mount 前安裝
+installGlobalErrorHandling(app, { router })
 app.use(pinia)
 app.use(router)
 // @unhead/vue v2: 手動提供 head 實例給整個應用程式

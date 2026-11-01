@@ -3,6 +3,7 @@ import { AxiosHeaders } from 'axios'
 import type { InternalAxiosRequestConfig, AxiosResponse } from 'axios'
 import { createPinia, setActivePinia } from 'pinia'
 import { useAuthStore } from '../stores/auth'
+import { isErrorHandled } from '../utils/errorReporting'
 
 /**
  * apiClient 測試
@@ -316,6 +317,51 @@ describe('apiClient', () => {
       }
 
       await expect(responseRejected(error)).rejects.toThrow('Network Error')
+    })
+  })
+  // ============================================================
+  // 6. FE-01：interceptor 產生的錯誤標記為「已處理」，供全域 handler 去重
+  // ============================================================
+  describe('Response interceptor — 錯誤標記（FE-01 全域錯誤去重）', () => {
+    it('業務錯誤（code !== 00000）拋出的 Error 標記為已處理', () => {
+      const mockResponse = {
+        data: { code: 'A0001', message: '參數錯誤', data: null },
+        status: 200,
+      } as AxiosResponse
+
+      let thrown: unknown
+      try { responseFulfilled(mockResponse) } catch (e) { thrown = e }
+
+      expect(isErrorHandled(thrown)).toBe(true)
+    })
+
+    it('HTTP 500 錯誤 reject 的 Error 標記為已處理', async () => {
+      const error = {
+        config: createConfig('/api/v1/articles'),
+        response: { status: 500, data: { code: 'B0001', message: '伺服器內部錯誤', data: null } },
+        isAxiosError: true,
+        message: 'Internal Server Error',
+      }
+
+      const rejected = await responseRejected(error).catch((e: unknown) => e)
+
+      expect(isErrorHandled(rejected)).toBe(true)
+    })
+
+    it('/auth/refresh 本身 401 reject 的 Error 標記為已處理', async () => {
+      const rejected = await responseRejected(create401Error('/auth/refresh')).catch((e: unknown) => e)
+
+      expect(isErrorHandled(rejected)).toBe(true)
+    })
+
+    it('refresh 失敗 reject 的錯誤標記為已處理', async () => {
+      const authStore = useAuthStore()
+      authStore.refreshToken = vi.fn().mockRejectedValue(new Error('Refresh failed'))
+      authStore.logout = vi.fn()
+
+      const rejected = await responseRejected(create401Error('/api/v1/articles')).catch((e: unknown) => e)
+
+      expect(isErrorHandled(rejected)).toBe(true)
     })
   })
 })
