@@ -84,4 +84,13 @@ describe('useToast', () => {
 
     expect(toasts.value.map(t => t.type)).toEqual(['success', 'error', 'warning', 'info']);
   });
+  it('showToast 可附帶 action（label + onClick）', () => {
+    const { toasts, showToast } = useToast();
+    const onClick = vi.fn();
+    showToast('網站已更新', 'warning', 60000, { label: '重新整理', onClick });
+
+    expect(toasts.value[0].action?.label).toBe('重新整理');
+    toasts.value[0].action?.onClick();
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
 });

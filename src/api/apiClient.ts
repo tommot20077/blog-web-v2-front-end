@@ -11,6 +11,7 @@ import axios from 'axios'
 import type { AxiosError, InternalAxiosRequestConfig } from 'axios'
 import type { ApiResponse } from '../types/auth'
 import { useAuthStore } from '../stores/auth'
+import { markErrorHandled } from '../utils/errorReporting'
 
 /** 待重發請求佇列項目 */
 interface QueueItem {
@@ -73,7 +74,7 @@ apiClient.interceptors.response.use(
       return body.data as never
     }
     // 業務錯誤（HTTP 2xx 但 code !== '00000'）
-    throw new Error(body.message)
+    throw markErrorHandled(new Error(body.message))
   },
   // 錯誤回應
   async (error: AxiosError<ApiResponse<unknown>>) => {
@@ -82,12 +83,12 @@ apiClient.interceptors.response.use(
     // 非 401 或無 response：直接 reject
     if (!error.response || error.response.status !== 401) {
       const message = error.response?.data?.message ?? error.message
-      return Promise.reject(new Error(message))
+      return Promise.reject(markErrorHandled(new Error(message)))
     }
 
     // /auth/refresh 本身的 401：不再觸發 refresh（防無限迴圈）
     if (originalConfig.url?.includes('/auth/refresh')) {
-      return Promise.reject(new Error(error.response.data?.message ?? error.message))
+      return Promise.reject(markErrorHandled(new Error(error.response.data?.message ?? error.message)))
     }
 
     // 已有 refresh 進行中：排入等待佇列
@@ -113,6 +114,7 @@ apiClient.interceptors.response.use(
       // 重發原始請求
       return apiClient.request(originalConfig)
     } catch (refreshError) {
+      markErrorHandled(refreshError)
       authStore.logout()
       processQueue(refreshError)
       return Promise.reject(refreshError)

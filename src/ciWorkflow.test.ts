@@ -60,11 +60,11 @@ describe('frontend CI workflow', () => {
     }
   })
 
-  it('unit, build, coverage, and mock e2e jobs use Node 20 with npm ci', () => {
+  it('unit, build, coverage, and mock e2e jobs use Node 22 with npm ci', () => {
     for (const jobName of ['unit-and-component-tests', 'build', 'coverage', 'e2e-tests']) {
       const job = workflowJob(jobName)
       expect(job).toContain('actions/setup-node@v4')
-      expect(job).toContain('node-version: 20')
+      expect(job).toContain('node-version: 22')
       expect(job).toContain("cache: 'npm'")
       expect(job).toContain('npm ci')
     }
