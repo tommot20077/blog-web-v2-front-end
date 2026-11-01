@@ -1,8 +1,15 @@
 import { ref, watch, type Ref } from 'vue';
 import MarkdownIt from 'markdown-it';
 import taskLists from 'markdown-it-task-lists';
-import DOMPurify from 'dompurify';
+import { createHtmlSanitizer } from '../utils/htmlSanitizer';
 import type { HighlighterGeneric } from '@shikijs/types'
+
+/** Markdown 專用消毒器：允許 task list 的 checkbox、刪除線，並保留 Shiki 區塊的 --shiki-* style。 */
+const markdownSanitizer = createHtmlSanitizer({
+  allowShikiStyle: true,
+  addTags: ['input', 's', 'del', 'strike'],
+  addAttrs: ['target', 'rel', 'class', 'type', 'checked', 'disabled'],
+});
 
 /**
  * useMarkdownRenderer
@@ -17,6 +24,11 @@ import type { HighlighterGeneric } from '@shikijs/types'
  * 
  * Shiki 為非同步載入，初始化完成前先用 markdown-it 的預設 <pre><code> 渲染，
  * Shiki 就緒後自動重新渲染一次。
+ *
+ * 消毒策略（決策紀錄 §3，XSS-01 / XSS-02）：
+ *   - 不允許 iframe / <style> 元素 / form / button；input 只允許 checkbox（見 utils/htmlSanitizer.ts）
+ *   - style 屬性只保留在 Shiki 程式碼區塊（pre.shiki 及其子元素），且值必須是
+ *     Shiki 實際輸出的 `--shiki-*: <色碼|關鍵字>` 宣告；其餘元素一律移除 style
  */
 export function useMarkdownRenderer(markdownContent: Ref<string>) {
   const renderedHtml = ref('');
@@ -33,11 +45,7 @@ export function useMarkdownRenderer(markdownContent: Ref<string>) {
   // 2. 立刻做一次初始渲染（無高亮版本），讓使用者不用等 Shiki 載入
   const render = () => {
     const rawHtml = md.render(markdownContent.value || '');
-    renderedHtml.value = DOMPurify.sanitize(rawHtml, {
-      ADD_TAGS: ['iframe', 'input', 's', 'del', 'strike'],  // 允許影片、task list checkbox、刪除線
-      ADD_ATTR: ['target', 'rel', 'class', 'style', 'type', 'checked', 'disabled'],
-      ALLOW_DATA_ATTR: false,
-    });
+    renderedHtml.value = markdownSanitizer.sanitize(rawHtml);
   };
 
   render();
