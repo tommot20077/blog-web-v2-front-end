@@ -9,6 +9,7 @@ import NavigationBar from './components/layout/NavigationBar.vue'
 import AppFooter from './components/layout/AppFooter.vue'
 import ToastContainer from './components/ui/ToastContainer.vue'
 import MobileBottomNav from './components/layout/MobileBottomNav.vue'
+import ErrorBoundary from './components/common/ErrorBoundary.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -56,17 +57,21 @@ onUnmounted(() => window.removeEventListener('keydown', onGlobalKeyDown))
 
   <!-- Shell / Full-screen pages (my-articles, settings, editor) -->
   <template v-if="isShellOrFull">
-    <router-view :key="route.path" />
+    <ErrorBoundary>
+      <router-view :key="route.path" />
+    </ErrorBoundary>
   </template>
 
   <!-- Default public layout (navbar + content + footer) -->
   <template v-else>
     <NavigationBar />
-    <router-view v-slot="{ Component, route: r }">
-      <transition name="fade" mode="out-in">
-        <component :is="Component" :key="r.path" />
-      </transition>
-    </router-view>
+    <ErrorBoundary>
+      <router-view v-slot="{ Component, route: r }">
+        <transition name="fade" mode="out-in">
+          <component :is="Component" :key="r.path" />
+        </transition>
+      </router-view>
+    </ErrorBoundary>
     <AppFooter />
     <MobileBottomNav />
   </template>
