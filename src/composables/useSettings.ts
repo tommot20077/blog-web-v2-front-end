@@ -1,9 +1,10 @@
-import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { userService } from '../api/userService'
 import { fileService } from '../api/fileService'
 import { useAuthStore } from '../stores/auth'
 import { useToast } from './useToast'
 import { getPasswordRules, PASSWORD_POLICY_MESSAGE } from './useFormValidation'
+import { isSafeHandle, isHttpUrl } from '../utils/socialLinks'
 
 type SaveStatus = 'idle' | 'saving' | 'saved'
 
@@ -31,6 +32,11 @@ function useSaveStatus() {
   return { status, withSave }
 }
 
+/** 對齊後端 UpdateProfileRequest.website 的 maxLength */
+const MAX_WEBSITE_LENGTH = 255
+const HANDLE_ERROR = '請只填帳號名稱，不要貼網址（不可含 / : \\ < > " 或空白，最多 100 字，@ 只能放在開頭一個）'
+const WEBSITE_ERROR = '請輸入以 http:// 或 https:// 開頭的完整網址（最多 255 字）'
+
 export function useSettings() {
   const authStore = useAuthStore()
   const { showToast } = useToast()
@@ -56,6 +62,24 @@ export function useSettings() {
   const twitter = ref('')
   const linkedin = ref('')
   const { status: socialStatus, withSave: withSocialSave } = useSaveStatus()
+
+  // ── 公開頁欄位即時驗證（規則與後端同一份：socialLinks 為帳號名稱、website 僅 http(s)）──
+  const handleError = (v: string) => (isSafeHandle(v) ? '' : HANDLE_ERROR)
+  const githubError = computed(() => handleError(github.value))
+  const twitterError = computed(() => handleError(twitter.value))
+  const linkedinError = computed(() => handleError(linkedin.value))
+  const hasSocialErrors = computed(() => !!(githubError.value || twitterError.value || linkedinError.value))
+  const websiteError = computed(() => {
+    const w = website.value
+    if (!w) return ''
+    return isHttpUrl(w) && w.length <= MAX_WEBSITE_LENGTH ? '' : WEBSITE_ERROR
+  })
+
+  /** 「查看我的公開頁」連結；尚未取得 uuid 時為 null */
+  const publicProfilePath = computed(() => {
+    const uuid = authStore.user?.uuid
+    return uuid ? `/author/${encodeURIComponent(uuid)}` : null
+  })
 
   // ── Writing Preferences (localStorage) ──
   // editorMode key 'blog.edMode' 與 useEditorMode.ts 共用：這裡改的是「預設值」，
@@ -128,6 +152,10 @@ export function useSettings() {
 
   // Save functions
   async function saveProfile() {
+    if (websiteError.value) {
+      showToast('個人網站格式不正確', 'error')
+      return
+    }
     try {
       await withProfileSave(async () => {
         if (avatarFile.value) {
@@ -190,6 +218,10 @@ export function useSettings() {
 
   async function saveSocial() {
     if (!authStore.user) return
+    if (hasSocialErrors.value) {
+      showToast('社群帳號名稱格式不正確', 'error')
+      return
+    }
     try {
       await withSocialSave(async () => {
         const socialLinks = JSON.stringify({
@@ -265,6 +297,9 @@ export function useSettings() {
     email, pwCurrent, pwNew, pwConfirm, accountStatus, saveAccount,
     // Social
     github, twitter, linkedin, socialStatus, saveSocial,
+    githubError, twitterError, linkedinError, hasSocialErrors,
+    // Public profile
+    websiteError, publicProfilePath,
     // Writing
     editorMode, wordUnit, autosave, writingStatus, saveWriting,
     // Notifications

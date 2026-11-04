@@ -346,4 +346,89 @@ describe('useSettings', () => {
       expect(mockShowToast).toHaveBeenCalledWith('儲存通知設定失敗', 'error')
     })
   })
+  describe('公開頁欄位即時驗證（website／社群帳號名稱）', () => {
+    async function setup(userOverrides: Record<string, unknown> = {}) {
+      const { useAuthStore } = await import('../stores/auth')
+      vi.mocked(useAuthStore).mockReturnValue({
+        user: {
+          uuid: 'me-uuid', nickname: 'TestUser', bio: '', email: 'test@example.com',
+          avatarUrl: null, website: null, socialLinks: null, location: null,
+          ...userOverrides,
+        },
+        fetchUser: vi.fn().mockResolvedValue(undefined),
+        logout: vi.fn(),
+      } as unknown as ReturnType<typeof useAuthStore>)
+      const { useSettings } = await import('./useSettings')
+      const { userService } = await import('../api/userService')
+      vi.mocked(userService.updateProfile).mockClear()
+      let s: ReturnType<typeof useSettings> | null = null
+      mount(makeTestComponent(() => { s = useSettings(); return {} }))
+      return { s: s!, userService }
+    }
+
+    it('website 不是 http(s) → websiteError 有訊息，saveProfile 不呼叫 API', async () => {
+      const { s, userService } = await setup()
+      s.website.value = 'javascript:alert(1)'
+      expect(s.websiteError.value).not.toBe('')
+      await s.saveProfile()
+      expect(userService.updateProfile).not.toHaveBeenCalled()
+    })
+
+    it.each(['https://example.com', 'http://example.com/a?b=1', ''])('website %j 合格', async (v) => {
+      const { s, userService } = await setup()
+      s.website.value = v
+      expect(s.websiteError.value).toBe('')
+      await s.saveProfile()
+      expect(userService.updateProfile).toHaveBeenCalledTimes(1)
+    })
+
+    it('website 超過後端上限 255 字 → 不合格', async () => {
+      const { s } = await setup()
+      s.website.value = 'https://example.com/' + 'a'.repeat(256)
+      expect(s.websiteError.value).not.toBe('')
+    })
+
+    it.each([
+      ['github', 'https://github.com/octocat'],
+      ['twitter', '@@user'],
+      ['linkedin', 'a/b'],
+      ['github', 'my handle'],
+      ['twitter', 'javascript:alert(1)'],
+      ['linkedin', 'a'.repeat(101)],
+    ] as const)('%s 填 %j → 對應欄位有錯誤，saveSocial 不呼叫 API', async (field, value) => {
+      const { s, userService } = await setup()
+      s[field].value = value
+      const err = { github: s.githubError, twitter: s.twitterError, linkedin: s.linkedinError }[field]
+      expect(err.value).not.toBe('')
+      expect(s.hasSocialErrors.value).toBe(true)
+      await s.saveSocial()
+      expect(userService.updateProfile).not.toHaveBeenCalled()
+    })
+
+    it('合格的帳號名稱（含前導 @、中文、空白＝未填）→ 無錯誤並送出 JSON', async () => {
+      const { s, userService } = await setup()
+      s.github.value = 'octocat'
+      s.twitter.value = '@yuan_dev'
+      s.linkedin.value = ''
+      expect(s.hasSocialErrors.value).toBe(false)
+      await s.saveSocial()
+      expect(userService.updateProfile).toHaveBeenCalledWith(expect.objectContaining({
+        socialLinks: JSON.stringify({ github: 'octocat', twitter: '@yuan_dev', linkedin: '' }),
+      }))
+    })
+
+    it('既有資料是舊的網址格式 → 載入後即顯示錯誤，提醒改成帳號名稱', async () => {
+      const { s } = await setup({ socialLinks: JSON.stringify({ github: 'https://github.com/old', twitter: '', linkedin: '' }) })
+      expect(s.githubError.value).not.toBe('')
+      expect(s.hasSocialErrors.value).toBe(true)
+    })
+
+    it('publicProfilePath 指向 /author/{我的 uuid}；沒有 uuid 時為 null', async () => {
+      const a = await setup()
+      expect(a.s.publicProfilePath.value).toBe('/author/me-uuid')
+      vi.resetModules()
+      const b = await setup({ uuid: undefined })
+      expect(b.s.publicProfilePath.value).toBeNull()
+    })
+  })
 })
