@@ -217,4 +217,60 @@ describe('real articleService.getArticles 篩選參數（後端 2026-09-27 契�
 
     expect(sentParams()).toEqual({ page: 1, size: 10 })
   })
+
+  it('authorUuids → 以逗號分隔的單一 authorUuids 參數送出', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue(emptyPage)
+
+    await articleService.getArticles(1, 12, '全部', '', { authorUuids: ['u-1', 'u-2'] })
+
+    expect(sentParams()).toEqual({ page: 1, size: 12, authorUuids: 'u-1,u-2' })
+  })
+
+  it('publishedWithinDays → 數值原樣送出；未提供或 <= 0 時不送', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue(emptyPage)
+
+    await articleService.getArticles(1, 12, '全部', '', { publishedWithinDays: 30 })
+    expect(sentParams()).toEqual({ page: 1, size: 12, publishedWithinDays: 30 })
+
+    vi.clearAllMocks()
+    vi.mocked(apiClient.get).mockResolvedValue(emptyPage)
+    await articleService.getArticles(1, 12, '全部', '', { publishedWithinDays: 0 })
+    expect(sentParams()).toEqual({ page: 1, size: 12 })
+  })
+
+  it('sort → 原樣送出 latest / popular / commented', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue(emptyPage)
+
+    await articleService.getArticles(2, 12, '全部', '', { sort: 'popular' })
+
+    expect(sentParams()).toEqual({ page: 2, size: 12, sort: 'popular' })
+  })
+
+  it('全部篩選同時帶入 → 每個參數各自序列化', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue(emptyPage)
+
+    await articleService.getArticles(3, 12, '全部', '', {
+      tags: ['vue-3'], categorySlugs: ['backend'], authorUuids: ['u-1'], publishedWithinDays: 90, sort: 'commented',
+    })
+
+    expect(sentParams()).toEqual({
+      page: 3, size: 12, tags: 'vue-3', categorySlug: 'backend', authorUuids: 'u-1', publishedWithinDays: 90, sort: 'commented',
+    })
+  })
+
+  it('mapArticle 映射 authorUuid；後端缺漏時為 null', async () => {
+    const base = {
+      title: 't', summary: 's', coverImageUrl: null, authorNickname: 'Yuan', viewCount: 1,
+      likeCount: 0, commentCount: 0, publishedAt: '2026-01-01', tags: [], slug: 'x',
+    }
+    vi.mocked(apiClient.get).mockResolvedValue({
+      records: [{ ...base, uuid: 'a-1', authorUuid: 'author-uuid-1' }, { ...base, uuid: 'a-2' }],
+      current: 1, size: 12, pages: 1, total: 2,
+    })
+
+    const result = await articleService.getArticles(1, 12, '全部', '')
+
+    expect(result.records[0]!.authorUuid).toBe('author-uuid-1')
+    expect(result.records[1]!.authorUuid).toBeNull()
+  })
 })

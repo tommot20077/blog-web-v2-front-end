@@ -9,6 +9,7 @@ import { isArticleBookmarked, isArticleLiked } from './articleInteractionMockSta
 
 type MockCategoryOption = CategoryOption & { uuid: string };
 type MockArticleItem = ArticleItem & { categories: string[] };
+type MockArticleSeed = Omit<MockArticleItem, 'authorUuid'>;
 
 const yuan = MOCK_AUTHOR_PROFILES.yuan.nickname;
 const han = MOCK_AUTHOR_PROFILES.han.nickname;
@@ -23,7 +24,7 @@ function slugifyTag(tag: string): string {
   return tag.toLowerCase().replace(/\s+/g, '-').replace(/\//g, '-');
 }
 
-const articles2023: MockArticleItem[] = [
+const articles2023: MockArticleSeed[] = [
   {
     uuid: 'a-2023-01', title: '為什麼我又重寫了一次 useTheme()',
     summary: '從 v-bind:class 到 CSS variables，再到 useTheme composable，兩年內的第三次重構，這次我終於想清楚了。',
@@ -98,7 +99,7 @@ const articles2023: MockArticleItem[] = [
   },
 ];
 
-const articles2024: MockArticleItem[] = [
+const articles2024: MockArticleSeed[] = [
   {
     uuid: 'a-2024-01', title: '我把 React 加進原本純 Vue 的專案，後悔了三件事',
     summary: '為了 hire 而引入 React，預期省的時間都被吃掉了。寫給想 hybrid 的 lead 看的決策後悔錄。',
@@ -161,7 +162,7 @@ const articles2024: MockArticleItem[] = [
   },
 ];
 
-const articles2025_2026: MockArticleItem[] = [
+const articles2025_2026: MockArticleSeed[] = [
   {
     uuid: 'a-2025-01', title: 'Vue 3.5 的 useTemplateRef 改寫了我所有 ref 的習慣',
     summary: '不再 const el = ref 加 defineExpose。useTemplateRef 把流程縮成一行，且 type 推得更準。',
@@ -221,11 +222,16 @@ function withTagRefs<T extends { tags: string[] }>(article: T): T & { tagRefs: A
   };
 }
 
+// mock 作者以 nickname 衍生穩定的假 authorUuid，對齊 real mapper 的 authorUuid 欄位（供 authorUuids 篩選）。
+function withAuthorUuid<T extends { authorNickname: string }>(article: T): T & { authorUuid: string } {
+  return { ...article, authorUuid: `mock-author-${article.authorNickname}` };
+}
+
 export const allMockArticles: MockArticleItem[] = [
   ...articles2023,
   ...articles2024,
   ...articles2025_2026,
-].map(withTagRefs);
+].map(withAuthorUuid).map(withTagRefs);
 
 export function getMockArticleDetail(uuid: string): ArticleDetailItem | null {
   const base = allMockArticles.find(a => a.uuid === uuid);

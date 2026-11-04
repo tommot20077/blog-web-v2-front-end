@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue'
-import type { ArticleItem } from '../api/articleService'
+import type { ArticleListFilters } from '../api/articleService'
 
 type Sort = 'latest' | 'popular' | 'commented'
 type View = 'grid' | 'list'
@@ -38,38 +38,25 @@ export function useArticleFilters() {
     (dateRange.value !== 'any' ? 1 : 0)
   )
 
-  function filterAndSort(articles: ArticleItem[]): ArticleItem[] {
-    let r = [...articles]
-
-    if (selTags.value.length)
-      r = r.filter(a => selTags.value.every(t => a.tags.includes(t)))
-
-    // 分類不在此過濾：列表 API 不回傳 categories，前端過濾只會把文章全數濾掉。
-    // 分類篩選由呼叫端以 selCats（slug）交給後端 categorySlug 參數處理。
-
-    if (selAuthors.value.length)
-      r = r.filter(a => selAuthors.value.includes(a.authorNickname))
-
-    if (dateRange.value !== 'any') {
-      const days = parseInt(dateRange.value)
-      const cutoff = Date.now() - days * 86400000
-      r = r.filter(a => new Date(a.publishedAt).getTime() >= cutoff)
+  /**
+   * UI 狀態 → 後端 `GET /api/v1/articles` 查詢參數（SEC-04 第 2 段：篩選／排序全在伺服器端）。
+   * selTags 存 slug、selCats 存分類 slug、selAuthors 存 authorUuid；dateRange 'any' 不帶 publishedWithinDays。
+   */
+  const listFilters = computed<ArticleListFilters>(() => {
+    const f: ArticleListFilters = {
+      tags: [...selTags.value],
+      categorySlugs: [...selCats.value],
+      authorUuids: [...selAuthors.value],
+      sort: sort.value,
     }
-
-    if (sort.value === 'popular')
-      r.sort((a, b) => b.viewCount - a.viewCount)
-    else if (sort.value === 'commented')
-      r.sort((a, b) => b.commentCount - a.commentCount)
-    else
-      r.sort((a, b) => b.publishedAt.localeCompare(a.publishedAt))
-
-    return r
-  }
+    if (dateRange.value !== 'any') f.publishedWithinDays = parseInt(dateRange.value)
+    return f
+  })
 
   return {
     selTags, selCats, selAuthors, dateRange, sort, view, paging,
     toggleTag, toggleCat, toggleAuthor,
     setDateRange, setSort, setView, setPaging,
-    clearAll, totalActive, filterAndSort,
+    clearAll, totalActive, listFilters,
   }
 }

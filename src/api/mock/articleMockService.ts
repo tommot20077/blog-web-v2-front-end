@@ -41,6 +41,28 @@ export function getArticlesMock(
         filtered = filtered.filter(a => a.categories.some(c => categorySlugs.includes(c.toLowerCase())))
       }
 
+      const authorUuids = filters.authorUuids ?? [];
+      if (authorUuids.length > 0) {
+        filtered = filtered.filter(a => a.authorUuid !== null && authorUuids.includes(a.authorUuid));
+      }
+      const days = filters.publishedWithinDays;
+      if (days !== undefined && days > 0) {
+        const cutoff = Date.now() - days * 86400000;
+        filtered = filtered.filter(a => new Date(a.publishedAt).getTime() >= cutoff);
+      }
+
+      // 4. 排序（對應後端：未知值退回 latest；每種排序附 id DESC tie-breaker，這裡以 uuid 降序代之）
+      const byUuidDesc = (a: ArticleItem, b: ArticleItem) => (a.uuid < b.uuid ? 1 : a.uuid > b.uuid ? -1 : 0);
+      const sorted = [...filtered];
+      if (filters.sort === 'popular') {
+        sorted.sort((a, b) => b.viewCount - a.viewCount || byUuidDesc(a, b));
+      } else if (filters.sort === 'commented') {
+        sorted.sort((a, b) => b.commentCount - a.commentCount || byUuidDesc(a, b));
+      } else {
+        sorted.sort((a, b) => b.publishedAt.localeCompare(a.publishedAt) || byUuidDesc(a, b));
+      }
+      filtered = sorted;
+
       const total = filtered.length;
       const pages = Math.ceil(total / size);
       const start = (page - 1) * size;

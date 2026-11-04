@@ -1,21 +1,3 @@
-import type { ArticleItem } from '../api/articleService'
-
-function makeArticle(overrides: Partial<ArticleItem> = {}): ArticleItem {
-  return {
-    uuid: 'a1',
-    title: 'Test article',
-    summary: 'summary',
-    coverImageUrl: null,
-    authorNickname: 'Yuan',
-    viewCount: 100,
-    likeCount: 10,
-    commentCount: 5,
-    publishedAt: '2026-04-01',
-    tags: ['vue 3', 'frontend'],
-    ...overrides,
-  }
-}
-
 describe('useArticleFilters', () => {
   const loadFilters = async () => {
     vi.resetModules()
@@ -159,87 +141,19 @@ describe('useArticleFilters', () => {
     expect(totalActive.value).toBe(3)
   })
 
-  // ── filterAndSort ─────────────────────────────────────────────────────────
+  // ── listFilters：UI 狀態 → 後端查詢參數 ────────────────────────────────────
 
-  it('無 filter 時 filterAndSort 回傳全部文章', async () => {
-    const articles = [makeArticle({ uuid: 'a1' }), makeArticle({ uuid: 'a2' })]
-    const { filterAndSort } = await loadFilters()
-    expect(filterAndSort(articles)).toHaveLength(2)
+  it('listFilters 預設：空篩選、sort=latest、不帶 publishedWithinDays', async () => {
+    const { listFilters } = await loadFilters()
+    expect(listFilters.value).toEqual({ tags: [], categorySlugs: [], authorUuids: [], sort: 'latest' })
+    expect(listFilters.value).not.toHaveProperty('publishedWithinDays')
   })
 
-  it('tag filter 使用 AND 邏輯：文章必須含全部選中的 tag', async () => {
-    const articles = [
-      makeArticle({ uuid: 'a1', tags: ['vue 3', 'tdd'] }),
-      makeArticle({ uuid: 'a2', tags: ['vue 3'] }),
-      makeArticle({ uuid: 'a3', tags: ['tdd'] }),
-    ]
-    const { filterAndSort, toggleTag } = await loadFilters()
-    toggleTag('vue 3')
-    toggleTag('tdd')
-    const result = filterAndSort(articles)
-    expect(result).toHaveLength(1)
-    expect(result[0].uuid).toBe('a1')
-  })
-
-  it('filterAndSort 不以 categories 過濾：分類篩選交由伺服器端（列表 API 不回傳 categories，前端過濾只會把文章全數濾掉）', async () => {
-    const articles = [
-      makeArticle({ uuid: 'a1', categories: ['Frontend'] }),
-      makeArticle({ uuid: 'a2', categories: ['Backend'] }),
-      makeArticle({ uuid: 'a3', categories: [] }),
-    ]
-    const { filterAndSort, toggleCat } = await loadFilters()
-    toggleCat('frontend')
-    const result = filterAndSort(articles)
-    expect(result).toHaveLength(3)
-  })
-
-  it('sort popular 依 viewCount 降序', async () => {
-    const articles = [
-      makeArticle({ uuid: 'a1', viewCount: 100 }),
-      makeArticle({ uuid: 'a2', viewCount: 500 }),
-      makeArticle({ uuid: 'a3', viewCount: 200 }),
-    ]
-    const { filterAndSort, setSort } = await loadFilters()
-    setSort('popular')
-    const result = filterAndSort(articles)
-    expect(result[0].uuid).toBe('a2')
-    expect(result[1].uuid).toBe('a3')
-    expect(result[2].uuid).toBe('a1')
-  })
-
-  it('sort commented 依 commentCount 降序', async () => {
-    const articles = [
-      makeArticle({ uuid: 'a1', commentCount: 5 }),
-      makeArticle({ uuid: 'a2', commentCount: 20 }),
-    ]
-    const { filterAndSort, setSort } = await loadFilters()
-    setSort('commented')
-    const result = filterAndSort(articles)
-    expect(result[0].uuid).toBe('a2')
-  })
-
-  it('sort latest 依 publishedAt 降序', async () => {
-    const articles = [
-      makeArticle({ uuid: 'a1', publishedAt: '2026-01-01' }),
-      makeArticle({ uuid: 'a2', publishedAt: '2026-04-01' }),
-    ]
-    const { filterAndSort } = await loadFilters()
-    const result = filterAndSort(articles)
-    expect(result[0].uuid).toBe('a2')
-  })
-
-  it('date filter 30d 過濾掉舊文章', async () => {
-    const now = new Date()
-    const recent = new Date(now.getTime() - 10 * 86400000).toISOString().slice(0, 10)
-    const old = new Date(now.getTime() - 60 * 86400000).toISOString().slice(0, 10)
-    const articles = [
-      makeArticle({ uuid: 'new', publishedAt: recent }),
-      makeArticle({ uuid: 'old', publishedAt: old }),
-    ]
-    const { filterAndSort, setDateRange } = await loadFilters()
-    setDateRange('30')
-    const result = filterAndSort(articles)
-    expect(result).toHaveLength(1)
-    expect(result[0].uuid).toBe('new')
+  it('listFilters 對應：selTags→tags、selCats→categorySlugs、selAuthors→authorUuids、dateRange→publishedWithinDays、sort', async () => {
+    const { listFilters, toggleTag, toggleCat, toggleAuthor, setDateRange, setSort } = await loadFilters()
+    toggleTag('vue-3'); toggleCat('backend'); toggleAuthor('author-uuid-1'); setDateRange('90'); setSort('commented')
+    expect(listFilters.value).toEqual({
+      tags: ['vue-3'], categorySlugs: ['backend'], authorUuids: ['author-uuid-1'], publishedWithinDays: 90, sort: 'commented',
+    })
   })
 })
