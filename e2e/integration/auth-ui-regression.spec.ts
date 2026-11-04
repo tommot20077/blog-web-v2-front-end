@@ -130,9 +130,10 @@ test.describe('Auth UI 回歸測試（T1-T5 缺陷釘選）', () => {
   })
 
   test('T5: toast 定位與樣式不應貼齊左上角、且需有非透明卡片背景', async ({ page }) => {
-    // 以已存在的 seed email 觸發「該信箱已被註冊」錯誤 toast（global-setup 保證此帳號存在）
-    await page.getByTestId('auth-register-field-email').fill('admin@test.local')
-    await page.getByTestId('auth-register-field-username').fill(`dup_user_${Date.now()}`)
+    // SEC-14／Q8：重複 email 現在回成功、不再出錯，改以已存在的 seed username 觸發
+    // 「該用戶名已被使用」錯誤 toast（global-setup 保證 admin_e2e 存在；email 用唯一值）
+    await page.getByTestId('auth-register-field-email').fill(`dup_${Date.now()}@test.local`)
+    await page.getByTestId('auth-register-field-username').fill('admin_e2e')
     await page.getByTestId('auth-register-field-nickname').fill('Dup Test')
     await page.getByTestId('auth-register-field-password').fill('Test1234!')
     await page.getByTestId('auth-register-submit').click()

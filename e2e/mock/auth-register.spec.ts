@@ -15,8 +15,10 @@ test.describe('註冊流程', () => {
 
     const success = page.getByTestId('auth-register-success')
     await expect(success).toBeVisible({ timeout: 5000 })
-    await expect(success).toContainText('帳號已建立。')
-    await expect(success).toContainText('我們寄了一封驗證信到')
+    // SEC-14／Q8（Yuan 核准的規格變更）：email 已存在時後端也回成功，
+    // 所以文案改為中性，不再斷言「帳號已建立」「我們寄了一封驗證信到」。
+    await expect(success).toContainText('請查收你的信箱。')
+    await expect(success).toContainText('如果這個信箱可以註冊')
 
     // 停在原頁、表單被成功畫面取代（而不是跳去 /login）
     await expect(page).toHaveURL('/register')
@@ -31,13 +33,29 @@ test.describe('註冊流程', () => {
     await expect(page).toHaveURL('/login')
   })
 
-  test('使用已存在的 Email 註冊顯示錯誤 toast', async ({ page }) => {
+  // SEC-14／Q8：email 已存在 → 與新註冊完全相同的成功畫面，不洩漏帳號是否存在
+  test('使用已存在的 Email 註冊顯示與新註冊相同的成功畫面', async ({ page }) => {
     const registerPage = new AuthRegisterPage(page)
     await registerPage.goto()
 
     await registerPage.register(AUTHOR_CREDENTIALS.email, 'someuser', 'SomeNick', 'Password1!')
 
-    await expect(page.getByText(/已被註冊/)).toBeVisible({ timeout: 5000 })
+    const success = page.getByTestId('auth-register-success')
+    await expect(success).toBeVisible({ timeout: 5000 })
+    await expect(success).toContainText('請查收你的信箱。')
+    await expect(page.getByTestId('auth-register-success-email')).toHaveText(AUTHOR_CREDENTIALS.email)
+    await expect(page.getByText(/已被註冊/)).toHaveCount(0)
+  })
+
+  // mock 的 MockUser 沒有 username 欄位，以 nickname 重複驗證「明確錯誤」路徑（seed 暱稱 'Admin'）
+  test('使用已存在的暱稱註冊顯示錯誤 toast', async ({ page }) => {
+    const registerPage = new AuthRegisterPage(page)
+    await registerPage.goto()
+
+    await registerPage.register(`fresh-${Date.now()}@test.com`, 'someuser', 'Admin', 'Password1!')
+
+    await expect(page.getByText('該暱稱已被使用')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByTestId('auth-register-success')).toHaveCount(0)
   })
 
   test('點「已有帳號？登入」連結導至登入頁', async ({ page }) => {

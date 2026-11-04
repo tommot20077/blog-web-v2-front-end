@@ -43,8 +43,8 @@ async function handleResend() {
       </svg>
     </div>
     <span class="success__tag">Step 02 / 02</span>
-    <h1 class="success__title">帳號已建立。</h1>
-    <p class="success__body">我們寄了一封驗證信到</p>
+    <h1 class="success__title">請查收你的信箱。</h1>
+    <p class="success__body">如果這個信箱可以註冊，我們已寄出驗證信到</p>
     <span
       data-testid="auth-register-success-email"
       class="success__mail"
@@ -69,7 +69,15 @@ async function handleResend() {
       </button>
     </div>
 
-    <p class="success__hint">連結 24 小時內有效。記得看看垃圾郵件匣。</p>
+    <p class="success__hint">
+      這個信箱若先前已註冊過，請直接前往登入，或
+      <RouterLink
+        data-testid="auth-register-success-forgot"
+        to="/forgot-password"
+        class="success__link"
+      >使用忘記密碼</RouterLink>。
+    </p>
+    <p class="success__hint success__hint--tight">連結 24 小時內有效。記得看看垃圾郵件匣。</p>
   </div>
 </template>
 
@@ -207,5 +215,14 @@ async function handleResend() {
   margin: 22px 0 0;
   line-height: 1.7;
   text-wrap: pretty;
+}
+.success__hint--tight {
+  margin-top: 6px;
+}
+
+.success__link {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 </style>

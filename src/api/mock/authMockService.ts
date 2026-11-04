@@ -43,9 +43,14 @@ export function loginMock(payload: LoginPayload): Promise<AuthTokens> {
 
 export function registerMock(payload: RegisterPayload): Promise<void> {
   return mockDelay(() => {
-    const exists = registeredUsers.some((u) => u.email === payload.email);
-    if (exists) {
-      throw new Error('此 Email 已被註冊');
+    // 對齊後端 SEC-14／Q8：檢查順序 username → nickname → email。
+    // MockUser 沒有 username 欄位，故只檢查 nickname。
+    if (registeredUsers.some((u) => u.nickname === payload.nickname)) {
+      throw new Error('該暱稱已被使用');
+    }
+    // email 已存在：不建帳號、不報錯，與新註冊回相同成功（避免帳號枚舉）
+    if (registeredUsers.some((u) => u.email === payload.email)) {
+      return;
     }
     const newUser: MockUser = {
       uuid: `user-uuid-${Date.now()}`,
