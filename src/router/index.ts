@@ -159,10 +159,9 @@ const router = createRouter({
       meta: { requiresAuth: true, requiredRole: 'AUTHOR' as UserRole, layout: 'shell' as const }
     },
     {
-      path: '/author/:handle',
+      path: '/author/:uuid',
       name: 'author',
-      component: () => import('../views/AuthorView.vue'),
-      props: true
+      component: () => import('../views/AuthorView.vue')
     },
     {
       path: '/:pathMatch(.*)*',
