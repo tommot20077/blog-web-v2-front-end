@@ -83,7 +83,12 @@ apiClient.interceptors.response.use(
     // 非 401 或無 response：直接 reject
     if (!error.response || error.response.status !== 401) {
       const message = error.response?.data?.message ?? error.message
-      return Promise.reject(markErrorHandled(new Error(message)))
+      // 附上 HTTP status 與業務碼，讓呼叫端能區分「不存在（404／A0101）」與其他失敗（不影響 401 refresh 流程）
+      const failure = Object.assign(new Error(message), {
+        status: error.response?.status,
+        code: error.response?.data?.code,
+      })
+      return Promise.reject(markErrorHandled(failure))
     }
 
     // /auth/refresh 本身的 401：不再觸發 refresh（防無限迴圈）

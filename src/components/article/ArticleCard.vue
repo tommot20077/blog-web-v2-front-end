@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router';
 import type { ArticleItem } from '../../api/articleService';
+import AuthorName from '../author/AuthorName.vue';
 
 const props = defineProps<{
   article: ArticleItem;
@@ -35,7 +36,7 @@ const goToDetail = () => {
 
       <!-- 作者 · 日期 -->
       <div class="flex items-center gap-3 text-xs opacity-50 font-medium mb-4">
-        <span>{{ article.authorNickname }}</span>
+        <AuthorName :uuid="article.authorUuid" :nickname="article.authorNickname" />
         <span>·</span>
         <span>{{ article.publishedAt }}</span>
         <span>·</span>

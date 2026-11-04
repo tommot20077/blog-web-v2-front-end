@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onUnmounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { useSettings } from '../composables/useSettings'
 import SettingToggle from '../components/settings/SettingToggle.vue'
 import SettingFieldGroup from '../components/settings/SettingFieldGroup.vue'
@@ -13,6 +13,7 @@ const {
   removeAvatar,
   email, pwCurrent, pwNew, pwConfirm, accountStatus, saveAccount,
   github, twitter, linkedin, socialStatus, saveSocial,
+  githubError, twitterError, linkedinError, hasSocialErrors, websiteError, publicProfilePath,
   editorMode, wordUnit, autosave, writingStatus, saveWriting,
   nComment, nLike, nReview, nFollow, nNewsletter, notifStatus, saveNotifications,
   deleteAccount,
@@ -135,6 +136,8 @@ async function handleDeleteAccount() {
         <div class="st-section-head">
           <h2>個人資料</h2>
           <p>管理你的公開個人資訊。</p>
+          <p class="st-public-note" data-testid="settings-public-note">以下資料會顯示在你的公開個人頁</p>
+          <RouterLink v-if="publicProfilePath" :to="publicProfilePath" class="st-public-link">查看我的公開頁</RouterLink>
         </div>
 
         <!-- Avatar -->
@@ -187,12 +190,19 @@ async function handleDeleteAccount() {
 
         <!-- Website -->
         <SettingFieldGroup label="個人網站">
-          <input class="st-input" v-model="website" placeholder="https://yoursite.com" />
+          <input
+            class="st-input"
+            v-model="website"
+            placeholder="https://yoursite.com"
+            :aria-invalid="websiteError ? 'true' : undefined"
+            :aria-describedby="websiteError ? 'website-error' : undefined"
+          />
+          <p v-if="websiteError" id="website-error" class="st-field-error" data-testid="website-error">{{ websiteError }}</p>
         </SettingFieldGroup>
 
         <div class="st-footer-row">
           <SettingSaveToast :status="profileStatus" />
-          <button type="button" class="st-btn-primary" @click="saveProfile">儲存變更</button>
+          <button type="button" class="st-btn-primary" :disabled="!!websiteError" @click="saveProfile">儲存變更</button>
         </div>
       </section>
 
@@ -231,32 +241,40 @@ async function handleDeleteAccount() {
         <div class="st-section-head">
           <h2>社群連結</h2>
           <p>在個人頁面展示你的社群媒體連結。</p>
+          <p class="st-public-note">以下資料會顯示在你的公開個人頁</p>
+          <RouterLink v-if="publicProfilePath" :to="publicProfilePath" class="st-public-link">查看我的公開頁</RouterLink>
         </div>
 
         <SettingFieldGroup label="GitHub">
           <div class="st-prefix-input">
             <span class="st-prefix">github.com/</span>
-            <input class="st-input" data-testid="social-github-input" v-model="github" placeholder="your-username" />
+            <input class="st-input" data-testid="social-github-input" v-model="github" placeholder="your-username"
+              :aria-invalid="githubError ? 'true' : undefined" :aria-describedby="githubError ? 'social-github-error' : undefined" />
           </div>
+          <p v-if="githubError" id="social-github-error" class="st-field-error" data-testid="social-github-error">{{ githubError }}</p>
         </SettingFieldGroup>
 
         <SettingFieldGroup label="Twitter / X">
           <div class="st-prefix-input">
             <span class="st-prefix">@</span>
-            <input class="st-input" data-testid="social-twitter-input" v-model="twitter" placeholder="your-handle" />
+            <input class="st-input" data-testid="social-twitter-input" v-model="twitter" placeholder="your-handle"
+              :aria-invalid="twitterError ? 'true' : undefined" :aria-describedby="twitterError ? 'social-twitter-error' : undefined" />
           </div>
+          <p v-if="twitterError" id="social-twitter-error" class="st-field-error" data-testid="social-twitter-error">{{ twitterError }}</p>
         </SettingFieldGroup>
 
         <SettingFieldGroup label="LinkedIn">
           <div class="st-prefix-input">
             <span class="st-prefix">linkedin.com/in/</span>
-            <input class="st-input" data-testid="social-linkedin-input" v-model="linkedin" placeholder="your-profile" />
+            <input class="st-input" data-testid="social-linkedin-input" v-model="linkedin" placeholder="your-profile"
+              :aria-invalid="linkedinError ? 'true' : undefined" :aria-describedby="linkedinError ? 'social-linkedin-error' : undefined" />
           </div>
+          <p v-if="linkedinError" id="social-linkedin-error" class="st-field-error" data-testid="social-linkedin-error">{{ linkedinError }}</p>
         </SettingFieldGroup>
 
         <div class="st-footer-row">
           <SettingSaveToast :status="socialStatus" />
-          <button type="button" class="st-btn-primary" data-testid="social-save-btn" @click="saveSocial">儲存連結</button>
+          <button type="button" class="st-btn-primary" data-testid="social-save-btn" :disabled="hasSocialErrors" @click="saveSocial">儲存連結</button>
         </div>
       </section>
 
@@ -410,5 +428,8 @@ async function handleDeleteAccount() {
     height: auto;
   }
 }
+.st-public-note { margin: 8px 0 0; font-size: 12px; color: var(--muted); }
+.st-public-link { display: inline-block; margin-top: 4px; font-size: 12px; color: var(--accent); }
+.st-field-error { margin: 6px 0 0; font-size: 12px; color: var(--danger, #c0392b); }
+.st-btn-primary:disabled { opacity: .5; cursor: not-allowed; }
 </style>
-

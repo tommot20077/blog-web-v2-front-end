@@ -22,6 +22,7 @@ function mapBookmarkArticle(article: typeof allMockArticles[number]): BookmarkAr
     title: article.title,
     summary: article.summary,
     coverImageUrl: article.coverImageUrl,
+    authorUuid: article.authorUuid ?? undefined,
     authorNickname: article.authorNickname,
     status: 'PUBLISHED',
     viewCount: article.viewCount,

@@ -308,6 +308,30 @@ describe('apiClient', () => {
       await expect(responseRejected(error)).rejects.toThrow('伺服器內部錯誤')
     })
 
+    it('404 錯誤帶上 HTTP status 與後端業務碼，供呼叫端判斷「不存在」（公開作者頁 A0101）', async () => {
+      const error = {
+        config: createConfig('/api/v1/users/x/profile'),
+        response: { status: 404, data: { code: 'A0101', message: '用戶不存在', data: null } },
+        isAxiosError: true,
+        message: 'Not Found',
+      }
+
+      await expect(responseRejected(error)).rejects.toMatchObject({ status: 404, code: 'A0101', message: '用戶不存在' })
+    })
+
+    it('無 response（網路錯誤）時 status／code 為 undefined', async () => {
+      const error = {
+        config: createConfig('/api/v1/articles'),
+        response: undefined,
+        message: 'Network Error',
+        isAxiosError: true,
+      }
+
+      const rejected = await responseRejected(error).catch((e: unknown) => e) as { status?: number; code?: string }
+      expect(rejected.status).toBeUndefined()
+      expect(rejected.code).toBeUndefined()
+    })
+
     it('無 response body 時使用預設錯誤訊息', async () => {
       const error = {
         config: createConfig('/api/v1/articles'),

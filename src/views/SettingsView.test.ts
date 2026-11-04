@@ -1,4 +1,7 @@
-import { screen } from '@testing-library/vue'
+import { screen, fireEvent } from '@testing-library/vue'
+import { flushPromises } from '@vue/test-utils'
+import { useAuthStore } from '../stores/auth'
+import { createMockUser } from '../test-utils'
 import { renderWithRouterAsync } from '../test-utils'
 import SettingsView from './SettingsView.vue'
 
@@ -56,5 +59,83 @@ describe('SettingsView — 樹狀導覽 + query param deep-link', () => {
   it('危險操作區塊不再有「匯出資料」按鈕', async () => {
     await renderWithRouterAsync(SettingsView, {}, '/settings?section=danger')
     expect(screen.queryByRole('button', { name: '匯出資料' })).not.toBeInTheDocument()
+  })
+})
+
+describe('SettingsView — 公開個人頁', () => {
+  it('個人資料區塊明示「以下資料會顯示在你的公開個人頁」', async () => {
+    await renderWithRouterAsync(SettingsView, {}, '/settings')
+    expect(screen.getByText('以下資料會顯示在你的公開個人頁')).toBeInTheDocument()
+  })
+
+  it('社群連結區塊同樣有公開說明', async () => {
+    await renderWithRouterAsync(SettingsView, {}, '/settings?section=social')
+    expect(screen.getByText('以下資料會顯示在你的公開個人頁')).toBeInTheDocument()
+  })
+
+  it('「查看我的公開頁」連到 /author/{我的 uuid}', async () => {
+    const { pinia } = await renderWithRouterAsync(SettingsView, {}, '/settings')
+    useAuthStore(pinia).user = createMockUser({ uuid: 'me-123' })
+    await flushPromises()
+    expect(screen.getByRole('link', { name: '查看我的公開頁' }).getAttribute('href')).toBe('/author/me-123')
+  })
+
+  it('尚未取得使用者資料時不顯示「查看我的公開頁」', async () => {
+    await renderWithRouterAsync(SettingsView, {}, '/settings')
+    expect(screen.queryByRole('link', { name: '查看我的公開頁' })).toBeNull()
+  })
+
+  describe('社群連結：格式錯誤時無法儲存並顯示提示', () => {
+    it('貼網址 → 顯示提示、輸入框標示 aria-invalid、儲存鈕停用', async () => {
+      await renderWithRouterAsync(SettingsView, {}, '/settings?section=social')
+      const input = screen.getByTestId('social-github-input')
+      expect(input.getAttribute('aria-invalid')).not.toBe('true')
+      await fireEvent.update(input, 'https://github.com/octocat')
+      expect(screen.getByTestId('social-github-error').textContent).toContain('帳號名稱')
+      expect(input.getAttribute('aria-invalid')).toBe('true')
+      expect(screen.getByTestId('social-save-btn')).toBeDisabled()
+    })
+
+    it('aria-describedby 只在有錯誤時綁定（避免指向不存在的 id）', async () => {
+      await renderWithRouterAsync(SettingsView, {}, '/settings?section=social')
+      const input = screen.getByTestId('social-github-input')
+      expect(input.getAttribute('aria-describedby')).toBeNull()
+      await fireEvent.update(input, 'a/b')
+      expect(input.getAttribute('aria-describedby')).toBe('social-github-error')
+      expect(document.getElementById('social-github-error')).not.toBeNull()
+      await fireEvent.update(input, 'octocat')
+      expect(input.getAttribute('aria-describedby')).toBeNull()
+    })
+
+    it('改成合格帳號名稱 → 提示消失、儲存鈕恢復', async () => {
+      await renderWithRouterAsync(SettingsView, {}, '/settings?section=social')
+      const input = screen.getByTestId('social-github-input')
+      await fireEvent.update(input, 'a/b')
+      expect(screen.getByTestId('social-save-btn')).toBeDisabled()
+      await fireEvent.update(input, 'octocat')
+      expect(screen.queryByTestId('social-github-error')).toBeNull()
+      expect(screen.getByTestId('social-save-btn')).not.toBeDisabled()
+    })
+
+    it('twitter／linkedin 各自驗證', async () => {
+      await renderWithRouterAsync(SettingsView, {}, '/settings?section=social')
+      await fireEvent.update(screen.getByTestId('social-twitter-input'), '@@x')
+      await fireEvent.update(screen.getByTestId('social-linkedin-input'), 'a:b')
+      expect(screen.getByTestId('social-twitter-error')).toBeInTheDocument()
+      expect(screen.getByTestId('social-linkedin-error')).toBeInTheDocument()
+    })
+  })
+
+  describe('個人網站：格式錯誤時無法儲存並顯示提示', () => {
+    it('javascript: → 顯示提示、儲存鈕停用；改成 https 後恢復', async () => {
+      await renderWithRouterAsync(SettingsView, {}, '/settings')
+      const input = screen.getByPlaceholderText('https://yoursite.com')
+      await fireEvent.update(input, 'javascript:alert(1)')
+      expect(screen.getByTestId('website-error').textContent).toContain('http')
+      expect(screen.getByRole('button', { name: '儲存變更' })).toBeDisabled()
+      await fireEvent.update(input, 'https://example.com')
+      expect(screen.queryByTestId('website-error')).toBeNull()
+      expect(screen.getByRole('button', { name: '儲存變更' })).not.toBeDisabled()
+    })
   })
 })

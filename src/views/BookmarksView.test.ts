@@ -73,6 +73,31 @@ describe('BookmarksView', () => {
     expect(screen.getByText('# Vue')).toBeInTheDocument()
   })
 
+  it('有 authorUuid → 作者名連到 /author/{uuid}，標題仍連到文章', async () => {
+    mockGetMyBookmarks.mockResolvedValue(page([bookmarkedArticle({ authorUuid: 'author-1' })]))
+    renderWithRouter(BookmarksView, {}, '/bookmarks')
+    await flushPromises()
+
+    expect(screen.getByRole('link', { name: 'Yuan' }).getAttribute('href')).toBe('/author/author-1')
+    expect(screen.getByRole('link', { name: '收藏文章' }).getAttribute('href')).toBe('/articles/bookmark-uuid')
+  })
+
+  it('沒有 authorUuid（收藏 API 未提供）→ 作者名純文字', async () => {
+    renderWithRouter(BookmarksView, {}, '/bookmarks')
+    await flushPromises()
+
+    expect(screen.getByText('Yuan')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Yuan' })).toBeNull()
+  })
+
+  it('不產生巢狀連結（<a> 內不得再有 <a>）', async () => {
+    mockGetMyBookmarks.mockResolvedValue(page([bookmarkedArticle({ authorUuid: 'author-1' })]))
+    const { container } = renderWithRouter(BookmarksView, {}, '/bookmarks')
+    await flushPromises()
+
+    expect(container.querySelector('a a')).toBeNull()
+  })
+
   it('空結果顯示 empty state', async () => {
     mockGetMyBookmarks.mockResolvedValue(page([]))
     renderWithRouter(BookmarksView, {}, '/bookmarks')

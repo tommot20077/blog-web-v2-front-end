@@ -6,6 +6,8 @@ export interface RecommendArticleResponse {
   slug: string
   summary: string
   authorNickname: string
+  /** 推薦的 Redis 舊快取最多 1 小時內為 null → AuthorName 退回純文字 */
+  authorUuid?: string | null
   viewCount: number
   likeCount: number
   publishedAt: string
@@ -20,6 +22,7 @@ interface BackendRecommend {
   slug: string
   summary: string
   authorNickname: string
+  authorUuid?: string | null
   tagNames: string[]
   viewCount: number
   likeCount: number
@@ -33,6 +36,7 @@ function mapBackendRecommend(raw: BackendRecommend): RecommendArticleResponse {
     slug: raw.slug,
     summary: raw.summary,
     authorNickname: raw.authorNickname,
+    authorUuid: raw.authorUuid ?? null,
     viewCount: raw.viewCount,
     likeCount: raw.likeCount,
     publishedAt: raw.publishedAt,
