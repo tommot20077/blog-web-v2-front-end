@@ -11,7 +11,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost",
+      "url": "http://localhost:9010",
       "description": "Generated server url"
     }
   ],
@@ -24,6 +24,10 @@
     {
       "name": "Auth",
       "description": "認證相關 API"
+    },
+    {
+      "name": "PublicAuthor",
+      "description": "公開作者 API（匿名可存取）"
     },
     {
       "name": "User",
@@ -46,6 +50,19 @@
             "schema": {
               "type": "string",
               "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
             }
           }
         ],
@@ -87,6 +104,19 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
+            }
           }
         ],
         "responses": {
@@ -127,6 +157,19 @@
             "schema": {
               "type": "string",
               "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
             }
           }
         ],
@@ -177,6 +220,19 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
+            }
           }
         ],
         "responses": {
@@ -200,6 +256,30 @@
         ],
         "summary": "取得 effective version config",
         "operationId": "get",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -219,6 +299,30 @@
         ],
         "summary": "更新 user override（partial）",
         "operationId": "update_1",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -258,6 +362,19 @@
             "schema": {
               "type": "string",
               "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
             }
           }
         ],
@@ -299,6 +416,19 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
+            }
           }
         ],
         "responses": {
@@ -330,6 +460,19 @@
             "schema": {
               "type": "string",
               "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
             }
           }
         ],
@@ -371,6 +514,19 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
+            }
           }
         ],
         "responses": {
@@ -402,6 +558,19 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
+            }
           }
         ],
         "responses": {
@@ -430,6 +599,19 @@
             "schema": {
               "type": "string",
               "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
             }
           }
         ],
@@ -470,6 +652,19 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
+            }
           }
         ],
         "responses": {
@@ -502,6 +697,28 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "uuid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
+            }
           }
         ],
         "responses": {
@@ -531,6 +748,28 @@
             "schema": {
               "type": "string",
               "format": "uuid"
+            }
+          },
+          {
+            "name": "uuid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
             }
           }
         ],
@@ -706,6 +945,30 @@
         "summary": "修改密碼",
         "description": "驗證舊密碼後更新密碼，所有現有 Token 將立即失效",
         "operationId": "changePassword",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -745,6 +1008,28 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "uuid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
+            }
           }
         ],
         "responses": {
@@ -773,6 +1058,28 @@
             "schema": {
               "type": "string",
               "format": "uuid"
+            }
+          },
+          {
+            "name": "uuid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
             }
           }
         ],
@@ -836,6 +1143,30 @@
         ],
         "summary": "建立 Series",
         "operationId": "create",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -866,6 +1197,30 @@
           "file-controller"
         ],
         "operationId": "uploadFile",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "multipart/form-data": {
@@ -906,6 +1261,19 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
+            }
           }
         ],
         "responses": {
@@ -935,6 +1303,19 @@
             "schema": {
               "type": "string",
               "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
             }
           }
         ],
@@ -1154,6 +1535,28 @@
         "operationId": "logout",
         "parameters": [
           {
+            "name": "uuid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
+            }
+          },
+          {
             "name": "refreshToken",
             "in": "cookie",
             "required": false,
@@ -1335,6 +1738,30 @@
           "article-controller"
         ],
         "operationId": "createArticle",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -1374,6 +1801,19 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
+            }
           }
         ],
         "responses": {
@@ -1405,6 +1845,19 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
+            }
           }
         ],
         "responses": {
@@ -1435,6 +1888,19 @@
             "schema": {
               "type": "string",
               "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
             }
           }
         ],
@@ -1477,6 +1943,19 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
+            }
           }
         ],
         "responses": {
@@ -1517,6 +1996,28 @@
             "schema": {
               "type": "string",
               "format": "uuid"
+            }
+          },
+          {
+            "name": "uuid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
             }
           }
         ],
@@ -1559,6 +2060,28 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "uuid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
+            }
           }
         ],
         "responses": {
@@ -1590,6 +2113,28 @@
             "schema": {
               "type": "string",
               "format": "uuid"
+            }
+          },
+          {
+            "name": "uuid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
             }
           }
         ],
@@ -1625,6 +2170,28 @@
         "operationId": "like_1",
         "parameters": [
           {
+            "name": "uuid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
+            }
+          },
+          {
             "name": "articleUuid",
             "in": "path",
             "required": true,
@@ -1654,6 +2221,28 @@
         "summary": "取消按讚（idempotent）",
         "operationId": "unlike_1",
         "parameters": [
+          {
+            "name": "uuid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
+            }
+          },
           {
             "name": "articleUuid",
             "in": "path",
@@ -1694,6 +2283,28 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "uuid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
+            }
           }
         ],
         "responses": {
@@ -1723,6 +2334,28 @@
             "schema": {
               "type": "string",
               "format": "uuid"
+            }
+          },
+          {
+            "name": "uuid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
             }
           }
         ],
@@ -1793,6 +2426,28 @@
               "type": "string",
               "default": "newest"
             }
+          },
+          {
+            "name": "uuid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
+            }
           }
         ],
         "responses": {
@@ -1822,6 +2477,28 @@
             "schema": {
               "type": "string",
               "format": "uuid"
+            }
+          },
+          {
+            "name": "uuid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
             }
           }
         ],
@@ -1858,6 +2535,28 @@
         "operationId": "bookmark",
         "parameters": [
           {
+            "name": "uuid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
+            }
+          },
+          {
             "name": "articleUuid",
             "in": "path",
             "required": true,
@@ -1887,6 +2586,28 @@
         "summary": "取消收藏（idempotent）",
         "operationId": "unbookmark",
         "parameters": [
+          {
+            "name": "uuid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
+            }
+          },
           {
             "name": "articleUuid",
             "in": "path",
@@ -1976,6 +2697,19 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
+            }
           }
         ],
         "responses": {
@@ -2007,6 +2741,19 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
+            }
           }
         ],
         "responses": {
@@ -2031,6 +2778,30 @@
         "summary": "更新個人資料",
         "description": "更新當前登入用戶的暱稱、個人簡介、網站、社群連結、頭貼與所在地",
         "operationId": "updateProfile",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -2063,6 +2834,30 @@
         "summary": "更新通知偏好",
         "description": "更新當前登入用戶的留言、按讚、審核、追蹤與電子報通知偏好",
         "operationId": "updateNotifications",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -2087,6 +2882,39 @@
         }
       }
     },
+    "/api/v1/users/{uuid}/profile": {
+      "get": {
+        "tags": [
+          "PublicAuthor"
+        ],
+        "summary": "取得公開作者頁資料",
+        "description": "匿名可存取。僅 ACTIVE 使用者；不存在、已刪除、未驗證、停權一律回 404（A0101），彼此不可區分",
+        "operationId": "getPublicProfile",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePublicProfileResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/users/me": {
       "get": {
         "tags": [
@@ -2095,6 +2923,30 @@
         "summary": "取得當前使用者資訊",
         "description": "回傳當前登入使用者的個人資料",
         "operationId": "getMe",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -2115,6 +2967,30 @@
         "summary": "刪除帳號",
         "description": "驗證密碼後將帳號標記為已刪除，所有現有 Token 將立即失效",
         "operationId": "deleteAccount",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -2145,6 +3021,30 @@
           "file-controller"
         ],
         "operationId": "getQuota",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -2166,6 +3066,28 @@
         ],
         "operationId": "getUserFiles",
         "parameters": [
+          {
+            "name": "uuid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
+            }
+          },
           {
             "name": "page",
             "in": "query",
@@ -2224,6 +3146,28 @@
         "operationId": "myBookmarks",
         "parameters": [
           {
+            "name": "uuid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
+            }
+          },
+          {
             "name": "page",
             "in": "query",
             "required": false,
@@ -2269,6 +3213,28 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "uuid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
             }
           }
         ],
@@ -2393,6 +3359,28 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "uuid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
+            }
           }
         ],
         "responses": {
@@ -2458,6 +3446,28 @@
               "type": "integer",
               "format": "int32"
             }
+          },
+          {
+            "name": "uuid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
+            }
           }
         ],
         "responses": {
@@ -2511,6 +3521,30 @@
           "search-controller"
         ],
         "operationId": "getHistory",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -2529,6 +3563,30 @@
           "search-controller"
         ],
         "operationId": "clearHistory",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -2640,6 +3698,28 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "uuid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
+            }
           }
         ],
         "responses": {
@@ -2668,6 +3748,28 @@
             "schema": {
               "type": "string",
               "format": "uuid"
+            }
+          },
+          {
+            "name": "uuid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
             }
           }
         ],
@@ -2699,6 +3801,28 @@
             "schema": {
               "type": "string",
               "format": "uuid"
+            }
+          },
+          {
+            "name": "uuid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
             }
           }
         ],
@@ -2759,6 +3883,38 @@
         }
       }
     },
+    "/api/v1/authors": {
+      "get": {
+        "tags": [
+          "PublicAuthor"
+        ],
+        "summary": "搜尋作者",
+        "description": "匿名可存取。只列 ACTIVE 且至少 1 篇已發布文章的作者；依已發布篇數 DESC、暱稱 ASC、uuid ASC 排序，固定最多 20 筆",
+        "operationId": "searchAuthors",
+        "parameters": [
+          {
+            "name": "keyword",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListAuthorSummaryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/articles/{uuid}/edit": {
       "get": {
         "tags": [
@@ -2773,6 +3929,19 @@
             "schema": {
               "type": "string",
               "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
             }
           }
         ],
@@ -2805,6 +3974,28 @@
             "schema": {
               "type": "string",
               "format": "uuid"
+            }
+          },
+          {
+            "name": "uuid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
             }
           },
           {
@@ -2873,6 +4064,28 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "uuid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
+            }
           }
         ],
         "responses": {
@@ -2912,6 +4125,28 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "uuid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
+            }
           }
         ],
         "responses": {
@@ -2941,6 +4176,28 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "uuid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
             }
           }
         ],
@@ -2995,6 +4252,28 @@
                 "PUBLISHED",
                 "ARCHIVED",
                 "REJECTED"
+              ]
+            }
+          },
+          {
+            "name": "uuid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
               ]
             }
           }
@@ -3101,6 +4380,28 @@
         "summary": "重置某 key 為系統預設",
         "operationId": "reset",
         "parameters": [
+          {
+            "name": "uuid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "AUTHOR",
+                "ADMIN"
+              ]
+            }
+          },
           {
             "name": "key",
             "in": "path",
@@ -4451,21 +5752,23 @@
           },
           "website": {
             "type": "string",
-            "description": "個人網站 URL",
+            "description": "個人網站 URL（只允許 http/https 絕對網址；空字串代表清除）",
             "example": "https://myblog.com",
             "maxLength": 255,
             "minLength": 0
           },
           "socialLinks": {
             "type": "string",
-            "description": "社群連結（JSON 格式）",
+            "description": "社群連結（JSON object）。value 為帳號名稱，不含網址（含 : 或 / 會被拒絕）；前端若要顯示連結須自行加平台固定前綴。允許單一前導 @。最多 10 項，key 限 [a-z0-9_]{1,32}，value 長度 ≤ 100，空字串代表未填",
             "example": {
-              "twitter": "@user"
+              "github": "octocat",
+              "twitter": "@user",
+              "linkedin": ""
             }
           },
           "avatarUrl": {
             "type": "string",
-            "description": "頭貼 URL",
+            "description": "頭貼 URL（http/https 絕對網址，或檔案上傳 API 回傳的 /api/v1/files/{uuid}/content；空字串代表清除）",
             "example": "https://cdn.example.com/avatar.png",
             "maxLength": 512,
             "minLength": 0
@@ -4519,6 +5822,92 @@
           "newsletter",
           "review"
         ]
+      },
+      "ApiResponsePublicProfileResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PublicProfileResponse"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "PublicProfileResponse": {
+        "type": "object",
+        "description": "公開作者頁的使用者資料",
+        "properties": {
+          "uuid": {
+            "type": "string",
+            "format": "uuid",
+            "description": "使用者公開 UUID"
+          },
+          "nickname": {
+            "type": "string",
+            "description": "暱稱"
+          },
+          "avatarUrl": {
+            "type": "string",
+            "description": "頭貼 URL（可為 null）"
+          },
+          "bio": {
+            "type": "string",
+            "description": "個人簡介（可為 null）"
+          },
+          "location": {
+            "type": "string",
+            "description": "所在地（可為 null）"
+          },
+          "website": {
+            "type": "string",
+            "description": "個人網站，僅 http(s)（可為 null）"
+          },
+          "socialLinks": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "社群帳號名稱；github／twitter／linkedin 恆存在，未填為 null"
+          },
+          "joinedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "帳號建立時間"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/Stats",
+            "description": "已發布文章統計"
+          }
+        }
+      },
+      "Stats": {
+        "type": "object",
+        "description": "已發布文章統計",
+        "properties": {
+          "publishedArticleCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "已發布文章篇數"
+          },
+          "totalViewCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "已發布文章瀏覽數總和（最多落後約 5 分鐘）"
+          },
+          "totalLikeCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "已發布文章按讚數總和"
+          }
+        }
       },
       "ApiResponseUserProfileResponse": {
         "type": "object",
@@ -5140,6 +6529,10 @@
           "authorNickname": {
             "type": "string"
           },
+          "authorUuid": {
+            "type": "string",
+            "format": "uuid"
+          },
           "tagNames": {
             "type": "array",
             "items": {
@@ -5200,6 +6593,10 @@
           "authorNickname": {
             "type": "string"
           },
+          "authorUuid": {
+            "type": "string",
+            "format": "uuid"
+          },
           "tagNames": {
             "type": "array",
             "items": {
@@ -5256,6 +6653,51 @@
           "timestamp": {
             "type": "integer",
             "format": "int64"
+          }
+        }
+      },
+      "ApiResponseListAuthorSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuthorSummaryResponse"
+            }
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "AuthorSummaryResponse": {
+        "type": "object",
+        "description": "作者下拉選單項目",
+        "properties": {
+          "uuid": {
+            "type": "string",
+            "format": "uuid",
+            "description": "作者公開 UUID"
+          },
+          "nickname": {
+            "type": "string",
+            "description": "暱稱"
+          },
+          "avatarUrl": {
+            "type": "string",
+            "description": "頭貼 URL（可為 null）"
+          },
+          "publishedArticleCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "已發布文章篇數"
           }
         }
       },
