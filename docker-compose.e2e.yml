@@ -73,6 +73,9 @@ services:
     ports:
       - "9010:9010"
     environment:
+      # 後端沒有啟用 dev/demo/e2e/test 任一 profile 時視為正式環境，缺 JWT_PRIVATE_KEY 會拒絕啟動；
+      # e2e profile 只用來標示非正式環境（允許臨時 JWT 金鑰），其餘設定仍由下方環境變數提供
+      SPRING_PROFILES_ACTIVE: e2e
       SERVER_PORT: "9010"
       DATABASE_URL: jdbc:postgresql://postgres:5432/blog_e2e
       DATABASE_USERNAME: e2e_user

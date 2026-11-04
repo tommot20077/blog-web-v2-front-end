@@ -148,6 +148,18 @@ describe('frontend CI workflow', () => {
     expect(backendService).toContain('MANAGEMENT_HEALTH_MAIL_ENABLED: "false"')
   })
 
+  // 後端 SEC-12／SEC-13（tommot20077/blog-web-v2#95）：沒有啟用 dev/demo/e2e/test 任一 profile 時視為正式環境，
+  // 缺 JWT_PRIVATE_KEY 會 fail-fast 拒絕啟動。e2e 堆疊必須明確標成 e2e profile，才會使用自動產生的臨時金鑰。
+  it('real-backend E2E runs the backend under the e2e Spring profile so it is not treated as production', () => {
+    const compose = readFileSync('docker-compose.e2e.yml', 'utf8')
+    const backendStart = compose.indexOf('  backend:')
+    const backendEnd = compose.indexOf('    depends_on:', backendStart)
+    const backendService = compose.slice(backendStart, backendEnd)
+
+    expect(backendService).toContain('SPRING_PROFILES_ACTIVE: e2e')
+    expect(backendService).not.toMatch(/SPRING_PROFILES_ACTIVE:.*prod/)
+  })
+
   it('real-backend E2E exposes the S3 public port 9000 for browser-loaded upload previews (SeaweedFS S3 listens on 8333)', () => {
     const compose = readFileSync('docker-compose.e2e.yml', 'utf8')
     const s3Start = compose.indexOf('  seaweedfs:')

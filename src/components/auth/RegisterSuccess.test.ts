@@ -35,6 +35,29 @@ describe('RegisterSuccess', () => {
     expect(getByTestId('auth-register-success-email').textContent).toContain('yuan@test.local');
   });
 
+  // SEC-14／Q8：email 已存在時後端也回成功（不建帳號、不寄驗證信），文案不得斷言兩者。
+  it('文案為中性：不斷言帳號已建立或驗證信一定寄出', () => {
+    const { getByTestId } = renderWithRouter(RegisterSuccess, {
+      props: { email: 'yuan@test.local' },
+    });
+
+    const text = getByTestId('auth-register-success').textContent ?? '';
+    expect(text).toContain('請查收你的信箱');
+    expect(text).toContain('如果這個信箱可以註冊');
+    expect(text).not.toContain('帳號已建立');
+    expect(text).not.toContain('已註冊成功');
+    expect(text).not.toContain('我們寄了一封驗證信到');
+  });
+
+  it('提供「忘記密碼」連結指向 /forgot-password', () => {
+    const { getByTestId } = renderWithRouter(RegisterSuccess, {
+      props: { email: 'yuan@test.local' },
+    });
+
+    const link = getByTestId('auth-register-success-forgot');
+    expect(link.getAttribute('href')).toBe('/forgot-password');
+  });
+
   it('「前往登入」連結指向 /login', () => {
     const { getByTestId } = renderWithRouter(RegisterSuccess, {
       props: { email: 'yuan@test.local' },
