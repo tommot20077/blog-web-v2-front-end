@@ -1,5 +1,8 @@
-import { ref, computed } from 'vue'
+import { ref, computed, type Ref } from 'vue'
 import type { ArticleListFilters } from '../api/articleService'
+
+/** 對應後端 MAX_VALUES_PER_FILTER */
+export const MAX_VALUES_PER_FILTER = 20
 
 type Sort = 'latest' | 'popular' | 'commented'
 type View = 'grid' | 'list'
@@ -20,9 +23,14 @@ export function useArticleFilters() {
   const view       = ref<View>(readLS('blog.art.view', 'grid') as View)
   const paging     = ref<Paging>(readLS('blog.art.paging', 'infinite') as Paging)
 
-  const toggleTag    = (t: string) => selTags.value    = selTags.value.includes(t)    ? selTags.value.filter(x => x !== t)    : [...selTags.value, t]
-  const toggleCat    = (c: string) => selCats.value    = selCats.value.includes(c)    ? selCats.value.filter(x => x !== c)    : [...selCats.value, c]
-  const toggleAuthor = (a: string) => selAuthors.value = selAuthors.value.includes(a) ? selAuthors.value.filter(x => x !== a) : [...selAuthors.value, a]
+  // 後端對 tags／categorySlug／authorUuids 各限 20 個，超過回 400（不截斷）；已達上限時不再加入，但仍可取消。
+  const toggleIn = (list: Ref<string[]>, v: string) => {
+    if (list.value.includes(v)) list.value = list.value.filter(x => x !== v)
+    else if (list.value.length < MAX_VALUES_PER_FILTER) list.value = [...list.value, v]
+  }
+  const toggleTag    = (t: string) => toggleIn(selTags, t)
+  const toggleCat    = (c: string) => toggleIn(selCats, c)
+  const toggleAuthor = (a: string) => toggleIn(selAuthors, a)
 
   const setDateRange = (r: DateRange) => { dateRange.value = r }
   const setSort      = (s: Sort)      => { sort.value = s;   localStorage.setItem('blog.art.sort',   s) }

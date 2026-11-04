@@ -156,4 +156,27 @@ describe('useArticleFilters', () => {
       tags: ['vue-3'], categorySlugs: ['backend'], authorUuids: ['author-uuid-1'], publishedWithinDays: 90, sort: 'commented',
     })
   })
+
+  // ── 多值上限（後端 MAX_VALUES_PER_FILTER = 20，超過回 400）────────────────────
+
+  it('toggleTag 已選 20 個時不再加入第 21 個，但仍可取消既有的', async () => {
+    const { selTags, toggleTag } = await loadFilters()
+    for (let i = 0; i < 21; i++) toggleTag(`t${i}`)
+    expect(selTags.value).toHaveLength(20)
+    expect(selTags.value).not.toContain('t20')
+    toggleTag('t0')
+    expect(selTags.value).toHaveLength(19)
+  })
+
+  it('toggleCat 已選 20 個時不再加入', async () => {
+    const { selCats, toggleCat } = await loadFilters()
+    for (let i = 0; i < 21; i++) toggleCat(`c${i}`)
+    expect(selCats.value).toHaveLength(20)
+  })
+
+  it('toggleAuthor 已選 20 個時不再加入', async () => {
+    const { selAuthors, toggleAuthor } = await loadFilters()
+    for (let i = 0; i < 21; i++) toggleAuthor(`u${i}`)
+    expect(selAuthors.value).toHaveLength(20)
+  })
 })

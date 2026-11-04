@@ -13,6 +13,8 @@ const total       = ref(0)
 const totalPages  = ref(0)
 const isLoading   = ref(false)   // 首頁／換頁／篩選變更的整頁載入
 const isLoadingMore = ref(false) // infinite 模式往下追加
+const loadMoreFailed = ref(false) // 追加失敗：顯示重試按鈕，不自動連打
+const exhausted    = ref(false) // 後端對範圍內的頁回空（資料變動）：視為到底，不再請求
 const page        = ref(1)       // pages 模式：目前頁；infinite 模式：已載入到第幾頁
 const PER_PAGE    = 12
 
@@ -38,6 +40,8 @@ async function loadPage(n: number) {
   const seq = ++fetchSeq
   isLoading.value = true
   isLoadingMore.value = false
+  loadMoreFailed.value = false
+  exhausted.value = false
   try {
     const result = await request(n)
     if (seq !== fetchSeq) return
@@ -59,24 +63,41 @@ function reload() {
   return loadPage(1)
 }
 
-/** infinite：追加下一頁；以 uuid 去重（翻頁間資料變動時 OFFSET 分頁可能重複） */
+/**
+ * infinite：追加下一頁；以 uuid 去重（翻頁間資料變動時 OFFSET 分頁可能重複）。
+ * real service 失敗時不丟錯而是回 `{records:[], total:0, pages:0}`，所以空頁不能照單全收：
+ * - 例外或 total=0 的空頁 → 視為失敗：保留 total／pages／page 與已載入紀錄，顯示重試按鈕
+ * - total>0 的空頁（期間有文章下架，total 偏大）→ 視為到底：同樣不覆寫，但不再請求、不顯示重試
+ */
 async function loadMore() {
-  if (isLoading.value || isLoadingMore.value) return
-  if (records.value.length >= total.value) return
+  if (isLoading.value || isLoadingMore.value || loadMoreFailed.value || exhausted.value) return
+  if (records.value.length >= total.value || page.value >= totalPages.value) return
   const seq = ++fetchSeq
   const next = page.value + 1
   isLoadingMore.value = true
   try {
     const result = await request(next)
     if (seq !== fetchSeq) return
+    if (result.records.length === 0) {
+      if (result.total > 0) exhausted.value = true
+      else loadMoreFailed.value = true
+      return
+    }
     const seen = new Set(records.value.map(a => a.uuid))
     records.value = [...records.value, ...result.records.filter(a => !seen.has(a.uuid))]
     total.value = result.total
     totalPages.value = result.pages
     page.value = next
+  } catch {
+    if (seq === fetchSeq) loadMoreFailed.value = true
   } finally {
     if (seq === fetchSeq) isLoadingMore.value = false
   }
+}
+
+function retryLoadMore() {
+  loadMoreFailed.value = false
+  loadMore()
 }
 
 // ── Categories（取自後端，以 slug 為值、名稱顯示）─────────────────────────────
@@ -113,6 +134,7 @@ function handleToggleTag(ref_: { name: string; slug: string }) {
 }
 function handleRemoveTag(slug: string) { toggleTag(slug) }
 function handleToggleCat(slug: string) { toggleCat(slug) }
+// 保留給 W4F-b（AuthorMultiSelect 上線後使用）
 function handleToggleAuthor(uuid: string) { toggleAuthor(uuid) }
 function handleDateRange(r: 'any'|'30'|'90'|'365') { setDateRange(r) }
 function handleSort(s: 'latest'|'popular'|'commented') { setSort(s) }
@@ -140,7 +162,8 @@ function goToPage(n: number) {
 // ── Infinite scroll sentinel ─────────────────────────────────────────────────
 const sentinel = ref<HTMLElement | null>(null)
 let ioObserver: IntersectionObserver | null = null
-const hasMore = computed(() => records.value.length < total.value)
+const hasMore = computed(() =>
+  !exhausted.value && records.value.length < total.value && page.value < totalPages.value)
 
 onMounted(() => {
   loadPage(1)
@@ -290,7 +313,7 @@ function formatDate(d: string) {
           </div>
 
           <!-- Loading -->
-          <div v-if="isLoading" class="art-grid" data-testid="articles-loading">
+          <div v-if="isLoading && records.length === 0" class="art-grid" data-testid="articles-loading">
             <div v-for="i in 6" :key="i" class="sk-pulse" style="height:260px" />
           </div>
 
@@ -383,7 +406,7 @@ function formatDate(d: string) {
           </div>
 
           <!-- Pagination (pages mode) -->
-          <div v-if="paging === 'pages' && totalPages > 0 && !isLoading" class="art-pagination">
+          <div v-if="paging === 'pages' && totalPages > 0 && !(isLoading && records.length === 0)" class="art-pagination">
             <button class="page-btn" :disabled="page === 1" @click="goToPage(page - 1)">←</button>
             <button
               v-for="p in totalPages"
@@ -401,7 +424,8 @@ function formatDate(d: string) {
             ref="sentinel"
             class="art-sentinel"
           >
-            <div v-if="hasMore" class="sk-pulse" style="width:100px;height:4px;" />
+            <button v-if="loadMoreFailed" class="page-btn" @click="retryLoadMore">載入失敗，重試</button>
+            <div v-else-if="hasMore" class="sk-pulse" style="width:100px;height:4px;" />
             <span v-else-if="records.length > 0" class="mono" style="font-size:11px;color:var(--ink-2);letter-spacing:.14em;text-transform:uppercase;">到底了</span>
           </div>
         </div>

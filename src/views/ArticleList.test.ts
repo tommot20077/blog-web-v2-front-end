@@ -431,4 +431,116 @@ describe('ArticleList 頁面', () => {
       expect(queryByText('Author')).not.toBeInTheDocument()
     })
   })
+
+  describe('追加下一頁的失敗處理與範圍（第二輪 review）', () => {
+    type Page = ReturnType<typeof createMockPageResult<ReturnType<typeof createMockArticle>>>
+    const failedPage = () => createMockPageResult<ReturnType<typeof createMockArticle>>([], { total: 0, pages: 0 })
+
+    it('第 2 頁請求失敗（real service 回 total=0 的空頁）→ 不覆寫 total／已載入紀錄，顯示重試按鈕，點擊後可再載入', async () => {
+      mockGetArticles.mockResolvedValueOnce(createMockPageResult(buildArticles(12), { total: 24, pages: 2 }))
+      mockGetArticles.mockResolvedValueOnce(failedPage())
+      const { getAllByRole, getByText, container } = renderWithRouter(ArticleList)
+      await flushPromises()
+
+      ioCallback!([{ isIntersecting: true }])
+      await flushPromises()
+
+      expect(getAllByRole('article')).toHaveLength(12)
+      expect(container.querySelector('.art-tb-count')?.textContent).toContain('24')
+      expect(getByText('載入失敗，重試')).toBeInTheDocument()
+
+      mockGetArticles.mockResolvedValueOnce(createMockPageResult(
+        Array.from({ length: 12 }, (_, i) => createMockArticle({ uuid: `p2-${i}` })), { total: 24, pages: 2 }))
+      await fireEvent.click(getByText('載入失敗，重試'))
+      await flushPromises()
+
+      expect(mockGetArticles).toHaveBeenLastCalledWith(2, 12, '全部', '', baseFilters)
+      expect(getAllByRole('article')).toHaveLength(24)
+    })
+
+    it('第 2 頁請求丟出例外 → 同樣保留狀態並可重試', async () => {
+      mockGetArticles.mockResolvedValueOnce(createMockPageResult(buildArticles(12), { total: 24, pages: 2 }))
+      mockGetArticles.mockRejectedValueOnce(new Error('network'))
+      const { getAllByRole, getByText, container } = renderWithRouter(ArticleList)
+      await flushPromises()
+
+      ioCallback!([{ isIntersecting: true }])
+      await flushPromises()
+
+      expect(getAllByRole('article')).toHaveLength(12)
+      expect(container.querySelector('.art-tb-count')?.textContent).toContain('24')
+      expect(getByText('載入失敗，重試')).toBeInTheDocument()
+    })
+
+    it('失敗後 sentinel 再次進入視窗不會自動連打（只由重試按鈕重試）', async () => {
+      mockGetArticles.mockResolvedValueOnce(createMockPageResult(buildArticles(12), { total: 24, pages: 2 }))
+      mockGetArticles.mockResolvedValueOnce(failedPage())
+      renderWithRouter(ArticleList)
+      await flushPromises()
+      ioCallback!([{ isIntersecting: true }])
+      await flushPromises()
+
+      ioCallback!([{ isIntersecting: true }])
+      await flushPromises()
+
+      expect(mockGetArticles).toHaveBeenCalledTimes(2)
+    })
+
+    it('第 2 頁回「合法的空頁」（total>0，例如期間有文章下架）→ total 不變、視為到底，不顯示重試、不再請求', async () => {
+      mockGetArticles.mockResolvedValueOnce(createMockPageResult(buildArticles(12), { total: 24, pages: 2 }))
+      mockGetArticles.mockResolvedValueOnce(createMockPageResult([], { total: 24, pages: 2, current: 2 }))
+      const { getAllByRole, queryByText, getByText, container } = renderWithRouter(ArticleList)
+      await flushPromises()
+      ioCallback!([{ isIntersecting: true }])
+      await flushPromises()
+
+      ioCallback!([{ isIntersecting: true }])
+      await flushPromises()
+
+      expect(mockGetArticles).toHaveBeenCalledTimes(2)
+      expect(getAllByRole('article')).toHaveLength(12)
+      expect(container.querySelector('.art-tb-count')?.textContent).toContain('24')
+      expect(queryByText('載入失敗，重試')).not.toBeInTheDocument()
+      expect(getByText('到底了')).toBeInTheDocument()
+    })
+
+    it('已載入到最後一頁（page >= pages）即使去重後筆數 < total 也不再請求超出範圍的頁', async () => {
+      const page1 = buildArticles(12)
+      mockGetArticles.mockResolvedValueOnce(createMockPageResult(page1, { total: 30, pages: 2 }))
+      mockGetArticles.mockResolvedValueOnce(createMockPageResult(page1.slice(0, 6), { total: 30, pages: 2, current: 2 }))
+      renderWithRouter(ArticleList)
+      await flushPromises()
+      ioCallback!([{ isIntersecting: true }])
+      await flushPromises()
+      expect(mockGetArticles).toHaveBeenCalledTimes(2)
+
+      ioCallback!([{ isIntersecting: true }])
+      await flushPromises()
+
+      expect(mockGetArticles).toHaveBeenCalledTimes(2)
+    })
+
+    it('pages 模式換頁期間保留分頁器與舊內容（不閃骨架），新頁回來後替換', async () => {
+      const d = deferred<Page>()
+      mockGetArticles.mockResolvedValueOnce(createMockPageResult(buildArticles(12), { total: 24, pages: 2 }))
+      mockGetArticles.mockResolvedValueOnce(createMockPageResult(buildArticles(12), { total: 24, pages: 2 }))
+      const { getByText, getAllByRole, queryByTestId, queryByText } = renderWithRouter(ArticleList)
+      await flushPromises()
+      await fireEvent.click(getByText('Pages'))
+      await flushPromises()
+
+      mockGetArticles.mockReturnValueOnce(d.promise as never)
+      await fireEvent.click(getByText('2'))
+      await flushPromises()
+
+      expect(queryByText('←')).toBeInTheDocument()
+      expect(queryByTestId('articles-loading')).not.toBeInTheDocument()
+      expect(getAllByRole('article')).toHaveLength(12)
+
+      d.resolve(createMockPageResult([createMockArticle({ uuid: 'q', title: '第二頁文章' })], { total: 24, pages: 2, current: 2 }))
+      await flushPromises()
+      expect(getByText('第二頁文章')).toBeInTheDocument()
+      expect(getAllByRole('article')).toHaveLength(1)
+    })
+  })
 })
