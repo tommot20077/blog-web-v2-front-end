@@ -160,6 +160,17 @@ describe('frontend CI workflow', () => {
     expect(backendService).not.toMatch(/SPRING_PROFILES_ACTIVE:.*prod/)
   })
 
+  // 後端 SEC-21（Yuan 2026-11-04）：springdoc 預設關閉，只有 dev/demo 或 SPRINGDOC_ENABLED=true 才開。
+  // OpenAPI 快照（api-reference/openapi.json）是從這個 e2e 堆疊抓的，必須明確開啟。
+  it('real-backend E2E enables springdoc so the OpenAPI snapshot can be fetched from this stack', () => {
+    const compose = readFileSync('docker-compose.e2e.yml', 'utf8')
+    const backendStart = compose.indexOf('  backend:')
+    const backendEnd = compose.indexOf('    depends_on:', backendStart)
+    const backendService = compose.slice(backendStart, backendEnd)
+
+    expect(backendService).toContain('SPRINGDOC_ENABLED: "true"')
+  })
+
   it('real-backend E2E exposes the S3 public port 9000 for browser-loaded upload previews (SeaweedFS S3 listens on 8333)', () => {
     const compose = readFileSync('docker-compose.e2e.yml', 'utf8')
     const s3Start = compose.indexOf('  seaweedfs:')
