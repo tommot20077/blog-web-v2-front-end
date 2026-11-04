@@ -21,6 +21,8 @@ interface BackendArticleBase {
   title: string
   summary: string
   coverImageUrl: string | null
+  /** 作者公開 UUID；舊版後端或匿名投影可能缺漏，mapper 以 null 兜底 */
+  authorUuid?: string | null
   authorNickname: string
   viewCount: number
   likeCount: number
@@ -65,6 +67,8 @@ export interface ArticleItem {
   title: string
   summary: string
   coverImageUrl: string | null
+  /** 作者公開 UUID（供 authorUuids 篩選）；後端未提供時為 null */
+  authorUuid: string | null
   authorNickname: string
   viewCount: number
   likeCount: number
@@ -103,7 +107,15 @@ export interface ArticleListFilters {
   tags?: string[]
   /** 分類 slug，OR：屬於任一分類即可 */
   categorySlugs?: string[]
+  /** 作者公開 UUID，OR：屬於任一作者即可 */
+  authorUuids?: string[]
+  /** 只取最近 N 天內發布者；未提供或 <= 0 視為不篩選 */
+  publishedWithinDays?: number
+  /** 排序；未提供時後端預設 latest（published_at DESC） */
+  sort?: ArticleSort
 }
+
+export type ArticleSort = 'latest' | 'popular' | 'commented'
 
 export interface ArchiveItem {
   uuid: string
@@ -119,6 +131,7 @@ function mapArticle(raw: BackendArticleBase): ArticleItem {
     title: raw.title,
     summary: raw.summary,
     coverImageUrl: raw.coverImageUrl,
+    authorUuid: raw.authorUuid ?? null,
     authorNickname: raw.authorNickname,
     viewCount: raw.viewCount,
     likeCount: raw.likeCount,
@@ -166,6 +179,15 @@ export const articleService = {
       }
       if (filters.tags && filters.tags.length > 0) {
         params.tags = filters.tags.join(',')
+      }
+      if (filters.authorUuids && filters.authorUuids.length > 0) {
+        params.authorUuids = filters.authorUuids.join(',')
+      }
+      if (filters.publishedWithinDays !== undefined && filters.publishedWithinDays > 0) {
+        params.publishedWithinDays = filters.publishedWithinDays
+      }
+      if (filters.sort) {
+        params.sort = filters.sort
       }
       const data = await apiClient.get<unknown, BackendPageResult<BackendArticleBase>>('/api/v1/articles', { params })
       return mapPageResult(data, mapArticle)

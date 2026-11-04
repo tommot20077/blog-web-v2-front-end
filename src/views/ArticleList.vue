@@ -1,38 +1,103 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { articleService, type ArticleItem } from '../api/articleService'
 import { categoryService } from '../api/categoryService'
+import { tagService, type TagDetailResponse } from '../api/tagService'
 import type { CategoryOption } from '../types/editor'
 import { useArticleFilters } from '../composables/useArticleFilters'
 
-// ── Data ────────────────────────────────────────────────────────────────────
-const allArticles  = ref<ArticleItem[]>([])
-const isLoading    = ref(false)
-const page         = ref(1)
-const PER_PAGE     = 12
+// ── Data（SEC-04 第 2 段：篩選／排序／分頁全在伺服器端，前端只持有「已載入」的紀錄）──────
+const records     = ref<ArticleItem[]>([])
+const total       = ref(0)
+const totalPages  = ref(0)
+const isLoading   = ref(false)   // 首頁／換頁／篩選變更的整頁載入
+const isLoadingMore = ref(false) // infinite 模式往下追加
+const loadMoreFailed = ref(false) // 追加失敗：顯示重試按鈕，不自動連打
+const exhausted    = ref(false) // 後端對範圍內的頁回空（資料變動）：視為到底，不再請求
+const page        = ref(1)       // pages 模式：目前頁；infinite 模式：已載入到第幾頁
+const PER_PAGE    = 12
 
 const {
   selTags, selCats, selAuthors, dateRange,
   sort, view, paging,
   toggleTag, toggleCat, toggleAuthor,
   setDateRange, setSort, setView, setPaging,
-  clearAll, totalActive, filterAndSort,
+  clearAll, totalActive, listFilters,
 } = useArticleFilters()
 
 // ── Fetch ────────────────────────────────────────────────────────────────────
-// 分類由後端篩選（categorySlug），其餘條件仍在前端處理。
-// 以序號保證只採用最新一次請求：快速切換分類時，較早的回應可能較晚抵達。
+// 以序號保證只採用最新一次請求：快速切換條件時，較早送出的回應可能較晚抵達（含「載入下一頁」）。
+// 任何新請求（換頁／篩選變更）都會讓先前未回的請求過期。
 let fetchSeq = 0
-async function fetchAll() {
+
+function request(n: number) {
+  return articleService.getArticles(n, PER_PAGE, '全部', '', listFilters.value)
+}
+
+/** 載入第 n 頁並取代目前紀錄（首次載入、換頁、篩選／排序／模式變更後） */
+async function loadPage(n: number) {
   const seq = ++fetchSeq
   isLoading.value = true
+  isLoadingMore.value = false
+  loadMoreFailed.value = false
+  exhausted.value = false
   try {
-    const result = await articleService.getArticles(1, 1000, '全部', '', { categorySlugs: [...selCats.value] })
-    if (seq === fetchSeq) allArticles.value = result.records
+    const result = await request(n)
+    if (seq !== fetchSeq) return
+    records.value = result.records
+    total.value = result.total
+    totalPages.value = result.pages
+    page.value = n
   } finally {
     if (seq === fetchSeq) isLoading.value = false
   }
+}
+
+/** 篩選條件或排序改變：清空已載入、回第 1 頁、重新請求 */
+function reload() {
+  records.value = []
+  total.value = 0
+  totalPages.value = 0
+  page.value = 1
+  return loadPage(1)
+}
+
+/**
+ * infinite：追加下一頁；以 uuid 去重（翻頁間資料變動時 OFFSET 分頁可能重複）。
+ * real service 失敗時不丟錯而是回 `{records:[], total:0, pages:0}`，所以空頁不能照單全收：
+ * - 例外或 total=0 的空頁 → 視為失敗：保留 total／pages／page 與已載入紀錄，顯示重試按鈕
+ * - total>0 的空頁（期間有文章下架，total 偏大）→ 視為到底：同樣不覆寫，但不再請求、不顯示重試
+ */
+async function loadMore() {
+  if (isLoading.value || isLoadingMore.value || loadMoreFailed.value || exhausted.value) return
+  if (records.value.length >= total.value || page.value >= totalPages.value) return
+  const seq = ++fetchSeq
+  const next = page.value + 1
+  isLoadingMore.value = true
+  try {
+    const result = await request(next)
+    if (seq !== fetchSeq) return
+    if (result.records.length === 0) {
+      if (result.total > 0) exhausted.value = true
+      else loadMoreFailed.value = true
+      return
+    }
+    const seen = new Set(records.value.map(a => a.uuid))
+    records.value = [...records.value, ...result.records.filter(a => !seen.has(a.uuid))]
+    total.value = result.total
+    totalPages.value = result.pages
+    page.value = next
+  } catch {
+    if (seq === fetchSeq) loadMoreFailed.value = true
+  } finally {
+    if (seq === fetchSeq) isLoadingMore.value = false
+  }
+}
+
+function retryLoadMore() {
+  loadMoreFailed.value = false
+  loadMore()
 }
 
 // ── Categories（取自後端，以 slug 為值、名稱顯示）─────────────────────────────
@@ -41,32 +106,20 @@ function categoryName(slug: string) {
   return categoryOptions.value.find(c => c.slug === slug)?.name ?? slug
 }
 
+// ── Tags（熱門標籤取自後端，以 slug 為值、名稱顯示）────────────────────────────
+const HOT_TAG_LIMIT = 12
+const hotTags = ref<TagDetailResponse[]>([])
+// slug → 顯示名稱：來源為熱門標籤與使用者點過的文章標籤，供 active filters 顯示
+const tagNames = ref<Record<string, string>>({})
+function tagName(slug: string) {
+  return tagNames.value[slug] ?? slug
+}
+
 // ── Derived ──────────────────────────────────────────────────────────────────
-const filtered = computed(() => filterAndSort(allArticles.value))
+const visible = records
 
-// Unique tags/authors from loaded articles
-const availableTags = computed(() => {
-  const s = new Set<string>()
-  allArticles.value.forEach(a => a.tags.forEach(t => s.add(t)))
-  return [...s].slice(0, 12)
-})
-const availableAuthors = computed(() => {
-  const s = new Set<string>()
-  allArticles.value.forEach(a => s.add(a.authorNickname))
-  return [...s]
-})
-
-// Paging
-const totalPages = computed(() => Math.ceil(filtered.value.length / PER_PAGE))
-const visible = computed(() => {
-  if (paging.value === 'pages') {
-    return filtered.value.slice((page.value - 1) * PER_PAGE, page.value * PER_PAGE)
-  }
-  return filtered.value.slice(0, page.value * PER_PAGE)
-})
-
-// Reset page on filter/sort change
-function resetPage() { page.value = 1 }
+// 任一篩選或排序變更 → reload（同一個 tick 內多個變更，例如 clearAll，只會觸發一次）
+watch([selTags, selCats, selAuthors, dateRange, sort], () => { reload() })
 
 const DATE_OPTIONS = [
   { key: 'any', label: 'Any' },
@@ -75,39 +128,57 @@ const DATE_OPTIONS = [
   { key: '365', label: 'This year' },
 ] as const
 
-function handleToggleTag(t: string) { toggleTag(t); resetPage() }
+function handleToggleTag(ref_: { name: string; slug: string }) {
+  tagNames.value = { ...tagNames.value, [ref_.slug]: ref_.name }
+  toggleTag(ref_.slug)
+}
+function handleRemoveTag(slug: string) { toggleTag(slug) }
 function handleToggleCat(slug: string) { toggleCat(slug) }
-// 分類變動（含「清除全部」）一律重新向後端取文章
-watch(selCats, () => { resetPage(); fetchAll() })
-function handleToggleAuthor(a: string) { toggleAuthor(a); resetPage() }
-function handleDateRange(r: 'any'|'30'|'90'|'365') { setDateRange(r); resetPage() }
-function handleSort(s: 'latest'|'popular'|'commented') { setSort(s); resetPage() }
+// 保留給 W4F-b（AuthorMultiSelect 上線後使用）
+function handleToggleAuthor(uuid: string) { toggleAuthor(uuid) }
+function handleDateRange(r: 'any'|'30'|'90'|'365') { setDateRange(r) }
+function handleSort(s: 'latest'|'popular'|'commented') { setSort(s) }
 function handleView(v: 'grid'|'list') {
   setView(v)
-  if (v === 'list') setPaging('infinite')
+  if (v === 'list') handlePaging('infinite')
 }
-function handlePaging(p: 'pages'|'infinite') { setPaging(p); resetPage() }
+function handlePaging(p: 'pages'|'infinite') {
+  if (paging.value === p) return
+  setPaging(p)
+  reload()
+}
+
+/** 文章卡片上的標籤：有 slug 才能以後端 tags 參數篩選；缺 tagRefs 時退回純文字 */
+function cardTags(article: ArticleItem) {
+  return (article.tagRefs ?? []).slice(0, 2)
+}
 
 function goToPage(n: number) {
-  if (n < 1 || n > totalPages.value) return
-  page.value = n
+  if (n < 1 || n > totalPages.value || n === page.value) return
+  loadPage(n)
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 // ── Infinite scroll sentinel ─────────────────────────────────────────────────
 const sentinel = ref<HTMLElement | null>(null)
 let ioObserver: IntersectionObserver | null = null
+const hasMore = computed(() =>
+  !exhausted.value && records.value.length < total.value && page.value < totalPages.value)
 
 onMounted(() => {
-  fetchAll()
+  loadPage(1)
   categoryService.getCategories()
     .then(list => { categoryOptions.value = list })
     .catch(() => { categoryOptions.value = [] })
+  tagService.getHotTags(HOT_TAG_LIMIT)
+    .then(list => {
+      hotTags.value = list
+      tagNames.value = { ...Object.fromEntries(list.map(t => [t.slug, t.name])), ...tagNames.value }
+    })
+    .catch(() => { hotTags.value = [] })
   ioObserver = new IntersectionObserver(([e]) => {
     if (!e) return
-    if (e.isIntersecting && paging.value === 'infinite' && page.value * PER_PAGE < filtered.value.length) {
-      page.value++
-    }
+    if (e.isIntersecting && paging.value === 'infinite') loadMore()
   }, { rootMargin: '200px' })
   if (sentinel.value) ioObserver.observe(sentinel.value)
 })
@@ -169,37 +240,22 @@ function formatDate(d: string) {
               </div>
             </div>
 
-            <!-- Tags -->
-            <div v-if="availableTags.length" class="art-rail-group">
+            <!-- Tags（熱門標籤，取自 /api/v1/tags/hot；連結用 slug） -->
+            <div v-if="hotTags.length" class="art-rail-group">
               <h5>Tags</h5>
               <div class="art-tag-grid">
                 <RouterLink
-                  v-for="tag in availableTags"
-                  :key="tag"
+                  v-for="tag in hotTags"
+                  :key="tag.slug"
                   class="art-tag"
-                  :to="`/tags/${tag}`"
+                  :to="`/tags/${tag.slug}`"
                 >
-                  {{ tag }}
+                  {{ tag.name }}
                 </RouterLink>
               </div>
             </div>
 
-            <!-- Authors -->
-            <div v-if="availableAuthors.length" class="art-rail-group">
-              <h5>Author</h5>
-              <div>
-                <label
-                  v-for="author in availableAuthors"
-                  :key="author"
-                  class="art-check"
-                  @click.prevent="handleToggleAuthor(author)"
-                >
-                  <input type="checkbox" :checked="selAuthors.includes(author)" readonly />
-                  <span class="box" />
-                  <span class="l">{{ author }}</span>
-                </label>
-              </div>
-            </div>
+            <!-- W4F-b: AuthorMultiSelect -->
           </div>
         </aside>
 
@@ -210,13 +266,13 @@ function formatDate(d: string) {
           <div class="art-toolbar">
             <div class="art-tb-left">
               <span class="art-tb-count">
-                {{ filtered.length }}<em>ARTICLES</em>
+                {{ total }}<em>ARTICLES</em>
               </span>
 
               <!-- Active filters -->
               <div v-if="totalActive > 0" class="art-active-filters">
                 <span v-for="t in selTags" :key="'t-'+t" class="art-af">
-                  #{{ t }}<button @click="handleToggleTag(t)">×</button>
+                  #{{ tagName(t) }}<button @click="handleRemoveTag(t)">×</button>
                 </span>
                 <span v-for="c in selCats" :key="'c-'+c" class="art-af">
                   {{ categoryName(c) }}<button @click="handleToggleCat(c)">×</button>
@@ -257,7 +313,7 @@ function formatDate(d: string) {
           </div>
 
           <!-- Loading -->
-          <div v-if="isLoading" class="art-grid" data-testid="articles-loading">
+          <div v-if="isLoading && records.length === 0" class="art-grid" data-testid="articles-loading">
             <div v-for="i in 6" :key="i" class="sk-pulse" style="height:260px" />
           </div>
 
@@ -289,11 +345,11 @@ function formatDate(d: string) {
                   <div class="art-card-foot">
                     <div class="art-card-tags">
                       <button
-                        v-for="tag in article.tags.slice(0, 2)"
-                        :key="tag"
+                        v-for="tag in cardTags(article)"
+                        :key="tag.slug"
                         class="mini-tag"
                         @click.prevent="handleToggleTag(tag)"
-                      >#{{ tag }}</button>
+                      >#{{ tag.name }}</button>
                     </div>
                     <div class="art-card-stats">
                       <span>{{ article.viewCount }} views</span>
@@ -350,7 +406,7 @@ function formatDate(d: string) {
           </div>
 
           <!-- Pagination (pages mode) -->
-          <div v-if="paging === 'pages' && totalPages > 0 && !isLoading" class="art-pagination">
+          <div v-if="paging === 'pages' && totalPages > 0 && !(isLoading && records.length === 0)" class="art-pagination">
             <button class="page-btn" :disabled="page === 1" @click="goToPage(page - 1)">←</button>
             <button
               v-for="p in totalPages"
@@ -368,8 +424,9 @@ function formatDate(d: string) {
             ref="sentinel"
             class="art-sentinel"
           >
-            <div v-if="page * PER_PAGE < filtered.length" class="sk-pulse" style="width:100px;height:4px;" />
-            <span v-else-if="allArticles.length > 0" class="mono" style="font-size:11px;color:var(--ink-2);letter-spacing:.14em;text-transform:uppercase;">到底了</span>
+            <button v-if="loadMoreFailed" class="page-btn" @click="retryLoadMore">載入失敗，重試</button>
+            <div v-else-if="hasMore" class="sk-pulse" style="width:100px;height:4px;" />
+            <span v-else-if="records.length > 0" class="mono" style="font-size:11px;color:var(--ink-2);letter-spacing:.14em;text-transform:uppercase;">到底了</span>
           </div>
         </div>
       </div>

@@ -10,6 +10,7 @@ export function createMockArticle(overrides: Partial<ArticleItem> = {}): Article
     title: '測試文章標題',
     summary: '這是測試摘要內容',
     coverImageUrl: null,
+    authorUuid: 'test-author-uuid',
     authorNickname: 'TestAuthor',
     viewCount: 100,
     likeCount: 10,

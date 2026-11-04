@@ -1,4 +1,4 @@
-export type { ArticleItem, ArticleDetailItem, ArchiveItem, ArticleTagRef, ArticleListFilters } from './real/articleService'
+export type { ArticleItem, ArticleDetailItem, ArchiveItem, ArticleTagRef, ArticleListFilters, ArticleSort } from './real/articleService'
 import type { ArticleItem, ArticleDetailItem, ArchiveItem, ArticleListFilters } from './real/articleService'
 import type { PageResult } from '../types/editor'
 

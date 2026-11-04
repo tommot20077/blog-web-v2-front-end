@@ -1,5 +1,8 @@
-import { ref, computed } from 'vue'
-import type { ArticleItem } from '../api/articleService'
+import { ref, computed, type Ref } from 'vue'
+import type { ArticleListFilters } from '../api/articleService'
+
+/** 對應後端 MAX_VALUES_PER_FILTER */
+export const MAX_VALUES_PER_FILTER = 20
 
 type Sort = 'latest' | 'popular' | 'commented'
 type View = 'grid' | 'list'
@@ -20,9 +23,14 @@ export function useArticleFilters() {
   const view       = ref<View>(readLS('blog.art.view', 'grid') as View)
   const paging     = ref<Paging>(readLS('blog.art.paging', 'infinite') as Paging)
 
-  const toggleTag    = (t: string) => selTags.value    = selTags.value.includes(t)    ? selTags.value.filter(x => x !== t)    : [...selTags.value, t]
-  const toggleCat    = (c: string) => selCats.value    = selCats.value.includes(c)    ? selCats.value.filter(x => x !== c)    : [...selCats.value, c]
-  const toggleAuthor = (a: string) => selAuthors.value = selAuthors.value.includes(a) ? selAuthors.value.filter(x => x !== a) : [...selAuthors.value, a]
+  // 後端對 tags／categorySlug／authorUuids 各限 20 個，超過回 400（不截斷）；已達上限時不再加入，但仍可取消。
+  const toggleIn = (list: Ref<string[]>, v: string) => {
+    if (list.value.includes(v)) list.value = list.value.filter(x => x !== v)
+    else if (list.value.length < MAX_VALUES_PER_FILTER) list.value = [...list.value, v]
+  }
+  const toggleTag    = (t: string) => toggleIn(selTags, t)
+  const toggleCat    = (c: string) => toggleIn(selCats, c)
+  const toggleAuthor = (a: string) => toggleIn(selAuthors, a)
 
   const setDateRange = (r: DateRange) => { dateRange.value = r }
   const setSort      = (s: Sort)      => { sort.value = s;   localStorage.setItem('blog.art.sort',   s) }
@@ -38,38 +46,25 @@ export function useArticleFilters() {
     (dateRange.value !== 'any' ? 1 : 0)
   )
 
-  function filterAndSort(articles: ArticleItem[]): ArticleItem[] {
-    let r = [...articles]
-
-    if (selTags.value.length)
-      r = r.filter(a => selTags.value.every(t => a.tags.includes(t)))
-
-    // 分類不在此過濾：列表 API 不回傳 categories，前端過濾只會把文章全數濾掉。
-    // 分類篩選由呼叫端以 selCats（slug）交給後端 categorySlug 參數處理。
-
-    if (selAuthors.value.length)
-      r = r.filter(a => selAuthors.value.includes(a.authorNickname))
-
-    if (dateRange.value !== 'any') {
-      const days = parseInt(dateRange.value)
-      const cutoff = Date.now() - days * 86400000
-      r = r.filter(a => new Date(a.publishedAt).getTime() >= cutoff)
+  /**
+   * UI 狀態 → 後端 `GET /api/v1/articles` 查詢參數（SEC-04 第 2 段：篩選／排序全在伺服器端）。
+   * selTags 存 slug、selCats 存分類 slug、selAuthors 存 authorUuid；dateRange 'any' 不帶 publishedWithinDays。
+   */
+  const listFilters = computed<ArticleListFilters>(() => {
+    const f: ArticleListFilters = {
+      tags: [...selTags.value],
+      categorySlugs: [...selCats.value],
+      authorUuids: [...selAuthors.value],
+      sort: sort.value,
     }
-
-    if (sort.value === 'popular')
-      r.sort((a, b) => b.viewCount - a.viewCount)
-    else if (sort.value === 'commented')
-      r.sort((a, b) => b.commentCount - a.commentCount)
-    else
-      r.sort((a, b) => b.publishedAt.localeCompare(a.publishedAt))
-
-    return r
-  }
+    if (dateRange.value !== 'any') f.publishedWithinDays = parseInt(dateRange.value)
+    return f
+  })
 
   return {
     selTags, selCats, selAuthors, dateRange, sort, view, paging,
     toggleTag, toggleCat, toggleAuthor,
     setDateRange, setSort, setView, setPaging,
-    clearAll, totalActive, filterAndSort,
+    clearAll, totalActive, listFilters,
   }
 }
