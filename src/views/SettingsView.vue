@@ -411,4 +411,3 @@ async function handleDeleteAccount() {
   }
 }
 </style>
-
