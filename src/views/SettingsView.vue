@@ -195,7 +195,7 @@ async function handleDeleteAccount() {
             v-model="website"
             placeholder="https://yoursite.com"
             :aria-invalid="websiteError ? 'true' : undefined"
-            aria-describedby="website-error"
+            :aria-describedby="websiteError ? 'website-error' : undefined"
           />
           <p v-if="websiteError" id="website-error" class="st-field-error" data-testid="website-error">{{ websiteError }}</p>
         </SettingFieldGroup>
@@ -249,7 +249,7 @@ async function handleDeleteAccount() {
           <div class="st-prefix-input">
             <span class="st-prefix">github.com/</span>
             <input class="st-input" data-testid="social-github-input" v-model="github" placeholder="your-username"
-              :aria-invalid="githubError ? 'true' : undefined" aria-describedby="social-github-error" />
+              :aria-invalid="githubError ? 'true' : undefined" :aria-describedby="githubError ? 'social-github-error' : undefined" />
           </div>
           <p v-if="githubError" id="social-github-error" class="st-field-error" data-testid="social-github-error">{{ githubError }}</p>
         </SettingFieldGroup>
@@ -258,7 +258,7 @@ async function handleDeleteAccount() {
           <div class="st-prefix-input">
             <span class="st-prefix">@</span>
             <input class="st-input" data-testid="social-twitter-input" v-model="twitter" placeholder="your-handle"
-              :aria-invalid="twitterError ? 'true' : undefined" aria-describedby="social-twitter-error" />
+              :aria-invalid="twitterError ? 'true' : undefined" :aria-describedby="twitterError ? 'social-twitter-error' : undefined" />
           </div>
           <p v-if="twitterError" id="social-twitter-error" class="st-field-error" data-testid="social-twitter-error">{{ twitterError }}</p>
         </SettingFieldGroup>
@@ -267,7 +267,7 @@ async function handleDeleteAccount() {
           <div class="st-prefix-input">
             <span class="st-prefix">linkedin.com/in/</span>
             <input class="st-input" data-testid="social-linkedin-input" v-model="linkedin" placeholder="your-profile"
-              :aria-invalid="linkedinError ? 'true' : undefined" aria-describedby="social-linkedin-error" />
+              :aria-invalid="linkedinError ? 'true' : undefined" :aria-describedby="linkedinError ? 'social-linkedin-error' : undefined" />
           </div>
           <p v-if="linkedinError" id="social-linkedin-error" class="st-field-error" data-testid="social-linkedin-error">{{ linkedinError }}</p>
         </SettingFieldGroup>

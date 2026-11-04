@@ -423,6 +423,31 @@ describe('useSettings', () => {
       expect(s.hasSocialErrors.value).toBe(true)
     })
 
+    it('庫中是舊網址格式 → 只改暱稱 saveProfile 仍成功，送出的 socialLinks 已把不合格值清成空字串', async () => {
+      const { s, userService } = await setup({
+        socialLinks: JSON.stringify({ github: 'https://github.com/old', twitter: '@ok', linkedin: 'a/b' }),
+      })
+      s.nickname.value = 'NewNick'
+      await s.saveProfile()
+      expect(userService.updateProfile).toHaveBeenCalledTimes(1)
+      const sent = vi.mocked(userService.updateProfile).mock.calls[0][0] as { socialLinks?: string }
+      expect(JSON.parse(sent.socialLinks!)).toEqual({ github: '', twitter: '@ok', linkedin: '' })
+    })
+
+    it('庫中 socialLinks 無法解析 → 送出的是合法 JSON（全空），不原樣送垃圾字串', async () => {
+      const { s, userService } = await setup({ socialLinks: 'not-json' })
+      await s.saveProfile()
+      const sent = vi.mocked(userService.updateProfile).mock.calls[0][0] as { socialLinks?: string }
+      expect(JSON.parse(sent.socialLinks!)).toEqual({ github: '', twitter: '', linkedin: '' })
+    })
+
+    it('庫中 socialLinks 為 null → 維持不送（undefined）', async () => {
+      const { s, userService } = await setup({ socialLinks: null })
+      await s.saveProfile()
+      const sent = vi.mocked(userService.updateProfile).mock.calls[0][0] as { socialLinks?: string }
+      expect(sent.socialLinks).toBeUndefined()
+    })
+
     it('publicProfilePath 指向 /author/{我的 uuid}；沒有 uuid 時為 null', async () => {
       const a = await setup()
       expect(a.s.publicProfilePath.value).toBe('/author/me-uuid')

@@ -6,6 +6,8 @@ const BACKEND = process.env.VITE_API_BASE_URL || 'http://localhost:8080'
  * 公開作者頁（真後端；CI 執行，本機不必跑）。
  * 資料來自 global-setup 播種的已發布文章（作者 author@test.local）。
  */
+const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
 test.describe('公開作者頁', () => {
   test('文章頁點作者名 → 進入該作者的公開頁', async ({ page, request }) => {
     const resp = await request.get(`${BACKEND}/api/v1/articles`, { params: { page: 1, size: 1 } })
@@ -35,7 +37,7 @@ test.describe('公開作者頁', () => {
     await page.goto('/articles')
     const combo = page.getByRole('combobox', { name: '搜尋作者' })
     await combo.click()
-    await page.getByRole('option', { name: new RegExp(authors[0].nickname) }).first().click()
+    await page.getByRole('option', { name: new RegExp(escapeRegExp(authors[0].nickname)) }).first().click()
     await expect(page.locator('.art-active-filters')).toContainText(`@${authors[0].nickname}`)
   })
 })

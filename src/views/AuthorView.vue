@@ -19,6 +19,8 @@ const page = ref(1)
 const totalPages = ref(0)
 const articlesLoading = ref(false)
 const articlesFailed = ref(false)
+/** 最近一次請求的頁碼（失敗時 page 不會更新，重試要用它） */
+let requestedPage = 1
 
 // 序號守衛：切換作者／翻頁時只採用最新一次回應
 let profileSeq = 0
@@ -26,6 +28,7 @@ let articleSeq = 0
 
 async function loadArticles(n: number) {
   const seq = ++articleSeq
+  requestedPage = n
   articlesLoading.value = true
   articlesFailed.value = false
   try {
@@ -52,6 +55,7 @@ async function loadProfile() {
   page.value = 1
   totalPages.value = 0
   articlesFailed.value = false
+  requestedPage = 1
   try {
     const result = await authorService.getProfile(uuid.value)
     if (seq !== profileSeq) return
@@ -88,7 +92,7 @@ const joinedLabel = computed(() => {
 /** website 再以 isHttpUrl 過濾，才可能渲染成連結 */
 const safeWebsite = computed(() => {
   const w = profile.value?.website
-  return w && isHttpUrl(w) ? w : null
+  return w && isHttpUrl(w) ? new URL(w).href : null
 })
 const websiteLabel = computed(() => {
   if (!safeWebsite.value) return ''
@@ -187,7 +191,7 @@ function formatDate(d: string) {
 
         <div v-else-if="articlesFailed" class="es-wrap" role="alert">
           <h3 class="es-title">文章載入失敗</h3>
-          <button type="button" class="ap-retry" @click="loadArticles(page)">重試</button>
+          <button type="button" class="ap-retry" @click="loadArticles(requestedPage)">重試</button>
         </div>
 
         <div v-else-if="articles.length" class="art-grid">

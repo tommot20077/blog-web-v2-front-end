@@ -148,6 +148,21 @@ describe('AuthorView', () => {
       expect(getArticles).toHaveBeenLastCalledWith(1, 12, '全部', '', { authorUuids: [UUID] })
     })
 
+    it('翻頁失敗後按重試 → 重載失敗的那一頁（不是舊頁）', async () => {
+      getArticles.mockResolvedValue(createMockPageResult([createMockArticle({ uuid: 'p1', title: 'P1' })], { total: 30, pages: 3 }))
+      await renderAuthor()
+      getArticles.mockRejectedValueOnce(new Error('boom'))
+      await fireEvent.click(screen.getByRole('button', { name: '下一頁' }))
+      await flushPromises()
+      expect(screen.getByText('文章載入失敗')).toBeInTheDocument()
+
+      getArticles.mockResolvedValue(createMockPageResult([createMockArticle({ uuid: 'p2', title: 'P2' })], { total: 30, pages: 3, current: 2 }))
+      await fireEvent.click(screen.getByRole('button', { name: '重試' }))
+      await flushPromises()
+      expect(getArticles).toHaveBeenLastCalledWith(2, 12, '全部', '', { authorUuids: [UUID] })
+      expect(screen.getByText('第 2 / 3 頁')).toBeInTheDocument()
+    })
+
     it('最後一頁「下一頁」停用', async () => {
       getArticles.mockResolvedValue(createMockPageResult([createMockArticle()], { total: 24, pages: 2 }))
       await renderAuthor()
@@ -178,10 +193,22 @@ describe('AuthorView', () => {
       expect(container.querySelector('[data-testid="author-website"]')).toBeNull()
     })
 
+    it.each(['https:evil.com', 'http:/\\evil', 'https:/evil.com'])('website %j 不渲染成連結（會被解析成本站相對路徑）', async (w) => {
+      getProfile.mockResolvedValue(profile({ website: w }))
+      await renderAuthor()
+      expect(screen.queryByTestId('author-website')).toBeNull()
+    })
+
+    it('https website 的 href 使用 URL 正規化後的值', async () => {
+      getProfile.mockResolvedValue(profile({ website: 'HTTPS://Profile.Example.com' }))
+      await renderAuthor()
+      expect(screen.getByTestId('author-website').getAttribute('href')).toBe('https://profile.example.com/')
+    })
+
     it('https website 渲染成外部連結，帶 noopener noreferrer', async () => {
       const { container } = await renderAuthor()
       const a = container.querySelector('[data-testid="author-website"]') as HTMLAnchorElement
-      expect(a.getAttribute('href')).toBe('https://profile.example.com')
+      expect(a.getAttribute('href')).toBe('https://profile.example.com/') // safeWebsite 回傳 new URL().href（正規化，補根路徑斜線）
       expect(a.getAttribute('target')).toBe('_blank')
       expect(a.getAttribute('rel')).toContain('noopener')
       expect(a.getAttribute('rel')).toContain('noreferrer')

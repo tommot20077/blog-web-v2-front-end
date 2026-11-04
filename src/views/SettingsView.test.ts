@@ -96,6 +96,17 @@ describe('SettingsView — 公開個人頁', () => {
       expect(screen.getByTestId('social-save-btn')).toBeDisabled()
     })
 
+    it('aria-describedby 只在有錯誤時綁定（避免指向不存在的 id）', async () => {
+      await renderWithRouterAsync(SettingsView, {}, '/settings?section=social')
+      const input = screen.getByTestId('social-github-input')
+      expect(input.getAttribute('aria-describedby')).toBeNull()
+      await fireEvent.update(input, 'a/b')
+      expect(input.getAttribute('aria-describedby')).toBe('social-github-error')
+      expect(document.getElementById('social-github-error')).not.toBeNull()
+      await fireEvent.update(input, 'octocat')
+      expect(input.getAttribute('aria-describedby')).toBeNull()
+    })
+
     it('改成合格帳號名稱 → 提示消失、儲存鈕恢復', async () => {
       await renderWithRouterAsync(SettingsView, {}, '/settings?section=social')
       const input = screen.getByTestId('social-github-input')

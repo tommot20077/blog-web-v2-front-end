@@ -87,6 +87,12 @@ describe('buildSocialUrl', () => {
     expect(buildSocialUrl('github', '')).toBeNull()
   })
 
+  it('孤立 surrogate 讓 encodeURIComponent 丟 URIError → 回 null，不丟錯', () => {
+    expect(() => buildSocialUrl('github', 'a\uD800b')).not.toThrow()
+    expect(buildSocialUrl('github', 'a\uD800b')).toBeNull()
+    expect(buildSocialUrl('github', '\uDC00')).toBeNull()
+  })
+
   it('未知平台 key 不產生網址', () => {
     expect(buildSocialUrl('mastodon', 'yuan')).toBeNull()
   })
@@ -114,6 +120,10 @@ describe('isHttpUrl', () => {
     'https://user:pw@example.com',
     ' https://example.com',
     'https://exa mple.com',
+    'https:evil.com',
+    'http:/\\evil',
+    'https:/evil.com',
+    'http:\\\\evil.com',
   ])('拒絕 %s', (u) => {
     expect(isHttpUrl(u)).toBe(false)
   })

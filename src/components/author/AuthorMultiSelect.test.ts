@@ -181,7 +181,7 @@ describe('AuthorMultiSelect', () => {
       await typeInto(input, 'zzz')
       await vi.advanceTimersByTimeAsync(300)
       expect(getByText('找不到符合的作者')).toBeTruthy()
-      expect(queryAllByRole('option')).toHaveLength(0)
+      expect(queryAllByRole('option', { hidden: true })).toHaveLength(0)
     })
 
     it('搜尋失敗 → role=alert 提示，與「無結果」區分', async () => {
@@ -344,6 +344,51 @@ describe('AuthorMultiSelect', () => {
       expect(input.value).toBe('yu')
       await fireEvent.keyDown(input, { key: 'Escape' })
       expect(input.value).toBe('')
+    })
+
+    it('(a) 載入中（debounce 或請求在途）按 Enter 不選到舊清單的項目', async () => {
+      const { getByRole, value } = harness()
+      const input = getByRole('combobox') as HTMLInputElement
+      await fireEvent.focus(input)
+      await flush()
+      await fireEvent.keyDown(input, { key: 'ArrowDown' }) // 作用中 = 舊清單第 0 項
+      await typeInto(input, 'han') // 進入 debounce／loading
+      await fireEvent.keyDown(input, { key: 'Enter' })
+      expect(value.value).toEqual([])
+    })
+
+    it('(b) 連按兩次 Esc 不會卡在 loading，之後 open() 重新載入', async () => {
+      const { getByRole, queryByText } = harness()
+      const input = getByRole('combobox') as HTMLInputElement
+      await typeInto(input, 'yu')
+      await vi.advanceTimersByTimeAsync(300)
+      await fireEvent.keyDown(input, { key: 'Escape' })
+      await typeInto(input, 'yuan') // loading + timer 進行中
+      await fireEvent.keyDown(input, { key: 'Escape' }) // 第一次關閉
+      await fireEvent.keyDown(input, { key: 'Escape' }) // 第二次清空
+      expect(input.value).toBe('')
+      search.mockClear()
+      await fireEvent.focus(input)
+      await fireEvent.click(input)
+      await flush()
+      expect(queryByText('搜尋中…')).toBeNull()
+      expect(search).toHaveBeenCalledTimes(1)
+      expect(search).toHaveBeenLastCalledWith('')
+    })
+
+    it('(c) 清空輸入後才回來的在途舊回應被丟棄', async () => {
+      const d = deferred<AuthorSearchItem[]>()
+      search.mockReset()
+      search.mockReturnValueOnce(d.promise)
+      const { getByRole, queryAllByRole } = harness()
+      const input = getByRole('combobox') as HTMLInputElement
+      await typeInto(input, 'yu')
+      await vi.advanceTimersByTimeAsync(300) // 請求在途
+      await fireEvent.keyDown(input, { key: 'Escape' })
+      await fireEvent.keyDown(input, { key: 'Escape' }) // 清空
+      d.resolve([YUAN])
+      await flush()
+      expect(queryAllByRole('option', { hidden: true })).toHaveLength(0)
     })
 
     it('輸入框為空時 Backspace 刪除最後一個已選作者', async () => {

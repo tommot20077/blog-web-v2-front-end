@@ -166,7 +166,17 @@ export function useSettings() {
         }
         // 帶上 socialLinks 現值，避免後端 setWebsite(null) 模式的反向問題：
         // 若不送 socialLinks，後端 updateProfile 會把它清成 null
-        const socialLinks = authStore.user?.socialLinks ?? undefined
+        // 舊資料可能是網址格式，原樣送出會被後端 400：isSafeHandle 不通過的值改成 ''
+        const rawSocial = authStore.user?.socialLinks
+        let socialLinks: string | undefined
+        if (rawSocial) {
+          const parsed = parseSocialLinks(rawSocial)
+          socialLinks = JSON.stringify({
+            github: isSafeHandle(parsed.github) ? parsed.github : '',
+            twitter: isSafeHandle(parsed.twitter) ? parsed.twitter : '',
+            linkedin: isSafeHandle(parsed.linkedin) ? parsed.linkedin : '',
+          })
+        }
         await userService.updateProfile({
           nickname: nickname.value,
           bio: bio.value || undefined,

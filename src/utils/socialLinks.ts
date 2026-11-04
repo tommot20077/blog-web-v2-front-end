@@ -44,12 +44,18 @@ export function buildSocialUrl(platform: string, handle: string | null | undefin
   if (!handle || !isSafeHandle(handle)) return null
   const body = handle.startsWith('@') ? handle.slice(1) : handle
   if (body === '.' || body === '..') return null
-  return SOCIAL_PLATFORMS[platform as SocialPlatform] + encodeURIComponent(body)
+  try {
+    return SOCIAL_PLATFORMS[platform as SocialPlatform] + encodeURIComponent(body)
+  } catch {
+    return null // 孤立 surrogate 會讓 encodeURIComponent 丟 URIError；不可讓 computed 丟錯白屏
+  }
 }
 
 /** 只允許 http／https 的絕對網址（不含帳密、空白、控制字元） */
 export function isHttpUrl(value: string | null | undefined): boolean {
   if (!value || INVISIBLE_OR_CONTROL.test(value)) return false
+  // 必須是 scheme:// 形式；`https:evil.com`、`http:/\evil` 作 href 會被當成本站相對路徑
+  if (!/^https?:\/\//i.test(value)) return false
   let url: URL
   try {
     url = new URL(value)

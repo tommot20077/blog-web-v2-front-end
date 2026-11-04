@@ -146,6 +146,7 @@ function onKeydown(e: KeyboardEvent) {
     case 'Enter':
       if (!isOpen.value) break
       e.preventDefault()
+      if (status.value === 'loading') break // 清單即將被取代，不選到舊清單的項目
       {
         const item = options.value[activeIndex.value]
         if (item) toggle(item)
@@ -159,6 +160,8 @@ function onKeydown(e: KeyboardEvent) {
         e.stopPropagation()
         keyword.value = ''
         clearTimer()
+        seq++ // 在途的舊回應過期
+        status.value = 'idle'
         loadedOnce = false // 下次開啟重新載入完整清單
       }
       break
