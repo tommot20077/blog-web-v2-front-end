@@ -5,6 +5,7 @@ import type { CommentItem as CommentItemType } from '../../types/comment'
 import { useCommentLike } from '../../composables/useCommentLike'
 import { useCommentPermissions } from '../../composables/useCommentPermissions'
 import CommentForm from './CommentForm.vue'
+import AuthorName from '../author/AuthorName.vue'
 
 const props = defineProps<{
   comment: CommentItemType
@@ -68,7 +69,10 @@ function formatTime(iso: string): string {
     <div class="av" aria-hidden="true" />
     <div class="body">
       <div class="who">
-        <b>{{ comment.deleted ? '[已刪除]' : comment.author?.nickname }}</b>
+        <b>
+          <template v-if="comment.deleted">[已刪除]</template>
+          <AuthorName v-else-if="comment.author" :uuid="comment.author.uuid" :nickname="comment.author.nickname" />
+        </b>
         <span class="when">{{ formatTime(comment.createdAt) }}</span>
         <span v-if="comment.editedAt" class="edited">(edited)</span>
       </div>

@@ -34,6 +34,26 @@ describe('ArticleCard', () => {
     expect(getByText('Yuan')).toBeTruthy()
   })
 
+  it('有 authorUuid → 作者名是連到 /author/{uuid} 的連結', () => {
+    const article = createMockArticle({ authorNickname: 'Yuan', authorUuid: 'author-1' })
+    const { getByRole } = renderWithRouter(ArticleCard, { props: { article } })
+    expect(getByRole('link', { name: 'Yuan' }).getAttribute('href')).toBe('/author/author-1')
+  })
+
+  it('authorUuid 為 null → 作者名是純文字', () => {
+    const article = createMockArticle({ authorNickname: 'Yuan', authorUuid: null })
+    const { queryByRole, getByText } = renderWithRouter(ArticleCard, { props: { article } })
+    expect(queryByRole('link', { name: 'Yuan' })).toBeNull()
+    expect(getByText('Yuan')).toBeTruthy()
+  })
+
+  it('點作者連結導向作者頁，不會同時導向文章詳情', async () => {
+    const article = createMockArticle({ uuid: 'art-9', authorNickname: 'Yuan', authorUuid: 'author-1' })
+    const { getByRole, router } = renderWithRouter(ArticleCard, { props: { article } })
+    await fireEvent.click(getByRole('link', { name: 'Yuan' }))
+    await waitFor(() => expect(router.currentRoute.value.fullPath).toBe('/author/author-1'))
+  })
+
   it('顯示按讚數和留言數', () => {
     const article = createMockArticle({ likeCount: 42, commentCount: 7 })
 

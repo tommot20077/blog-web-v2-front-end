@@ -14,6 +14,8 @@ export interface SearchResult {
   summary: string;
   slug: string;
   authorNickname: string;
+  /** 作者公開 UUID；後端舊資料可能為 null → AuthorName 退回純文字 */
+  authorUuid?: string | null;
   tagNames: string[];
   publishedAt: string;
   viewCount: number;

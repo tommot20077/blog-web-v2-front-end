@@ -8,6 +8,11 @@ import { useAuthStore } from '../../stores/auth'
 vi.mock('vue-router', () => ({
   useRouter: () => ({ push: vi.fn() }),
   useRoute: () => ({ fullPath: '/' }),
+  // AuthorName 使用 RouterLink；此測試整包 mock 了 vue-router，補一個等價的 <a> stub
+  RouterLink: {
+    props: ['to'],
+    template: '<a :href="to" @click.prevent><slot /></a>',
+  },
 }))
 vi.mock('../../api/commentService', () => ({
   commentService: { like: vi.fn(), unlike: vi.fn() },
@@ -35,6 +40,20 @@ describe('CommentItem (Stage B)', () => {
     expect(wrapper.text()).toContain('Alice')
     expect(wrapper.find('.content').html()).toContain('hello')
     expect(wrapper.find('[data-testid="comment-like-count"]').text()).toBe('3')
+  })
+
+  it('留言作者有 uuid → 作者名連到 /author/{uuid}', () => {
+    const wrapper = mount(CommentItem, { props: { comment: baseComment } })
+    const link = wrapper.find('a[href="/author/u1"]')
+    expect(link.exists()).toBe(true)
+    expect(link.text()).toBe('Alice')
+  })
+
+  it('已刪除留言不顯示作者連結', () => {
+    const deleted = { ...baseComment, deleted: true, deletedByRole: 'AUTHOR' as const, author: null }
+    const wrapper = mount(CommentItem, { props: { comment: deleted } })
+    expect(wrapper.find('a[href^="/author/"]').exists()).toBe(false)
+    expect(wrapper.text()).toContain('[已刪除]')
   })
 
   it('deleted=true → tombstone + 隱藏 author', () => {

@@ -65,6 +65,7 @@ describe('recommendService', () => {
           slug: 'hot',
           summary: '摘要',
           authorNickname: 'Author',
+          authorUuid: null,
           viewCount: 100,
           likeCount: 10,
           publishedAt: '2026-03-01',
@@ -76,6 +77,18 @@ describe('recommendService', () => {
       expect(apiClient.get).toHaveBeenCalledWith('/api/v1/recommend/trending', {
         params: { period: '7d', limit: 5 },
       });
+    });
+
+    it('後端帶 authorUuid 時原樣保留；缺漏（Redis 舊快取）時為 null', async () => {
+      const base = { title: 't', slug: 's', summary: '', authorNickname: 'A', tagNames: [], viewCount: 0, likeCount: 0, publishedAt: '2026-03-01' };
+      vi.mocked(apiClient.get).mockResolvedValue([
+        { ...base, uuid: 'r-1', authorUuid: 'author-1' },
+        { ...base, uuid: 'r-2', authorUuid: null },
+        { ...base, uuid: 'r-3' },
+      ]);
+
+      const result = await recommendService.getRelatedArticles('x');
+      expect(result.map(r => r.authorUuid)).toEqual(['author-1', null, null]);
     });
 
     it('網路錯誤時回傳空陣列並呼叫 console.error', async () => {

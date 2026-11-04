@@ -4,6 +4,7 @@ import { RouterLink } from 'vue-router'
 import { bookmarkService } from '../api/bookmarkService'
 import { useToast } from '../composables/useToast'
 import ShellRail from '../components/layout/ShellRail.vue'
+import AuthorName from '../components/author/AuthorName.vue'
 import type { BookmarkArticleSummary } from '../api/real/bookmarkService'
 
 const { showToast } = useToast()
@@ -92,7 +93,8 @@ onMounted(fetchBookmarks)
           class="bm-card"
           :data-testid="'bookmark-row-' + article.uuid"
         >
-          <RouterLink :to="`/articles/${article.uuid}`" class="bm-card-main">
+          <!-- 整張卡片可點（stretched link）；作者名是獨立連結，因此外層不能是 <a>（巢狀 <a> 無效） -->
+          <div class="bm-card-main">
             <img
               v-if="article.coverImageUrl"
               :src="article.coverImageUrl"
@@ -101,17 +103,17 @@ onMounted(fetchBookmarks)
             />
             <div class="bm-content">
               <div class="bm-meta">
-                <span>{{ article.authorNickname }}</span>
+                <AuthorName :uuid="article.authorUuid" :nickname="article.authorNickname ?? ''" />
                 <span>·</span>
                 <time>{{ formatDate(article.publishedAt) }}</time>
               </div>
-              <h2>{{ article.title }}</h2>
+              <h2><RouterLink :to="`/articles/${article.uuid}`" class="bm-title-link">{{ article.title }}</RouterLink></h2>
               <p v-if="article.summary">{{ article.summary }}</p>
               <div class="bm-tags">
                 <span v-for="tag in article.tags ?? []" :key="tag.id"># {{ tag.name }}</span>
               </div>
             </div>
-          </RouterLink>
+          </div>
 
           <button
             type="button"
@@ -215,6 +217,7 @@ onMounted(fetchBookmarks)
   border-bottom: 1px solid var(--divider);
 }
 .bm-card-main {
+  position: relative;
   display: grid;
   grid-template-columns: 132px 1fr;
   gap: 18px;
@@ -222,6 +225,9 @@ onMounted(fetchBookmarks)
   color: inherit;
   text-decoration: none;
 }
+.bm-title-link { color: inherit; text-decoration: none; }
+.bm-title-link::after { content: ''; position: absolute; inset: 0; }
+.bm-meta :deep(.author-name-link) { position: relative; z-index: 1; }
 .bm-cover {
   width: 132px;
   aspect-ratio: 16 / 9;

@@ -503,6 +503,29 @@ describe('ArticleDetail 頁面', () => {
       expect(authorEl?.textContent).toContain('Yuan')
     })
 
+    it('有 authorUuid → 作者名連到 /author/{uuid}', async () => {
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(
+        createMockArticleDetail({ authorNickname: 'Yuan', authorUuid: 'author-1' }),
+      )
+      const { container } = await renderArticleDetail()
+      await flushPromises()
+      const link = container.querySelector('[data-testid="article-author"] a')
+      expect(link).not.toBeNull()
+      expect(link?.getAttribute('href')).toBe('/author/author-1')
+      expect(link?.textContent).toBe('Yuan')
+    })
+
+    it('authorUuid 為 null → 作者名是純文字，不是連結', async () => {
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(
+        createMockArticleDetail({ authorNickname: 'Yuan', authorUuid: null }),
+      )
+      const { container } = await renderArticleDetail()
+      await flushPromises()
+      const el = container.querySelector('[data-testid="article-author"]')
+      expect(el?.textContent).toContain('Yuan')
+      expect(el?.querySelector('a')).toBeNull()
+    })
+
     it('動態閱讀時間使用 useWordCount 回傳值（mock 回傳 3 分鐘）', async () => {
       const mockArticle = createMockArticleDetail()
       vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)

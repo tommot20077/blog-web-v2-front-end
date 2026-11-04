@@ -23,6 +23,7 @@ import ArticleTextSelectionToolbar from '../components/article/ArticleTextSelect
 import ArticleHighlightPanel from '../components/article/ArticleHighlightPanel.vue'
 import ArticleToc from '../components/article/ArticleToc.vue'
 import NotFoundView from './NotFoundView.vue'
+import AuthorName from '../components/author/AuthorName.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -218,7 +219,7 @@ const closeMarkdownModal = () => { showMarkdownModal.value = false }
             <div class="meta-line">
               <div class="avatar" />
               <div class="who">
-                <b data-testid="article-author">{{ article.authorNickname }}</b>
+                <b data-testid="article-author"><AuthorName :uuid="article.authorUuid" :nickname="article.authorNickname" /></b>
                 <div class="mono" style="font-size:11px;color:var(--muted)">
                   <time data-testid="article-date">{{ article.publishedAt }}</time>
                 </div>
