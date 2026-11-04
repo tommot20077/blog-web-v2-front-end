@@ -6,6 +6,7 @@ import { categoryService } from '../api/categoryService'
 import { tagService, type TagDetailResponse } from '../api/tagService'
 import type { CategoryOption } from '../types/editor'
 import { useArticleFilters } from '../composables/useArticleFilters'
+import AuthorMultiSelect from '../components/author/AuthorMultiSelect.vue'
 
 // ── Data（SEC-04 第 2 段：篩選／排序／分頁全在伺服器端，前端只持有「已載入」的紀錄）──────
 const records     = ref<ArticleItem[]>([])
@@ -115,6 +116,12 @@ function tagName(slug: string) {
   return tagNames.value[slug] ?? slug
 }
 
+// ── Authors（由 AuthorMultiSelect 向後端搜尋；值為 authorUuid，名稱由元件回報）────────
+const authorNames = ref<Record<string, string>>({})
+function authorName(uuid: string) {
+  return authorNames.value[uuid] ?? '作者'
+}
+
 // ── Derived ──────────────────────────────────────────────────────────────────
 const visible = records
 
@@ -134,7 +141,6 @@ function handleToggleTag(ref_: { name: string; slug: string }) {
 }
 function handleRemoveTag(slug: string) { toggleTag(slug) }
 function handleToggleCat(slug: string) { toggleCat(slug) }
-// 保留給 W4F-b（AuthorMultiSelect 上線後使用）
 function handleToggleAuthor(uuid: string) { toggleAuthor(uuid) }
 function handleDateRange(r: 'any'|'30'|'90'|'365') { setDateRange(r) }
 function handleSort(s: 'latest'|'popular'|'commented') { setSort(s) }
@@ -255,7 +261,11 @@ function formatDate(d: string) {
               </div>
             </div>
 
-            <!-- W4F-b: AuthorMultiSelect -->
+            <!-- Author（後端搜尋、可多選；v-model 為 authorUuid） -->
+            <div class="art-rail-group">
+              <h5>Author</h5>
+              <AuthorMultiSelect v-model="selAuthors" @update:labels="authorNames = $event" />
+            </div>
           </div>
         </aside>
 
@@ -278,7 +288,7 @@ function formatDate(d: string) {
                   {{ categoryName(c) }}<button @click="handleToggleCat(c)">×</button>
                 </span>
                 <span v-for="a in selAuthors" :key="'a-'+a" class="art-af">
-                  @{{ a }}<button @click="handleToggleAuthor(a)">×</button>
+                  @{{ authorName(a) }}<button @click="handleToggleAuthor(a)">×</button>
                 </span>
                 <span v-if="dateRange !== 'any'" class="art-af">
                   {{ dateRange }}d<button @click="handleDateRange('any')">×</button>

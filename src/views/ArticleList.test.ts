@@ -5,9 +5,14 @@ import { renderWithRouter, createMockArticle, createMockPageResult } from '../te
 import { articleService } from '../api/articleService'
 import { categoryService } from '../api/categoryService'
 import { tagService } from '../api/tagService'
+import { authorService } from '../api/authorService'
 
 vi.mock('../api/tagService', () => ({
   tagService: { getHotTags: vi.fn() },
+}))
+
+vi.mock('../api/authorService', () => ({
+  authorService: { searchAuthors: vi.fn() },
 }))
 
 vi.mock('../api/categoryService', () => ({
@@ -24,6 +29,7 @@ vi.mock('../api/articleService', () => ({
 const mockGetArticles = vi.mocked(articleService.getArticles)
 const mockGetCategories = vi.mocked(categoryService.getCategories)
 const mockGetHotTags = vi.mocked(tagService.getHotTags)
+const mockSearchAuthors = vi.mocked(authorService.searchAuthors)
 
 // 伺服器端查詢的預設參數（SEC-04 第 2 段：篩選／排序／分頁全交給後端，size = PER_PAGE = 12）
 const baseFilters = { tags: [], categorySlugs: [], authorUuids: [], sort: 'latest' }
@@ -53,6 +59,11 @@ describe('ArticleList 頁面', () => {
     localStorage.clear()
     mockGetArticles.mockReset()
     mockGetHotTags.mockResolvedValue([])
+    mockSearchAuthors.mockReset()
+    mockSearchAuthors.mockResolvedValue([
+      { uuid: 'author-yuan', nickname: 'Yuan', avatarUrl: null, publishedArticleCount: 5 },
+      { uuid: 'author-han', nickname: 'Han', avatarUrl: null, publishedArticleCount: 2 },
+    ])
     mockGetCategories.mockResolvedValue([
       { id: 'c1', name: '後端', slug: 'backend' },
       { id: 'c2', name: '生活', slug: 'life' },
@@ -422,13 +433,64 @@ describe('ArticleList 頁面', () => {
     })
   })
 
-  describe('作者篩選 UI 暫時移除（W4F-b 換上 AuthorMultiSelect）', () => {
-    it('不再顯示以 nickname 推導的 Author 區塊', async () => {
+  describe('作者篩選（AuthorMultiSelect，伺服器端 authorUuids）', () => {
+    it('側欄有 Author 區塊與作者 combobox，不再由已載入文章的 nickname 推導', async () => {
       mockGetArticles.mockResolvedValue(createMockPageResult(buildArticles(3, { authorNickname: 'Yuan' })))
-      const { queryByText } = renderWithRouter(ArticleList)
+      const { getByText, getByRole } = renderWithRouter(ArticleList)
       await flushPromises()
 
-      expect(queryByText('Author')).not.toBeInTheDocument()
+      expect(getByText('Author')).toBeInTheDocument()
+      expect(getByRole('combobox', { name: '搜尋作者' })).toBeInTheDocument()
+      expect(mockSearchAuthors).not.toHaveBeenCalled() // 聚焦前不打 API
+    })
+
+    it('選取作者 → 以該作者 uuid 重新向後端取文章（authorUuids），工具列顯示 nickname 而非 uuid', async () => {
+      mockGetArticles.mockResolvedValue(createMockPageResult(buildArticles(3)))
+      const { getByRole, getAllByRole, container } = renderWithRouter(ArticleList)
+      await flushPromises()
+
+      await fireEvent.focus(getByRole('combobox', { name: '搜尋作者' }))
+      await flushPromises()
+      mockGetArticles.mockClear()
+      await fireEvent.click(getAllByRole('option')[0])
+      await flushPromises()
+
+      expect(mockGetArticles).toHaveBeenLastCalledWith(1, 12, '全部', '', { ...baseFilters, authorUuids: ['author-yuan'] })
+      const active = container.querySelector('.art-active-filters')
+      expect(active?.textContent).toContain('@Yuan')
+      expect(active?.textContent).not.toContain('author-yuan')
+    })
+
+    it('從工具列的作用中篩選移除作者 → 不再帶 authorUuids', async () => {
+      mockGetArticles.mockResolvedValue(createMockPageResult(buildArticles(3)))
+      const { getByRole, getAllByRole, container } = renderWithRouter(ArticleList)
+      await flushPromises()
+      await fireEvent.focus(getByRole('combobox', { name: '搜尋作者' }))
+      await flushPromises()
+      await fireEvent.click(getAllByRole('option')[0])
+      await flushPromises()
+
+      mockGetArticles.mockClear()
+      await fireEvent.click(container.querySelector('.art-active-filters .art-af button') as HTMLElement)
+      await flushPromises()
+
+      expect(mockGetArticles).toHaveBeenLastCalledWith(1, 12, '全部', '', baseFilters)
+    })
+
+    it('Clear 會一併清掉已選作者（AuthorMultiSelect 的 chip 同步消失）', async () => {
+      mockGetArticles.mockResolvedValue(createMockPageResult(buildArticles(3)))
+      const { getByRole, getAllByRole, getByText, queryByRole } = renderWithRouter(ArticleList)
+      await flushPromises()
+      await fireEvent.focus(getByRole('combobox', { name: '搜尋作者' }))
+      await flushPromises()
+      await fireEvent.click(getAllByRole('option')[1])
+      await flushPromises()
+      expect(getByRole('button', { name: '移除 Han' })).toBeInTheDocument()
+
+      await fireEvent.click(getByText('Clear'))
+      await flushPromises()
+
+      expect(queryByRole('button', { name: '移除 Han' })).toBeNull()
     })
   })
 
