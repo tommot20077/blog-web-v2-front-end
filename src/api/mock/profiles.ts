@@ -24,3 +24,12 @@ export const MOCK_AUTHOR_PROFILES = {
 export const AUTHOR_KEYS = Object.keys(MOCK_AUTHOR_PROFILES) as Array<keyof typeof MOCK_AUTHOR_PROFILES>;
 
 export type AuthorKey = keyof typeof MOCK_AUTHOR_PROFILES;
+
+/**
+ * mock 作者的穩定假 uuid（由 nickname 衍生）。
+ * 文章 mock（data.ts 的 authorUuid）與作者 mock（authorMockService）共用這一個規則，
+ * 才能保證「作者搜尋到的 uuid 丟進 authorUuids 篩選得到他的文章」。
+ */
+export function mockAuthorUuid(nickname: string): string {
+  return `mock-author-${nickname}`;
+}

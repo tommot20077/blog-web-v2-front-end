@@ -3,7 +3,7 @@ import type { TagDetailResponse } from '../tagService';
 import { mockMarkdownContent } from './mockArticleContent';
 import type { ArticleStatus, CategoryOption, TagSuggestion, QuotaInfo, EditorArticle, MyArticle, PendingArticle } from '../../types/editor';
 import type { VersionType } from '../real/articleVersionService';
-import { MOCK_AUTHOR_PROFILES } from './profiles';
+import { MOCK_AUTHOR_PROFILES, mockAuthorUuid } from './profiles';
 import { ALL_MOCK_TAGS } from './tagRegistry';
 import { isArticleBookmarked, isArticleLiked } from './articleInteractionMockState';
 
@@ -224,7 +224,7 @@ function withTagRefs<T extends { tags: string[] }>(article: T): T & { tagRefs: A
 
 // mock 作者以 nickname 衍生穩定的假 authorUuid，對齊 real mapper 的 authorUuid 欄位（供 authorUuids 篩選）。
 function withAuthorUuid<T extends { authorNickname: string }>(article: T): T & { authorUuid: string } {
-  return { ...article, authorUuid: `mock-author-${article.authorNickname}` };
+  return { ...article, authorUuid: mockAuthorUuid(article.authorNickname) };
 }
 
 export const allMockArticles: MockArticleItem[] = [
