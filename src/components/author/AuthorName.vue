@@ -1,17 +1,19 @@
 <script setup lang="ts">
 /**
- * 作者名稱：有 uuid → 連到公開作者頁 /author/{uuid}；沒有（舊快取、資料來源不含 uuid）→ 純文字。
+ * 作者名稱：有 uuid → 連到公開作者頁 /author/{uuid}；沒有（舊快取、資料來源不含 uuid）或已刪帳使用者 → 純文字。
  * 8 個作者入口共用。預設 slot 可覆寫顯示內容（例如搜尋高亮）。
  */
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
+import { isDeletedUserNickname } from '../../utils/deletedUser'
 
 const props = defineProps<{
   uuid?: string | null
   nickname: string
 }>()
 
-const to = computed(() => (props.uuid ? `/author/${encodeURIComponent(props.uuid)}` : null))
+// 已刪帳使用者仍帶 uuid，但作者頁會 404，故保留前綴暱稱一律純文字
+const to = computed(() => (props.uuid && !isDeletedUserNickname(props.nickname) ? `/author/${encodeURIComponent(props.uuid)}` : null))
 </script>
 
 <template>
