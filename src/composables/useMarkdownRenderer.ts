@@ -140,7 +140,8 @@ export function useMarkdownRenderer(markdownContent: Ref<string>) {
         cssVariablePrefix: '--shiki-',
         defaultColor: false,
         // 清單外的語言（c、mermaid、diff…）以純文字處理，否則 Shiki 會拋 Language not found
-        fallbackLanguage: 'text',
+        // 'text' 是 Shiki core 內建的純文字特殊語言，但未列入 BundledLanguage 型別，故需斷言
+        fallbackLanguage: 'text' as never,
       });
 
       // 重新建立 md 實例並掛載 Shiki 外掛
