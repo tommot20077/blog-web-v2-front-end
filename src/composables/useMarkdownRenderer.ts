@@ -34,17 +34,30 @@ export function useMarkdownRenderer(markdownContent: Ref<string>) {
   const renderedHtml = ref('');
   const isReady = ref(false);
 
+  const createPlainMarkdownIt = () => {
+    const instance = MarkdownIt({
+      html: true,       // 允許 Markdown 中的 HTML 標籤（後續由 DOMPurify 消毒）
+      linkify: true,     // 自動將 URL 轉為連結
+      typographer: true, // 智慧引號等排版增強
+    });
+    instance.use(taskLists, { enabled: true, label: true, labelAfter: true });
+    return instance;
+  };
+
   // 1. 先建立基礎 markdown-it 實例（Shiki 還沒載入之前就能渲染）
-  let md = MarkdownIt({
-    html: true,       // 允許 Markdown 中的 HTML 標籤（後續由 DOMPurify 消毒）
-    linkify: true,     // 自動將 URL 轉為連結
-    typographer: true, // 智慧引號等排版增強
-  });
-  md.use(taskLists, { enabled: true, label: true, labelAfter: true });
+  let md = createPlainMarkdownIt();
 
   // 2. 立刻做一次初始渲染（無高亮版本），讓使用者不用等 Shiki 載入
   const render = () => {
-    const rawHtml = md.render(markdownContent.value || '');
+    const source = markdownContent.value || '';
+    let rawHtml: string;
+    try {
+      rawHtml = md.render(source);
+    } catch (error) {
+      // Shiki 版渲染失敗（例如未預期的語言錯誤）：退回不上色的實例，避免畫面停在舊內容
+      console.warn('[useMarkdownRenderer] 高亮渲染失敗，退回無高亮版本：', error);
+      rawHtml = createPlainMarkdownIt().render(source);
+    }
     renderedHtml.value = markdownSanitizer.sanitize(rawHtml);
   };
 
@@ -126,15 +139,13 @@ export function useMarkdownRenderer(markdownContent: Ref<string>) {
         },
         cssVariablePrefix: '--shiki-',
         defaultColor: false,
+        // 清單外的語言（c、mermaid、diff…）以純文字處理，否則 Shiki 會拋 Language not found
+        // 'text' 是 Shiki core 內建的純文字特殊語言，但未列入 BundledLanguage 型別，故需斷言
+        fallbackLanguage: 'text' as never,
       });
 
       // 重新建立 md 實例並掛載 Shiki 外掛
-      md = MarkdownIt({
-        html: true,
-        linkify: true,
-        typographer: true,
-      });
-      md.use(taskLists, { enabled: true, label: true, labelAfter: true });
+      md = createPlainMarkdownIt();
       md.use(shikiPlugin);
 
       isReady.value = true;

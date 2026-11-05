@@ -3,6 +3,7 @@ import { fireEvent, waitFor } from '@testing-library/vue'
 import { h } from 'vue'
 import AuthorName from './AuthorName.vue'
 import { renderWithRouter } from '../../test-utils'
+import { DELETED_NICKNAME_PREFIX } from '../../utils/deletedUser'
 
 describe('AuthorName', () => {
   it('有 authorUuid → 連結到 /author/{uuid}', () => {
@@ -49,5 +50,18 @@ describe('AuthorName', () => {
     })
     const link = getByRole('link')
     expect(link.querySelector('mark')).not.toBeNull()
+  })
+
+  it('已刪帳保留前綴暱稱即使有 uuid 也是純文字，不產生連結', () => {
+    const { queryByRole, getByText } = renderWithRouter(AuthorName, {
+      props: { uuid: 'u-deleted', nickname: `${DELETED_NICKNAME_PREFIX}ab12cd34` },
+    })
+    expect(queryByRole('link')).toBeNull()
+    expect(getByText('已刪除使用者#ab12cd34')).toBeTruthy()
+  })
+
+  it('一般暱稱（含「已刪除使用者」但無 # 前綴）加 uuid 仍是連結', () => {
+    const { getByRole } = renderWithRouter(AuthorName, { props: { uuid: 'u1', nickname: '已刪除使用者粉絲' } })
+    expect(getByRole('link').getAttribute('href')).toBe('/author/u1')
   })
 })
