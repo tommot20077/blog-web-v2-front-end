@@ -71,4 +71,11 @@ describe('ToastItem', () => {
     const wrapper = mount(ToastItem, { props: { toast: createToast() } });
     expect(wrapper.find('[data-testid="toast-action"]').exists()).toBe(false);
   });
+
+  it('FE-04：關閉鈕有 aria-label，「✕」對輔助科技隱藏', () => {
+    const wrapper = mount(ToastItem, { props: { toast: createToast() } });
+    const btn = wrapper.get('[data-testid="toast-close"]');
+    expect(btn.attributes('aria-label')).toBe('關閉通知');
+    expect(btn.find('[aria-hidden="true"]').exists()).toBe(true);
+  });
 });

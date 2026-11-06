@@ -19,6 +19,7 @@ const indicatorColorMap: Record<ToastType, string> = {
 
 <template>
   <div
+    :role="toast.type === 'error' ? 'alert' : undefined"
     class="flex items-stretch gap-3 rounded-2xl border px-4 py-3 shadow-lg min-w-[280px] max-w-[400px] transition-all duration-300"
     style="background: var(--glass); border-color: var(--glass-border); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);"
   >
@@ -50,9 +51,10 @@ const indicatorColorMap: Record<ToastType, string> = {
       data-testid="toast-close"
       class="shrink-0 opacity-40 hover:opacity-100 transition-opacity text-sm leading-none self-start pt-0.5"
       style="color: var(--ink);"
+      aria-label="關閉通知"
       @click="$emit('close', toast.id)"
     >
-      ✕
+      <span aria-hidden="true">✕</span>
     </button>
   </div>
 </template>

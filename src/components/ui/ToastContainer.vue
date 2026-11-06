@@ -6,7 +6,7 @@ const { toasts, removeToast } = useToast();
 </script>
 
 <template>
-  <div class="fixed top-24 right-6 z-[100] flex flex-col gap-3 max-md:top-4 max-md:right-4 max-md:left-4">
+  <div aria-live="polite" class="fixed top-24 right-6 z-[100] flex flex-col gap-3 max-md:top-4 max-md:right-4 max-md:left-4">
     <TransitionGroup
       name="toast"
       tag="div"

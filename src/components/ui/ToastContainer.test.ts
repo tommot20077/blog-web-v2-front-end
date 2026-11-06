@@ -27,4 +27,20 @@ describe('ToastContainer', () => {
     const wrapper = mount(ToastContainer);
     expect(wrapper.classes()).toContain('fixed');
   });
+
+  it('FE-04：容器是常駐的 aria-live 區域（polite），在任何 toast 出現前就存在', () => {
+    const wrapper = mount(ToastContainer);
+    expect(wrapper.attributes('aria-live')).toBe('polite');
+  });
+
+  it('FE-04：error toast 的 role 為 alert，其他類型不是', () => {
+    const { showToast } = useToast();
+    showToast('壞了', 'error');
+    showToast('好了', 'success');
+
+    const wrapper = mount(ToastContainer);
+    const alerts = wrapper.findAll('[role="alert"]');
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0]!.text()).toContain('壞了');
+  });
 });
