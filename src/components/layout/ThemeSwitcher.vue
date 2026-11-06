@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { useTheme } from '../../composables/useTheme';
+import { useAppearance } from '../../composables/useAppearance';
 import IconSun from '../common/icons/IconSun.vue';
 import IconMoon from '../common/icons/IconMoon.vue';
 
-const { isDark, toggleTheme } = useTheme();
+const { isDark, toggleTheme } = useAppearance();
 </script>
 
 <template>

@@ -50,9 +50,10 @@ const indicatorColorMap: Record<ToastType, string> = {
       data-testid="toast-close"
       class="shrink-0 opacity-40 hover:opacity-100 transition-opacity text-sm leading-none self-start pt-0.5"
       style="color: var(--ink);"
+      aria-label="關閉通知"
       @click="$emit('close', toast.id)"
     >
-      ✕
+      <span aria-hidden="true">✕</span>
     </button>
   </div>
 </template>

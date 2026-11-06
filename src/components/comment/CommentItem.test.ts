@@ -117,6 +117,21 @@ describe('CommentItem (Stage B)', () => {
     expect(wrapper.find('[data-testid="comment-reply-form"]').exists()).toBe(true)
   })
 
+  it('FE-09：回覆表單與編輯表單的 textarea 各有對應的可存取名稱', async () => {
+    const auth = useAuthStore()
+    auth.user = {
+      uuid: 'u1', email: '', nickname: '', avatarUrl: null,
+      role: 'USER', emailVerified: true, createdAt: '',
+    }
+    auth.accessToken = 't'
+
+    const wrapper = mount(CommentItem, { props: { comment: baseComment } })
+    await wrapper.find('[data-testid="comment-reply-btn"]').trigger('click')
+    expect(wrapper.find('[data-testid="comment-reply-form"] textarea').attributes('aria-label')).toBe('回覆留言')
+    await wrapper.find('[data-testid="comment-edit-btn"]').trigger('click')
+    expect(wrapper.find('[data-testid="comment-edit-form"] textarea').attributes('aria-label')).toBe('編輯留言')
+  })
+
   it('click edit button → 顯示 edit form 並 prefill content', async () => {
     const auth = useAuthStore()
     auth.user = {

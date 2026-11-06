@@ -27,4 +27,25 @@ describe('ToastContainer', () => {
     const wrapper = mount(ToastContainer);
     expect(wrapper.classes()).toContain('fixed');
   });
+
+  it('FE-04：常駐兩個 live region（polite、assertive），在任何 toast 出現前就已存在', () => {
+    const wrapper = mount(ToastContainer);
+    expect(wrapper.find('[aria-live="polite"]').exists()).toBe(true);
+    expect(wrapper.find('[aria-live="assertive"]').exists()).toBe(true);
+  });
+
+  it('FE-04：error toast 放進 assertive 區域，其他類型放進 polite 區域；不使用 role=alert 以免重複朗讀', () => {
+    const { showToast } = useToast();
+    showToast('壞了', 'error');
+    showToast('好了', 'success');
+
+    const wrapper = mount(ToastContainer);
+    const assertive = wrapper.get('[aria-live="assertive"]');
+    const polite = wrapper.get('[aria-live="polite"]');
+    expect(assertive.text()).toContain('壞了');
+    expect(assertive.text()).not.toContain('好了');
+    expect(polite.text()).toContain('好了');
+    expect(polite.text()).not.toContain('壞了');
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false);
+  });
 });

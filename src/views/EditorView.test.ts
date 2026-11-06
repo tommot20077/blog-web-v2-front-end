@@ -189,6 +189,11 @@ describe('EditorView', () => {
       expect(screen.getByTestId('editor-title-input')).toBeInTheDocument()
     })
 
+    it('FE-09：標題輸入框有可存取名稱「文章標題」', () => {
+      renderEditor()
+      expect(screen.getByLabelText('文章標題')).toBe(screen.getByTestId('editor-title-input'))
+    })
+
     it('renders editor-save-btn', () => {
       renderEditor()
       expect(screen.getByTestId('editor-save-btn')).toBeInTheDocument()

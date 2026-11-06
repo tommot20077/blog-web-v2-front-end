@@ -86,6 +86,7 @@ function formatTime(iso: string): string {
           v-if="isEditing"
           data-testid="comment-edit-form"
           :initial-content="comment.content"
+          aria-label="編輯留言"
           submit-label="Save"
           :show-cancel="true"
           @submit="onEditSubmit"
@@ -129,6 +130,7 @@ function formatTime(iso: string): string {
         <CommentForm
           v-if="showReplyForm"
           data-testid="comment-reply-form"
+          aria-label="回覆留言"
           submit-label="Reply"
           :show-cancel="true"
           @submit="onReplySubmit"

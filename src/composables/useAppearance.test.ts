@@ -82,6 +82,37 @@ describe('useAppearance', () => {
     expect(localStorage.getItem('theme')).toBe('dark')
   })
 
+  // 以下兩則由已移除的 useTheme.test.ts 搬入（FE-03）：往返切換、html.dark class 同步
+  it('toggleTheme 連續切換兩次 → isDark、data-theme、localStorage 皆回到 light', async () => {
+    const useAppearance = await loadUseAppearance()
+    const { isDark, toggleTheme } = useAppearance()
+    await nextTick()
+
+    toggleTheme()
+    await nextTick()
+    toggleTheme()
+    await nextTick()
+
+    expect(isDark.value).toBe(false)
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light')
+    expect(localStorage.getItem('theme')).toBe('light')
+  })
+
+  it('classList dark 同步 → toggleTheme 時 html.classList 正確切換', async () => {
+    const useAppearance = await loadUseAppearance()
+    const { toggleTheme } = useAppearance()
+    await nextTick()
+    expect(document.documentElement.classList.contains('dark')).toBe(false)
+
+    toggleTheme()
+    await nextTick()
+    expect(document.documentElement.classList.contains('dark')).toBe(true)
+
+    toggleTheme()
+    await nextTick()
+    expect(document.documentElement.classList.contains('dark')).toBe(false)
+  })
+
   // ── Font ───────────────────────────────────────────────────────────────────
 
   it('預設字體為 space', async () => {

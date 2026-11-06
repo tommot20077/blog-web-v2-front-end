@@ -65,7 +65,7 @@ const editorView = ref<EditorView>()
 |------|------|------|
 | Vue 元件檔案 | PascalCase `.vue` | `ArticleCard.vue` |
 | TypeScript 檔案 | camelCase `.ts` | `useArticle.ts` |
-| Composables | `use<Feature>` 函式 | `useTheme()`, `useWeather()` |
+| Composables | `use<Feature>` 函式 | `useAppearance()`, `useWeather()` |
 | Types / Interfaces | PascalCase | `ArticleItem`, `PageResult<T>` |
 | Constants | UPPER_SNAKE_CASE | `ARTICLE_STATUS` |
 | CSS classes | Tailwind utility-first | 自訂 CSS 僅透過 CSS variables |

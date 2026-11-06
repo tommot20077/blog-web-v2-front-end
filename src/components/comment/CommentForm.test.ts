@@ -47,4 +47,12 @@ describe('CommentForm', () => {
     await wrapper.find('[data-testid="comment-cancel"]').trigger('click')
     expect(wrapper.emitted('cancel')).toHaveLength(1)
   })
+
+  it('FE-09：textarea 有可存取名稱（預設「留言內容」），可由 ariaLabel prop 覆寫', () => {
+    const wrapper = mount(CommentForm)
+    expect(wrapper.get('[data-testid="comment-textarea"]').attributes('aria-label')).toBe('留言內容')
+
+    const reply = mount(CommentForm, { props: { ariaLabel: '回覆留言' } })
+    expect(reply.get('[data-testid="comment-textarea"]').attributes('aria-label')).toBe('回覆留言')
+  })
 })
