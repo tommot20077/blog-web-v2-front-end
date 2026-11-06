@@ -19,8 +19,16 @@ export function useComments(articleUuid: Ref<string>) {
   let latestRequestId = 0
 
   async function fetchPage(p = page.value) {
-    if (!articleUuid.value) return
+    // 先遞增 token 再判斷空值：uuid 變空時讓進行中的請求失效，並回到空狀態
     const requestId = ++latestRequestId
+    if (!articleUuid.value) {
+      list.value = []
+      totalTopLevels.value = 0
+      totalCommentCount.value = 0
+      page.value = 1
+      isLoading.value = false
+      return
+    }
     isLoading.value = true
     try {
       const res = await commentService.list(articleUuid.value, p, size, sort.value)
@@ -91,7 +99,7 @@ export function useComments(articleUuid: Ref<string>) {
   }
 
   watchEffect(() => {
-    if (articleUuid.value) fetchPage(1)
+    fetchPage(1)
   })
 
   return { list, totalCommentCount, totalTopLevels, page, size, sort, isLoading, fetchPage, post, reply, edit, remove }

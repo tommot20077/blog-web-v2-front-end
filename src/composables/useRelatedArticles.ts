@@ -12,8 +12,13 @@ export function useRelatedArticles(articleUuid: Ref<string>) {
   onScopeDispose(() => { disposed = true })
 
   async function fetch() {
-    if (!articleUuid.value) return
+    // 先遞增 token 再判斷空值：uuid 變空時讓進行中的請求失效，並回到空狀態
     const requestId = ++latestRequestId
+    if (!articleUuid.value) {
+      articles.value = []
+      isLoading.value = false
+      return
+    }
     const isStale = () => disposed || requestId !== latestRequestId
     isLoading.value = true
     try {
@@ -29,7 +34,7 @@ export function useRelatedArticles(articleUuid: Ref<string>) {
   }
 
   watchEffect(() => {
-    if (articleUuid.value) fetch()
+    fetch()
   })
 
   return { articles, isLoading }

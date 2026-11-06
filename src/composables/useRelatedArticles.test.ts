@@ -122,4 +122,21 @@ describe('useRelatedArticles', () => {
       expect(articles.value).toEqual([])
     })
   })
+
+  describe('uuid 變空時進行中的請求失效', () => {
+    it('A 請求進行中 uuid 變 \'\' → A 晚到不寫回舊資料', async () => {
+      type Res = Awaited<ReturnType<typeof recommendService.getRelatedArticles>>
+      let resolveA!: (v: Res) => void
+      vi.mocked(recommendService.getRelatedArticles).mockReturnValueOnce(new Promise<Res>(r => { resolveA = r }))
+      const uuid = ref('A')
+      const { articles, isLoading } = useRelatedArticles(uuid)
+      uuid.value = ''
+      await nextTick()
+      resolveA([{ uuid: 'A', title: 'A' } as unknown as Res[number]])
+      await new Promise(r => setTimeout(r, 0))
+
+      expect(articles.value).toEqual([])
+      expect(isLoading.value).toBe(false)
+    })
+  })
 })

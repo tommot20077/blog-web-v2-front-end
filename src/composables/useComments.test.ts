@@ -228,4 +228,26 @@ describe('useComments', () => {
       expect(c.totalCommentCount.value).toBe(5)
     })
   })
+
+  describe('uuid 變空時進行中的請求失效', () => {
+    it('A 請求進行中 uuid 變 \'\' → A 晚到不寫回舊資料，state 為空', async () => {
+      type ListRes = Awaited<ReturnType<typeof commentService.list>>
+      let resolveA!: (v: ListRes) => void
+      vi.mocked(commentService.list).mockReturnValueOnce(new Promise<ListRes>(r => { resolveA = r }))
+      const uuid = ref('A')
+      const c = useComments(uuid)
+      uuid.value = ''
+      await nextTick()
+      resolveA({
+        topLevels: { records: [{ uuid: 'stale-A' } as never], total: 9, page: 1, size: 20 },
+        totalCommentCount: 9,
+      })
+      await new Promise(r => setTimeout(r, 0))
+
+      expect(c.list.value).toEqual([])
+      expect(c.totalTopLevels.value).toBe(0)
+      expect(c.totalCommentCount.value).toBe(0)
+      expect(c.isLoading.value).toBe(false)
+    })
+  })
 })
