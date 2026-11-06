@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { ref } from 'vue'
+import { ref, effectScope, nextTick } from 'vue'
 import { useRelatedArticles } from './useRelatedArticles'
 import { recommendService } from '../api/recommendService'
 
@@ -58,5 +58,68 @@ describe('useRelatedArticles', () => {
     await new Promise(r => setTimeout(r, 0))
     expect(recommendService.getRelatedArticles).toHaveBeenCalledWith('uuid-2')
     expect(recommendService.getRelatedArticles).toHaveBeenCalledTimes(2)
+  })
+
+  describe('過期回應防護', () => {
+    type Res = Awaited<ReturnType<typeof recommendService.getRelatedArticles>>
+    const art = (uuid: string) => ({ uuid, title: uuid } as unknown as Res[number])
+    function deferred<T>() {
+      let resolve!: (v: T) => void
+      let reject!: (e: unknown) => void
+      const promise = new Promise<T>((res, rej) => { resolve = res; reject = rej })
+      return { promise, resolve, reject }
+    }
+
+    it('同一實例連續查 A 再查 B，A 晚到 → 結果仍是 B', async () => {
+      const a = deferred<Res>()
+      const b = deferred<Res>()
+      vi.mocked(recommendService.getRelatedArticles)
+        .mockReturnValueOnce(a.promise)
+        .mockReturnValueOnce(b.promise)
+
+      const uuid = ref('A')
+      const { articles, isLoading } = useRelatedArticles(uuid)
+      uuid.value = 'B'
+      await nextTick()
+      b.resolve([art('B')])
+      await new Promise(r => setTimeout(r, 0))
+      a.resolve([art('A')])
+      await new Promise(r => setTimeout(r, 0))
+
+      expect(articles.value.map(x => x.uuid)).toEqual(['B'])
+      expect(isLoading.value).toBe(false)
+    })
+
+    it('A 晚到失敗 → 不清空 B 的結果', async () => {
+      const a = deferred<Res>()
+      const b = deferred<Res>()
+      vi.mocked(recommendService.getRelatedArticles)
+        .mockReturnValueOnce(a.promise)
+        .mockReturnValueOnce(b.promise)
+
+      const uuid = ref('A')
+      const { articles } = useRelatedArticles(uuid)
+      uuid.value = 'B'
+      await nextTick()
+      b.resolve([art('B')])
+      await new Promise(r => setTimeout(r, 0))
+      a.reject(new Error('stale'))
+      await new Promise(r => setTimeout(r, 0))
+
+      expect(articles.value.map(x => x.uuid)).toEqual(['B'])
+    })
+
+    it('scope 停止（unmount）後才收到回應 → 不寫 state', async () => {
+      const a = deferred<Res>()
+      vi.mocked(recommendService.getRelatedArticles).mockReturnValueOnce(a.promise)
+
+      const scope = effectScope()
+      const { articles } = scope.run(() => useRelatedArticles(ref('A')))!
+      scope.stop()
+      a.resolve([art('A')])
+      await new Promise(r => setTimeout(r, 0))
+
+      expect(articles.value).toEqual([])
+    })
   })
 })
