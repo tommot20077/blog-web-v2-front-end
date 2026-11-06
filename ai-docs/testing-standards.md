@@ -71,7 +71,7 @@ npx vitest run --reporter verbose
 npx vitest run src/composables/
 
 # 特定檔案
-npx vitest run src/composables/useTheme.test.ts
+npx vitest run src/composables/useAppearance.test.ts
 
 # Watch 模式（開發中）
 npx vitest
