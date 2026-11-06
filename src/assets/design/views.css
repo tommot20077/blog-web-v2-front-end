@@ -353,6 +353,7 @@
 .art-check:hover { color: var(--ink); }
 .art-check input { position: absolute; opacity: 0; pointer-events: none; }
 .art-check .box { width: 14px; height: 14px; border: 1px solid var(--border); border-radius: 3px; position: relative; flex-shrink: 0; transition: all 0.15s; }
+.art-check input:focus-visible + .box { outline: 2px solid var(--accent); outline-offset: 2px; }
 .art-check input:checked + .box { background: var(--accent); border-color: var(--accent); }
 .art-check input:checked + .box::after { content:''; position:absolute; left:3px; top:0px; width:5px; height:8px; border:solid var(--bg); border-width:0 1.5px 1.5px 0; transform:rotate(45deg); }
 .art-check .l { flex: 1; }

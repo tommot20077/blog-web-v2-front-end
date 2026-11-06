@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { fireEvent } from '@testing-library/vue'
 import { flushPromises } from '@vue/test-utils'
 import ArticleList from './ArticleList.vue'
@@ -92,6 +94,41 @@ describe('ArticleList 頁面', () => {
       await flushPromises()
 
       expect(mockGetArticles).toHaveBeenLastCalledWith(1, 12, '全部', '', { ...baseFilters, categorySlugs: ['backend'] })
+    })
+
+    it('FE-05：分類 checkbox 由原生 change 事件驅動（鍵盤 Space 切換的路徑），並非 readonly', async () => {
+      mockGetArticles.mockResolvedValue(createMockPageResult(buildArticles(2)))
+      const { getAllByTestId } = renderWithRouter(ArticleList)
+      await flushPromises()
+
+      const input = getAllByTestId('category-option')[0]!.querySelector('input') as HTMLInputElement
+      expect(input.hasAttribute('readonly')).toBe(false)
+
+      input.checked = true
+      await fireEvent.change(input)
+      await flushPromises()
+
+      expect(mockGetArticles).toHaveBeenLastCalledWith(1, 12, '全部', '', { ...baseFilters, categorySlugs: ['backend'] })
+    })
+
+    it('FE-05：點擊 label 只觸發一次 toggle（不會重複觸發而互相抵銷）', async () => {
+      mockGetArticles.mockResolvedValue(createMockPageResult(buildArticles(2)))
+      const { getAllByTestId, container } = renderWithRouter(ArticleList)
+      await flushPromises()
+      mockGetArticles.mockClear()
+
+      await fireEvent.click(getAllByTestId('category-option')[0]!)
+      await flushPromises()
+
+      expect(mockGetArticles).toHaveBeenCalledTimes(1)
+      expect(container.querySelector('.art-active-filters')?.textContent).toContain('後端')
+      const input = getAllByTestId('category-option')[0]!.querySelector('input') as HTMLInputElement
+      expect(input.checked).toBe(true)
+    })
+
+    it('FE-05：.art-check input 聚焦時，勾選框有可見的 focus-visible 樣式', () => {
+      const css = readFileSync(resolve(__dirname, '../assets/design/views.css'), 'utf8')
+      expect(css).toMatch(/\.art-check input:focus-visible\s*\+\s*\.box\s*\{[^}]*outline/)
     })
 
     it('後端依分類回傳的文章照常顯示，不因列表回應沒有 categories 而被前端濾掉（原本選任何分類都會清空列表）', async () => {

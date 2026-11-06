@@ -237,9 +237,8 @@ function formatDate(d: string) {
                   :key="cat.slug"
                   class="art-check"
                   data-testid="category-option"
-                  @click.prevent="handleToggleCat(cat.slug)"
                 >
-                  <input type="checkbox" :checked="selCats.includes(cat.slug)" readonly />
+                  <input type="checkbox" :checked="selCats.includes(cat.slug)" @change="handleToggleCat(cat.slug)" />
                   <span class="box" />
                   <span class="l">{{ cat.name }}</span>
                 </label>
