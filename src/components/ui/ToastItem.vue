@@ -19,7 +19,6 @@ const indicatorColorMap: Record<ToastType, string> = {
 
 <template>
   <div
-    :role="toast.type === 'error' ? 'alert' : undefined"
     class="flex items-stretch gap-3 rounded-2xl border px-4 py-3 shadow-lg min-w-[280px] max-w-[400px] transition-all duration-300"
     style="background: var(--glass); border-color: var(--glass-border); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);"
   >

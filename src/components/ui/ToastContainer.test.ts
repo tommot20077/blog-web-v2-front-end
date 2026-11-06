@@ -28,19 +28,24 @@ describe('ToastContainer', () => {
     expect(wrapper.classes()).toContain('fixed');
   });
 
-  it('FE-04：容器是常駐的 aria-live 區域（polite），在任何 toast 出現前就存在', () => {
+  it('FE-04：常駐兩個 live region（polite、assertive），在任何 toast 出現前就已存在', () => {
     const wrapper = mount(ToastContainer);
-    expect(wrapper.attributes('aria-live')).toBe('polite');
+    expect(wrapper.find('[aria-live="polite"]').exists()).toBe(true);
+    expect(wrapper.find('[aria-live="assertive"]').exists()).toBe(true);
   });
 
-  it('FE-04：error toast 的 role 為 alert，其他類型不是', () => {
+  it('FE-04：error toast 放進 assertive 區域，其他類型放進 polite 區域；不使用 role=alert 以免重複朗讀', () => {
     const { showToast } = useToast();
     showToast('壞了', 'error');
     showToast('好了', 'success');
 
     const wrapper = mount(ToastContainer);
-    const alerts = wrapper.findAll('[role="alert"]');
-    expect(alerts).toHaveLength(1);
-    expect(alerts[0]!.text()).toContain('壞了');
+    const assertive = wrapper.get('[aria-live="assertive"]');
+    const polite = wrapper.get('[aria-live="polite"]');
+    expect(assertive.text()).toContain('壞了');
+    expect(assertive.text()).not.toContain('好了');
+    expect(polite.text()).toContain('好了');
+    expect(polite.text()).not.toContain('壞了');
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false);
   });
 });
