@@ -15,20 +15,34 @@ export function useComments(articleUuid: Ref<string>) {
   const { requireAuth } = useAuthWall()
   const { showToast } = useToast()
 
+  // 遞增的 request token：只有最新一次請求可以寫 state（commentService 不支援 signal，故不用 abort）
+  let latestRequestId = 0
+
   async function fetchPage(p = page.value) {
-    if (!articleUuid.value) return
+    // 先遞增 token 再判斷空值：uuid 變空時讓進行中的請求失效，並回到空狀態
+    const requestId = ++latestRequestId
+    if (!articleUuid.value) {
+      list.value = []
+      totalTopLevels.value = 0
+      totalCommentCount.value = 0
+      page.value = 1
+      isLoading.value = false
+      return
+    }
     isLoading.value = true
     try {
       const res = await commentService.list(articleUuid.value, p, size, sort.value)
+      if (requestId !== latestRequestId) return
       list.value = res.topLevels.records
       totalTopLevels.value = res.topLevels.total
       totalCommentCount.value = res.totalCommentCount
       page.value = p
     } catch {
+      if (requestId !== latestRequestId) return
       // 失敗時保留前一頁狀態，避免 unhandled rejection（watchEffect / template 的 click handler 都不會 await）
       showToast('載入留言失敗，請稍後再試', 'error')
     } finally {
-      isLoading.value = false
+      if (requestId === latestRequestId) isLoading.value = false
     }
   }
 
@@ -85,7 +99,7 @@ export function useComments(articleUuid: Ref<string>) {
   }
 
   watchEffect(() => {
-    if (articleUuid.value) fetchPage(1)
+    fetchPage(1)
   })
 
   return { list, totalCommentCount, totalTopLevels, page, size, sort, isLoading, fetchPage, post, reply, edit, remove }
