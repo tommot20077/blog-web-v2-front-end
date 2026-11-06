@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
-import { defineComponent } from 'vue'
+import { defineComponent, reactive, nextTick } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
 
 function makeTestComponent(setup: () => Record<string, unknown>) {
@@ -454,6 +454,69 @@ describe('useSettings', () => {
       vi.resetModules()
       const b = await setup({ uuid: undefined })
       expect(b.s.publicProfilePath.value).toBeNull()
+    })
+  })
+
+  describe('blob URL 覆寫時 revoke（FE-10）', () => {
+    let revokeSpy: ReturnType<typeof vi.fn>
+    const BLOB = 'blob:http://localhost/old-preview'
+
+    const originalRevoke = URL.revokeObjectURL
+
+    beforeEach(async () => {
+      revokeSpy = vi.fn()
+      // vitest.config mockReset: true 會清掉 vi.mock 工廠內的預設回傳值，這裡明確指定
+      const { fileService } = await import('../api/fileService')
+      vi.mocked(fileService.uploadFile).mockResolvedValue({ url: 'https://cdn.example.com/avatar.png' } as never)
+      URL.revokeObjectURL = revokeSpy as unknown as typeof URL.revokeObjectURL
+    })
+
+    afterEach(() => {
+      URL.revokeObjectURL = originalRevoke
+    })
+
+    async function setup(user: Record<string, unknown> = { nickname: 'T', avatarUrl: null }) {
+      const { useAuthStore } = await import('../stores/auth')
+      const store = reactive({
+        user,
+        fetchUser: vi.fn().mockResolvedValue(undefined),
+        logout: vi.fn(),
+      })
+      vi.mocked(useAuthStore).mockReturnValue(store as unknown as ReturnType<typeof useAuthStore>)
+      vi.resetModules()
+      const { useSettings } = await import('./useSettings')
+      let s: ReturnType<typeof useSettings> | null = null
+      mount(makeTestComponent(() => { s = useSettings(); return {} }))
+      return { s: s!, store }
+    }
+
+    it('saveProfile 上傳成功後以 resp.url 覆寫 → revoke 舊 blob URL', async () => {
+      const { s } = await setup()
+      s.avatarUrl.value = BLOB
+      s.avatarFile.value = new File(['x'], 'a.png', { type: 'image/png' })
+      await s.saveProfile()
+
+      expect(revokeSpy).toHaveBeenCalledWith(BLOB)
+      expect(s.avatarUrl.value).toBe('https://cdn.example.com/avatar.png')
+    })
+
+    it('saveProfile 上傳前舊值不是 blob → 不呼叫 revoke', async () => {
+      const { s } = await setup()
+      s.avatarUrl.value = 'https://cdn.example.com/old.png'
+      s.avatarFile.value = new File(['x'], 'a.png', { type: 'image/png' })
+      await s.saveProfile()
+
+      expect(revokeSpy).not.toHaveBeenCalled()
+    })
+
+    it('hydrateProfile（authStore.user 更新）覆寫 blob 預覽 → revoke 舊 blob URL', async () => {
+      const { s, store } = await setup()
+      s.avatarUrl.value = BLOB
+      store.user = { nickname: 'T2', avatarUrl: 'https://cdn.example.com/server.png' }
+      await nextTick()
+
+      expect(revokeSpy).toHaveBeenCalledWith(BLOB)
+      expect(s.avatarUrl.value).toBe('https://cdn.example.com/server.png')
     })
   })
 })
