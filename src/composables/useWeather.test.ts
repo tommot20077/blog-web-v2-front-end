@@ -47,4 +47,18 @@ describe('useWeather', () => {
     expect(result.condition.value).toBe('Sunny')
     expect(result.isLoading.value).toBe(false)
   })
+
+  it('unmount 之後 resolve → 不寫入 ref，也沒有 Vue warning', async () => {
+    vi.resetModules()
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const { result, wrapper } = await mountWithWeather()
+
+    wrapper.unmount()
+    await vi.advanceTimersByTimeAsync(1000)
+
+    expect(result.temperature.value).toBe('--')
+    expect(result.condition.value).toBe('載入中')
+    expect(warn).not.toHaveBeenCalled()
+    warn.mockRestore()
+  })
 })

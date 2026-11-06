@@ -89,4 +89,107 @@ describe('useReveal', () => {
     await wrapper.unmount()
     expect(disconnected).toBe(true)
   })
+
+describe('useGlobalReveal', () => {
+  let moCallback: MutationCallback | null = null
+  let rafQueue: Array<{ id: number; cb: FrameRequestCallback }> = []
+  let ioObserve: ReturnType<typeof vi.fn>
+  let nextRafId = 1
+
+  beforeEach(() => {
+    moCallback = null
+    rafQueue = []
+    nextRafId = 1
+    ioObserve = vi.fn()
+    vi.stubGlobal('IntersectionObserver', class {
+      observe = ioObserve
+      unobserve = vi.fn()
+      disconnect = vi.fn()
+    })
+    vi.stubGlobal('MutationObserver', class {
+      constructor(cb: MutationCallback) { moCallback = cb }
+      observe = vi.fn()
+      disconnect = vi.fn()
+    })
+    vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
+      const id = nextRafId++
+      rafQueue.push({ id, cb })
+      return id
+    })
+    vi.stubGlobal('cancelAnimationFrame', (id: number) => {
+      rafQueue = rafQueue.filter(x => x.id !== id)
+    })
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+    document.body.innerHTML = ''
+  })
+
+  const flushRaf = () => {
+    const q = rafQueue
+    rafQueue = []
+    q.forEach(x => x.cb(0))
+  }
+
+  const mountGlobal = async () => {
+    vi.resetModules()
+    const { useGlobalReveal } = await import('./useReveal')
+    const Wrapper = defineComponent({
+      setup() { useGlobalReveal(); return {} },
+      template: '<div />',
+    })
+    return mount(Wrapper, { attachTo: document.body })
+  }
+
+  const revealScans = (spy: ReturnType<typeof vi.spyOn>) =>
+    spy.mock.calls.filter(c => String(c[0]).includes('.reveal')).length
+
+  it('同一幀內連續多次 mutation 只掃描一次文件', async () => {
+    await mountGlobal()
+    const spy = vi.spyOn(document, 'querySelectorAll')
+
+    for (let i = 0; i < 10; i++) moCallback!([], {} as MutationObserver)
+    expect(revealScans(spy)).toBe(0)
+
+    flushRaf()
+    expect(revealScans(spy)).toBe(1)
+  })
+
+  it('mutation 後新加入的 .reveal 節點仍會被 observe', async () => {
+    await mountGlobal()
+    const el = document.createElement('div')
+    el.className = 'reveal'
+    document.body.appendChild(el)
+
+    moCallback!([], {} as MutationObserver)
+    flushRaf()
+
+    expect(ioObserve).toHaveBeenCalledWith(el)
+  })
+
+  it('已觀察過的元素不會重複 observe', async () => {
+    await mountGlobal()
+    const el = document.createElement('div')
+    el.className = 'reveal'
+    document.body.appendChild(el)
+
+    moCallback!([], {} as MutationObserver)
+    flushRaf()
+    moCallback!([], {} as MutationObserver)
+    flushRaf()
+
+    expect(ioObserve.mock.calls.filter(c => c[0] === el)).toHaveLength(1)
+  })
+
+  it('unmount 時取消尚未執行的掃描', async () => {
+    const wrapper = await mountGlobal()
+    const spy = vi.spyOn(document, 'querySelectorAll')
+    moCallback!([], {} as MutationObserver)
+    wrapper.unmount()
+    flushRaf()
+    expect(revealScans(spy)).toBe(0)
+  })
+})
 })

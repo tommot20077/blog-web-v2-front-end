@@ -203,6 +203,7 @@ async function onVersionRestored() {
         class="ed-title-input"
         data-testid="editor-title-input"
         type="text"
+        aria-label="文章標題"
         placeholder="文章標題..."
       />
       <span class="ed-status" data-testid="editor-word-count">{{ displayWordCount }} 字</span>

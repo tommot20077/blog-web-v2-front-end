@@ -47,7 +47,7 @@ src/
 
 所有共享邏輯放入 `composables/`，遵循以下規則：
 
-*   函式命名 `use<Feature>`（如 `useTheme()`, `useWeather()`）
+*   函式命名 `use<Feature>`（如 `useAppearance()`, `useWeather()`）
 *   回傳響應式狀態與方法
 *   管理生命週期（`onMounted` / `onUnmounted` 清理）
 *   使用 JSDoc 標註用途、參數、回傳值

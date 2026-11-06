@@ -4,11 +4,13 @@ import { ref, watch } from 'vue'
 const props = withDefaults(
   defineProps<{
     placeholder?: string
+    ariaLabel?: string
     submitLabel?: string
     initialContent?: string
     showCancel?: boolean
   }>(),
   {
+    ariaLabel: '留言內容',
     placeholder: '寫下你的想法⋯（Markdown 支援）',
     submitLabel: 'Post',
     initialContent: '',
@@ -46,6 +48,7 @@ function submit() {
         v-model="text"
         data-testid="comment-textarea"
         :placeholder="placeholder"
+        :aria-label="ariaLabel"
         rows="3"
         @keydown.meta.enter.prevent="submit"
         @keydown.ctrl.enter.prevent="submit"

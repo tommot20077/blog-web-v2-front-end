@@ -48,6 +48,13 @@ export function useSettings() {
   const website = ref('')
   const avatarUrl = ref<string | null>(null)
   const avatarFile = ref<File | null>(null)
+
+  /** 覆寫 avatarUrl 前先釋放舊的 blob 預覽 URL，避免 object URL 洩漏 */
+  function replaceAvatarUrl(next: string | null) {
+    const prev = avatarUrl.value
+    if (prev && prev !== next && prev.startsWith('blob:')) URL.revokeObjectURL(prev)
+    avatarUrl.value = next
+  }
   const { status: profileStatus, withSave: withProfileSave } = useSaveStatus()
 
   // ── Account ──
@@ -136,7 +143,8 @@ export function useSettings() {
     bio.value = user.bio || ''
     email.value = user.email || ''
     website.value = user.website ?? ''
-    avatarUrl.value = user.avatarUrl || null
+    // 有尚未存檔的頭像選擇時保留預覽（avatarFile 仍在，下次存檔才會上傳它）
+    if (!avatarFile.value) replaceAvatarUrl(user.avatarUrl || null)
     location.value = user.location ?? ''
     hydrateSocial(user)
     hydrateNotifications(user)
@@ -161,7 +169,7 @@ export function useSettings() {
         if (avatarFile.value) {
           // Upload avatar first, get URL
           const resp = await fileService.uploadFile(avatarFile.value, 'AVATAR')
-          avatarUrl.value = resp.url
+          replaceAvatarUrl(resp.url)
           avatarFile.value = null
         }
         // 帶上 socialLinks 現值，避免後端 setWebsite(null) 模式的反向問題：
@@ -285,8 +293,7 @@ export function useSettings() {
   }
 
   function removeAvatar() {
-    if (avatarUrl.value?.startsWith('blob:')) URL.revokeObjectURL(avatarUrl.value)
-    avatarUrl.value = null
+    replaceAvatarUrl(null)
     avatarFile.value = null
   }
 

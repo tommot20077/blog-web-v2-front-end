@@ -80,7 +80,7 @@
 *   CSS variables 隨 `data-theme` 切換
 *   Tailwind `darkMode: 'class'` 策略
 *   狀態持久化至 `localStorage`
-*   主題切換由 `useTheme()` composable 管理
+*   主題切換由 `useAppearance()` composable 管理
 
 ## Component Style Conventions
 
