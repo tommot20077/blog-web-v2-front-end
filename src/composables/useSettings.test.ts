@@ -519,4 +519,38 @@ describe('useSettings', () => {
       expect(s.avatarUrl.value).toBe('https://cdn.example.com/server.png')
     })
   })
+
+  describe('hydrateProfile 保留未存檔的頭像選擇（FE-10 追加）', () => {
+    it('有 pending avatarFile 時 authStore.user 更新 → 不覆寫預覽也不 revoke', async () => {
+      const revokeSpy = vi.fn()
+      const original = URL.revokeObjectURL
+      URL.revokeObjectURL = revokeSpy as unknown as typeof URL.revokeObjectURL
+      try {
+        const { useAuthStore } = await import('../stores/auth')
+        const store = reactive({
+          user: { nickname: 'T', avatarUrl: null } as Record<string, unknown>,
+          fetchUser: vi.fn().mockResolvedValue(undefined),
+          logout: vi.fn(),
+        })
+        vi.mocked(useAuthStore).mockReturnValue(store as unknown as ReturnType<typeof useAuthStore>)
+        vi.resetModules()
+        const { useSettings } = await import('./useSettings')
+        let s: ReturnType<typeof useSettings> | null = null
+        mount(makeTestComponent(() => { s = useSettings(); return {} }))
+
+        const blob = 'blob:http://localhost/pending'
+        s!.avatarUrl.value = blob
+        s!.avatarFile.value = new File(['x'], 'a.png', { type: 'image/png' })
+        store.user = { nickname: 'T2', avatarUrl: 'https://cdn.example.com/server.png' }
+        await nextTick()
+
+        expect(s!.avatarUrl.value).toBe(blob)
+        expect(s!.avatarFile.value).not.toBeNull()
+        expect(revokeSpy).not.toHaveBeenCalled()
+        expect(s!.nickname.value).toBe('T2')
+      } finally {
+        URL.revokeObjectURL = original
+      }
+    })
+  })
 })

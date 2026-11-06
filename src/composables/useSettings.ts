@@ -143,7 +143,8 @@ export function useSettings() {
     bio.value = user.bio || ''
     email.value = user.email || ''
     website.value = user.website ?? ''
-    replaceAvatarUrl(user.avatarUrl || null)
+    // 有尚未存檔的頭像選擇時保留預覽（avatarFile 仍在，下次存檔才會上傳它）
+    if (!avatarFile.value) replaceAvatarUrl(user.avatarUrl || null)
     location.value = user.location ?? ''
     hydrateSocial(user)
     hydrateNotifications(user)
