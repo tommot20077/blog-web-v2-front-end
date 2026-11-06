@@ -30,8 +30,8 @@
 ```
 src/
   composables/
-    useTheme.ts
-    useTheme.test.ts        ← colocated
+    useAppearance.ts
+    useAppearance.test.ts   ← colocated
   components/
     article/
       ArticleCard.vue
