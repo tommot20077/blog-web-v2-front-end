@@ -33,15 +33,15 @@ export function findExternalImages(markdown: string, origin?: string): string[] 
   const found: Array<{ index: number; url: string }> = []
 
   for (const m of text.matchAll(MD_INLINE_IMAGE)) {
-    found.push({ index: m.index, url: m[1] ?? m[2] })
+    found.push({ index: m.index, url: m[1] ?? m[2] ?? '' })
   }
   for (const m of text.matchAll(HTML_IMG)) {
-    found.push({ index: m.index, url: m[1] ?? m[2] ?? m[3] })
+    found.push({ index: m.index, url: m[1] ?? m[2] ?? m[3] ?? '' })
   }
 
   const definitions = new Map<string, string>()
   for (const m of text.matchAll(MD_REF_DEFINITION)) {
-    definitions.set(m[1].toLowerCase(), m[2])
+    definitions.set((m[1] ?? '').toLowerCase(), m[2] ?? '')
   }
   for (const m of text.matchAll(MD_REF_IMAGE)) {
     const label = (m[1] || '').toLowerCase()
