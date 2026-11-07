@@ -26,7 +26,7 @@ describe('useComments', () => {
 
   it('fetchPage 呼叫 commentService.list 並更新 state', async () => {
     vi.mocked(commentService.list).mockResolvedValue({
-      topLevels: { records: [{ uuid: 'c1' } as never], total: 1, page: 1, size: 20 },
+      topLevels: { records: [{ uuid: 'c1' } as never], total: 1, current: 1, size: 20, pages: 1 },
       totalCommentCount: 1,
     })
     const uuid = ref('a-uuid')
@@ -40,7 +40,7 @@ describe('useComments', () => {
 
   it('post 呼叫 commentService.create + refetch', async () => {
     vi.mocked(commentService.list).mockResolvedValue({
-      topLevels: { records: [], total: 0, page: 1, size: 20 },
+      topLevels: { records: [], total: 0, current: 1, size: 20, pages: 1 },
       totalCommentCount: 0,
     })
     vi.mocked(commentService.create).mockResolvedValue({ uuid: 'c1' } as never)
@@ -59,7 +59,7 @@ describe('useComments', () => {
     auth.user = null
     auth.accessToken = null
     vi.mocked(commentService.list).mockResolvedValue({
-      topLevels: { records: [], total: 0, page: 1, size: 20 },
+      topLevels: { records: [], total: 0, current: 1, size: 20, pages: 1 },
       totalCommentCount: 0,
     })
     const uuid = ref('a-uuid')
@@ -74,7 +74,7 @@ describe('useComments', () => {
 
   it('reply 呼叫 commentService.create with parentUuid', async () => {
     vi.mocked(commentService.list).mockResolvedValue({
-      topLevels: { records: [], total: 0, page: 1, size: 20 },
+      topLevels: { records: [], total: 0, current: 1, size: 20, pages: 1 },
       totalCommentCount: 0,
     })
     vi.mocked(commentService.create).mockResolvedValue({ uuid: 'c2' } as never)
@@ -89,7 +89,7 @@ describe('useComments', () => {
 
   it('edit 呼叫 commentService.edit + refetch', async () => {
     vi.mocked(commentService.list).mockResolvedValue({
-      topLevels: { records: [], total: 0, page: 1, size: 20 },
+      topLevels: { records: [], total: 0, current: 1, size: 20, pages: 1 },
       totalCommentCount: 0,
     })
     vi.mocked(commentService.edit).mockResolvedValue({ uuid: 'c1' } as never)
@@ -104,7 +104,7 @@ describe('useComments', () => {
 
   it('remove 呼叫 commentService.delete + refetch', async () => {
     vi.mocked(commentService.list).mockResolvedValue({
-      topLevels: { records: [], total: 0, page: 1, size: 20 },
+      topLevels: { records: [], total: 0, current: 1, size: 20, pages: 1 },
       totalCommentCount: 0,
     })
     vi.mocked(commentService.delete).mockResolvedValue()
@@ -120,7 +120,7 @@ describe('useComments', () => {
   describe('過期回應防護', () => {
     type ListRes = Awaited<ReturnType<typeof commentService.list>>
     const mk = (id: string, total: number): ListRes => ({
-      topLevels: { records: [{ uuid: id } as never], total, page: 1, size: 20 },
+      topLevels: { records: [{ uuid: id } as never], total, current: 1, size: 20, pages: 1 },
       totalCommentCount: total,
     })
     function deferred<T>() {
@@ -239,7 +239,7 @@ describe('useComments', () => {
       uuid.value = ''
       await nextTick()
       resolveA({
-        topLevels: { records: [{ uuid: 'stale-A' } as never], total: 9, page: 1, size: 20 },
+        topLevels: { records: [{ uuid: 'stale-A' } as never], total: 9, current: 1, size: 20, pages: 1 },
         totalCommentCount: 9,
       })
       await new Promise(r => setTimeout(r, 0))
@@ -259,7 +259,7 @@ describe('useComments', () => {
     const topList = (replyCount: number, embedded = Math.min(3, replyCount)): ListRes => ({
       topLevels: {
         records: [{ uuid: 'p1', parentUuid: null, replyCount, replies: range(1, embedded) } as never],
-        total: 1, page: 1, size: 20,
+        total: 1, current: 1, size: 20, pages: 1,
       },
       totalCommentCount: 1 + replyCount,
     })

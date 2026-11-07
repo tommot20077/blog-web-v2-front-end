@@ -1,3 +1,5 @@
+import type { PageResult } from './editor'
+
 export interface AuthorSummary {
   uuid: string
   nickname: string
@@ -34,6 +36,6 @@ export interface EditCommentRequest {
 }
 
 export interface ArticleCommentList {
-  topLevels: { records: CommentItem[]; total: number; page: number; size: number }
+  topLevels: PageResult<CommentItem>
   totalCommentCount: number
 }

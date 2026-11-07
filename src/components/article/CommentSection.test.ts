@@ -28,7 +28,7 @@ function mockList(replyCount: number) {
   vi.mocked(commentService.list).mockResolvedValue({
     topLevels: {
       records: [comment('p1', null, { replyCount, replies: replies(1, Math.min(3, replyCount)) })],
-      total: 1, page: 1, size: 20,
+      total: 1, current: 1, size: 20, pages: 1,
     },
     totalCommentCount: 1 + replyCount,
   })

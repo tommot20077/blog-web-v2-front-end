@@ -22,6 +22,16 @@ describe('mock commentService（D3 回覆分頁）', () => {
     expect(top.replyCount).toBe(5)
   })
 
+  it('list 的 topLevels 是 PageResult 形狀（current／size／pages／total／records），不是 page（快照 PageResultCommentResponse）', async () => {
+    await commentService.create(ARTICLE, { content: 'a' })
+    await commentService.create(ARTICLE, { content: 'b' })
+    await commentService.create(ARTICLE, { content: 'c' })
+    const res = await commentService.list(ARTICLE, 2, 2, 'newest')
+    expect(res.topLevels).toMatchObject({ current: 2, size: 2, pages: 2, total: 3 })
+    expect(res.topLevels.records).toHaveLength(1)
+    expect(res.topLevels).not.toHaveProperty('page')
+  })
+
   it('replyCount 不含已刪除的回覆', async () => {
     const parent = await seedThread(4)
     const all = await commentService.listReplies(parent.uuid, 1, 20)

@@ -9,7 +9,7 @@ describe('real commentService', () => {
 
   it('list 呼叫 GET /articles/{uuid}/comments with page/size/sort', async () => {
     const mockResponse = {
-      topLevels: { records: [], total: 0, page: 1, size: 20 },
+      topLevels: { records: [], total: 0, current: 1, size: 20, pages: 1 },
       totalCommentCount: 0,
     }
     vi.mocked(apiClient.get).mockResolvedValue(mockResponse)
