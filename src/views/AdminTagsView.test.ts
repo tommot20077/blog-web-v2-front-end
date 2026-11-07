@@ -325,4 +325,77 @@ describe('AdminTagsView', () => {
       expect(mockGetTagsFull).toHaveBeenCalledTimes(1)
     })
   })
+
+  // ── W7F-6：color／icon／description 上限與格式（快照 UpdateTagRequest）────────
+  describe('輸入上限與格式', () => {
+    async function openForm() {
+      const user = userEvent.setup()
+      renderWithRouter(AdminTagsView)
+      await flushPromises()
+      await user.click(screen.getByTestId('admin-tags-edit-tag-uuid-1'))
+      return user
+    }
+    async function setField(testId: string, value: string) {
+      const el = screen.getByTestId(testId) as HTMLInputElement
+      el.value = value
+      el.dispatchEvent(new Event('input', { bubbles: true }))
+      await flushPromises()
+    }
+
+    it('icon／description 輸入框帶 maxlength（100／200）', async () => {
+      await openForm()
+      expect(screen.getByTestId('admin-tags-form-icon').getAttribute('maxlength')).toBe('100')
+      expect(screen.getByTestId('admin-tags-form-description').getAttribute('maxlength')).toBe('200')
+    })
+
+    it('icon 剛好 100 字可送出；101 字不送出並提示', async () => {
+      const user = await openForm()
+      await setField('admin-tags-form-icon', 'i'.repeat(100))
+      await user.click(screen.getByTestId('admin-tags-form-submit'))
+      expect(mockUpdateTag).toHaveBeenCalledTimes(1)
+
+      mockUpdateTag.mockClear()
+      await user.click(screen.getByTestId('admin-tags-edit-tag-uuid-1'))
+      await setField('admin-tags-form-icon', 'i'.repeat(101))
+      await user.click(screen.getByTestId('admin-tags-form-submit'))
+      expect(mockUpdateTag).not.toHaveBeenCalled()
+      expect(screen.getByTestId('admin-tags-form-icon-error').textContent).toContain('圖示最多 100 字')
+    })
+
+    it('description 剛好 200 字可送出；201 字不送出並提示', async () => {
+      const user = await openForm()
+      await setField('admin-tags-form-description', 'd'.repeat(200))
+      await user.click(screen.getByTestId('admin-tags-form-submit'))
+      expect(mockUpdateTag).toHaveBeenCalledTimes(1)
+
+      mockUpdateTag.mockClear()
+      await user.click(screen.getByTestId('admin-tags-edit-tag-uuid-1'))
+      await setField('admin-tags-form-description', 'd'.repeat(201))
+      await user.click(screen.getByTestId('admin-tags-form-submit'))
+      expect(mockUpdateTag).not.toHaveBeenCalled()
+      expect(screen.getByTestId('admin-tags-form-description-error').textContent).toContain('描述最多 200 字')
+    })
+
+    it('color 為 #RRGGBB（含大小寫）可送出', async () => {
+      const user = await openForm()
+      await setField('admin-tags-form-color', '#aBc123')
+      await user.click(screen.getByTestId('admin-tags-form-submit'))
+      expect(mockUpdateTag).toHaveBeenCalledWith('tag-uuid-1', expect.objectContaining({ color: '#aBc123' }))
+    })
+
+    it('color 清空視為不設定，可送出（payload 為 null）', async () => {
+      const user = await openForm()
+      await setField('admin-tags-form-color', '')
+      await user.click(screen.getByTestId('admin-tags-form-submit'))
+      expect(mockUpdateTag).toHaveBeenCalledWith('tag-uuid-1', expect.objectContaining({ color: null }))
+    })
+
+    it.each(['#fff', 'FF8D28', '#GGGGGG', 'red'])('color "%s" 格式錯誤：不送出並提示', async (bad) => {
+      const user = await openForm()
+      await setField('admin-tags-form-color', bad)
+      await user.click(screen.getByTestId('admin-tags-form-submit'))
+      expect(mockUpdateTag).not.toHaveBeenCalled()
+      expect(screen.getByTestId('admin-tags-form-color-error').textContent).toContain('#RRGGBB')
+    })
+  })
 })

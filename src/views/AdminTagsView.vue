@@ -1,9 +1,15 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { adminService } from '../api/adminService'
 import { useToast } from '../composables/useToast'
 import AdminRail from '../components/layout/AdminRail.vue'
 import type { AdminTagResponse } from '../types/editor'
+import {
+  MAX_TAG_ICON_LENGTH,
+  MAX_TAG_DESCRIPTION_LENGTH,
+  exceedsLength,
+  isTagColor,
+} from '../utils/inputLimits'
 
 /**
  * AdminTagsView — 標籤管理（`/admin/tags`）
@@ -54,6 +60,20 @@ async function fetchTags() {
   }
 }
 
+// 送出前預檢（對齊快照 UpdateTagRequest）：color 須為 #RRGGBB（空字串＝不設定）、icon ≤ 100、description ≤ 200
+const colorError = computed(() => {
+  const c = form.color.trim()
+  return c === '' || isTagColor(c) ? null : '顏色格式須為 #RRGGBB，例如 #FF8D28'
+})
+const iconError = computed(() =>
+  exceedsLength(form.icon.trim(), MAX_TAG_ICON_LENGTH) ? `圖示最多 ${MAX_TAG_ICON_LENGTH} 字，請刪減後再儲存` : null,
+)
+const descriptionError = computed(() =>
+  exceedsLength(form.description.trim(), MAX_TAG_DESCRIPTION_LENGTH)
+    ? `描述最多 ${MAX_TAG_DESCRIPTION_LENGTH} 字，請刪減後再儲存`
+    : null,
+)
+
 function openEditForm(tag: AdminTagResponse) {
   editingId.value = tag.id
   form.name = tag.name
@@ -69,6 +89,7 @@ function closeForm() {
 
 async function submitForm() {
   if (!editingId.value) return
+  if (colorError.value || iconError.value || descriptionError.value) return
   const id = editingId.value
   isSubmitting.value = true
   const payload = {
@@ -138,19 +159,28 @@ onMounted(fetchTags)
           </div>
           <div class="tag-form-row">
             <label for="tag-form-color">顏色</label>
-            <input id="tag-form-color" v-model="form.color" data-testid="admin-tags-form-color" />
+            <input id="tag-form-color" v-model="form.color" data-testid="admin-tags-form-color" placeholder="#RRGGBB" />
+            <p v-if="colorError" class="tag-form-error" role="alert" data-testid="admin-tags-form-color-error">{{ colorError }}</p>
           </div>
           <div class="tag-form-row">
             <label for="tag-form-icon">圖示</label>
-            <input id="tag-form-icon" v-model="form.icon" data-testid="admin-tags-form-icon" />
+            <input
+              id="tag-form-icon"
+              v-model="form.icon"
+              :maxlength="MAX_TAG_ICON_LENGTH"
+              data-testid="admin-tags-form-icon"
+            />
+            <p v-if="iconError" class="tag-form-error" role="alert" data-testid="admin-tags-form-icon-error">{{ iconError }}</p>
           </div>
           <div class="tag-form-row">
             <label for="tag-form-description">描述</label>
             <input
               id="tag-form-description"
               v-model="form.description"
+              :maxlength="MAX_TAG_DESCRIPTION_LENGTH"
               data-testid="admin-tags-form-description"
             />
+            <p v-if="descriptionError" class="tag-form-error" role="alert" data-testid="admin-tags-form-description-error">{{ descriptionError }}</p>
           </div>
           <div class="tag-form-actions">
             <button
@@ -314,6 +344,7 @@ onMounted(fetchTags)
   transition: border-color .2s;
 }
 .tag-form-row input:focus { border-color: var(--accent); }
+.tag-form-error { margin: 0; font-size: 13px; color: var(--danger); }
 .tag-form-readonly {
   padding: 10px 14px; font-size: 14px; color: var(--muted);
 }

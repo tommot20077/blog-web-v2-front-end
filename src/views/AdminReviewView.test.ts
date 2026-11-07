@@ -304,4 +304,38 @@ describe('AdminReviewView', () => {
       expect(screen.getByTestId('admin-rail-link-admin-review').className).toContain('active')
     })
   })
+
+  // ── W7F-6：退回理由上限（快照 RejectArticleRequest.reason maxLength 500；無格式限制）──
+  describe('退回理由長度上限', () => {
+    async function openReject(reason: string) {
+      mockRejectArticle.mockResolvedValue({ uuid: 'pending-uuid-1', status: 'REJECTED' } as any)
+      const user = userEvent.setup()
+      renderWithRouter(AdminReviewView)
+      await flushPromises()
+      await user.click(screen.getByText('退回'))
+      const textarea = screen.getByPlaceholderText(/退回理由/) as HTMLTextAreaElement
+      textarea.value = reason
+      textarea.dispatchEvent(new Event('input', { bubbles: true }))
+      await flushPromises()
+      return { user, textarea }
+    }
+
+    it('textarea 帶 maxlength=500', async () => {
+      const { textarea } = await openReject('x')
+      expect(textarea.getAttribute('maxlength')).toBe('500')
+    })
+
+    it('剛好 500 字可以送出', async () => {
+      const { user } = await openReject('x'.repeat(500))
+      await user.click(screen.getByText('確認退回'))
+      expect(mockRejectArticle).toHaveBeenCalledWith('pending-uuid-1', 'x'.repeat(500))
+    })
+
+    it('501 字不呼叫 API 並顯示提示', async () => {
+      const { user } = await openReject('x'.repeat(501))
+      expect(screen.getByTestId('admin-review-reject-error').textContent).toContain('退回理由最多 500 字')
+      await user.click(screen.getByText('確認退回'))
+      expect(mockRejectArticle).not.toHaveBeenCalled()
+    })
+  })
 })

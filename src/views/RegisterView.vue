@@ -12,6 +12,7 @@ import FormField from '../components/ui/FormField.vue';
 import PasswordStrengthMeter from '../components/auth/PasswordStrengthMeter.vue';
 import PasswordRulesChecklist from '../components/auth/PasswordRulesChecklist.vue';
 import RegisterSuccess from '../components/auth/RegisterSuccess.vue';
+import { MAX_NICKNAME_LENGTH, exceedsLength } from '../utils/inputLimits';
 
 const authStore = useAuthStore();
 const { showToast } = useToast();
@@ -53,6 +54,11 @@ const { errors, validateForm, getPasswordStrength } = useFormValidation<{
   nickname: [
     { type: 'required', message: '請輸入暱稱' },
     { type: 'minLength', message: '暱稱最少需要 2 個字元', params: { min: 2 } },
+    {
+      type: 'custom',
+      message: `暱稱最多 ${MAX_NICKNAME_LENGTH} 個字元`,
+      validator: (v) => !exceedsLength(String(v), MAX_NICKNAME_LENGTH),
+    },
   ],
   password: [
     { type: 'required', message: '請輸入密碼' },
@@ -140,6 +146,7 @@ async function handleSubmit() {
         label="暱稱"
         type="text"
         placeholder="請輸入暱稱"
+        :maxlength="MAX_NICKNAME_LENGTH"
         :error="errors.nickname"
         :disabled="isLoading"
       />

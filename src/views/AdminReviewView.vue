@@ -4,6 +4,7 @@ import { adminService } from '../api/adminService'
 import { useToast } from '../composables/useToast'
 import AdminRail from '../components/layout/AdminRail.vue'
 import type { MyArticle } from '../types/editor'
+import { MAX_REJECT_REASON_LENGTH, exceedsLength } from '../utils/inputLimits'
 
 const { showToast } = useToast()
 
@@ -16,7 +17,8 @@ const rejectingUuid = ref<string | null>(null)
 const rejectReason = ref('')
 const PAGE_SIZE = 10
 
-const canConfirmReject = computed(() => rejectReason.value.trim().length > 0)
+const rejectReasonTooLong = computed(() => exceedsLength(rejectReason.value, MAX_REJECT_REASON_LENGTH))
+const canConfirmReject = computed(() => rejectReason.value.trim().length > 0 && !rejectReasonTooLong.value)
 
 async function fetchArticles() {
   isLoading.value = true
@@ -59,6 +61,7 @@ function cancelReject() {
 }
 
 async function handleReject(uuid: string) {
+  if (!canConfirmReject.value) return
   try {
     await adminService.rejectArticle(uuid, rejectReason.value)
     articles.value = articles.value.filter(a => a.uuid !== uuid)
@@ -143,7 +146,16 @@ onMounted(fetchArticles)
             placeholder="請輸入退回理由"
             rows="3"
             class="admin-reject-textarea"
+            :maxlength="MAX_REJECT_REASON_LENGTH"
           />
+          <p
+            v-if="rejectReasonTooLong"
+            class="admin-reject-error"
+            role="alert"
+            data-testid="admin-review-reject-error"
+          >
+            退回理由最多 {{ MAX_REJECT_REASON_LENGTH }} 字，目前 {{ rejectReason.length }} 字，請刪減後再送出
+          </p>
           <div class="admin-reject-actions">
             <button
               type="button"
