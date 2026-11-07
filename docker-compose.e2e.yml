@@ -102,6 +102,17 @@ services:
       JWT_EXPIRATION: "86400000"
       MANAGEMENT_HEALTH_ELASTICSEARCH_ENABLED: "false"
       MANAGEMENT_HEALTH_MAIL_ENABLED: "false"
+      # 後端 A4 通用寫入限流（article-write 30/分、search 120/分 per IP 等）：整套 E2E 全部來自同一個 IP、
+      # 同一組種子帳號，數分鐘內會超過預設門檻而回 A0009（429），使建立文章等 fixture 拿到 data=null。
+      # 限流本身由後端 RateLimitE2E 等測試覆蓋；這裡只把 E2E 堆疊的門檻調高（後端支援以環境變數覆寫）。
+      APP_RATE_LIMIT_COMMENT_WRITE_LIMIT: "100000"
+      APP_RATE_LIMIT_INTERACTION_WRITE_LIMIT: "100000"
+      APP_RATE_LIMIT_READING_PROGRESS_LIMIT: "100000"
+      APP_RATE_LIMIT_UPLOAD_LIMIT: "100000"
+      APP_RATE_LIMIT_ARTICLE_WRITE_LIMIT: "100000"
+      APP_RATE_LIMIT_ACCOUNT_WRITE_LIMIT: "100000"
+      APP_RATE_LIMIT_SEARCH_LIMIT: "100000"
+      APP_RATE_LIMIT_SEARCH_SUGGEST_LIMIT: "100000"
     depends_on:
       postgres:
         condition: service_healthy

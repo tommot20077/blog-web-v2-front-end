@@ -52,18 +52,12 @@ test.describe('Search advanced (D3/D4/D5)', () => {
     }
   })
 
-  test('D5: sort=latest 與 sort=hot 各回不同順序', async ({ request }) => {
+  test('D5: sort=latest 依發布時間遞減；sort=hot 已移除，回 400 而非靜默退回', async ({ request }) => {
+    // 後端 B4 決策：sort 只接受 relevance、latest（不分大小寫），其他值（含已移除的 hot）回 400
     const latest = await request.get(`${BACKEND}/api/v1/search?q=E2E&sort=latest&page=1&size=10`)
-    const hot = await request.get(`${BACKEND}/api/v1/search?q=E2E&sort=hot&page=1&size=10`)
-
     expect(latest.status()).toBe(200)
-    expect(hot.status()).toBe(200)
-
     const latestBody = await latest.json()
-    const hotBody = await hot.json()
-
     expect(latestBody.code).toBe('00000')
-    expect(hotBody.code).toBe('00000')
     expect(latestBody.data.total).toBeGreaterThan(0)
 
     // sort=latest: 期望 publishedAt 遞減
@@ -72,5 +66,17 @@ test.describe('Search advanced (D3/D4/D5)', () => {
       expect(new Date(latestRecords[i - 1].publishedAt).getTime())
         .toBeGreaterThanOrEqual(new Date(latestRecords[i].publishedAt).getTime())
     }
+
+    // sort=relevance 仍為有效值
+    const relevance = await request.get(`${BACKEND}/api/v1/search?q=E2E&sort=relevance&page=1&size=10`)
+    expect(relevance.status()).toBe(200)
+
+    // sort=hot 已移除：400 + 參數錯誤碼，且不帶資料
+    const hot = await request.get(`${BACKEND}/api/v1/search?q=E2E&sort=hot&page=1&size=10`)
+    expect(hot.status()).toBe(400)
+    const hotBody = await hot.json()
+    expect(hotBody.code).toBe('A0001')
+    expect(hotBody.message).toContain('sort')
+    expect(hotBody.data).toBeNull()
   })
 })
