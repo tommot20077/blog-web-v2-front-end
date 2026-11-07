@@ -1,5 +1,6 @@
 import { resetAuthMockState } from './authMockData'
 import { resetArticleVersionStore, resetEditorArticleStore } from './data'
+import { simulateExternalArticleUpdate as simulateExternalArticleUpdateState } from './editorMockService'
 import { resetBookmarkMockState, seedBookmark as seedBookmarkState } from './bookmarkService'
 import { resetArticleLikeMockState, seedArticleLike } from './articleLikeService'
 import { resetCommentMockState, seedComment } from './commentService'
@@ -46,6 +47,14 @@ export function mockApiFailure(
   mockApiFailureState(urlPattern, body, status)
 }
 
+/** 模擬別處已修改這篇文章（B2 樂觀鎖衝突）：version 遞增並套用新內容，之後舊 version 存檔得 409／A0208 */
+export function simulateExternalArticleUpdate(
+  articleUuid: string,
+  patch?: { title?: string; summary?: string; content?: string },
+): void {
+  simulateExternalArticleUpdateState(articleUuid, patch)
+}
+
 export const mockE2E = {
   resetAllMockState,
   seedBookmark,
@@ -53,4 +62,5 @@ export const mockE2E = {
   seedArticleComment,
   seedTagFollow,
   mockApiFailure,
+  simulateExternalArticleUpdate,
 }

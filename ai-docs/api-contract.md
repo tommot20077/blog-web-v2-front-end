@@ -165,6 +165,13 @@ Response 401:
 | HTTP 403 | 顯示「權限不足」提示 |
 | HTTP 5xx | 顯示通用錯誤訊息 |
 
+### 文章樂觀鎖（後端 B2；2026-11-07 起）
+
+- `GET /api/v1/articles/{uuid}/edit`、`PUT /api/v1/articles/{uuid}` 的回應（EditorArticleResponse）與狀態轉換（submit / withdraw / publish / reject）回傳的 ArticleResponse 都帶 `version`（number）。
+- `PUT` 的 request 可選填 `version`：與 DB 不一致回 **HTTP 409、錯誤碼 `A0208`**（ARTICLE_CONCURRENT_UPDATE）；省略則不比對。新建文章不帶。
+- 前端：編輯器載入時記住 version，每次存檔帶上，存檔或狀態轉換成功後改用回應的新 version（`useEditorForm.version`）。收到 A0208 → `window.confirm` 提示，「重新載入」重抓並取代本機內容、重置未存檔狀態；「取消」保留本機內容。不做自動合併。
+- 全域 409 `A0008`（OPTIMISTIC_LOCK_CONFLICT）是另一個錯誤碼，不走這條流程。
+
 ## File Upload
 
 ```

@@ -12,6 +12,7 @@ import { useEditorFocusMode } from '../composables/useEditorFocusMode'
 import { useEditorOutline } from '../composables/useEditorOutline'
 import { useEditorImageUpload } from '../composables/useEditorImageUpload'
 import { findUnrenderableImages } from '../utils/unrenderableImages'
+import { isConcurrentUpdateError } from '../utils/apiErrors'
 import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard'
 import { useAuthStore } from '../stores/auth'
 import { useAuthedImages } from '../composables/useAuthedImages'
@@ -151,6 +152,38 @@ onMounted(async () => {
   }
 })
 
+// ── 存檔衝突（B2）─────────────────────────────────────────────────────────
+// 存檔帶的 version 與伺服器不一致（HTTP 409 / A0208）：文章在別處被改過。
+// 不做自動合併，由使用者決定：
+//   - 重新載入：以伺服器最新內容取代本機內容（loadArticle 會一併重置 D5 的 dirty 與 version）
+//   - 取消：留在原頁、本機內容不動，使用者可以先自行複製內容
+// 沿用專案既有的確認慣例（window.confirm；確定 = 重新載入）。
+const CONFLICT_MESSAGE = '這篇文章已在其他地方被修改。重新載入會捨棄你目前未儲存的內容。'
+
+async function reloadLatestArticle(): Promise<boolean> {
+  const latest = await loadArticle()
+  if (!latest) return false
+  setContent(latest.content)
+  baselineContent.value = markdownContent.value
+  return true
+}
+
+async function handleSaveConflict() {
+  if (!window.confirm(CONFLICT_MESSAGE)) {
+    showToast('尚未儲存：這篇文章已在其他地方被修改', 'error')
+    return
+  }
+  try {
+    if (await reloadLatestArticle()) {
+      showToast('已重新載入最新內容', 'success')
+      return
+    }
+  } catch {
+    // 落到下方錯誤提示
+  }
+  showToast('重新載入失敗，請稍後再試', 'error')
+}
+
 // ── Save draft ─────────────────────────────────────────────────────────────
 async function onSaveDraft() {
   try {
@@ -161,7 +194,11 @@ async function onSaveDraft() {
     if (!props.uuid && saved?.uuid) {
       await router.replace(`/editor/${saved.uuid}`)
     }
-  } catch {
+  } catch (err) {
+    if (isConcurrentUpdateError(err)) {
+      await handleSaveConflict()
+      return
+    }
     showToast('儲存失敗', 'error')
   }
 }
@@ -172,7 +209,11 @@ async function onSubmitForReview() {
     const contentToSave = markdownContent.value
     await saveDraft(contentToSave)
     baselineContent.value = contentToSave
-  } catch {
+  } catch (err) {
+    if (isConcurrentUpdateError(err)) {
+      await handleSaveConflict()
+      return
+    }
     showToast('儲存失敗', 'error')
     return
   }

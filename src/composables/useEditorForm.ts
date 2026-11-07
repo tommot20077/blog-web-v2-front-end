@@ -15,6 +15,9 @@ export function useEditorForm(uuid?: string) {
   const isSaving = ref(false)
   const isLoadingArticle = ref(!!uuid)
   const article = ref<EditorArticle | null>(null)
+  // 樂觀鎖版本號（B2）：載入 / 存檔 / 狀態轉換成功後一律改用回應的新值，
+  // 存檔時原樣帶回；後端比對不一致回 409（A0208）。新建文章在建立成功前為 null。
+  const version = ref<number | null>(null)
 
   const currentUuid = ref(uuid)
   const isNew = computed(() => !currentUuid.value)
@@ -40,6 +43,7 @@ export function useEditorForm(uuid?: string) {
       const data = await editorService.getArticleForEdit(currentUuid.value)
       if (!data) return null
       article.value = data
+      version.value = data.version
       title.value = data.title
       summary.value = data.summary
       coverImageUrl.value = data.coverImageUrl
@@ -69,11 +73,15 @@ export function useEditorForm(uuid?: string) {
       if (isNew.value) {
         saved = await editorService.createArticle(formData)
       } else {
-        saved = await editorService.updateArticle(currentUuid.value!, formData)
+        saved = await editorService.updateArticle(
+          currentUuid.value!,
+          version.value === null ? formData : { ...formData, version: version.value },
+        )
       }
 
       currentUuid.value = saved.uuid
       article.value = saved
+      version.value = saved.version
       // 只有儲存期間沒有新修改才清除 dirty
       if (revision === revisionAtSave) isDirty.value = false
       return saved
@@ -85,7 +93,9 @@ export function useEditorForm(uuid?: string) {
   async function submitForReview(): Promise<void> {
     const targetUuid = article.value?.uuid ?? currentUuid.value
     if (!targetUuid) return
-    await myArticlesService.submitForReview(targetUuid)
+    const result = await myArticlesService.submitForReview(targetUuid)
+    // 狀態轉換也會遞增 version；回應沒帶時保留原值
+    if (typeof result?.version === 'number') version.value = result.version
   }
 
   return {
@@ -99,6 +109,7 @@ export function useEditorForm(uuid?: string) {
     isSaving,
     isLoadingArticle,
     article,
+    version,
     loadArticle,
     saveDraft,
     submitForReview,
