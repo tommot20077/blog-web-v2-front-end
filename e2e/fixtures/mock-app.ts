@@ -8,8 +8,10 @@ type MockControls = {
   seedBookmark: (articleUuid: string) => void
   seedLike: (articleUuid: string) => void
   seedArticleComment: (articleUuid: string, content: string) => Promise<void>
+  seedArticleCommentThread: (articleUuid: string, content: string, replyContents: string[]) => Promise<void>
   seedTagFollow: (tagUuid: string) => void
   mockApiFailure: (urlPattern: string | RegExp, body?: Record<string, unknown>, status?: number) => void
+  clearMockApiFailures: () => void
   simulateExternalArticleUpdate: (
     articleUuid: string,
     patch?: { title?: string; summary?: string; content?: string },
@@ -136,6 +138,8 @@ export const test = base.extend<{
   resetMockStateInApp: () => Promise<void>
   loginAs: (role: Role) => Promise<void>
   seedBookmark: (articleUuid: string) => Promise<void>
+  seedCommentThread: (articleUuid: string, content: string, replyContents: string[]) => Promise<void>
+  clearMockApiFailures: () => Promise<void>
   expectToast: (text: string | RegExp) => Promise<void>
   expectAuthRedirect: (path: string) => Promise<void>
   refreshCurrentRoute: () => Promise<void>
@@ -189,6 +193,25 @@ export const test = base.extend<{
   seedBookmark: async ({ page }, use) => {
     await use(async (articleUuid: string) => {
       await withMockControls(page, (controls, uuid: string) => controls.seedBookmark(uuid), articleUuid)
+    })
+  },
+
+  seedCommentThread: async ({ page }, use) => {
+    await use(async (articleUuid: string, content: string, replyContents: string[]) => {
+      await withMockControls(
+        page,
+        (controls, uuid: string, text: string, replies: string[]) =>
+          controls.seedArticleCommentThread(uuid, text, replies),
+        articleUuid,
+        content,
+        replyContents,
+      )
+    })
+  },
+
+  clearMockApiFailures: async ({ page }, use) => {
+    await use(async () => {
+      await withMockControls(page, controls => controls.clearMockApiFailures())
     })
   },
 

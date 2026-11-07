@@ -1,9 +1,14 @@
+import { createMockApiFailureError, getMockApiFailure } from './mockApiFailureState'
+import type { PageResult } from '../../types/editor'
 import type {
   ArticleCommentList,
   CommentItem,
   CreateCommentRequest,
   EditCommentRequest,
 } from '../../types/comment'
+
+/** 與後端一致：列表每則頂層只內嵌前 3 則回覆，其餘用 listReplies 載入 */
+const EMBEDDED_REPLY_LIMIT = 3
 
 const store = new Map<string, CommentItem[]>()
 let nextId = 1
@@ -48,15 +53,37 @@ export const commentService = {
         : a.createdAt.localeCompare(b.createdAt),
     )
     const start = (page - 1) * size
-    const records = sorted.slice(start, start + size).map(c => ({
-      ...c,
-      replies: all.filter(r => r.parentUuid === c.uuid),
-    }))
+    const records = sorted.slice(start, start + size).map(c => {
+      // 後端不回已刪除的回覆（replyCount 與分頁都只算未刪除）
+      const activeReplies = all.filter(r => r.parentUuid === c.uuid && !r.deleted)
+      return {
+        ...c,
+        replyCount: activeReplies.length,
+        replies: activeReplies.slice(0, EMBEDDED_REPLY_LIMIT),
+      }
+    })
     return {
       topLevels: { records, total: topLevels.length, page, size },
       // 對齊 backend CommentService.countByArticle 行為：
       // 計入所有 top-level（含 deleted tombstone）+ active reply，排除 deleted reply
       totalCommentCount: all.filter(c => !c.parentUuid || !c.deleted).length,
+    }
+  },
+
+  async listReplies(parentUuid: string, page: number, size: number): Promise<PageResult<CommentItem>> {
+    // mockApiFailure 在呼叫當下判定（E2E 用來模擬回覆載入失敗）
+    const failure = getMockApiFailure(`/api/v1/comments/${parentUuid}/replies?page=${page}&size=${size}`)
+    if (failure) throw createMockApiFailureError(failure)
+    // 父留言不存在或傳入的是回覆 uuid → 200 + 空頁（對齊後端，不洩漏存在性）
+    const siblings = [...store.values()].find(list => list.some(c => c.uuid === parentUuid && !c.parentUuid))
+    const active = siblings ? siblings.filter(r => r.parentUuid === parentUuid && !r.deleted) : []
+    const start = (page - 1) * size
+    return {
+      records: active.slice(start, start + size),
+      total: active.length,
+      size,
+      current: page,
+      pages: size > 0 ? Math.ceil(active.length / size) : 0,
     }
   },
 
@@ -131,6 +158,10 @@ export const commentService = {
   },
 }
 
-export async function seedComment(articleUuid: string, content: string): Promise<CommentItem> {
-  return commentService.create(articleUuid, { content })
+export async function seedComment(
+  articleUuid: string,
+  content: string,
+  parentUuid?: string,
+): Promise<CommentItem> {
+  return commentService.create(articleUuid, { content, parentUuid })
 }

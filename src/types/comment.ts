@@ -16,6 +16,11 @@ export interface CommentItem {
   editedAt: string | null
   deleted: boolean
   deletedByRole: 'AUTHOR' | 'ADMIN' | null
+  /**
+   * 未刪除回覆的總數（僅頂層留言有意義；回覆為 0）。
+   * 列表 API 的 `replies` 最多只帶前 3 則，`replyCount > replies.length` 代表還有更多（D3）。
+   */
+  replyCount?: number
   replies?: CommentItem[]
 }
 

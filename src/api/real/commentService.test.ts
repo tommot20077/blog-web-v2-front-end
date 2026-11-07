@@ -21,6 +21,17 @@ describe('real commentService', () => {
     expect(res).toEqual(mockResponse)
   })
 
+  it('listReplies 呼叫 GET /comments/{uuid}/replies with page/size（D3）', async () => {
+    const page = { records: [{ uuid: 'r1' }], total: 5, size: 20, current: 1, pages: 1 }
+    vi.mocked(apiClient.get).mockResolvedValue(page)
+    const res = await commentService.listReplies('parent-uuid', 1, 20)
+    expect(apiClient.get).toHaveBeenCalledWith(
+      '/api/v1/comments/parent-uuid/replies',
+      { params: { page: 1, size: 20 } },
+    )
+    expect(res).toEqual(page)
+  })
+
   it('create 呼叫 POST /articles/{uuid}/comments', async () => {
     const reply = { uuid: 'c1', content: 'hi' }
     vi.mocked(apiClient.post).mockResolvedValue(reply)

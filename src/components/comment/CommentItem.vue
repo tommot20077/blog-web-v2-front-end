@@ -9,13 +9,23 @@ import AuthorName from '../author/AuthorName.vue'
 
 const props = defineProps<{
   comment: CommentItemType
+  /** 「載入更多回覆」請求進行中（僅頂層留言使用） */
+  replyLoading?: boolean
+  /** 上一次載入回覆失敗（僅頂層留言使用） */
+  replyError?: boolean
 }>()
 
 const emit = defineEmits<{
   reply: [parentUuid: string, content: string]
   edit: [uuid: string, content: string]
   delete: [uuid: string]
+  loadMoreReplies: [parentUuid: string]
 }>()
+
+// 後端只內嵌前 3 則回覆；replyCount（未刪除總數）> 已帶的 replies 數 → 還有更多
+const remainingReplies = computed(
+  () => (props.comment.replyCount ?? 0) - (props.comment.replies?.length ?? 0),
+)
 
 const commentUuid = computed(() => props.comment.uuid)
 const { liked, likeCount, isPending, toggle } = useCommentLike(
@@ -148,6 +158,22 @@ function formatTime(iso: string): string {
           @delete="uuid => emit('delete', uuid)"
         />
       </div>
+
+      <div v-if="remainingReplies > 0" class="replies-more">
+        <span
+          v-if="replyError"
+          class="replies-error"
+          role="alert"
+          data-testid="comment-replies-error"
+        >回覆載入失敗</span>
+        <button
+          type="button"
+          class="replies-more-btn"
+          data-testid="comment-replies-load-more"
+          :disabled="replyLoading"
+          @click="emit('loadMoreReplies', comment.uuid)"
+        >{{ replyLoading ? '載入中…' : replyError ? '重試' : `載入更多回覆（剩 ${remainingReplies} 則）` }}</button>
+      </div>
     </div>
   </article>
 </template>
@@ -224,5 +250,30 @@ function formatTime(iso: string): string {
   margin-top: 12px;
   padding-left: 16px;
   border-left: 2px solid var(--divider, rgba(0,0,0,0.06));
+}
+.replies-more {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding-left: 16px;
+  font-size: 12px;
+}
+.replies-more-btn {
+  padding: 4px 10px;
+  border: 1px solid var(--border, rgba(0,0,0,0.1));
+  border-radius: 999px;
+  background: var(--surface, #fbfbfb);
+  cursor: pointer;
+}
+.replies-more-btn:hover:not(:disabled) {
+  background: var(--bg-sub, #ededed);
+}
+.replies-more-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.replies-error {
+  color: #e15554;
 }
 </style>

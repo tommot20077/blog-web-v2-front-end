@@ -210,4 +210,55 @@ describe('CommentItem 留言 HTML 消毒（收緊設定）', () => {
     expect(el.querySelectorAll('script').length).toBe(0)
     expect(el.querySelector('img')?.hasAttribute('onerror')).toBe(false)
   })
+
+  describe('載入更多回覆（D3）', () => {
+    const rep = (n: number): CommentItemType => ({ ...baseComment, uuid: `r${n}`, parentUuid: 'c1' })
+    const withReplies = (replyCount: number, embedded = 3): CommentItemType => ({
+      ...baseComment,
+      replyCount,
+      replies: Array.from({ length: embedded }, (_, i) => rep(i + 1)),
+    })
+
+    it('replyCount > replies.length → 顯示「載入更多回覆（剩 N 則）」', () => {
+      const wrapper = mount(CommentItem, { props: { comment: withReplies(5) } })
+      const btn = wrapper.find('[data-testid="comment-replies-load-more"]')
+      expect(btn.exists()).toBe(true)
+      expect(btn.text()).toContain('載入更多回覆（剩 2 則）')
+    })
+
+    it('replyCount 等於 replies.length 或未提供 → 不顯示按鈕', () => {
+      expect(mount(CommentItem, { props: { comment: withReplies(3) } })
+        .find('[data-testid="comment-replies-load-more"]').exists()).toBe(false)
+      expect(mount(CommentItem, { props: { comment: baseComment } })
+        .find('[data-testid="comment-replies-load-more"]').exists()).toBe(false)
+    })
+
+    it('點擊 → emit loadMoreReplies(頂層 uuid)', async () => {
+      const wrapper = mount(CommentItem, { props: { comment: withReplies(5) } })
+      await wrapper.find('[data-testid="comment-replies-load-more"]').trigger('click')
+      expect(wrapper.emitted('loadMoreReplies')).toEqual([['c1']])
+    })
+
+    it('載入中 → 按鈕停用並顯示載入中', () => {
+      const wrapper = mount(CommentItem, { props: { comment: withReplies(5), replyLoading: true } })
+      const btn = wrapper.find('[data-testid="comment-replies-load-more"]')
+      expect(btn.attributes('disabled')).toBeDefined()
+      expect(btn.text()).toContain('載入中')
+    })
+
+    it('載入失敗 → 顯示錯誤訊息，按鈕改為重試且可點擊', async () => {
+      const wrapper = mount(CommentItem, { props: { comment: withReplies(5), replyError: true } })
+      expect(wrapper.find('[data-testid="comment-replies-error"]').text()).toContain('回覆載入失敗')
+      const btn = wrapper.find('[data-testid="comment-replies-load-more"]')
+      expect(btn.text()).toContain('重試')
+      await btn.trigger('click')
+      expect(wrapper.emitted('loadMoreReplies')).toEqual([['c1']])
+    })
+
+    it('已刪除的頂層墓碑也要能載入更多回覆', () => {
+      const tomb = { ...withReplies(5), deleted: true, deletedByRole: 'AUTHOR' as const, author: null }
+      const wrapper = mount(CommentItem, { props: { comment: tomb } })
+      expect(wrapper.find('[data-testid="comment-replies-load-more"]').exists()).toBe(true)
+    })
+  })
 })

@@ -250,4 +250,185 @@ describe('useComments', () => {
       expect(c.isLoading.value).toBe(false)
     })
   })
+
+  describe('回覆分頁（D3 載入更多）', () => {
+    type ListRes = Awaited<ReturnType<typeof commentService.list>>
+    type RepliesRes = Awaited<ReturnType<typeof commentService.listReplies>>
+    const reply = (n: number, parent = 'p1') => ({ uuid: `r${n}`, parentUuid: parent, content: `reply-${n}` }) as never
+    const range = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, i) => reply(from + i))
+    const topList = (replyCount: number, embedded = Math.min(3, replyCount)): ListRes => ({
+      topLevels: {
+        records: [{ uuid: 'p1', parentUuid: null, replyCount, replies: range(1, embedded) } as never],
+        total: 1, page: 1, size: 20,
+      },
+      totalCommentCount: 1 + replyCount,
+    })
+    const repliesPage = (records: unknown[], total: number, current = 1, size = 20): RepliesRes => ({
+      records: records as never, total, size, current, pages: Math.ceil(total / size),
+    })
+    const uuids = (c: ReturnType<typeof useComments>) => c.list.value[0].replies?.map(r => r.uuid)
+    function deferred<T>() {
+      let resolve!: (v: T) => void
+      let reject!: (e: unknown) => void
+      const promise = new Promise<T>((res, rej) => { resolve = res; reject = rej })
+      return { promise, resolve, reject }
+    }
+    async function setup(res: ListRes) {
+      vi.mocked(commentService.list).mockResolvedValue(res)
+      const c = useComments(ref('a-uuid'))
+      await new Promise(r => setTimeout(r, 0))
+      return c
+    }
+
+    it('5 則回覆：載入更多以 page=1,size=20 取回並取代內嵌 3 則，全部 5 則、不重複', async () => {
+      const c = await setup(topList(5))
+      expect(c.hasMoreReplies(c.list.value[0])).toBe(true)
+      vi.mocked(commentService.listReplies).mockResolvedValue(repliesPage(range(1, 5), 5))
+
+      await c.loadMoreReplies('p1')
+
+      expect(commentService.listReplies).toHaveBeenCalledWith('p1', 1, 20)
+      expect(uuids(c)).toEqual(['r1', 'r2', 'r3', 'r4', 'r5'])
+      expect(c.hasMoreReplies(c.list.value[0])).toBe(false)
+      expect(c.getReplyState('p1')).toMatchObject({ isLoading: false, error: false })
+    })
+
+    it('超過一頁：第二次點擊 page 遞增並附加，重疊的 uuid 去重', async () => {
+      const c = await setup(topList(45))
+      vi.mocked(commentService.listReplies)
+        .mockResolvedValueOnce(repliesPage(range(1, 20), 45, 1))
+        .mockResolvedValueOnce(repliesPage(range(20, 40), 45, 2)) // r20 與上一頁重疊
+
+      await c.loadMoreReplies('p1')
+      expect(uuids(c)).toHaveLength(20)
+      expect(c.hasMoreReplies(c.list.value[0])).toBe(true)
+      await c.loadMoreReplies('p1')
+
+      expect(commentService.listReplies).toHaveBeenNthCalledWith(2, 'p1', 2, 20)
+      expect(uuids(c)).toEqual(range(1, 40).map(r => (r as { uuid: string }).uuid))
+      expect(c.hasMoreReplies(c.list.value[0])).toBe(true) // 40 / 45
+    })
+
+    it('載入失敗：保留內嵌 3 則、標示 error，重試後成功', async () => {
+      const c = await setup(topList(5))
+      vi.mocked(commentService.listReplies)
+        .mockRejectedValueOnce(new Error('boom'))
+        .mockResolvedValueOnce(repliesPage(range(1, 5), 5))
+
+      await c.loadMoreReplies('p1')
+      expect(c.getReplyState('p1')).toMatchObject({ isLoading: false, error: true })
+      expect(uuids(c)).toEqual(['r1', 'r2', 'r3'])
+
+      await c.loadMoreReplies('p1')
+      expect(commentService.listReplies).toHaveBeenLastCalledWith('p1', 1, 20) // 失敗不推進頁碼
+      expect(c.getReplyState('p1').error).toBe(false)
+      expect(uuids(c)).toHaveLength(5)
+    })
+
+    it('載入中重複點擊 → 不重複發請求', async () => {
+      const c = await setup(topList(5))
+      const d = deferred<RepliesRes>()
+      vi.mocked(commentService.listReplies).mockReturnValueOnce(d.promise)
+
+      const first = c.loadMoreReplies('p1')
+      expect(c.getReplyState('p1').isLoading).toBe(true)
+      await c.loadMoreReplies('p1')
+      expect(commentService.listReplies).toHaveBeenCalledTimes(1)
+      d.resolve(repliesPage(range(1, 5), 5))
+      await first
+      expect(c.getReplyState('p1').isLoading).toBe(false)
+    })
+
+    it('回覆請求進行中列表被重新載入 → 舊回應被丟棄，不寫進新列表、isLoading 復原', async () => {
+      const c = await setup(topList(5))
+      const d = deferred<RepliesRes>()
+      vi.mocked(commentService.listReplies).mockReturnValueOnce(d.promise)
+      const pending = c.loadMoreReplies('p1')
+
+      vi.mocked(commentService.list).mockResolvedValue(topList(5))
+      await c.fetchPage(1)
+      d.resolve(repliesPage(range(1, 5), 5))
+      await pending
+
+      expect(uuids(c)).toEqual(['r1', 'r2', 'r3'])
+      expect(c.getReplyState('p1').isLoading).toBe(false)
+    })
+
+    it('回覆請求進行中失敗但已過期 → 不標示 error', async () => {
+      const c = await setup(topList(5))
+      const d = deferred<RepliesRes>()
+      vi.mocked(commentService.listReplies).mockReturnValueOnce(d.promise)
+      const pending = c.loadMoreReplies('p1')
+
+      await c.fetchPage(1)
+      d.reject(new Error('stale boom'))
+      await pending
+
+      expect(c.getReplyState('p1').error).toBe(false)
+    })
+
+    it('已展開後新增回覆：replyCount 與列表一致（含新回覆）', async () => {
+      const c = await setup(topList(5))
+      vi.mocked(commentService.listReplies).mockResolvedValueOnce(repliesPage(range(1, 5), 5))
+      await c.loadMoreReplies('p1')
+
+      vi.mocked(commentService.create).mockResolvedValue({ uuid: 'r6' } as never)
+      vi.mocked(commentService.list).mockResolvedValue(topList(6)) // 內嵌又只剩 3 則
+      vi.mocked(commentService.listReplies).mockResolvedValueOnce(repliesPage(range(1, 6), 6))
+
+      expect(await c.reply('p1', 'new')).toBe(true)
+
+      expect(uuids(c)).toEqual(['r1', 'r2', 'r3', 'r4', 'r5', 'r6'])
+      expect(c.list.value[0].replyCount).toBe(6)
+      expect(c.hasMoreReplies(c.list.value[0])).toBe(false)
+    })
+
+    it('未展開時新增回覆：只更新 replyCount，仍顯示內嵌 3 則與載入更多', async () => {
+      const c = await setup(topList(5))
+      vi.mocked(commentService.create).mockResolvedValue({ uuid: 'r6' } as never)
+      vi.mocked(commentService.list).mockResolvedValue(topList(6))
+
+      await c.reply('p1', 'new')
+
+      expect(commentService.listReplies).not.toHaveBeenCalled()
+      expect(c.list.value[0].replyCount).toBe(6)
+      expect(uuids(c)).toEqual(['r1', 'r2', 'r3'])
+      expect(c.hasMoreReplies(c.list.value[0])).toBe(true)
+    })
+
+    it('已展開後編輯：載入過的回覆維持展開', async () => {
+      const c = await setup(topList(5))
+      vi.mocked(commentService.listReplies).mockResolvedValue(repliesPage(range(1, 5), 5))
+      await c.loadMoreReplies('p1')
+      vi.mocked(commentService.edit).mockResolvedValue({ uuid: 'r4' } as never)
+      vi.mocked(commentService.list).mockResolvedValue(topList(5))
+
+      await c.edit('r4', 'edited')
+
+      expect(uuids(c)).toHaveLength(5)
+    })
+
+    it('展開狀態還原失敗：退回內嵌 3 則並標示可重試', async () => {
+      const c = await setup(topList(5))
+      vi.mocked(commentService.listReplies).mockResolvedValueOnce(repliesPage(range(1, 5), 5))
+      await c.loadMoreReplies('p1')
+      vi.mocked(commentService.edit).mockResolvedValue({ uuid: 'r4' } as never)
+      vi.mocked(commentService.list).mockResolvedValue(topList(5))
+      vi.mocked(commentService.listReplies).mockRejectedValueOnce(new Error('boom'))
+
+      await c.edit('r4', 'edited')
+
+      expect(uuids(c)).toEqual(['r1', 'r2', 'r3'])
+      expect(c.getReplyState('p1').error).toBe(true)
+    })
+
+    it('伺服器回空頁但 replyCount 偏大 → 視為沒有更多，不再顯示載入更多', async () => {
+      const c = await setup(topList(5))
+      vi.mocked(commentService.listReplies).mockResolvedValue(repliesPage([], 0))
+
+      await c.loadMoreReplies('p1')
+
+      expect(c.hasMoreReplies(c.list.value[0])).toBe(false)
+    })
+  })
 })
