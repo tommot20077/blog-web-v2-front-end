@@ -53,6 +53,19 @@ describe('nginx.conf CSP（強制）', () => {
     expect(indexBlock).toMatch(/add_header\s+Content-Security-Policy\s+\$csp\s+always\s*;/)
   })
 
+  it('靜態資源 location（/assets/、圖片字型等）自己宣告了 add_header，必須重複安全標頭（不會繼承 server 層）', () => {
+    const blocks = {
+      '/assets/': readBlock(/location\s+\/assets\/\s*\{/),
+      '副檔名靜態資源': readBlock(/location\s+~\*\s+\\\.\(\?:ico\|svg/),
+    }
+    for (const [name, block] of Object.entries(blocks)) {
+      expect(block, `${name} 缺 CSP`).toMatch(/add_header\s+Content-Security-Policy\s+\$csp\s+always\s*;/)
+      expect(block, `${name} 缺 X-Frame-Options`).toMatch(/add_header\s+X-Frame-Options\s+"SAMEORIGIN"\s+always/)
+      expect(block, `${name} 缺 Referrer-Policy`).toMatch(/add_header\s+Referrer-Policy\s+"strict-origin-when-cross-origin"\s+always/)
+      expect(block, `${name} 缺 X-Content-Type-Options`).toMatch(/add_header\s+X-Content-Type-Options\s+"nosniff"\s+always/)
+    }
+  })
+
   it('政策從嚴開始：default-src self、禁 object、鎖 base-uri / form-action / frame-ancestors', () => {
     const policy = readPolicy()
     expect(directive(policy, 'default-src')).toBe("default-src 'self'")
