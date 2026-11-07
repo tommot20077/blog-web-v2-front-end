@@ -4,6 +4,7 @@ import { simulateExternalArticleUpdate as simulateExternalArticleUpdateState } f
 import { resetBookmarkMockState, seedBookmark as seedBookmarkState } from './bookmarkService'
 import { resetArticleLikeMockState, seedArticleLike } from './articleLikeService'
 import { resetCommentMockState, seedComment } from './commentService'
+import { resetAdminSearchMockState, setMockReindexOutcome as setMockReindexOutcomeState } from './adminMockService'
 import { resetTagMockState, seedFollowedTag } from './tagMockService'
 import {
   mockApiFailure as mockApiFailureState,
@@ -21,6 +22,7 @@ export function resetAllMockState(): void {
   resetCommentMockState()
   resetTagMockState()
   resetMockApiFailures()
+  resetAdminSearchMockState()
 }
 
 export function seedBookmark(articleUuid: string): void {
@@ -72,6 +74,11 @@ export function simulateExternalArticleUpdate(
   simulateExternalArticleUpdateState(articleUuid, patch)
 }
 
+/** 讓下一次重建搜尋索引的 mock 作業以 FAILED（或預設的 COMPLETED）收場 */
+export function setMockReindexOutcome(outcome: 'COMPLETED' | 'FAILED'): void {
+  setMockReindexOutcomeState(outcome)
+}
+
 export const mockE2E = {
   resetAllMockState,
   seedBookmark,
@@ -82,4 +89,5 @@ export const mockE2E = {
   mockApiFailure,
   clearMockApiFailures,
   simulateExternalArticleUpdate,
+  setMockReindexOutcome,
 }

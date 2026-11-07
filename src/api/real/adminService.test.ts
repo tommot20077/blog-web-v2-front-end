@@ -63,7 +63,39 @@ describe('real/adminService — Task A5 完整讀取方法', () => {
     })
   })
 
+  describe('reindexSearch', () => {
+    it('POST /api/v1/admin/search/reindex 並回傳後端作業（202 的 data）', async () => {
+      const job = {
+        jobId: '7f1c0c9e-0000-4000-8000-000000000001',
+        state: 'RUNNING',
+        processed: 0,
+        total: null,
+        startedAt: '2026-11-07T10:00:00',
+        finishedAt: null,
+        error: null,
+      }
+      vi.mocked(apiClient.post).mockResolvedValue(job)
+
+      const result = await adminService.reindexSearch()
+
+      expect(apiClient.post).toHaveBeenCalledWith('/api/v1/admin/search/reindex')
+      expect(result).toEqual(job)
+    })
+  })
+
   describe('getSearchStatus', () => {
+    it('帶 reindex 作業時原樣映射（RUNNING 與 total=null）', async () => {
+      const reindex = {
+        jobId: 'job-1', state: 'RUNNING', processed: 5, total: null,
+        startedAt: '2026-11-07T10:00:00', finishedAt: null, error: null,
+      }
+      vi.mocked(apiClient.get).mockResolvedValue({ documentCount: 3, lastReindexAt: null, healthy: true, reindex })
+
+      const result = await adminService.getSearchStatus()
+
+      expect(result.reindex).toEqual(reindex)
+    })
+
     it('正常態：映射 documentCount / lastReindexAt / healthy 三欄位', async () => {
       const backendData = { documentCount: 13, lastReindexAt: '2026-07-20T21:30:00', healthy: true }
       vi.mocked(apiClient.get).mockResolvedValue(backendData)

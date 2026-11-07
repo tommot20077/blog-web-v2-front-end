@@ -16,6 +16,7 @@ type MockControls = {
     articleUuid: string,
     patch?: { title?: string; summary?: string; content?: string },
   ) => void
+  setMockReindexOutcome: (outcome: 'COMPLETED' | 'FAILED') => void
 }
 
 type AppRouter = {
@@ -152,6 +153,8 @@ export const test = base.extend<{
     body?: Record<string, unknown>,
     status?: number,
   ) => Promise<void>
+  /** 讓下一次「重建搜尋索引」作業在 mock 中以 FAILED 收場（預設 COMPLETED） */
+  setMockReindexOutcome: (outcome: 'COMPLETED' | 'FAILED') => Promise<void>
 }>({
   page: async ({ page }, use) => {
     const originalGoto = page.goto.bind(page)
@@ -251,6 +254,16 @@ export const test = base.extend<{
         },
         articleUuid,
         patch,
+      )
+    })
+  },
+
+  setMockReindexOutcome: async ({ page }, use) => {
+    await use(async (outcome) => {
+      await withMockControls(
+        page,
+        (controls, value: 'COMPLETED' | 'FAILED') => controls.setMockReindexOutcome(value),
+        outcome,
       )
     })
   },

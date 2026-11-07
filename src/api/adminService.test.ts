@@ -1,5 +1,6 @@
 import { adminService } from './adminService'
 import apiClient from './apiClient'
+import { resetAdminSearchMockState } from './mock/adminMockService'
 
 vi.mock('./apiClient', () => ({
   default: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
@@ -22,6 +23,15 @@ describe('adminService', () => {
       result.records.forEach(article => {
         expect(article.status).toBe('PENDING_REVIEW')
       })
+    })
+
+    it('reindexSearch 委派 mock 並回傳 RUNNING 作業', async () => {
+      resetAdminSearchMockState()
+      const job = await adminService.reindexSearch()
+      expect(job.state).toBe('RUNNING')
+      expect(job.processed).toBe(0)
+      expect(typeof job.jobId).toBe('string')
+      resetAdminSearchMockState()
     })
 
     it('getPendingCount 委派 mock 並回傳數字', async () => {
@@ -163,12 +173,22 @@ describe('adminService', () => {
       expect(apiClient.delete).toHaveBeenCalledWith('/api/v1/admin/tags/tag-1')
     })
 
-    it('reindexSearch 呼叫 POST /api/v1/admin/search/reindex', async () => {
-      vi.mocked(apiClient.post).mockResolvedValue(undefined)
+    it('reindexSearch 呼叫 POST /api/v1/admin/search/reindex 並回傳剛建立的作業（202）', async () => {
+      const job = {
+        jobId: 'job-1',
+        state: 'RUNNING',
+        processed: 0,
+        total: null,
+        startedAt: '2026-11-07T10:00:00',
+        finishedAt: null,
+        error: null,
+      }
+      vi.mocked(apiClient.post).mockResolvedValue(job)
 
-      await adminService.reindexSearch()
+      const result = await adminService.reindexSearch()
 
       expect(apiClient.post).toHaveBeenCalledWith('/api/v1/admin/search/reindex')
+      expect(result).toEqual(job)
     })
 
     it('getPendingCount API 錯誤時回傳 0', async () => {
