@@ -201,9 +201,9 @@ Response 401:
 
 後端主 port 的健康檢查端點是 **`/readyz`**（actuator 已搬到 management port，不再從主 port 提供 `/actuator/health`）。前端 E2E／CI 等待後端就緒一律用 `/readyz`（`e2e/readinessPaths.ts` 仍保留舊後端 fallback）。
 
-### 輸入長度／格式上限（後端 2026-11-07 快照新增；前端尚未逐一預檢）
+### 輸入長度／格式上限（後端 2026-11-07 快照；前端已預檢，W7F-6）
 
-超過一律 400（`A0001`），由後端驗證：文章 `content` ≤ 200000 字、註冊 `nickname` ≤ 50、退稿 `reason` ≤ 500、標籤 `color` 須為 `#RRGGBB`、`icon` ≤ 100。
+超過一律 400（`A0001`），由後端驗證：文章 `content` ≤ 200000 字、`title` ≤ 120、`summary` ≤ 500、註冊 `nickname` ≤ 50、退稿 `reason` ≤ 500、標籤 `color` 須為 `#RRGGBB`、`icon` ≤ 100、`description` ≤ 200。前端常數只定義在 `src/utils/inputLimits.ts`（長度以 UTF-16 code unit 計，與後端 `@Size` 一致）；輸入框帶 `maxlength`，送出前預檢，超過不呼叫 API 並提示。內文達 90% 在編輯器顯示字數提示。
 
 ## File Upload
 
