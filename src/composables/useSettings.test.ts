@@ -165,6 +165,54 @@ describe('useSettings', () => {
     })
   })
 
+  describe('A6／A6b：頭像大小與錯誤訊息', () => {
+    const MB = 1024 * 1024
+    const sizedFile = (size: number) => {
+      const file = new File(['x'], 'avatar.png', { type: 'image/png' })
+      Object.defineProperty(file, 'size', { value: size })
+      return file
+    }
+
+    async function setupSettings() {
+      const { useToast } = await import('./useToast')
+      const mockShowToast = vi.fn()
+      vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast })
+      vi.resetModules()
+      const { useSettings } = await import('./useSettings')
+      let s: ReturnType<typeof useSettings> | null = null
+      mount(makeTestComponent(() => { s = useSettings(); return {} }))
+      return { s: s!, mockShowToast }
+    }
+
+    it('selectAvatarFile：超過 5MB 直接提示、不接受該檔案', async () => {
+      const { s, mockShowToast } = await setupSettings()
+      expect(s.selectAvatarFile(sizedFile(5 * MB + 1))).toBe(false)
+      expect(s.avatarFile.value).toBeNull()
+      expect(mockShowToast).toHaveBeenCalledWith('檔案太大（頭像上限 5MB）', 'error')
+    })
+
+    it('selectAvatarFile：剛好 5MB 可以', async () => {
+      const { s, mockShowToast } = await setupSettings()
+      const file = sizedFile(5 * MB)
+      expect(s.selectAvatarFile(file)).toBe(true)
+      expect(s.avatarFile.value?.size).toBe(5 * MB)
+      expect(s.avatarFile.value?.name).toBe('avatar.png')
+      expect(mockShowToast).not.toHaveBeenCalled()
+    })
+
+    it.each([
+      ['A0402', '檔案太大（文章圖片上限 20MB，頭像上限 5MB）'], // 後端回來的 A0402 拿不到情境，保留通用文案
+      ['A0406', '圖片尺寸過大（總像素需小於 1 億）'],
+      ['A0407', '頭像檔案無效，請重新上傳'],
+    ])('saveProfile 遇到 %s 時顯示對應的友善訊息', async (code, friendly) => {
+      const { userService } = await import('../api/userService')
+      vi.mocked(userService.updateProfile).mockRejectedValueOnce(Object.assign(new Error('後端訊息'), { code }))
+      const { s, mockShowToast } = await setupSettings()
+      await s.saveProfile()
+      expect(mockShowToast).toHaveBeenCalledWith(friendly, 'error')
+    })
+  })
+
   describe('saveAccount 密碼驗證', () => {
     it('新密碼不一致時不呼叫 API，並顯示 toast', async () => {
       const { userService } = await import('../api/userService')

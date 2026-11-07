@@ -308,6 +308,21 @@ describe('apiClient', () => {
       await expect(responseRejected(error)).rejects.toThrow('伺服器內部錯誤')
     })
 
+    it.each([
+      [413, 'A0402', '檔案太大（文章圖片上限 20MB，頭像上限 5MB）'],
+      [400, 'A0406', '圖片尺寸過大（總像素需小於 1 億）'],
+      [400, 'A0407', '頭像檔案無效，請重新上傳'],
+    ])('A6：HTTP %i／%s 以友善訊息取代後端 message，並保留 status 與 code', async (status, code, friendly) => {
+      const error = {
+        config: createConfig('/api/v1/files/upload'),
+        response: { status, data: { code, message: '後端原始訊息', data: null } },
+        isAxiosError: true,
+        message: 'Request failed',
+      }
+
+      await expect(responseRejected(error)).rejects.toMatchObject({ message: friendly, status, code })
+    })
+
     it('404 錯誤帶上 HTTP status 與後端業務碼，供呼叫端判斷「不存在」（公開作者頁 A0101）', async () => {
       const error = {
         config: createConfig('/api/v1/users/x/profile'),

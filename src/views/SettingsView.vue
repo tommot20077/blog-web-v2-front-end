@@ -9,7 +9,7 @@ import PasswordRulesChecklist from '../components/auth/PasswordRulesChecklist.vu
 import ShellRail from '../components/layout/ShellRail.vue'
 
 const {
-  nickname, bio, location, website, avatarUrl, avatarFile, profileStatus, saveProfile,
+  nickname, bio, location, website, avatarUrl, selectAvatarFile, profileStatus, saveProfile,
   removeAvatar,
   email, pwCurrent, pwNew, pwConfirm, accountStatus, saveAccount,
   github, twitter, linkedin, socialStatus, saveSocial,
@@ -68,8 +68,7 @@ function onAvatarClick() {
 function onFileChange(e: Event) {
   const input = e.target as HTMLInputElement
   const file = input.files?.[0]
-  if (file && file.type.startsWith('image/')) {
-    avatarFile.value = file
+  if (file && file.type.startsWith('image/') && selectAvatarFile(file)) {
     if (avatarUrl.value?.startsWith('blob:')) URL.revokeObjectURL(avatarUrl.value)
     avatarUrl.value = URL.createObjectURL(file)
   }
@@ -90,8 +89,7 @@ function onDrop(e: DragEvent) {
   e.preventDefault()
   isDragging.value = false
   const file = e.dataTransfer?.files?.[0]
-  if (file && file.type.startsWith('image/')) {
-    avatarFile.value = file
+  if (file && file.type.startsWith('image/') && selectAvatarFile(file)) {
     if (avatarUrl.value?.startsWith('blob:')) URL.revokeObjectURL(avatarUrl.value)
     avatarUrl.value = URL.createObjectURL(file)
   }
@@ -159,6 +157,7 @@ async function handleDeleteAccount() {
             </div>
             <input
               ref="fileInputRef"
+              data-testid="avatar-upload-input"
               type="file"
               accept="image/*"
               style="display:none"

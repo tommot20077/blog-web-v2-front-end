@@ -1,4 +1,4 @@
-import type { MyArticle, ArticleStatusFilter, PageResult } from '../types/editor'
+import type { MyArticle, ArticleStatusFilter, PageResult, ArticleTransitionResult } from '../types/editor'
 
 export const myArticlesService = {
   async getMyArticles(status: ArticleStatusFilter, page: number, size: number): Promise<PageResult<MyArticle>> {
@@ -19,7 +19,7 @@ export const myArticlesService = {
     return svc.deleteArticle(uuid)
   },
 
-  async submitForReview(uuid: string): Promise<void> {
+  async submitForReview(uuid: string): Promise<ArticleTransitionResult> {
     if (import.meta.env.VITE_USE_MOCK === 'true') {
       const { myArticlesService: svc } = await import('./mock/myArticlesService')
       return svc.submitForReview(uuid)
@@ -28,7 +28,7 @@ export const myArticlesService = {
     return svc.submitForReview(uuid)
   },
 
-  async withdrawArticle(uuid: string): Promise<void> {
+  async withdrawArticle(uuid: string): Promise<ArticleTransitionResult> {
     if (import.meta.env.VITE_USE_MOCK === 'true') {
       const { myArticlesService: svc } = await import('./mock/myArticlesService')
       return svc.withdrawArticle(uuid)

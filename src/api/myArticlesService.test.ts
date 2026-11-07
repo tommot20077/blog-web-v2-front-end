@@ -93,5 +93,15 @@ describe('myArticlesService', () => {
       await myArticlesService.withdrawArticle('uuid-1')
       expect(apiClient.post).toHaveBeenCalledWith('/api/v1/articles/uuid-1/withdraw')
     })
+
+    it('B2：submitForReview 回傳回應中的新 version', async () => {
+      vi.mocked(apiClient.post).mockResolvedValue({ uuid: 'uuid-1', status: 'PENDING_REVIEW', version: 5 })
+      expect(await myArticlesService.submitForReview('uuid-1')).toEqual({ version: 5 })
+    })
+
+    it('B2：withdrawArticle 回傳回應中的新 version', async () => {
+      vi.mocked(apiClient.post).mockResolvedValue({ uuid: 'uuid-1', status: 'DRAFT', version: 6 })
+      expect(await myArticlesService.withdrawArticle('uuid-1')).toEqual({ version: 6 })
+    })
   })
 })

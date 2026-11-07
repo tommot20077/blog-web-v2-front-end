@@ -5,7 +5,7 @@ import {
   submitForReviewMock,
   withdrawArticleMock,
 } from './myArticlesMockService'
-import { resetEditorArticleStore } from './data'
+import { editorArticleStore, resetEditorArticleStore } from './data'
 
 beforeEach(() => {
   resetEditorArticleStore()
@@ -67,9 +67,21 @@ describe('submitForReviewMock', () => {
   it('提交不存在的文章拋出錯誤', async () => {
     await expect(submitForReviewMock('no-such-uuid')).rejects.toThrow()
   })
+
+  it('B2：狀態轉換遞增 version 並回傳新 version', async () => {
+    const before = editorArticleStore.find(a => a.uuid === 'editor-draft-1')!.version
+    const result = await submitForReviewMock('editor-draft-1')
+    expect(result).toEqual({ version: before + 1 })
+    expect(editorArticleStore.find(a => a.uuid === 'editor-draft-1')!.version).toBe(before + 1)
+  })
 })
 
 describe('withdrawArticleMock', () => {
+  it('B2：狀態轉換遞增 version 並回傳新 version', async () => {
+    const before = editorArticleStore.find(a => a.uuid === 'editor-pending-1')!.version
+    expect(await withdrawArticleMock('editor-pending-1')).toEqual({ version: before + 1 })
+  })
+
   it('抽回待審文章後狀態變為 DRAFT', async () => {
     await withdrawArticleMock('editor-pending-1')
     const result = await getMyArticlesMock('DRAFT', 1, 20)

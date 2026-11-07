@@ -10,6 +10,10 @@ type MockControls = {
   seedArticleComment: (articleUuid: string, content: string) => Promise<void>
   seedTagFollow: (tagUuid: string) => void
   mockApiFailure: (urlPattern: string | RegExp, body?: Record<string, unknown>, status?: number) => void
+  simulateExternalArticleUpdate: (
+    articleUuid: string,
+    patch?: { title?: string; summary?: string; content?: string },
+  ) => void
 }
 
 type AppRouter = {
@@ -135,6 +139,10 @@ export const test = base.extend<{
   expectToast: (text: string | RegExp) => Promise<void>
   expectAuthRedirect: (path: string) => Promise<void>
   refreshCurrentRoute: () => Promise<void>
+  simulateExternalArticleUpdate: (
+    articleUuid: string,
+    patch?: { title?: string; summary?: string; content?: string },
+  ) => Promise<void>
   mockApiFailure: (
     urlPattern: string | RegExp,
     body?: Record<string, unknown>,
@@ -208,6 +216,19 @@ export const test = base.extend<{
       }
 
       await page.reload()
+    })
+  },
+
+  simulateExternalArticleUpdate: async ({ page }, use) => {
+    await use(async (articleUuid, patch) => {
+      await withMockControls(
+        page,
+        (controls, uuid: string, changes?: { title?: string; summary?: string; content?: string }) => {
+          controls.simulateExternalArticleUpdate(uuid, changes)
+        },
+        articleUuid,
+        patch,
+      )
     })
   },
 

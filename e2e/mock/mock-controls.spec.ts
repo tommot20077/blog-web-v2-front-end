@@ -75,6 +75,11 @@ test.describe('mock E2E controls', () => {
     await loginAs('admin')
     await page.goto('/admin/review')
 
+    // 先等初次載入完成再註冊失敗。page.goto 在 app 內只是 router.push、不等資料載入；
+    // mock 的失敗在「請求發出當下」判定，若初次載入的請求還沒發出就註冊，
+    // 初次載入與重新整理會各失敗一次，畫面出現兩個相同的 toast（原本偶發的 strict mode violation）。
+    await expect(page.getByTestId('admin-review-row-editor-pending-1')).toBeVisible()
+
     await mockApiFailure(
       '**/api/v1/admin/articles/pending*',
       { code: 'E_ADMIN', message: '載入失敗', data: null },

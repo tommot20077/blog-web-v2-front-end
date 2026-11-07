@@ -5,6 +5,8 @@ import { useAuthStore } from '../stores/auth'
 import { useToast } from './useToast'
 import { getPasswordRules, PASSWORD_POLICY_MESSAGE } from './useFormValidation'
 import { isSafeHandle, isHttpUrl } from '../utils/socialLinks'
+import { exceedsUploadLimit } from '../utils/uploadLimits'
+import { getApiErrorCode, getFileTooLargeMessage, getFriendlyErrorMessage } from '../utils/apiErrors'
 
 type SaveStatus = 'idle' | 'saving' | 'saved'
 
@@ -159,6 +161,19 @@ export function useSettings() {
   watch(() => authStore.user, (user) => hydrateProfile(user))
 
   // Save functions
+  /**
+   * 選擇頭像檔案（A6b）：超過 5MB 直接提示、不接受；通過才記下，存檔時才會上傳。
+   * 回傳是否接受，呼叫端據此決定要不要更新預覽。
+   */
+  function selectAvatarFile(file: File): boolean {
+    if (exceedsUploadLimit(file, 'AVATAR')) {
+      showToast(getFileTooLargeMessage('AVATAR'), 'error')
+      return false
+    }
+    avatarFile.value = file
+    return true
+  }
+
   async function saveProfile() {
     if (websiteError.value) {
       showToast('個人網站格式不正確', 'error')
@@ -196,8 +211,9 @@ export function useSettings() {
         // Refresh the auth store user object so the rest of the app sees updated data
         await authStore.fetchUser()
       })
-    } catch {
-      showToast('儲存個人資料失敗', 'error')
+    } catch (err) {
+      // A0402／A0406／A0407（頭像上傳或設定頭像失敗）有專屬訊息；其他維持通用提示
+      showToast(getFriendlyErrorMessage(getApiErrorCode(err)) ?? '儲存個人資料失敗', 'error')
     }
   }
 
@@ -309,7 +325,7 @@ export function useSettings() {
 
   return {
     // Profile
-    nickname, bio, location, website, avatarUrl, avatarFile, profileStatus, saveProfile,
+    nickname, bio, location, website, avatarUrl, avatarFile, selectAvatarFile, profileStatus, saveProfile,
     // Account
     email, pwCurrent, pwNew, pwConfirm, accountStatus, saveAccount,
     // Social

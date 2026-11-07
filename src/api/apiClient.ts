@@ -12,6 +12,7 @@ import type { AxiosError, InternalAxiosRequestConfig } from 'axios'
 import type { ApiResponse } from '../types/auth'
 import { useAuthStore } from '../stores/auth'
 import { markErrorHandled } from '../utils/errorReporting'
+import { getFriendlyErrorMessage } from '../utils/apiErrors'
 
 /** 待重發請求佇列項目 */
 interface QueueItem {
@@ -82,11 +83,13 @@ apiClient.interceptors.response.use(
 
     // 非 401 或無 response：直接 reject
     if (!error.response || error.response.status !== 401) {
-      const message = error.response?.data?.message ?? error.message
+      const code = error.response?.data?.code
+      // 上傳相關錯誤碼（A0402／A0406／A0407）改用友善訊息；其他沿用後端 message
+      const message = getFriendlyErrorMessage(code) ?? error.response?.data?.message ?? error.message
       // 附上 HTTP status 與業務碼，讓呼叫端能區分「不存在（404／A0101）」與其他失敗（不影響 401 refresh 流程）
       const failure = Object.assign(new Error(message), {
         status: error.response?.status,
-        code: error.response?.data?.code,
+        code,
       })
       return Promise.reject(markErrorHandled(failure))
     }

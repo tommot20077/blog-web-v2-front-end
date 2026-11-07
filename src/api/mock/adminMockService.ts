@@ -54,6 +54,7 @@ export function publishArticleMock(uuid: string): Promise<EditorArticle> {
       }
       article.status = 'PUBLISHED'
       article.updatedAt = new Date().toISOString()
+      article.version += 1
       resolve(article)
     }, 300)
   })
@@ -70,6 +71,7 @@ export function rejectArticleMock(uuid: string, reason: string): Promise<EditorA
       article.status = 'REJECTED'
       article.rejectReason = reason
       article.updatedAt = new Date().toISOString()
+      article.version += 1
       resolve(article)
     }, 300)
   })

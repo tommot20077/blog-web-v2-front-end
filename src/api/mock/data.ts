@@ -306,6 +306,7 @@ export const mockEditorArticles: EditorArticle[] = [
     rejectReason: null,
     createdAt: '2026-03-01T10:00:00Z',
     updatedAt: '2026-03-15T12:00:00Z',
+    version: 1,
   },
   {
     uuid: 'editor-pending-1',
@@ -319,6 +320,7 @@ export const mockEditorArticles: EditorArticle[] = [
     rejectReason: null,
     createdAt: '2026-03-10T10:00:00Z',
     updatedAt: '2026-03-20T09:00:00Z',
+    version: 1,
   },
   {
     uuid: 'editor-pending-2',
@@ -332,6 +334,7 @@ export const mockEditorArticles: EditorArticle[] = [
     rejectReason: null,
     createdAt: '2026-03-12T10:00:00Z',
     updatedAt: '2026-03-22T14:00:00Z',
+    version: 1,
   },
   {
     uuid: 'editor-published-1',
@@ -345,6 +348,7 @@ export const mockEditorArticles: EditorArticle[] = [
     rejectReason: null,
     createdAt: '2026-02-01T10:00:00Z',
     updatedAt: '2026-02-15T16:00:00Z',
+    version: 1,
   },
   // editor-published-1 是 articleVersionMockService.test.ts「沒有版本的文章回傳空清單」
   // 的固定樣本，不能掛版本快照上去；還原凍結測試（PUBLISHED 狀態）改用這篇獨立樣本。
@@ -360,6 +364,7 @@ export const mockEditorArticles: EditorArticle[] = [
     rejectReason: null,
     createdAt: '2026-02-05T10:00:00Z',
     updatedAt: '2026-02-18T16:00:00Z',
+    version: 1,
   },
   {
     uuid: 'editor-rejected-1',
@@ -373,6 +378,7 @@ export const mockEditorArticles: EditorArticle[] = [
     rejectReason: '內容需要補充實作步驟。',
     createdAt: '2026-01-15T10:00:00Z',
     updatedAt: '2026-03-05T11:00:00Z',
+    version: 1,
   },
   {
     uuid: 'editor-archived-1',
@@ -386,6 +392,7 @@ export const mockEditorArticles: EditorArticle[] = [
     rejectReason: null,
     createdAt: '2025-06-01T10:00:00Z',
     updatedAt: '2025-12-01T10:00:00Z',
+    version: 1,
   },
 ];
 

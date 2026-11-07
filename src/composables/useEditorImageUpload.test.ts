@@ -167,4 +167,31 @@ describe('useEditorImageUpload', () => {
     expect(insertText).not.toHaveBeenCalled()
     expect(fileService.uploadFile).not.toHaveBeenCalled()
   })
+
+  it('A6b：超過 20MB 的圖片不呼叫上傳 API、不插入佔位文字，直接提示友善訊息', async () => {
+    const { uploadImages, content, insertText } = setup('原文')
+    const big = new File(['x'], 'big.png', { type: 'image/png' })
+    Object.defineProperty(big, 'size', { value: 20 * 1024 * 1024 + 1 })
+
+    await uploadImages([big])
+
+    expect(fileService.uploadFile).not.toHaveBeenCalled()
+    expect(insertText).not.toHaveBeenCalled()
+    expect(content.value).toBe('原文')
+    expect(mockShowToast).toHaveBeenCalledWith(
+      '圖片上傳失敗：檔案太大（文章圖片上限 20MB）',
+      'error',
+    )
+  })
+
+  it('A6b：剛好 20MB 可以上傳', async () => {
+    vi.mocked(fileService.uploadFile).mockResolvedValue(mockUploadResponse())
+    const { uploadImages } = setup()
+    const edge = new File(['x'], 'edge.png', { type: 'image/png' })
+    Object.defineProperty(edge, 'size', { value: 20 * 1024 * 1024 })
+
+    await uploadImages([edge])
+
+    expect(fileService.uploadFile).toHaveBeenCalledTimes(1)
+  })
 })
