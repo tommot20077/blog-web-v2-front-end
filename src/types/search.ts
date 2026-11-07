@@ -1,9 +1,14 @@
 // ── 搜尋相關型別 ───────────────────────────────────────────────────────────────
 
+/** 後端 GET /api/v1/search 的 sort 白名單（不分大小寫）；其他值（含已移除的 hot）一律回 400 */
+export const SEARCH_SORT_VALUES = ['relevance', 'latest'] as const;
+export type SearchSort = (typeof SEARCH_SORT_VALUES)[number];
+
 export interface SearchParams {
   q?: string;
   tag?: string;
-  sort?: 'relevance' | 'date' | 'popularity';
+  /** 省略時後端預設 relevance */
+  sort?: SearchSort;
   page?: number;
   size?: number;
 }
