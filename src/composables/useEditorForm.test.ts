@@ -1,3 +1,4 @@
+import { nextTick } from 'vue'
 import { editorService } from '../api/editorService'
 import { myArticlesService } from '../api/myArticlesService'
 import { createMockEditorArticle } from '../test-utils/factories'
@@ -54,6 +55,16 @@ describe('useEditorForm', () => {
       expect(coverImageUrl.value).toBe(mockArticle.coverImageUrl)
       expect(categoryIds.value).toEqual(mockArticle.categories.map(c => c.id))
       expect(tagNames.value).toEqual(mockArticle.tags)
+    })
+
+    it('D5：loadArticle() 載入既有文章不算「未儲存修改」（watcher 非同步觸發後 isDirty 仍為 false）', async () => {
+      vi.mocked(editorService.getArticleForEdit).mockResolvedValue(mockArticle)
+
+      const { isDirty, loadArticle } = useEditorForm(mockArticle.uuid)
+      await loadArticle()
+      await nextTick()
+
+      expect(isDirty.value).toBe(false)
     })
 
     it('loadArticle() 成功後 article ref 有值', async () => {

@@ -18,9 +18,11 @@ export function useEditorForm(uuid?: string) {
   const isNew = computed(() => !currentUuid.value)
 
   // 監聽欄位變化，標記為 dirty
+  // flush:'sync'：欄位一變就同步標記。若用預設的 pre flush，loadArticle() 填完欄位後
+  // 立刻 isDirty=false，watcher 會在下一個 tick 又把它設回 true（載入既有文章就被判為未儲存）。
   watch([title, summary, coverImageUrl, categoryIds, tagNames], () => {
     isDirty.value = true
-  })
+  }, { flush: 'sync' })
 
   /**
    * 依 currentUuid 取回文章並填入表單欄位。

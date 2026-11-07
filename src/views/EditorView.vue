@@ -11,6 +11,7 @@ import { useToast } from '../composables/useToast'
 import { useEditorFocusMode } from '../composables/useEditorFocusMode'
 import { useEditorOutline } from '../composables/useEditorOutline'
 import { useEditorImageUpload } from '../composables/useEditorImageUpload'
+import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard'
 import { useAuthedImages } from '../composables/useAuthedImages'
 import { categoryService } from '../api/categoryService'
 import EditorToolbar from '../components/editor/EditorToolbar.vue'
@@ -101,8 +102,15 @@ const { mode, setMode } = useEditorMode()
 // ── Form state ─────────────────────────────────────────────────────────────
 const {
   title, summary, coverImageUrl, categoryIds, tagNames,
-  isNew, isSaving, isLoadingArticle, article, loadArticle, saveDraft, submitForReview,
+  isNew, isDirty, isSaving, isLoadingArticle, article, loadArticle, saveDraft, submitForReview,
 } = useEditorForm(props.uuid)
+
+// ── 離開前確認（D5）─────────────────────────────────────────────────────────
+// useEditorForm.isDirty 只涵蓋標題 / 摘要 / 封面 / 分類 / 標籤；內文在 CodeMirror，
+// 另以「與最後一次載入 / 儲存的內容比對」判斷。載入既有文章、儲存、還原版本都會更新基準。
+const baselineContent = ref('')
+const hasUnsavedChanges = computed(() => isDirty.value || markdownContent.value !== baselineContent.value)
+useUnsavedChangesGuard(hasUnsavedChanges)
 
 // ── Categories ─────────────────────────────────────────────────────────────
 const categories = ref<CategoryOption[]>([])
@@ -127,13 +135,16 @@ onMounted(async () => {
     if (article.value?.content) {
       setContent(article.value.content)
     }
+    baselineContent.value = markdownContent.value
   }
 })
 
 // ── Save draft ─────────────────────────────────────────────────────────────
 async function onSaveDraft() {
   try {
-    const saved = await saveDraft(markdownContent.value)
+    const contentToSave = markdownContent.value
+    const saved = await saveDraft(contentToSave)
+    baselineContent.value = contentToSave
     showToast('草稿已儲存', 'success')
     if (!props.uuid && saved?.uuid) {
       await router.replace(`/editor/${saved.uuid}`)
@@ -146,7 +157,9 @@ async function onSaveDraft() {
 // ── Submit for review ──────────────────────────────────────────────────────
 async function onSubmitForReview() {
   try {
-    await saveDraft(markdownContent.value)
+    const contentToSave = markdownContent.value
+    await saveDraft(contentToSave)
+    baselineContent.value = contentToSave
   } catch {
     showToast('儲存失敗', 'error')
     return
@@ -179,6 +192,7 @@ async function onVersionRestored() {
     const restored = await loadArticle()
     if (!restored) throw new Error('讀不到還原後的文章')
     setContent(restored.content)
+    baselineContent.value = markdownContent.value
     showToast('已套用還原版本的內容', 'success')
   } catch (err) {
     showToast(

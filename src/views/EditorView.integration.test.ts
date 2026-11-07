@@ -12,6 +12,7 @@ const mockRouterReplace = vi.fn()
 vi.mock('vue-router', () => ({
   useRouter: () => ({ replace: mockRouterReplace }),
   useRoute: () => ({ params: {} }),
+  onBeforeRouteLeave: vi.fn(),
 }))
 
 // ── Mock 相依模組 ────────────────────────────────────────────────────────────

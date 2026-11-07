@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, nextTick } from 'vue'
 import { readFileSync } from 'node:fs'
 import { render, screen, waitFor } from '@testing-library/vue'
 import userEvent from '@testing-library/user-event'
@@ -16,9 +16,12 @@ import apiClient from '../api/apiClient'
 
 // ── Mock vue-router ──────────────────────────────────────────────────────────
 const mockRouterReplace = vi.fn()
+// onBeforeRouteLeave 只記下 guard，讓測試能直接呼叫它驗證「離開前確認」（D5）。
+const routeLeaveGuards: Array<() => unknown> = []
 vi.mock('vue-router', () => ({
   useRouter: () => ({ replace: mockRouterReplace }),
   useRoute: () => ({ params: {} }),
+  onBeforeRouteLeave: (guard: () => unknown) => { routeLeaveGuards.push(guard) },
 }))
 
 // ── Mock API ──────────────────────────────────────────────────────────────────
@@ -156,11 +159,115 @@ function makePasteEvent(files: File[]): Event {
   return event
 }
 
+// happy-dom 沒有實作 window.confirm，與 EditorMetaSidebar.test.ts 一樣以 stubGlobal 提供
+function stubConfirm(answer = true) {
+  const fn = vi.fn().mockReturnValue(answer)
+  vi.stubGlobal('confirm', fn)
+  return fn
+}
+
 // ── Tests ─────────────────────────────────────────────────────────────────────
 describe('EditorView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockRouterReplace.mockReset()
+    routeLeaveGuards.length = 0
+  })
+
+  // ── D5：離開前確認 ───────────────────────────────────────────────────────
+  describe('離開前確認（D5 / FE-02）', () => {
+    const runLeaveGuard = () => routeLeaveGuards[0]()
+
+    function fireBeforeUnload() {
+      const event = new Event('beforeunload', { cancelable: true })
+      window.dispatchEvent(event)
+      return event
+    }
+
+    it('剛開啟、沒有任何修改：離開不跳確認', async () => {
+      const confirmSpy = stubConfirm()
+      renderEditor()
+      await waitFor(() => expect(routeLeaveGuards).toHaveLength(1))
+
+      expect(runLeaveGuard()).toBe(true)
+      expect(confirmSpy).not.toHaveBeenCalled()
+      vi.unstubAllGlobals()
+    })
+
+    it('改了標題：離開時跳確認，取消則攔下、確認則放行', async () => {
+      const confirmSpy = stubConfirm()
+      renderEditor()
+      await userEvent.type(screen.getByTestId('editor-title-input'), '新標題')
+
+      confirmSpy.mockReturnValueOnce(false)
+      expect(runLeaveGuard()).toBe(false)
+      confirmSpy.mockReturnValueOnce(true)
+      expect(runLeaveGuard()).toBe(true)
+      expect(confirmSpy).toHaveBeenCalledTimes(2)
+      vi.unstubAllGlobals()
+    })
+
+    it('只改了內文（標題沒動）也算未儲存', async () => {
+      const { content } = setupMarkdownEditorMock()
+      const confirmSpy = stubConfirm(false)
+      renderEditor()
+      await waitFor(() => expect(routeLeaveGuards).toHaveLength(1))
+
+      content.value = '# 新內容'
+      await nextTick()
+
+      expect(runLeaveGuard()).toBe(false)
+      expect(confirmSpy).toHaveBeenCalledTimes(1)
+      vi.unstubAllGlobals()
+    })
+
+    it('dirty 時關閉分頁會 preventDefault（beforeunload）', async () => {
+      renderEditor()
+      await userEvent.type(screen.getByTestId('editor-title-input'), 'x')
+
+      expect(fireBeforeUnload().defaultPrevented).toBe(true)
+    })
+
+    it('沒有修改時 beforeunload 不 preventDefault', async () => {
+      renderEditor()
+      await waitFor(() => expect(routeLeaveGuards).toHaveLength(1))
+
+      expect(fireBeforeUnload().defaultPrevented).toBe(false)
+    })
+
+    it('儲存草稿成功後再離開：不跳確認、beforeunload 不攔', async () => {
+      const { content } = setupMarkdownEditorMock()
+      vi.mocked(editorService.createArticle).mockResolvedValue(createMockEditorArticle({ uuid: 'new-uuid' }))
+      const confirmSpy = stubConfirm()
+      renderEditor()
+      await userEvent.type(screen.getByTestId('editor-title-input'), '標題')
+      content.value = '內文'
+      await nextTick()
+
+      await userEvent.click(screen.getByTestId('editor-save-btn'))
+      await waitFor(() => expect(mockRouterReplace).toHaveBeenCalled())
+      await nextTick()
+
+      expect(runLeaveGuard()).toBe(true)
+      expect(confirmSpy).not.toHaveBeenCalled()
+      expect(fireBeforeUnload().defaultPrevented).toBe(false)
+      vi.unstubAllGlobals()
+    })
+
+    it('編輯模式載入既有文章後（含內文）不算 dirty', async () => {
+      setupMarkdownEditorMock()
+      vi.mocked(editorService.getArticleForEdit).mockResolvedValue(
+        createMockEditorArticle({ uuid: 'u-1', content: '# 既有內容' }),
+      )
+      const confirmSpy = stubConfirm()
+      renderEditor({ uuid: 'u-1' })
+      await waitFor(() => expect(screen.getByTestId('editor-title-input')).not.toHaveValue(''))
+      await nextTick()
+
+      expect(runLeaveGuard()).toBe(true)
+      expect(confirmSpy).not.toHaveBeenCalled()
+      vi.unstubAllGlobals()
+    })
   })
 
   // ── Structure ────────────────────────────────────────────────────────────
