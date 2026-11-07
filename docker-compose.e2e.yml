@@ -115,8 +115,9 @@ services:
         condition: service_healthy
     # 新後端：主 port 只剩 /readyz（actuator 搬到 management port，該 port 刻意不發布到 host）；
     # 舊後端：仍是 /actuator/health。CI 會 checkout 後端預設分支，兩種都可能出現，任一成功即視為健康
+    # 後端 image 是 eclipse-temurin:21-jre-alpine，沒有 curl，只有 busybox wget
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:9010/readyz || curl -sf http://localhost:9010/actuator/health"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:9010/readyz || wget -q -O /dev/null http://127.0.0.1:9010/actuator/health"]
       interval: 10s
       timeout: 5s
       retries: 20

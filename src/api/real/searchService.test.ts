@@ -24,6 +24,11 @@ describe('real searchService.search 排序白名單', () => {
     expect(apiClient.get).toHaveBeenCalledWith('/api/v1/search', { params: { q: 'vue', sort } })
   })
 
+  it.each([['LATEST', 'latest'], ['Relevance', 'relevance']])('後端不分大小寫：sort=%s 先轉小寫再送出為 %s', async (input, expected) => {
+    await searchService.search({ q: 'vue', sort: input as never })
+    expect(apiClient.get).toHaveBeenCalledWith('/api/v1/search', { params: { q: 'vue', sort: expected } })
+  })
+
   it('未指定 sort → 不送 sort 參數（後端預設 relevance）', async () => {
     await searchService.search({ q: 'vue' })
     const params = vi.mocked(apiClient.get).mock.calls[0][1]?.params as Record<string, unknown>

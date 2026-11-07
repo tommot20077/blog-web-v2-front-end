@@ -142,6 +142,9 @@ describe('frontend CI workflow', () => {
   describe('real-backend E2E 健康檢查同時相容新舊後端', () => {
     const readyz = 'http://localhost:9010/readyz'
     const legacy = 'http://localhost:9010/actuator/health'
+    // 後端 image（eclipse-temurin:21-jre-alpine）沒有 curl，只有 busybox wget；容器內用 127.0.0.1
+    const composeReadyz = 'wget -q -O /dev/null http://127.0.0.1:9010/readyz'
+    const composeLegacy = 'wget -q -O /dev/null http://127.0.0.1:9010/actuator/health'
 
     it('compose 的 backend healthcheck 先試 /readyz，失敗再試 /actuator/health', () => {
       const compose = readFileSync('docker-compose.e2e.yml', 'utf8')
@@ -149,10 +152,8 @@ describe('frontend CI workflow', () => {
       const test = backendService.match(/healthcheck:\s*\n\s*test:\s*(\[.*\])/)?.[1] ?? ''
 
       expect(test).toContain('CMD-SHELL')
-      expect(test).toContain(readyz)
-      expect(test).toContain(legacy)
-      expect(test.indexOf(readyz)).toBeLessThan(test.indexOf(legacy))
-      expect(test).toMatch(/readyz[^|]*\|\|[^|]*actuator\/health/)
+      expect(test).toContain(`${composeReadyz} || ${composeLegacy}`)
+      expect(test).not.toContain('curl')
     })
 
     it('CI 等待迴圈先試 /readyz，失敗再試 /actuator/health，任一成功即視為健康', () => {
@@ -161,7 +162,7 @@ describe('frontend CI workflow', () => {
       expect(wait).toContain(readyz)
       expect(wait).toContain(legacy)
       expect(wait.indexOf(readyz)).toBeLessThan(wait.indexOf(legacy))
-      expect(wait).toMatch(/curl -sf http:\/\/localhost:9010\/readyz[^\n|]*\|\|\s*curl -sf http:\/\/localhost:9010\/actuator\/health/)
+      expect(wait).toMatch(/curl -sf --max-time 5 http:\/\/localhost:9010\/readyz[^\n|]*\|\|\s*curl -sf --max-time 5 http:\/\/localhost:9010\/actuator\/health/)
     })
 
     it('compose 不把後端 management port（9091）發布到 host', () => {
