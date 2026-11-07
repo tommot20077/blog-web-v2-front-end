@@ -1,3 +1,5 @@
+import { MAX_ARTICLE_IMAGE_BYTES, MAX_AVATAR_BYTES, formatLimitMb } from './uploadLimits'
+
 /**
  * 後端業務錯誤碼判斷工具。
  *
@@ -7,6 +9,23 @@
 
 /** A0208 ARTICLE_CONCURRENT_UPDATE：存檔時帶的 version 與目前不一致（HTTP 409，B2 樂觀鎖） */
 export const ARTICLE_CONCURRENT_UPDATE_CODE = 'A0208'
+
+/** A0402 FILE_TOO_LARGE：單檔超過上限（文章圖片 20MB、頭像 5MB） */
+export const FILE_TOO_LARGE_CODE = 'A0402'
+
+const FRIENDLY_ERROR_MESSAGES: Readonly<Record<string, string>> = {
+  [FILE_TOO_LARGE_CODE]:
+    `檔案太大（文章圖片上限 ${formatLimitMb(MAX_ARTICLE_IMAGE_BYTES)}，頭像上限 ${formatLimitMb(MAX_AVATAR_BYTES)}）`,
+  // A0406 INVALID_IMAGE_DIMENSIONS：總像素超過 100MP（不限單邊）
+  A0406: '圖片尺寸過大（總像素需小於 1 億）',
+  // A0407 INVALID_AVATAR_FILE：設定頭像時，指定的站內檔案不是本人上傳的頭像
+  A0407: '頭像檔案無效，請重新上傳',
+}
+
+/** 錯誤碼對應的使用者友善訊息；沒有對應時回傳 undefined，呼叫端沿用後端 message */
+export function getFriendlyErrorMessage(code: string | undefined): string | undefined {
+  return code === undefined ? undefined : FRIENDLY_ERROR_MESSAGES[code]
+}
 
 /** 取出錯誤上的後端業務碼；沒有時回傳 undefined */
 export function getApiErrorCode(error: unknown): string | undefined {

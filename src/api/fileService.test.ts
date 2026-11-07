@@ -125,4 +125,52 @@ describe('fileService', () => {
       expect(result).toEqual([])
     })
   })
+
+  describe('A6b：上傳前大小檢查（超過不呼叫 API）', () => {
+    const MB = 1024 * 1024
+    const sizedFile = (size: number) => {
+      const file = new File(['x'], 'big.png', { type: 'image/png' })
+      Object.defineProperty(file, 'size', { value: size })
+      return file
+    }
+    const okResponse = { id: 'f1', url: '/api/v1/files/f1/content', width: 1, height: 1, size: 1, usageType: 'AVATAR' as const }
+
+    describe.each([['true'], ['false']])('VITE_USE_MOCK=%s', (useMock) => {
+      beforeEach(() => {
+        vi.stubEnv('VITE_USE_MOCK', useMock)
+        vi.mocked(apiClient.post).mockReset()
+        vi.mocked(apiClient.post).mockResolvedValue(okResponse)
+      })
+      afterEach(() => vi.unstubAllEnvs())
+
+      it('頭像超過 5MB：reject A0402 友善訊息，不送出', async () => {
+        await expect(fileService.uploadFile(sizedFile(5 * MB + 1), 'AVATAR')).rejects.toMatchObject({
+          code: 'A0402',
+          message: '檔案太大（文章圖片上限 20MB，頭像上限 5MB）',
+        })
+        expect(apiClient.post).not.toHaveBeenCalled()
+      })
+
+      it('文章圖片超過 20MB（內文與封面）：reject A0402，不送出', async () => {
+        await expect(fileService.uploadFile(sizedFile(20 * MB + 1), 'ARTICLE_CONTENT')).rejects.toMatchObject({ code: 'A0402' })
+        await expect(fileService.uploadFile(sizedFile(20 * MB + 1), 'ARTICLE_COVER')).rejects.toMatchObject({ code: 'A0402' })
+        expect(apiClient.post).not.toHaveBeenCalled()
+      })
+    })
+
+    describe('剛好等於上限可以送出（API 模式）', () => {
+      beforeEach(() => {
+        vi.stubEnv('VITE_USE_MOCK', 'false')
+        vi.mocked(apiClient.post).mockReset()
+        vi.mocked(apiClient.post).mockResolvedValue(okResponse)
+      })
+      afterEach(() => vi.unstubAllEnvs())
+
+      it('頭像 5MB、文章圖片 20MB 都會呼叫 API', async () => {
+        await fileService.uploadFile(sizedFile(5 * MB), 'AVATAR')
+        await fileService.uploadFile(sizedFile(20 * MB), 'ARTICLE_CONTENT')
+        expect(apiClient.post).toHaveBeenCalledTimes(2)
+      })
+    })
+  })
 })

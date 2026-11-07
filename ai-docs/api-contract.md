@@ -180,3 +180,15 @@ Content-Type: multipart/form-data
 Body: file (binary), usageType (ARTICLE_CONTENT | ARTICLE_COVER | AVATAR)
 Response: ApiResponse<{ url, fileId }>
 ```
+
+### 上傳限制與錯誤碼（後端 A6／A6b；2026-11-07 起）
+
+| 項目 | 規則 |
+|------|------|
+| 單檔大小 | 文章圖片（`ARTICLE_CONTENT`／`ARTICLE_COVER`）20MB、頭像（`AVATAR`）5MB；常數只定義在 `src/utils/uploadLimits.ts` |
+| 前端行為 | 上傳前先檢查，超過就直接提示、不送出（剛好等於上限可送出）；後端仍會再擋 |
+| `A0402` FILE_TOO_LARGE | 「檔案太大（文章圖片上限 20MB，頭像上限 5MB）」 |
+| `A0406` INVALID_IMAGE_DIMENSIONS | 總像素超過 100MP：「圖片尺寸過大（總像素需小於 1 億）」 |
+| `A0407` INVALID_AVATAR_FILE | 設定頭像時指定的站內檔案不是本人上傳的頭像：「頭像檔案無效，請重新上傳」 |
+
+錯誤碼對照表在 `src/utils/apiErrors.ts`；`apiClient` 遇到這三個碼會以友善訊息取代後端 message（`Error.code` 仍保留）。
