@@ -1,3 +1,4 @@
+import { nextTick } from 'vue'
 import { editorService } from '../api/editorService'
 import { myArticlesService } from '../api/myArticlesService'
 import { createMockEditorArticle } from '../test-utils/factories'
@@ -54,6 +55,16 @@ describe('useEditorForm', () => {
       expect(coverImageUrl.value).toBe(mockArticle.coverImageUrl)
       expect(categoryIds.value).toEqual(mockArticle.categories.map(c => c.id))
       expect(tagNames.value).toEqual(mockArticle.tags)
+    })
+
+    it('D5：loadArticle() 載入既有文章不算「未儲存修改」（watcher 非同步觸發後 isDirty 仍為 false）', async () => {
+      vi.mocked(editorService.getArticleForEdit).mockResolvedValue(mockArticle)
+
+      const { isDirty, loadArticle } = useEditorForm(mockArticle.uuid)
+      await loadArticle()
+      await nextTick()
+
+      expect(isDirty.value).toBe(false)
     })
 
     it('loadArticle() 成功後 article ref 有值', async () => {
@@ -137,6 +148,22 @@ describe('useEditorForm', () => {
 
       await saveDraft('內容')
       expect(isDirty.value).toBe(false)
+    })
+
+    it('儲存進行中又修改標題：儲存完成後仍為 dirty（修改不會被吃掉）', async () => {
+      let resolveCreate!: (a: typeof mockArticle) => void
+      vi.mocked(editorService.createArticle).mockReturnValue(
+        new Promise((resolve) => { resolveCreate = resolve }),
+      )
+
+      const { title, isDirty, saveDraft } = useEditorForm()
+      title.value = '舊標題'
+      const saving = saveDraft('內容')
+      title.value = '儲存期間改的標題'
+      resolveCreate(mockArticle)
+      await saving
+
+      expect(isDirty.value).toBe(true)
     })
 
     it('新建模式：儲存成功後回傳 EditorArticle', async () => {

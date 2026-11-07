@@ -10,6 +10,8 @@ export function useEditorForm(uuid?: string) {
   const categoryIds = ref<string[]>([])
   const tagNames = ref<string[]>([])
   const isDirty = ref(false)
+  // 欄位修訂計數器：saveDraft 期間若又有修改，完成時不可清除 dirty
+  let revision = 0
   const isSaving = ref(false)
   const isLoadingArticle = ref(!!uuid)
   const article = ref<EditorArticle | null>(null)
@@ -18,9 +20,12 @@ export function useEditorForm(uuid?: string) {
   const isNew = computed(() => !currentUuid.value)
 
   // 監聽欄位變化，標記為 dirty
+  // flush:'sync'：欄位一變就同步標記。若用預設的 pre flush，loadArticle() 填完欄位後
+  // 立刻 isDirty=false，watcher 會在下一個 tick 又把它設回 true（載入既有文章就被判為未儲存）。
   watch([title, summary, coverImageUrl, categoryIds, tagNames], () => {
+    revision++
     isDirty.value = true
-  })
+  }, { flush: 'sync' })
 
   /**
    * 依 currentUuid 取回文章並填入表單欄位。
@@ -49,6 +54,7 @@ export function useEditorForm(uuid?: string) {
 
   async function saveDraft(content: string): Promise<EditorArticle | null> {
     isSaving.value = true
+    const revisionAtSave = revision
     try {
       const formData = {
         title: title.value,
@@ -68,7 +74,8 @@ export function useEditorForm(uuid?: string) {
 
       currentUuid.value = saved.uuid
       article.value = saved
-      isDirty.value = false
+      // 只有儲存期間沒有新修改才清除 dirty
+      if (revision === revisionAtSave) isDirty.value = false
       return saved
     } finally {
       isSaving.value = false

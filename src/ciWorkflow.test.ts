@@ -97,6 +97,19 @@ describe('frontend CI workflow', () => {
     expect(e2e).toContain('path: playwright-report/')
   })
 
+  // A2（XSS-03）：CSP 已改為強制，E2E 以 nginx.conf 的同一串政策驗證零違規；CI 必須跑它，政策一改才會紅燈。
+  it('mock E2E job also runs the CSP violation E2E and uploads its own report', () => {
+    const e2e = workflowJob('e2e-tests')
+    const cspStep = workflowStep(e2e, 'Run CSP violation E2E')
+    const uploadStep = workflowStep(e2e, 'Upload CSP E2E report')
+
+    expect(cspStep).toContain('npm run test:e2e:csp')
+    expect(cspStep).toContain('if: ${{ !cancelled() }}')
+    expect(cspStep).toContain('PLAYWRIGHT_HTML_REPORT: playwright-report-csp')
+    expect(uploadStep).toContain('name: playwright-report-csp')
+    expect(uploadStep).toContain('path: playwright-report-csp/')
+  })
+
   it('browser E2E jobs wait for unit tests and the production build gate', () => {
     const requiredGates = 'needs: [unit-and-component-tests, build]'
 

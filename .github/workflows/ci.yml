@@ -79,6 +79,21 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 14
+      # CSP 違規收集（A2 / XSS-03）：用 nginx.conf 解析出的 CSP 供應 mock 模式的正式建置，違規數必須為 0。
+      # 與上一步不同的報告目錄，避免互相覆蓋。
+      - name: Run CSP violation E2E
+        if: ${{ !cancelled() }}
+        run: npm run test:e2e:csp
+        env:
+          CI: true
+          PLAYWRIGHT_HTML_REPORT: playwright-report-csp
+      - name: Upload CSP E2E report
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report-csp
+          path: playwright-report-csp/
+          retention-days: 14
 
   e2e-integration:
     runs-on: ubuntu-24.04  # Playwright 1.58 不支援 ubuntu-latest（26.04）的 Chromium 安裝，固定 24.04

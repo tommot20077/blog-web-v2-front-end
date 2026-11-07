@@ -11,6 +11,9 @@ import { useToast } from '../composables/useToast'
 import { useEditorFocusMode } from '../composables/useEditorFocusMode'
 import { useEditorOutline } from '../composables/useEditorOutline'
 import { useEditorImageUpload } from '../composables/useEditorImageUpload'
+import { findUnrenderableImages } from '../utils/unrenderableImages'
+import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard'
+import { useAuthStore } from '../stores/auth'
 import { useAuthedImages } from '../composables/useAuthedImages'
 import { categoryService } from '../api/categoryService'
 import EditorToolbar from '../components/editor/EditorToolbar.vue'
@@ -90,6 +93,12 @@ const { renderedHtml } = useMarkdownRenderer(markdownContent)
 const editorPreviewEl = ref<HTMLElement | null>(null)
 useAuthedImages(editorPreviewEl, () => renderedHtml.value)
 
+// ── 讀者端無法顯示的圖片警告 ───────────────────────────────────────────────
+// 正式環境 CSP 的 img-src 只放行 'self' blob:，外部圖床與 data: 內嵌圖片在讀者端會破圖（Yuan 2026-11-07：CSP 維持嚴格，改在編輯器警告）。
+const externalImageCount = computed(
+  () => findUnrenderableImages(markdownContent.value, window.location.origin).length,
+)
+
 // ── Word count ─────────────────────────────────────────────────────────────
 const { wordCount, characterCount } = useWordCount(markdownContent)
 const { wordUnit } = useEditorWordUnit()
@@ -101,8 +110,19 @@ const { mode, setMode } = useEditorMode()
 // ── Form state ─────────────────────────────────────────────────────────────
 const {
   title, summary, coverImageUrl, categoryIds, tagNames,
-  isNew, isSaving, isLoadingArticle, article, loadArticle, saveDraft, submitForReview,
+  isNew, isDirty, isSaving, isLoadingArticle, article, loadArticle, saveDraft, submitForReview,
 } = useEditorForm(props.uuid)
+
+// ── 離開前確認（D5）─────────────────────────────────────────────────────────
+// useEditorForm.isDirty 只涵蓋標題 / 摘要 / 封面 / 分類 / 標籤；內文在 CodeMirror，
+// 另以「與最後一次載入 / 儲存的內容比對」判斷。載入既有文章、儲存、還原版本都會更新基準。
+const baselineContent = ref('')
+const hasUnsavedChanges = computed(() => isDirty.value || markdownContent.value !== baselineContent.value)
+const authStore = useAuthStore()
+// session 已失效時導向登入頁是系統行為：使用者按取消只會停在已失效的 session 裡（儲存也會 401），故放行
+useUnsavedChangesGuard(hasUnsavedChanges, {
+  skipFor: (to) => to.name === 'login' && !authStore.isAuthenticated,
+})
 
 // ── Categories ─────────────────────────────────────────────────────────────
 const categories = ref<CategoryOption[]>([])
@@ -127,13 +147,16 @@ onMounted(async () => {
     if (article.value?.content) {
       setContent(article.value.content)
     }
+    baselineContent.value = markdownContent.value
   }
 })
 
 // ── Save draft ─────────────────────────────────────────────────────────────
 async function onSaveDraft() {
   try {
-    const saved = await saveDraft(markdownContent.value)
+    const contentToSave = markdownContent.value
+    const saved = await saveDraft(contentToSave)
+    baselineContent.value = contentToSave
     showToast('草稿已儲存', 'success')
     if (!props.uuid && saved?.uuid) {
       await router.replace(`/editor/${saved.uuid}`)
@@ -146,7 +169,9 @@ async function onSaveDraft() {
 // ── Submit for review ──────────────────────────────────────────────────────
 async function onSubmitForReview() {
   try {
-    await saveDraft(markdownContent.value)
+    const contentToSave = markdownContent.value
+    await saveDraft(contentToSave)
+    baselineContent.value = contentToSave
   } catch {
     showToast('儲存失敗', 'error')
     return
@@ -179,6 +204,7 @@ async function onVersionRestored() {
     const restored = await loadArticle()
     if (!restored) throw new Error('讀不到還原後的文章')
     setContent(restored.content)
+    baselineContent.value = markdownContent.value
     showToast('已套用還原版本的內容', 'success')
   } catch (err) {
     showToast(
@@ -295,6 +321,16 @@ async function onVersionRestored() {
       @insert-images="onInsertImages"
     />
 
+    <!-- 外部圖片警告（CSP 不放行外部圖片，發布後讀者端會破圖） -->
+    <div
+      v-if="externalImageCount > 0 && !isFocusMode"
+      class="ed-image-warning"
+      role="status"
+      data-testid="editor-external-image-warning"
+    >
+      內文含 {{ externalImageCount }} 張外部或內嵌（data:）圖片，發布後讀者端無法顯示，請改用上傳插圖
+    </div>
+
     <!-- Split pane body -->
     <div class="editor-body">
       <!-- Left: CodeMirror editor (v-show, not v-if — 保留 CodeMirror 實例，避免 mode 切換時重建) -->
@@ -375,6 +411,13 @@ async function onVersionRestored() {
 /* 設計系統原樣把 .ed-title-input 的 cursor 設為 none（等同隱藏插入點），
    套用在真的可輸入的欄位上會讓打字時看不到游標，體驗有問題，故覆寫回 text。 */
 .ed-title-input { cursor: text; }
+.ed-image-warning {
+  padding: 0.5rem 1rem;
+  font-size: 0.8125rem;
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger-strong) 10%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--danger-strong) 25%, transparent);
+}
 .editor-body { flex: 1; display: flex; overflow: hidden; }
 .editor-pane { position: relative; flex: 1; min-width: 0; overflow-y: auto; border-right: 1px solid var(--divider); }
 .editor-pane-inner { height: 100%; }
