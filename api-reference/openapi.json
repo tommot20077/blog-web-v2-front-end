@@ -22,15 +22,15 @@
   ],
   "tags": [
     {
-      "name": "Auth",
-      "description": "認證相關 API"
-    },
-    {
-      "name": "PublicAuthor",
+      "name": "公開作者",
       "description": "公開作者 API（匿名可存取）"
     },
     {
-      "name": "User",
+      "name": "認證",
+      "description": "認證相關 API"
+    },
+    {
+      "name": "使用者",
       "description": "用戶自助服務 API"
     }
   ],
@@ -38,9 +38,10 @@
     "/api/v1/series/{uuid}": {
       "put": {
         "tags": [
-          "Series"
+          "系列文章"
         ],
         "summary": "更新 Series",
+        "description": "需 ARTICLE_CREATE 權限；Series 擁有者或管理員。",
         "operationId": "update",
         "parameters": [
           {
@@ -50,19 +51,6 @@
             "schema": {
               "type": "string",
               "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
             }
           }
         ],
@@ -77,8 +65,8 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0001 參數校驗失敗；S0101 Series 不存在；S0102 非 Series 擁有者（管理員不受限）；S0104 Slug 已被使用",
             "content": {
               "*/*": {
                 "schema": {
@@ -86,14 +74,36 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "403": {
+            "description": "A0006 權限不足"
+          },
+          "429": {
+            "description": "A0009 請求過於頻繁（應用層限流）",
+            "headers": {
+              "Retry-After": {
+                "description": "建議重試前等待的秒數（至少 1）",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       },
       "delete": {
         "tags": [
-          "Series"
+          "系列文章"
         ],
         "summary": "刪除 Series",
+        "description": "需 ARTICLE_CREATE 權限；Series 擁有者或管理員。",
         "operationId": "delete",
         "parameters": [
           {
@@ -104,24 +114,11 @@
               "type": "string",
               "format": "uuid"
             }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "S0101 Series 不存在；S0102 非 Series 擁有者（管理員不受限）",
             "content": {
               "*/*": {
                 "schema": {
@@ -129,6 +126,15 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "403": {
+            "description": "A0006 權限不足"
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -136,9 +142,10 @@
     "/api/v1/series/{uuid}/articles/{articleUuid}": {
       "put": {
         "tags": [
-          "Series"
+          "系列文章"
         ],
-        "summary": "加文章到 Series / 改 position",
+        "summary": "加入文章到 Series 或調整順序",
+        "description": "需 ARTICLE_CREATE 權限；Series 擁有者或管理員，且文章須為本人（管理員不受限）的 PUBLISHED 文章。文章已在本 Series 時為調整 position。",
         "operationId": "addArticle",
         "parameters": [
           {
@@ -158,19 +165,6 @@
               "type": "string",
               "format": "uuid"
             }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
           }
         ],
         "requestBody": {
@@ -184,8 +178,8 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0001 參數校驗失敗；S0101 Series 不存在；S0102 非 Series 擁有者（管理員不受限）；非文章作者；S0107 文章不存在；S0103 文章必須為 PUBLISHED；S0106 文章已屬於另一個 Series；A0208 文章在加入過程中被並行修改，請重試",
             "content": {
               "*/*": {
                 "schema": {
@@ -193,14 +187,36 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "403": {
+            "description": "A0006 權限不足"
+          },
+          "429": {
+            "description": "A0009 請求過於頻繁（應用層限流）",
+            "headers": {
+              "Retry-After": {
+                "description": "建議重試前等待的秒數（至少 1）",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       },
       "delete": {
         "tags": [
-          "Series"
+          "系列文章"
         ],
         "summary": "從 Series 移除文章",
+        "description": "需 ARTICLE_CREATE 權限；Series 擁有者或管理員。",
         "operationId": "removeArticle",
         "parameters": [
           {
@@ -220,24 +236,11 @@
               "type": "string",
               "format": "uuid"
             }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "S0101 Series 不存在；S0102 非 Series 擁有者（管理員不受限）；S0107 文章不存在；S0105 文章不屬於此 Series",
             "content": {
               "*/*": {
                 "schema": {
@@ -245,6 +248,15 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "403": {
+            "description": "A0006 權限不足"
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -252,34 +264,11 @@
     "/api/v1/me/preferences/version": {
       "get": {
         "tags": [
-          "Version Preference"
+          "版本偏好"
         ],
-        "summary": "取得 effective version config",
+        "summary": "取得生效中的版本設定",
+        "description": "登入。回傳套用個人覆寫後的自動快照設定（enabled、retain、intervalSeconds、diffChars）。",
         "operationId": "get",
-        "parameters": [
-          {
-            "name": "uuid",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
-          }
-        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -290,39 +279,22 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       },
       "put": {
         "tags": [
-          "Version Preference"
+          "版本偏好"
         ],
-        "summary": "更新 user override（partial）",
+        "summary": "更新版本偏好",
+        "description": "登入。部分更新個人覆寫值，未帶的欄位不變。",
         "operationId": "update_1",
-        "parameters": [
-          {
-            "name": "uuid",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -334,8 +306,8 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0001 參數校驗失敗；V0105 配置值超出合理範圍",
             "content": {
               "*/*": {
                 "schema": {
@@ -343,6 +315,24 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "429": {
+            "description": "A0009 請求過於頻繁（應用層限流）",
+            "headers": {
+              "Retry-After": {
+                "description": "建議重試前等待的秒數（至少 1）",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -350,9 +340,10 @@
     "/api/v1/highlights/{uuid}": {
       "put": {
         "tags": [
-          "Highlight"
+          "劃線"
         ],
-        "summary": "更新 highlight (color/note)",
+        "summary": "更新劃線",
+        "description": "登入；僅劃線擁有者。可更新顏色與筆記，未帶的欄位不變。",
         "operationId": "update_2",
         "parameters": [
           {
@@ -362,19 +353,6 @@
             "schema": {
               "type": "string",
               "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
             }
           }
         ],
@@ -389,8 +367,8 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0001 參數校驗失敗；R0201 劃線不存在；R0202 不可變更他人的劃線；A0201 文章不存在或對呼叫者不可讀",
             "content": {
               "*/*": {
                 "schema": {
@@ -398,14 +376,33 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "429": {
+            "description": "A0009 請求過於頻繁（應用層限流）",
+            "headers": {
+              "Retry-After": {
+                "description": "建議重試前等待的秒數（至少 1）",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       },
       "delete": {
         "tags": [
-          "Highlight"
+          "劃線"
         ],
-        "summary": "硬刪除 highlight",
+        "summary": "刪除劃線",
+        "description": "登入；僅劃線擁有者。硬刪除。",
         "operationId": "delete_1",
         "parameters": [
           {
@@ -416,24 +413,11 @@
               "type": "string",
               "format": "uuid"
             }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "R0201 劃線不存在；R0202 不可變更他人的劃線",
             "content": {
               "*/*": {
                 "schema": {
@@ -441,6 +425,12 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -448,9 +438,10 @@
     "/api/v1/comments/{uuid}": {
       "put": {
         "tags": [
-          "Comment"
+          "留言"
         ],
-        "summary": "編輯留言（5 分鐘窗，Admin 不受限）",
+        "summary": "編輯留言",
+        "description": "需 COMMENT_WRITE 權限；作者本人於建立後 5 分鐘內可編輯，管理員不受時限限制。",
         "operationId": "edit",
         "parameters": [
           {
@@ -460,19 +451,6 @@
             "schema": {
               "type": "string",
               "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
             }
           }
         ],
@@ -487,8 +465,8 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0001 參數校驗失敗；C0101 留言不存在；A0201 文章不存在或對呼叫者不可讀；C0104 留言已刪除，無法操作；C0103 編輯時限已過",
             "content": {
               "*/*": {
                 "schema": {
@@ -496,14 +474,43 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "A0006 非留言作者（管理員不受限）",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseCommentResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "429": {
+            "description": "A0009 請求過於頻繁（應用層限流）",
+            "headers": {
+              "Retry-After": {
+                "description": "建議重試前等待的秒數（至少 1）",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       },
       "delete": {
         "tags": [
-          "Comment"
+          "留言"
         ],
-        "summary": "軟刪除留言",
+        "summary": "刪除留言",
+        "description": "需 COMMENT_DELETE 權限；作者本人或管理員。軟刪除，已刪除的留言再刪為冪等。",
         "operationId": "delete_2",
         "parameters": [
           {
@@ -514,24 +521,11 @@
               "type": "string",
               "format": "uuid"
             }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "C0101 留言不存在",
             "content": {
               "*/*": {
                 "schema": {
@@ -539,6 +533,22 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "A0006 非留言作者（管理員不受限）",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -546,8 +556,10 @@
     "/api/v1/articles/{uuid}": {
       "get": {
         "tags": [
-          "article-controller"
+          "文章"
         ],
+        "summary": "以 uuid 取得文章",
+        "description": "公開（登入者可看自己的非公開文章，管理員可看全部）。回傳文章詳情並計入瀏覽數。",
         "operationId": "getArticle",
         "parameters": [
           {
@@ -558,24 +570,11 @@
               "type": "string",
               "format": "uuid"
             }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0201 文章不存在（不存在或對呼叫者不可見）",
             "content": {
               "*/*": {
                 "schema": {
@@ -583,13 +582,18 @@
                 }
               }
             }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       },
       "put": {
         "tags": [
-          "article-controller"
+          "文章"
         ],
+        "summary": "更新文章內容",
+        "description": "request 可帶 version（取自 GET /{uuid}/edit 或上一次存檔回應）：與目前版本不一致回 409（A0208）。省略 version 則不做版本比對。成功回應帶遞增後的新 version。",
         "operationId": "updateArticle",
         "parameters": [
           {
@@ -599,19 +603,6 @@
             "schema": {
               "type": "string",
               "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
             }
           }
         ],
@@ -626,8 +617,8 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0001 參數校驗失敗；A0201 文章不存在；A0203 非文章作者（管理員不受此限）；A0209 目前狀態不允許編輯內容；A0204 目前狀態不允許此操作（狀態轉換不合法）；A0205 分類不存在；A0305 標籤名稱不合法",
             "content": {
               "*/*": {
                 "schema": {
@@ -635,13 +626,46 @@
                 }
               }
             }
+          },
+          "409": {
+            "description": "A0208 文章已被其他人修改（version 不一致）",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseEditorArticleResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "403": {
+            "description": "A0006 權限不足"
+          },
+          "429": {
+            "description": "A0009 請求過於頻繁（應用層限流）",
+            "headers": {
+              "Retry-After": {
+                "description": "建議重試前等待的秒數（至少 1）",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       },
       "delete": {
         "tags": [
-          "article-controller"
+          "文章"
         ],
+        "summary": "刪除文章",
+        "description": "需 ARTICLE_DELETE 權限；作者本人或管理員。刪除後以事件通知下游模組清理關聯資料。",
         "operationId": "deleteArticle",
         "parameters": [
           {
@@ -652,24 +676,11 @@
               "type": "string",
               "format": "uuid"
             }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0201 文章不存在；A0203 非文章作者（管理員不受此限）",
             "content": {
               "*/*": {
                 "schema": {
@@ -677,6 +688,15 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "403": {
+            "description": "A0006 權限不足"
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -684,9 +704,10 @@
     "/api/v1/articles/{articleUuid}/progress": {
       "get": {
         "tags": [
-          "Reading Progress"
+          "閱讀進度"
         ],
-        "summary": "查詢進度（Redis 優先）",
+        "summary": "查詢閱讀進度",
+        "description": "登入。優先讀 Redis；尚無進度時 data 為 null。",
         "operationId": "get_1",
         "parameters": [
           {
@@ -696,28 +717,6 @@
             "schema": {
               "type": "string",
               "format": "uuid"
-            }
-          },
-          {
-            "name": "uuid",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
             }
           }
         ],
@@ -731,14 +730,21 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       },
       "put": {
         "tags": [
-          "Reading Progress"
+          "閱讀進度"
         ],
-        "summary": "更新閱讀進度（HSET Redis）",
+        "summary": "更新閱讀進度",
+        "description": "登入。進度值需介於 0 到 1。文章不存在或不可讀時靜默回 200 且不寫入，避免形成草稿存在性探測。",
         "operationId": "update_3",
         "parameters": [
           {
@@ -748,28 +754,6 @@
             "schema": {
               "type": "string",
               "format": "uuid"
-            }
-          },
-          {
-            "name": "uuid",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
             }
           }
         ],
@@ -784,8 +768,8 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0001 參數校驗失敗（progress 需介於 0.000 到 1.000）",
             "content": {
               "*/*": {
                 "schema": {
@@ -793,6 +777,24 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "429": {
+            "description": "A0009 請求過於頻繁（應用層限流）",
+            "headers": {
+              "Retry-After": {
+                "description": "建議重試前等待的秒數（至少 1）",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -800,8 +802,10 @@
     "/api/v1/admin/tags/{id}": {
       "put": {
         "tags": [
-          "admin-tag-controller"
+          "標籤管理"
         ],
+        "summary": "更新標籤",
+        "description": "需 ADMIN_TAG 權限。更新顏色、圖示與描述，僅更新有帶的欄位。",
         "operationId": "updateTag",
         "parameters": [
           {
@@ -825,8 +829,8 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0001 參數校驗失敗；A0301 標籤不存在",
             "content": {
               "*/*": {
                 "schema": {
@@ -834,13 +838,24 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "403": {
+            "description": "A0006 權限不足"
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       },
       "delete": {
         "tags": [
-          "admin-tag-controller"
+          "標籤管理"
         ],
+        "summary": "刪除標籤",
+        "description": "需 ADMIN_TAG 權限。標籤仍被任何文章使用（含草稿）時不可刪除。",
         "operationId": "deleteTag",
         "parameters": [
           {
@@ -854,8 +869,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0301 標籤不存在；A0303 標籤正在使用中",
             "content": {
               "*/*": {
                 "schema": {
@@ -863,6 +878,15 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "403": {
+            "description": "A0006 權限不足"
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -870,8 +894,10 @@
     "/api/v1/admin/categories/{uuid}": {
       "put": {
         "tags": [
-          "admin-category-controller"
+          "分類管理"
         ],
+        "summary": "更新分類",
+        "description": "需 ADMIN_CATEGORY 權限。",
         "operationId": "updateCategory",
         "parameters": [
           {
@@ -895,8 +921,8 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0001 參數校驗失敗；A0205 分類不存在；A0207 分類 slug 已被使用",
             "content": {
               "*/*": {
                 "schema": {
@@ -904,13 +930,24 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "403": {
+            "description": "A0006 權限不足"
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       },
       "delete": {
         "tags": [
-          "admin-category-controller"
+          "分類管理"
         ],
+        "summary": "刪除分類",
+        "description": "需 ADMIN_CATEGORY 權限。分類下仍有文章時不可刪除。",
         "operationId": "deleteCategory",
         "parameters": [
           {
@@ -924,8 +961,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0205 分類不存在；A0206 分類下仍有文章",
             "content": {
               "*/*": {
                 "schema": {
@@ -933,6 +970,15 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "403": {
+            "description": "A0006 權限不足"
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -940,35 +986,11 @@
     "/api/v1/users/me/change-password": {
       "post": {
         "tags": [
-          "User"
+          "使用者"
         ],
         "summary": "修改密碼",
-        "description": "驗證舊密碼後更新密碼，所有現有 Token 將立即失效",
+        "description": "登入。驗證舊密碼後更新密碼，所有現有 Token 將立即失效。",
         "operationId": "changePassword",
-        "parameters": [
-          {
-            "name": "uuid",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -980,8 +1002,8 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0001 參數校驗失敗；A0102 舊密碼錯誤；A0101 用戶不存在",
             "content": {
               "*/*": {
                 "schema": {
@@ -989,6 +1011,24 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "429": {
+            "description": "A0009 請求過於頻繁（應用層限流）",
+            "headers": {
+              "Retry-After": {
+                "description": "建議重試前等待的秒數（至少 1）",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -996,8 +1036,10 @@
     "/api/v1/tags/{id}/follow": {
       "post": {
         "tags": [
-          "tag-controller"
+          "標籤"
         ],
+        "summary": "追蹤標籤",
+        "description": "登入。追蹤指定標籤，重複追蹤為冪等。",
         "operationId": "followTag",
         "parameters": [
           {
@@ -1008,28 +1050,6 @@
               "type": "string",
               "format": "uuid"
             }
-          },
-          {
-            "name": "uuid",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
           }
         ],
         "responses": {
@@ -1042,13 +1062,33 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "429": {
+            "description": "A0009 請求過於頻繁（應用層限流）",
+            "headers": {
+              "Retry-After": {
+                "description": "建議重試前等待的秒數（至少 1）",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       },
       "delete": {
         "tags": [
-          "tag-controller"
+          "標籤"
         ],
+        "summary": "取消追蹤標籤",
+        "description": "登入。取消追蹤指定標籤，未追蹤時為冪等。",
         "operationId": "unfollowTag",
         "parameters": [
           {
@@ -1059,28 +1099,6 @@
               "type": "string",
               "format": "uuid"
             }
-          },
-          {
-            "name": "uuid",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
           }
         ],
         "responses": {
@@ -1093,6 +1111,12 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -1100,9 +1124,10 @@
     "/api/v1/series": {
       "get": {
         "tags": [
-          "Series"
+          "系列文章"
         ],
-        "summary": "Series 列表（公開）",
+        "summary": "Series 列表",
+        "description": "公開（匿名可存取）。分頁列出所有 Series。",
         "operationId": "list",
         "parameters": [
           {
@@ -1134,39 +1159,19 @@
                 }
               }
             }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       },
       "post": {
         "tags": [
-          "Series"
+          "系列文章"
         ],
         "summary": "建立 Series",
+        "description": "需 ARTICLE_CREATE 權限。",
         "operationId": "create",
-        "parameters": [
-          {
-            "name": "uuid",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -1178,8 +1183,8 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0001 參數校驗失敗；S0104 Slug 已被使用",
             "content": {
               "*/*": {
                 "schema": {
@@ -1187,6 +1192,27 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "403": {
+            "description": "A0006 權限不足"
+          },
+          "429": {
+            "description": "A0009 請求過於頻繁（應用層限流）",
+            "headers": {
+              "Retry-After": {
+                "description": "建議重試前等待的秒數（至少 1）",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -1194,33 +1220,11 @@
     "/api/v1/files/upload": {
       "post": {
         "tags": [
-          "file-controller"
+          "檔案"
         ],
+        "summary": "上傳圖片",
+        "description": "需 FILE_UPLOAD 權限。multipart 上傳文章圖片或頭像，依實際內容偵測型別；單檔大小、圖片總像素與個人儲存配額皆有上限。傳入的 articleUuid 非本人文章時會被忽略（不報錯、不綁定）。",
         "operationId": "uploadFile",
-        "parameters": [
-          {
-            "name": "uuid",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "multipart/form-data": {
@@ -1232,8 +1236,8 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0004 缺少 file 或 usageType 參數；A0001 參數校驗失敗（usageType 不是合法值）；A0404 不支援的檔案類型；A0402 檔案大小超過限制；A0406 圖片尺寸過大；A0403 儲存空間配額已滿",
             "content": {
               "*/*": {
                 "schema": {
@@ -1241,6 +1245,27 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "403": {
+            "description": "A0006 權限不足"
+          },
+          "429": {
+            "description": "A0009 請求過於頻繁（應用層限流）",
+            "headers": {
+              "Retry-After": {
+                "description": "建議重試前等待的秒數（至少 1）",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -1248,9 +1273,10 @@
     "/api/v1/comments/{uuid}/like": {
       "post": {
         "tags": [
-          "Comment Like"
+          "留言按讚"
         ],
-        "summary": "按讚留言（idempotent；軟刪除留言阻擋 C0104）",
+        "summary": "按讚留言",
+        "description": "需 COMMENT_WRITE 權限。重複按讚為冪等；軟刪除的留言不可按讚。",
         "operationId": "like",
         "parameters": [
           {
@@ -1261,24 +1287,11 @@
               "type": "string",
               "format": "uuid"
             }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "C0101 留言不存在；A0201 文章不存在或對呼叫者不可讀；C0104 留言已刪除，無法操作",
             "content": {
               "*/*": {
                 "schema": {
@@ -1286,14 +1299,36 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "403": {
+            "description": "A0006 權限不足"
+          },
+          "429": {
+            "description": "A0009 請求過於頻繁（應用層限流）",
+            "headers": {
+              "Retry-After": {
+                "description": "建議重試前等待的秒數（至少 1）",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       },
       "delete": {
         "tags": [
-          "Comment Like"
+          "留言按讚"
         ],
-        "summary": "取消按讚（idempotent）",
+        "summary": "取消按讚留言",
+        "description": "需 COMMENT_WRITE 權限。未按讚時為冪等。",
         "operationId": "unlike",
         "parameters": [
           {
@@ -1304,24 +1339,11 @@
               "type": "string",
               "format": "uuid"
             }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "C0101 留言不存在",
             "content": {
               "*/*": {
                 "schema": {
@@ -1329,6 +1351,15 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "403": {
+            "description": "A0006 權限不足"
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -1336,10 +1367,10 @@
     "/api/v1/auth/verify-email": {
       "post": {
         "tags": [
-          "Auth"
+          "認證"
         ],
         "summary": "驗證電子信箱",
-        "description": "透過驗證信中的 Token 啟用帳號",
+        "description": "公開。透過驗證信中的 Token 啟用帳號。",
         "operationId": "verifyEmail",
         "requestBody": {
           "content": {
@@ -1352,8 +1383,8 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0001 參數校驗失敗；A0104 Token 無效或已過期；A0101 用戶不存在",
             "content": {
               "*/*": {
                 "schema": {
@@ -1361,6 +1392,9 @@
                 }
               }
             }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -1368,10 +1402,10 @@
     "/api/v1/auth/verify-email-code": {
       "post": {
         "tags": [
-          "Auth"
+          "認證"
         ],
         "summary": "使用驗證碼驗證電子信箱",
-        "description": "透過驗證信中的 6 位數驗證碼啟用帳號",
+        "description": "公開。透過驗證信中的 6 位數驗證碼啟用帳號；失敗次數過多會被限流。",
         "operationId": "verifyEmailCode",
         "requestBody": {
           "content": {
@@ -1384,8 +1418,8 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0001 參數校驗失敗；A0104 驗證碼錯誤或已過期；A0113 驗證嘗試次數過多",
             "content": {
               "*/*": {
                 "schema": {
@@ -1393,6 +1427,9 @@
                 }
               }
             }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -1400,10 +1437,10 @@
     "/api/v1/auth/reset-password": {
       "post": {
         "tags": [
-          "Auth"
+          "認證"
         ],
         "summary": "重設密碼",
-        "description": "透過密碼重設信中的 Token 設定新密碼",
+        "description": "公開。透過密碼重設信中的 Token 設定新密碼。",
         "operationId": "resetPassword",
         "requestBody": {
           "content": {
@@ -1416,8 +1453,8 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0001 參數校驗失敗；A0104 Token 無效或已過期；A0101 用戶不存在",
             "content": {
               "*/*": {
                 "schema": {
@@ -1425,6 +1462,9 @@
                 }
               }
             }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -1432,10 +1472,10 @@
     "/api/v1/auth/resend-verification": {
       "post": {
         "tags": [
-          "Auth"
+          "認證"
         ],
         "summary": "重發驗證信",
-        "description": "重新發送電子信箱驗證信，每分鐘限 1 次，每日限 5 次",
+        "description": "公開。重新發送電子信箱驗證信；頻率限制見錯誤回應。",
         "operationId": "resendVerification",
         "requestBody": {
           "content": {
@@ -1448,8 +1488,8 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0001 參數校驗失敗；A0113 超過重發頻率限制（每信箱每分鐘 1 次、每日 5 次、每 IP 每小時 10 次）",
             "content": {
               "*/*": {
                 "schema": {
@@ -1457,6 +1497,9 @@
                 }
               }
             }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -1464,10 +1507,10 @@
     "/api/v1/auth/register": {
       "post": {
         "tags": [
-          "Auth"
+          "認證"
         ],
         "summary": "用戶註冊",
-        "description": "使用信箱註冊新帳號，完成後需驗證電子信箱才可登入",
+        "description": "公開。使用信箱註冊新帳號，完成後需驗證電子信箱才可登入；信箱已被註冊時同樣回成功（不洩漏帳號是否存在），並通知原信箱擁有者。",
         "operationId": "register",
         "requestBody": {
           "content": {
@@ -1480,8 +1523,8 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0001 參數校驗失敗（含保留暱稱）；A0112 用戶名已被使用；A0107 暱稱已被使用；A0113 同 IP 註冊過於頻繁",
             "content": {
               "*/*": {
                 "schema": {
@@ -1489,6 +1532,9 @@
                 }
               }
             }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -1496,10 +1542,10 @@
     "/api/v1/auth/refresh": {
       "post": {
         "tags": [
-          "Auth"
+          "認證"
         ],
         "summary": "刷新 Access Token",
-        "description": "使用 Cookie 中的 Refresh Token 換取新的 Access Token",
+        "description": "公開（需帶 Refresh Token Cookie）。以 Cookie 中的 Refresh Token 換取新的 Access Token。",
         "operationId": "refresh",
         "parameters": [
           {
@@ -1512,8 +1558,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0108 帳號已停權或刪除",
             "content": {
               "*/*": {
                 "schema": {
@@ -1521,6 +1567,19 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 缺少、無效或已撤銷的 Refresh Token Cookie",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAuthResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -1528,34 +1587,12 @@
     "/api/v1/auth/logout": {
       "post": {
         "tags": [
-          "Auth"
+          "認證"
         ],
         "summary": "用戶登出",
-        "description": "清除 Refresh Token，使 Cookie 失效",
+        "description": "登入。撤銷 Refresh Token 並清除 Cookie。",
         "operationId": "logout",
         "parameters": [
-          {
-            "name": "uuid",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
-          },
           {
             "name": "refreshToken",
             "in": "cookie",
@@ -1575,6 +1612,12 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -1582,10 +1625,10 @@
     "/api/v1/auth/login": {
       "post": {
         "tags": [
-          "Auth"
+          "認證"
         ],
         "summary": "用戶登入",
-        "description": "使用信箱或暱稱登入，取得 Access Token（Refresh Token 在 Cookie）",
+        "description": "公開。使用信箱或用戶名登入，回傳 Access Token（Refresh Token 以 HttpOnly Cookie 下發）；連續失敗達上限會暫時鎖定帳號。",
         "operationId": "login",
         "requestBody": {
           "content": {
@@ -1598,8 +1641,8 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0001 參數校驗失敗；A0102 帳號或密碼錯誤；A0114 帳號因多次失敗被暫時鎖定；A0111 電子信箱尚未驗證；A0108 帳號已停權或刪除；A0113 同 IP 登入過於頻繁",
             "content": {
               "*/*": {
                 "schema": {
@@ -1607,6 +1650,9 @@
                 }
               }
             }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -1614,10 +1660,10 @@
     "/api/v1/auth/forgot-password": {
       "post": {
         "tags": [
-          "Auth"
+          "認證"
         ],
         "summary": "忘記密碼",
-        "description": "發送密碼重設信至指定信箱",
+        "description": "公開。發送密碼重設信至指定信箱；無論信箱是否存在皆回成功（不洩漏帳號是否存在）。",
         "operationId": "forgotPassword",
         "requestBody": {
           "content": {
@@ -1630,8 +1676,8 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0001 參數校驗失敗；A0113 超過請求頻率限制",
             "content": {
               "*/*": {
                 "schema": {
@@ -1639,6 +1685,9 @@
                 }
               }
             }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -1646,8 +1695,10 @@
     "/api/v1/articles": {
       "get": {
         "tags": [
-          "article-controller"
+          "文章"
         ],
+        "summary": "已發布文章列表",
+        "description": "公開。分頁列出已發布文章，可依標籤、分類、作者、發布天數等條件篩選與排序；登入者會帶入是否已按讚。",
         "operationId": "getPublishedArticles",
         "parameters": [
           {
@@ -1721,8 +1772,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0001 參數校驗失敗；A0210 篩選條件的值過多",
             "content": {
               "*/*": {
                 "schema": {
@@ -1730,38 +1781,19 @@
                 }
               }
             }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       },
       "post": {
         "tags": [
-          "article-controller"
+          "文章"
         ],
+        "summary": "建立文章",
+        "description": "需 ARTICLE_CREATE 權限。建立草稿文章，標籤名稱不存在時會自動建立。",
         "operationId": "createArticle",
-        "parameters": [
-          {
-            "name": "uuid",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -1773,8 +1805,8 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0001 參數校驗失敗；A0205 分類不存在；A0305 標籤名稱不合法",
             "content": {
               "*/*": {
                 "schema": {
@@ -1782,6 +1814,27 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "403": {
+            "description": "A0006 權限不足"
+          },
+          "429": {
+            "description": "A0009 請求過於頻繁（應用層限流）",
+            "headers": {
+              "Retry-After": {
+                "description": "建議重試前等待的秒數（至少 1）",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -1789,8 +1842,10 @@
     "/api/v1/articles/{uuid}/withdraw": {
       "post": {
         "tags": [
-          "article-controller"
+          "文章"
         ],
+        "summary": "撤回送審",
+        "description": "需 ARTICLE_EDIT 權限；僅作者本人。PENDING_REVIEW 撤回為 DRAFT。",
         "operationId": "withdrawArticle",
         "parameters": [
           {
@@ -1801,24 +1856,11 @@
               "type": "string",
               "format": "uuid"
             }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0201 文章不存在；A0203 非文章作者；A0204 目前狀態不允許此操作",
             "content": {
               "*/*": {
                 "schema": {
@@ -1826,6 +1868,27 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "403": {
+            "description": "A0006 權限不足"
+          },
+          "429": {
+            "description": "A0009 請求過於頻繁（應用層限流）",
+            "headers": {
+              "Retry-After": {
+                "description": "建議重試前等待的秒數（至少 1）",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -1833,8 +1896,10 @@
     "/api/v1/articles/{uuid}/submit": {
       "post": {
         "tags": [
-          "article-controller"
+          "文章"
         ],
+        "summary": "送審文章",
+        "description": "需 ARTICLE_EDIT 權限；作者本人或管理員。DRAFT 送交審核（PENDING_REVIEW）。",
         "operationId": "submitForReview",
         "parameters": [
           {
@@ -1845,24 +1910,11 @@
               "type": "string",
               "format": "uuid"
             }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0201 文章不存在；A0203 非文章作者（管理員不受此限）；A0204 目前狀態不允許此操作",
             "content": {
               "*/*": {
                 "schema": {
@@ -1870,6 +1922,27 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "403": {
+            "description": "A0006 權限不足"
+          },
+          "429": {
+            "description": "A0009 請求過於頻繁（應用層限流）",
+            "headers": {
+              "Retry-After": {
+                "description": "建議重試前等待的秒數（至少 1）",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -1877,8 +1950,10 @@
     "/api/v1/articles/{uuid}/reject": {
       "post": {
         "tags": [
-          "article-controller"
+          "文章"
         ],
+        "summary": "駁回文章",
+        "description": "需 ADMIN_ARTICLE_REVIEW 權限。將待審文章駁回並附上理由。",
         "operationId": "rejectArticle",
         "parameters": [
           {
@@ -1888,19 +1963,6 @@
             "schema": {
               "type": "string",
               "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
             }
           }
         ],
@@ -1915,8 +1977,8 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0001 參數校驗失敗；A0201 文章不存在；A0203 非管理員；A0204 目前狀態不允許此操作",
             "content": {
               "*/*": {
                 "schema": {
@@ -1924,6 +1986,15 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "403": {
+            "description": "A0006 權限不足"
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -1931,8 +2002,10 @@
     "/api/v1/articles/{uuid}/publish": {
       "post": {
         "tags": [
-          "article-controller"
+          "文章"
         ],
+        "summary": "發布文章",
+        "description": "需 ARTICLE_EDIT 權限；作者本人或管理員。依狀態機轉為 PUBLISHED；待審文章只有管理員能發布。",
         "operationId": "publishArticle",
         "parameters": [
           {
@@ -1943,24 +2016,11 @@
               "type": "string",
               "format": "uuid"
             }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0201 文章不存在；A0203 非文章作者（管理員不受此限）；待審文章僅管理員可發布；A0204 目前狀態不允許此操作",
             "content": {
               "*/*": {
                 "schema": {
@@ -1968,6 +2028,27 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "403": {
+            "description": "A0006 權限不足"
+          },
+          "429": {
+            "description": "A0009 請求過於頻繁（應用層限流）",
+            "headers": {
+              "Retry-After": {
+                "description": "建議重試前等待的秒數（至少 1）",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -1975,9 +2056,10 @@
     "/api/v1/articles/{articleUuid}/versions/{versionUuid}/restore": {
       "post": {
         "tags": [
-          "Version"
+          "文章版本"
         ],
         "summary": "還原快照",
+        "description": "需 ARTICLE_EDIT 權限；文章作者或管理員。只還原內容（標題、slug、內文、摘要、封面、標籤），不改文章狀態；還原前會先把目前內容存為 AUTO 快照。",
         "operationId": "restore",
         "parameters": [
           {
@@ -1997,33 +2079,11 @@
               "type": "string",
               "format": "uuid"
             }
-          },
-          {
-            "name": "uuid",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "V0101 Version 不存在；V0106 文章不存在；V0108 Version 不屬於指定的 Article；V0102 非文章作者（管理員不受限）；A0209 文章目前狀態不允許編輯內容",
             "content": {
               "*/*": {
                 "schema": {
@@ -2031,6 +2091,27 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "403": {
+            "description": "A0006 權限不足"
+          },
+          "429": {
+            "description": "A0009 請求過於頻繁（應用層限流）",
+            "headers": {
+              "Retry-After": {
+                "description": "建議重試前等待的秒數（至少 1）",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -2038,9 +2119,10 @@
     "/api/v1/articles/{articleUuid}/versions/{versionUuid}/promote": {
       "post": {
         "tags": [
-          "Version"
+          "文章版本"
         ],
-        "summary": "AUTO 升級為 MANUAL",
+        "summary": "升級快照為手動",
+        "description": "需 ARTICLE_EDIT 權限；文章作者或管理員。僅 AUTO 快照可升級為 MANUAL。",
         "operationId": "promote",
         "parameters": [
           {
@@ -2060,33 +2142,11 @@
               "type": "string",
               "format": "uuid"
             }
-          },
-          {
-            "name": "uuid",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "V0101 Version 不存在；V0106 文章不存在；V0108 Version 不屬於指定的 Article；V0102 非文章作者（管理員不受限）；V0104 只有 AUTO 類型可升級為 MANUAL",
             "content": {
               "*/*": {
                 "schema": {
@@ -2094,6 +2154,27 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "403": {
+            "description": "A0006 權限不足"
+          },
+          "429": {
+            "description": "A0009 請求過於頻繁（應用層限流）",
+            "headers": {
+              "Retry-After": {
+                "description": "建議重試前等待的秒數（至少 1）",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -2101,9 +2182,10 @@
     "/api/v1/articles/{articleUuid}/versions/manual": {
       "post": {
         "tags": [
-          "Version"
+          "文章版本"
         ],
         "summary": "建立手動快照",
+        "description": "需 ARTICLE_EDIT 權限；文章作者或管理員。以目前文章內容建立 MANUAL 快照，body 可省略。",
         "operationId": "createManual",
         "parameters": [
           {
@@ -2113,28 +2195,6 @@
             "schema": {
               "type": "string",
               "format": "uuid"
-            }
-          },
-          {
-            "name": "uuid",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
             }
           }
         ],
@@ -2148,8 +2208,8 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0001 參數校驗失敗；V0106 文章不存在；V0102 非文章作者（管理員不受限）",
             "content": {
               "*/*": {
                 "schema": {
@@ -2157,6 +2217,27 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "403": {
+            "description": "A0006 權限不足"
+          },
+          "429": {
+            "description": "A0009 請求過於頻繁（應用層限流）",
+            "headers": {
+              "Retry-After": {
+                "description": "建議重試前等待的秒數（至少 1）",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -2164,33 +2245,12 @@
     "/api/v1/articles/{articleUuid}/like": {
       "post": {
         "tags": [
-          "Article Like"
+          "文章按讚"
         ],
-        "summary": "按讚文章（idempotent）",
+        "summary": "按讚文章",
+        "description": "登入。重複按讚為冪等；僅能對自己可讀的文章按讚。",
         "operationId": "like_1",
         "parameters": [
-          {
-            "name": "uuid",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
-          },
           {
             "name": "articleUuid",
             "in": "path",
@@ -2202,8 +2262,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0201 文章不存在或對呼叫者不可讀",
             "content": {
               "*/*": {
                 "schema": {
@@ -2211,38 +2271,35 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "429": {
+            "description": "A0009 請求過於頻繁（應用層限流）",
+            "headers": {
+              "Retry-After": {
+                "description": "建議重試前等待的秒數（至少 1）",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       },
       "delete": {
         "tags": [
-          "Article Like"
+          "文章按讚"
         ],
-        "summary": "取消按讚（idempotent）",
+        "summary": "取消按讚文章",
+        "description": "登入。未按讚時為冪等。",
         "operationId": "unlike_1",
         "parameters": [
-          {
-            "name": "uuid",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
-          },
           {
             "name": "articleUuid",
             "in": "path",
@@ -2254,8 +2311,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0201 文章不存在",
             "content": {
               "*/*": {
                 "schema": {
@@ -2263,6 +2320,12 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -2270,9 +2333,10 @@
     "/api/v1/articles/{articleUuid}/highlights": {
       "get": {
         "tags": [
-          "Highlight"
+          "劃線"
         ],
-        "summary": "撈我在這篇文章的所有 highlight",
+        "summary": "列出我在文章上的劃線",
+        "description": "登入。只回傳自己的劃線。",
         "operationId": "list_1",
         "parameters": [
           {
@@ -2282,28 +2346,6 @@
             "schema": {
               "type": "string",
               "format": "uuid"
-            }
-          },
-          {
-            "name": "uuid",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
             }
           }
         ],
@@ -2317,14 +2359,21 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       },
       "post": {
         "tags": [
-          "Highlight"
+          "劃線"
         ],
-        "summary": "建立 highlight + 可選 note",
+        "summary": "建立劃線",
+        "description": "登入。在可讀的文章上建立劃線，可附筆記。",
         "operationId": "create_1",
         "parameters": [
           {
@@ -2334,28 +2383,6 @@
             "schema": {
               "type": "string",
               "format": "uuid"
-            }
-          },
-          {
-            "name": "uuid",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
             }
           }
         ],
@@ -2370,8 +2397,8 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0001 參數校驗失敗；A0201 文章不存在或對呼叫者不可讀",
             "content": {
               "*/*": {
                 "schema": {
@@ -2379,6 +2406,24 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "429": {
+            "description": "A0009 請求過於頻繁（應用層限流）",
+            "headers": {
+              "Retry-After": {
+                "description": "建議重試前等待的秒數（至少 1）",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -2386,9 +2431,10 @@
     "/api/v1/articles/{articleUuid}/comments": {
       "get": {
         "tags": [
-          "Comment"
+          "留言"
         ],
-        "summary": "列出文章留言（匿名可存取，含軟刪除佔位）",
+        "summary": "列出文章留言",
+        "description": "公開（匿名可存取）。分頁列出頂層留言，每則內嵌前 3 則回覆；軟刪除的留言以佔位呈現。文章不存在或對檢視者不可讀時回 200 空頁，不形成存在性探測。sort 支援 newest（預設）與 oldest。",
         "operationId": "list_2",
         "parameters": [
           {
@@ -2426,28 +2472,6 @@
               "type": "string",
               "default": "newest"
             }
-          },
-          {
-            "name": "uuid",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
           }
         ],
         "responses": {
@@ -2460,14 +2484,18 @@
                 }
               }
             }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       },
       "post": {
         "tags": [
-          "Comment"
+          "留言"
         ],
-        "summary": "建立留言（top-level 或 reply）",
+        "summary": "建立留言",
+        "description": "需 COMMENT_WRITE 權限。可建立頂層留言或回覆（最多 2 層巢狀）。",
         "operationId": "create_2",
         "parameters": [
           {
@@ -2477,28 +2505,6 @@
             "schema": {
               "type": "string",
               "format": "uuid"
-            }
-          },
-          {
-            "name": "uuid",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
             }
           }
         ],
@@ -2513,8 +2519,8 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0001 參數校驗失敗；A0201 文章不存在或對呼叫者不可讀；C0101 父留言不存在；C0105 父留言不屬於此文章；C0102 巢狀超過 2 層；C0106 父留言已凍結",
             "content": {
               "*/*": {
                 "schema": {
@@ -2522,6 +2528,27 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "403": {
+            "description": "A0006 權限不足"
+          },
+          "429": {
+            "description": "A0009 請求過於頻繁（應用層限流）",
+            "headers": {
+              "Retry-After": {
+                "description": "建議重試前等待的秒數（至少 1）",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -2529,33 +2556,12 @@
     "/api/v1/articles/{articleUuid}/bookmark": {
       "post": {
         "tags": [
-          "Bookmark"
+          "收藏"
         ],
-        "summary": "收藏文章（idempotent）",
+        "summary": "收藏文章",
+        "description": "登入。重複收藏為冪等；僅能收藏對自己可讀的文章。",
         "operationId": "bookmark",
         "parameters": [
-          {
-            "name": "uuid",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
-          },
           {
             "name": "articleUuid",
             "in": "path",
@@ -2567,8 +2573,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0201 文章不存在或對呼叫者不可讀",
             "content": {
               "*/*": {
                 "schema": {
@@ -2576,38 +2582,35 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "429": {
+            "description": "A0009 請求過於頻繁（應用層限流）",
+            "headers": {
+              "Retry-After": {
+                "description": "建議重試前等待的秒數（至少 1）",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       },
       "delete": {
         "tags": [
-          "Bookmark"
+          "收藏"
         ],
-        "summary": "取消收藏（idempotent）",
+        "summary": "取消收藏文章",
+        "description": "登入。未收藏時為冪等。",
         "operationId": "unbookmark",
         "parameters": [
-          {
-            "name": "uuid",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
-          },
           {
             "name": "articleUuid",
             "in": "path",
@@ -2619,8 +2622,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0201 文章不存在",
             "content": {
               "*/*": {
                 "schema": {
@@ -2628,6 +2631,12 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -2635,19 +2644,40 @@
     "/api/v1/admin/search/reindex": {
       "post": {
         "tags": [
-          "admin-search-controller"
+          "搜尋管理"
         ],
+        "summary": "觸發搜尋索引全量重建",
+        "description": "需 ADMIN_SEARCH 權限。於背景重建 Elasticsearch 索引並在完成後原子切換 alias；立即回 202 與作業資訊，進度以 /status 查詢。同一時間只允許一個重建作業。",
         "operationId": "reindex",
         "responses": {
-          "200": {
-            "description": "OK",
+          "202": {
+            "description": "已開始於背景重建，body 為剛建立的作業",
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseVoid"
+                  "$ref": "#/components/schemas/ApiResponseSearchReindexJobResponse"
                 }
               }
             }
+          },
+          "409": {
+            "description": "A0501 已有搜尋索引重建作業執行中，body 為進行中的作業",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSearchReindexJobResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "403": {
+            "description": "A0006 權限不足"
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -2655,8 +2685,10 @@
     "/api/v1/admin/categories": {
       "post": {
         "tags": [
-          "admin-category-controller"
+          "分類管理"
         ],
+        "summary": "建立分類",
+        "description": "需 ADMIN_CATEGORY 權限。",
         "operationId": "createCategory",
         "requestBody": {
           "content": {
@@ -2669,8 +2701,8 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0001 參數校驗失敗；A0207 分類 slug 已被使用",
             "content": {
               "*/*": {
                 "schema": {
@@ -2678,6 +2710,15 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "403": {
+            "description": "A0006 權限不足"
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -2685,8 +2726,10 @@
     "/api/v1/admin/articles/{uuid}/unarchive": {
       "post": {
         "tags": [
-          "admin-article-controller"
+          "文章管理"
         ],
+        "summary": "復原下架文章",
+        "description": "需 ADMIN_ARTICLE_ARCHIVE 權限。將 ARCHIVED 文章復原為 DRAFT，退回作者重新編輯。",
         "operationId": "unarchiveArticle",
         "parameters": [
           {
@@ -2697,24 +2740,11 @@
               "type": "string",
               "format": "uuid"
             }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0201 文章不存在；A0203 非管理員；A0204 目前狀態不允許此操作（來源不是 ARCHIVED）",
             "content": {
               "*/*": {
                 "schema": {
@@ -2722,6 +2752,15 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "403": {
+            "description": "A0006 權限不足"
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -2729,8 +2768,10 @@
     "/api/v1/admin/articles/{uuid}/archive": {
       "post": {
         "tags": [
-          "admin-article-controller"
+          "文章管理"
         ],
+        "summary": "下架文章",
+        "description": "需 ADMIN_ARTICLE_ARCHIVE 權限。將已發布文章轉為 ARCHIVED。",
         "operationId": "archiveArticle",
         "parameters": [
           {
@@ -2741,24 +2782,11 @@
               "type": "string",
               "format": "uuid"
             }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0201 文章不存在；A0203 非管理員；A0204 目前狀態不允許此操作",
             "content": {
               "*/*": {
                 "schema": {
@@ -2766,6 +2794,15 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "403": {
+            "description": "A0006 權限不足"
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -2773,35 +2810,11 @@
     "/api/v1/users/me/profile": {
       "patch": {
         "tags": [
-          "User"
+          "使用者"
         ],
         "summary": "更新個人資料",
-        "description": "更新當前登入用戶的暱稱、個人簡介、網站、社群連結、頭貼與所在地",
+        "description": "登入。更新暱稱、個人簡介、網站、社群連結、頭貼與所在地。",
         "operationId": "updateProfile",
-        "parameters": [
-          {
-            "name": "uuid",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -2813,8 +2826,8 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0001 參數校驗失敗（含保留暱稱、website／avatarUrl／socialLinks 格式不合法）；A0107 暱稱已被使用；A0407 頭像檔案無效（非本人上傳的頭像）；A0101 用戶不存在",
             "content": {
               "*/*": {
                 "schema": {
@@ -2822,6 +2835,24 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "429": {
+            "description": "A0009 請求過於頻繁（應用層限流）",
+            "headers": {
+              "Retry-After": {
+                "description": "建議重試前等待的秒數（至少 1）",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -2829,35 +2860,11 @@
     "/api/v1/users/me/notifications": {
       "patch": {
         "tags": [
-          "User"
+          "使用者"
         ],
         "summary": "更新通知偏好",
-        "description": "更新當前登入用戶的留言、按讚、審核、追蹤與電子報通知偏好",
+        "description": "登入。更新留言、按讚、審核、追蹤與電子報通知偏好。",
         "operationId": "updateNotifications",
-        "parameters": [
-          {
-            "name": "uuid",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -2869,8 +2876,8 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0001 參數校驗失敗；A0101 用戶不存在",
             "content": {
               "*/*": {
                 "schema": {
@@ -2878,6 +2885,24 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "429": {
+            "description": "A0009 請求過於頻繁（應用層限流）",
+            "headers": {
+              "Retry-After": {
+                "description": "建議重試前等待的秒數（至少 1）",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -2885,10 +2910,10 @@
     "/api/v1/users/{uuid}/profile": {
       "get": {
         "tags": [
-          "PublicAuthor"
+          "公開作者"
         ],
         "summary": "取得公開作者頁資料",
-        "description": "匿名可存取。僅 ACTIVE 使用者；不存在、已刪除、未驗證、停權一律回 404（A0101），彼此不可區分",
+        "description": "公開（匿名可存取）。僅 ACTIVE 使用者可見。",
         "operationId": "getPublicProfile",
         "parameters": [
           {
@@ -2902,8 +2927,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
+          "404": {
+            "description": "A0101 作者不存在（不存在、已刪除、未驗證、停權一律回 404，彼此不可區分）",
             "content": {
               "*/*": {
                 "schema": {
@@ -2911,6 +2936,9 @@
                 }
               }
             }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -2918,35 +2946,11 @@
     "/api/v1/users/me": {
       "get": {
         "tags": [
-          "User"
+          "使用者"
         ],
         "summary": "取得當前使用者資訊",
-        "description": "回傳當前登入使用者的個人資料",
+        "description": "登入。回傳當前登入使用者的個人資料。",
         "operationId": "getMe",
-        "parameters": [
-          {
-            "name": "uuid",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
-          }
-        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -2957,40 +2961,22 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       },
       "delete": {
         "tags": [
-          "User"
+          "使用者"
         ],
         "summary": "刪除帳號",
-        "description": "驗證密碼後將帳號標記為已刪除，所有現有 Token 將立即失效",
+        "description": "登入。驗證密碼後將帳號標記為已刪除，所有現有 Token 將立即失效。",
         "operationId": "deleteAccount",
-        "parameters": [
-          {
-            "name": "uuid",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -3002,8 +2988,8 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0001 參數校驗失敗；A0102 密碼錯誤；A0101 用戶不存在",
             "content": {
               "*/*": {
                 "schema": {
@@ -3011,6 +2997,12 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -3018,33 +3010,11 @@
     "/api/v1/users/me/quota": {
       "get": {
         "tags": [
-          "file-controller"
+          "檔案"
         ],
+        "summary": "我的儲存配額",
+        "description": "登入。回傳依角色計算的配額與已使用量。",
         "operationId": "getQuota",
-        "parameters": [
-          {
-            "name": "uuid",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
-          }
-        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -3055,6 +3025,12 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -3062,32 +3038,12 @@
     "/api/v1/users/me/files": {
       "get": {
         "tags": [
-          "file-controller"
+          "檔案"
         ],
+        "summary": "我的檔案列表",
+        "description": "登入。分頁列出自己上傳的檔案。",
         "operationId": "getUserFiles",
         "parameters": [
-          {
-            "name": "uuid",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
-          },
           {
             "name": "page",
             "in": "query",
@@ -3124,8 +3080,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0001 參數校驗失敗（size 必須介於 1 與上限之間）",
             "content": {
               "*/*": {
                 "schema": {
@@ -3133,6 +3089,12 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -3140,33 +3102,12 @@
     "/api/v1/users/me/bookmarks": {
       "get": {
         "tags": [
-          "Bookmark"
+          "收藏"
         ],
         "summary": "我的收藏列表",
+        "description": "登入。分頁列出自己收藏且仍可讀的文章。",
         "operationId": "myBookmarks",
         "parameters": [
-          {
-            "name": "uuid",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
-          },
           {
             "name": "page",
             "in": "query",
@@ -3196,6 +3137,12 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -3203,8 +3150,10 @@
     "/api/v1/tags/{slug}": {
       "get": {
         "tags": [
-          "tag-controller"
+          "標籤"
         ],
+        "summary": "取得標籤詳情",
+        "description": "公開。以 slug 取得標籤詳情；登入者會帶入是否已追蹤。",
         "operationId": "getTagDetail",
         "parameters": [
           {
@@ -3214,33 +3163,11 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "uuid",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0301 標籤不存在",
             "content": {
               "*/*": {
                 "schema": {
@@ -3248,6 +3175,9 @@
                 }
               }
             }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -3255,8 +3185,10 @@
     "/api/v1/tags/suggest": {
       "get": {
         "tags": [
-          "tag-controller"
+          "標籤"
         ],
+        "summary": "標籤自動完成",
+        "description": "公開。依前綴回傳標籤名稱建議，limit 上限 20。",
         "operationId": "suggest",
         "parameters": [
           {
@@ -3288,6 +3220,9 @@
                 }
               }
             }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -3295,8 +3230,10 @@
     "/api/v1/tags/hot": {
       "get": {
         "tags": [
-          "tag-controller"
+          "標籤"
         ],
+        "summary": "熱門標籤",
+        "description": "公開。回傳熱門標籤，limit 上限 20。",
         "operationId": "getHotTags",
         "parameters": [
           {
@@ -3320,6 +3257,9 @@
                 }
               }
             }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -3327,8 +3267,10 @@
     "/api/v1/tags/all": {
       "get": {
         "tags": [
-          "tag-controller"
+          "標籤"
         ],
+        "summary": "所有標籤",
+        "description": "公開。列出所有標籤。",
         "operationId": "getAllTags",
         "responses": {
           "200": {
@@ -3340,6 +3282,9 @@
                 }
               }
             }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -3347,9 +3292,10 @@
     "/api/v1/series/{slug}": {
       "get": {
         "tags": [
-          "Series"
+          "系列文章"
         ],
-        "summary": "Series 詳情（匿名可存取，登入時含我的進度）",
+        "summary": "Series 詳情",
+        "description": "公開（匿名可存取）。以 slug 取得 Series 與其文章；登入時一併帶入我的閱讀進度。",
         "operationId": "get_2",
         "parameters": [
           {
@@ -3359,33 +3305,11 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "uuid",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "S0101 Series 不存在",
             "content": {
               "*/*": {
                 "schema": {
@@ -3393,6 +3317,9 @@
                 }
               }
             }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -3400,8 +3327,10 @@
     "/api/v1/search": {
       "get": {
         "tags": [
-          "search-controller"
+          "搜尋"
         ],
+        "summary": "全文搜尋文章（匿名可存取）",
+        "description": "viewCount／likeCount 與文章詳情頁同源（瀏覽數 = DB 值 + Redis 暫存增量；按讚數 = DB 值）。sort 僅支援 relevance（預設）與 latest（不分大小寫），其他值（含已移除的 hot）回 400 A0001。",
         "operationId": "search",
         "parameters": [
           {
@@ -3423,10 +3352,14 @@
           {
             "name": "sort",
             "in": "query",
+            "description": "排序：relevance（預設）/ latest（不分大小寫），其他值回 400",
             "required": false,
             "schema": {
               "type": "string",
-              "default": "relevance"
+              "enum": [
+                "relevance",
+                "latest"
+              ]
             }
           },
           {
@@ -3446,33 +3379,11 @@
               "type": "integer",
               "format": "int32"
             }
-          },
-          {
-            "name": "uuid",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0001 參數校驗失敗（q 長度超過 100、page × size 超過搜尋深度上限、sort 不是 relevance／latest）",
             "content": {
               "*/*": {
                 "schema": {
@@ -3480,6 +3391,21 @@
                 }
               }
             }
+          },
+          "429": {
+            "description": "A0009 請求過於頻繁（應用層限流）",
+            "headers": {
+              "Retry-After": {
+                "description": "建議重試前等待的秒數（至少 1）",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -3487,8 +3413,10 @@
     "/api/v1/search/suggest": {
       "get": {
         "tags": [
-          "search-controller"
+          "搜尋"
         ],
+        "summary": "搜尋建議",
+        "description": "公開（匿名可存取）。依輸入前綴回傳搜尋建議；q 長度上限 100。",
         "operationId": "suggest_1",
         "parameters": [
           {
@@ -3502,8 +3430,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0001 參數校驗失敗（q 長度超過 100）",
             "content": {
               "*/*": {
                 "schema": {
@@ -3511,6 +3439,21 @@
                 }
               }
             }
+          },
+          "429": {
+            "description": "A0009 請求過於頻繁（應用層限流）",
+            "headers": {
+              "Retry-After": {
+                "description": "建議重試前等待的秒數（至少 1）",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -3518,36 +3461,14 @@
     "/api/v1/search/history": {
       "get": {
         "tags": [
-          "search-controller"
+          "搜尋"
         ],
+        "summary": "取得個人搜尋歷史",
+        "description": "登入。回傳最近 20 筆搜尋紀錄（最新在前）。",
         "operationId": "getHistory",
-        "parameters": [
-          {
-            "name": "uuid",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
-          }
-        ],
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0502 無法識別當前登入用戶（principal 無法解析，防禦性檢查）",
             "content": {
               "*/*": {
                 "schema": {
@@ -3555,41 +3476,25 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       },
       "delete": {
         "tags": [
-          "search-controller"
+          "搜尋"
         ],
+        "summary": "清除個人搜尋歷史",
+        "description": "登入。刪除所有個人搜尋紀錄。",
         "operationId": "clearHistory",
-        "parameters": [
-          {
-            "name": "uuid",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
-          }
-        ],
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0502 無法識別當前登入用戶（principal 無法解析，防禦性檢查）",
             "content": {
               "*/*": {
                 "schema": {
@@ -3597,6 +3502,12 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -3604,8 +3515,10 @@
     "/api/v1/recommend/trending": {
       "get": {
         "tags": [
-          "recommend-controller"
+          "推薦"
         ],
+        "summary": "熱門文章",
+        "description": "公開。回傳指定期間（預設 7d）的熱門文章；limit 夾在 1 到 50。",
         "operationId": "getTrendingArticles",
         "parameters": [
           {
@@ -3638,6 +3551,9 @@
                 }
               }
             }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -3645,8 +3561,10 @@
     "/api/v1/recommend/related/{articleUuid}": {
       "get": {
         "tags": [
-          "recommend-controller"
+          "推薦"
         ],
+        "summary": "相關文章推薦",
+        "description": "公開。回傳與指定文章相關的已發布文章；limit 夾在 1 到 20。文章不存在時回空清單。",
         "operationId": "getRelatedArticles",
         "parameters": [
           {
@@ -3679,6 +3597,9 @@
                 }
               }
             }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -3686,8 +3607,10 @@
     "/api/v1/files/{id}": {
       "get": {
         "tags": [
-          "file-controller"
+          "檔案"
         ],
+        "summary": "取得檔案 metadata",
+        "description": "公開檔案可匿名讀取；非公開檔案限擁有者或管理員。",
         "operationId": "getFileMetadata",
         "parameters": [
           {
@@ -3698,33 +3621,11 @@
               "type": "string",
               "format": "uuid"
             }
-          },
-          {
-            "name": "uuid",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0401 檔案不存在",
             "content": {
               "*/*": {
                 "schema": {
@@ -3732,13 +3633,28 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "A0405 無權限讀取此檔案",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseFileMetadata"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       },
       "delete": {
         "tags": [
-          "file-controller"
+          "檔案"
         ],
+        "summary": "刪除檔案",
+        "description": "登入；擁有者或管理員。刪除檔案。",
         "operationId": "deleteFile",
         "parameters": [
           {
@@ -3749,33 +3665,11 @@
               "type": "string",
               "format": "uuid"
             }
-          },
-          {
-            "name": "uuid",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0401 檔案不存在；A0405 無權限操作此檔案",
             "content": {
               "*/*": {
                 "schema": {
@@ -3783,6 +3677,12 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -3790,8 +3690,10 @@
     "/api/v1/files/{id}/content": {
       "get": {
         "tags": [
-          "file-controller"
+          "檔案"
         ],
+        "summary": "取得檔案內容",
+        "description": "公開檔案可匿名讀取；非公開檔案限擁有者或管理員。回傳二進位串流，支援 ETag／If-None-Match；公開檔案帶公開快取標頭，非公開檔案為 private, no-store。",
         "operationId": "getFileContent",
         "parameters": [
           {
@@ -3804,31 +3706,83 @@
             }
           },
           {
-            "name": "uuid",
-            "in": "query",
+            "name": "If-None-Match",
+            "in": "header",
             "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "檔案內容（二進位串流）"
+          },
+          "304": {
+            "description": "ETag 未變更，無 body"
+          },
+          "403": {
+            "description": "A0405 無權限讀取此檔案"
+          },
+          "404": {
+            "description": "A0401 檔案不存在"
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
+          }
+        }
+      }
+    },
+    "/api/v1/comments/{commentUuid}/replies": {
+      "get": {
+        "tags": [
+          "留言"
+        ],
+        "summary": "列出頂層留言的回覆",
+        "description": "公開（匿名可存取）。排序為 created_at 升冪，size 上限 100。留言不存在、傳入回覆（非頂層）的 uuid、文章對檢視者不可讀，三者一律回 200 且 total 為 0 的空頁，與留言列表一致，不形成存在性探測。",
+        "operationId": "listReplies",
+        "parameters": [
+          {
+            "name": "commentUuid",
+            "in": "path",
+            "required": true,
             "schema": {
               "type": "string",
               "format": "uuid"
             }
           },
           {
-            "name": "role",
+            "name": "page",
             "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePageResultCommentResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -3836,8 +3790,10 @@
     "/api/v1/categories": {
       "get": {
         "tags": [
-          "category-controller"
+          "分類"
         ],
+        "summary": "分類列表",
+        "description": "公開。列出所有分類。",
         "operationId": "getAllCategories",
         "responses": {
           "200": {
@@ -3849,6 +3805,9 @@
                 }
               }
             }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -3856,8 +3815,10 @@
     "/api/v1/categories/{slug}": {
       "get": {
         "tags": [
-          "category-controller"
+          "分類"
         ],
+        "summary": "以 slug 取得分類",
+        "description": "公開。",
         "operationId": "getCategoryBySlug",
         "parameters": [
           {
@@ -3870,8 +3831,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0205 分類不存在",
             "content": {
               "*/*": {
                 "schema": {
@@ -3879,6 +3840,9 @@
                 }
               }
             }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -3886,10 +3850,10 @@
     "/api/v1/authors": {
       "get": {
         "tags": [
-          "PublicAuthor"
+          "公開作者"
         ],
         "summary": "搜尋作者",
-        "description": "匿名可存取。只列 ACTIVE 且至少 1 篇已發布文章的作者；依已發布篇數 DESC、暱稱 ASC、uuid ASC 排序，固定最多 20 筆",
+        "description": "公開（匿名可存取）。只列 ACTIVE 且至少 1 篇已發布文章的作者；依已發布篇數 DESC、暱稱 ASC、uuid ASC 排序，固定最多 20 筆。",
         "operationId": "searchAuthors",
         "parameters": [
           {
@@ -3902,8 +3866,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0001 參數校驗失敗（keyword 不合法）",
             "content": {
               "*/*": {
                 "schema": {
@@ -3911,6 +3875,9 @@
                 }
               }
             }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -3918,8 +3885,10 @@
     "/api/v1/articles/{uuid}/edit": {
       "get": {
         "tags": [
-          "article-controller"
+          "文章"
         ],
+        "summary": "取得文章編輯資料",
+        "description": "需 ARTICLE_EDIT 權限且為作者本人。回傳編輯器用的完整內容與目前 version。",
         "operationId": "getArticleForEdit",
         "parameters": [
           {
@@ -3930,24 +3899,11 @@
               "type": "string",
               "format": "uuid"
             }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0201 文章不存在；A0203 非文章作者",
             "content": {
               "*/*": {
                 "schema": {
@@ -3955,6 +3911,15 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "403": {
+            "description": "A0006 權限不足"
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -3962,9 +3927,10 @@
     "/api/v1/articles/{articleUuid}/versions": {
       "get": {
         "tags": [
-          "Version"
+          "文章版本"
         ],
-        "summary": "版本列表（分頁）",
+        "summary": "版本列表",
+        "description": "需 ARTICLE_EDIT 權限；文章作者或管理員。分頁列出文章的歷史快照，可用 type 篩選 AUTO／MANUAL／PUBLISHED。",
         "operationId": "list_3",
         "parameters": [
           {
@@ -3974,28 +3940,6 @@
             "schema": {
               "type": "string",
               "format": "uuid"
-            }
-          },
-          {
-            "name": "uuid",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
             }
           },
           {
@@ -4026,8 +3970,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "V0106 文章不存在；V0102 非文章作者（管理員不受限）",
             "content": {
               "*/*": {
                 "schema": {
@@ -4035,6 +3979,15 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "403": {
+            "description": "A0006 權限不足"
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -4042,9 +3995,10 @@
     "/api/v1/articles/{articleUuid}/versions/{versionUuid}": {
       "get": {
         "tags": [
-          "Version"
+          "文章版本"
         ],
         "summary": "版本詳情",
+        "description": "需 ARTICLE_EDIT 權限；文章作者或管理員。",
         "operationId": "getDetail",
         "parameters": [
           {
@@ -4064,33 +4018,11 @@
               "type": "string",
               "format": "uuid"
             }
-          },
-          {
-            "name": "uuid",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "V0101 Version 不存在；V0106 文章不存在；V0108 Version 不屬於指定的 Article；V0102 非文章作者（管理員不受限）",
             "content": {
               "*/*": {
                 "schema": {
@@ -4098,14 +4030,24 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "403": {
+            "description": "A0006 權限不足"
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       },
       "delete": {
         "tags": [
-          "Version"
+          "文章版本"
         ],
         "summary": "刪除快照",
+        "description": "需 ARTICLE_EDIT 權限；文章作者或管理員。PUBLISHED 凍結快照不可刪除。",
         "operationId": "delete_3",
         "parameters": [
           {
@@ -4125,33 +4067,11 @@
               "type": "string",
               "format": "uuid"
             }
-          },
-          {
-            "name": "uuid",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "V0101 Version 不存在；V0106 文章不存在；V0108 Version 不屬於指定的 Article；V0102 非文章作者（管理員不受限）；V0103 PUBLISHED 凍結快照不可刪除",
             "content": {
               "*/*": {
                 "schema": {
@@ -4159,6 +4079,15 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "403": {
+            "description": "A0006 權限不足"
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -4166,8 +4095,10 @@
     "/api/v1/articles/slug/{slug}": {
       "get": {
         "tags": [
-          "article-controller"
+          "文章"
         ],
+        "summary": "以 slug 取得文章",
+        "description": "公開（登入者可看自己的非公開文章，管理員可看全部）。回傳文章詳情並計入瀏覽數。",
         "operationId": "getArticleBySlug",
         "parameters": [
           {
@@ -4177,33 +4108,11 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "uuid",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0201 文章不存在（不存在或對呼叫者不可見）",
             "content": {
               "*/*": {
                 "schema": {
@@ -4211,6 +4120,9 @@
                 }
               }
             }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -4218,8 +4130,10 @@
     "/api/v1/articles/me": {
       "get": {
         "tags": [
-          "article-controller"
+          "文章"
         ],
+        "summary": "我的文章列表",
+        "description": "登入。分頁列出自己的文章，可依狀態篩選。",
         "operationId": "getMyArticles",
         "parameters": [
           {
@@ -4254,33 +4168,11 @@
                 "REJECTED"
               ]
             }
-          },
-          {
-            "name": "uuid",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "A0001 參數校驗失敗（status 不是合法值）",
             "content": {
               "*/*": {
                 "schema": {
@@ -4288,6 +4180,12 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -4295,8 +4193,10 @@
     "/api/v1/articles/archive": {
       "get": {
         "tags": [
-          "article-controller"
+          "文章"
         ],
+        "summary": "文章歸檔",
+        "description": "公開。依年月彙整已發布文章，用於歸檔頁。",
         "operationId": "getArchive",
         "responses": {
           "200": {
@@ -4308,6 +4208,9 @@
                 }
               }
             }
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -4315,8 +4218,10 @@
     "/api/v1/admin/search/status": {
       "get": {
         "tags": [
-          "admin-search-controller"
+          "搜尋管理"
         ],
+        "summary": "查詢搜尋索引狀態",
+        "description": "需 ADMIN_SEARCH 權限。回傳索引健康狀態與最近一次重建作業。",
         "operationId": "status",
         "responses": {
           "200": {
@@ -4328,6 +4233,15 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "403": {
+            "description": "A0006 權限不足"
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -4335,8 +4249,10 @@
     "/api/v1/admin/articles/pending": {
       "get": {
         "tags": [
-          "admin-article-controller"
+          "文章管理"
         ],
+        "summary": "待審文章列表",
+        "description": "需 ADMIN_ARTICLE_REVIEW 權限。分頁列出 PENDING_REVIEW 的文章。",
         "operationId": "getPendingArticles",
         "parameters": [
           {
@@ -4368,6 +4284,15 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "403": {
+            "description": "A0006 權限不足"
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -4375,33 +4300,12 @@
     "/api/v1/me/preferences/version/{key}": {
       "delete": {
         "tags": [
-          "Version Preference"
+          "版本偏好"
         ],
-        "summary": "重置某 key 為系統預設",
+        "summary": "重置偏好為系統預設",
+        "description": "登入。將指定 key（enabled、retain、intervalSeconds、diffChars）重置為系統預設。",
         "operationId": "reset",
         "parameters": [
-          {
-            "name": "uuid",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "USER",
-                "AUTHOR",
-                "ADMIN"
-              ]
-            }
-          },
           {
             "name": "key",
             "in": "path",
@@ -4412,8 +4316,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
+          "400": {
+            "description": "V0107 未知的 preference key",
             "content": {
               "*/*": {
                 "schema": {
@@ -4421,6 +4325,12 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "A0005 未登入或 token 無效／過期"
+          },
+          "500": {
+            "description": "B0001 系統執行出錯"
           }
         }
       }
@@ -4772,6 +4682,10 @@
           "deletedByRole": {
             "type": "string"
           },
+          "replyCount": {
+            "type": "integer",
+            "format": "int32"
+          },
           "replies": {
             "type": "array",
             "items": {
@@ -4789,7 +4703,9 @@
             "minLength": 0
           },
           "content": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 200000,
+            "minLength": 0
           },
           "summary": {
             "type": "string",
@@ -4821,6 +4737,13 @@
             "items": {
               "type": "string"
             }
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64",
+            "description": "載入文章時取得的 version；與目前不一致回 409（A0208）。省略則不做版本比對（相容舊前端）",
+            "example": 3,
+            "minimum": 0
           }
         }
       },
@@ -4921,6 +4844,12 @@
             "items": {
               "$ref": "#/components/schemas/TocEntry"
             }
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64",
+            "description": "樂觀鎖版本號；存檔時原樣帶回 UpdateArticleRequest.version，每次成功寫入遞增",
+            "example": 3
           }
         }
       },
@@ -4976,13 +4905,18 @@
         "type": "object",
         "properties": {
           "color": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^#[0-9A-Fa-f]{6}$"
           },
           "icon": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 0
           },
           "description": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 0
           }
         }
       },
@@ -5304,7 +5238,9 @@
           "nickname": {
             "type": "string",
             "description": "暱稱",
-            "example": "Yuan"
+            "example": "Yuan",
+            "maxLength": 50,
+            "minLength": 0
           }
         },
         "required": [
@@ -5371,7 +5307,9 @@
             "minLength": 1
           },
           "content": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 200000,
+            "minLength": 0
           },
           "summary": {
             "type": "string",
@@ -5526,6 +5464,12 @@
             "items": {
               "$ref": "#/components/schemas/TocEntry"
             }
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64",
+            "description": "樂觀鎖版本號；存檔時原樣帶回 UpdateArticleRequest.version，每次成功寫入遞增",
+            "example": 3
           }
         }
       },
@@ -5577,7 +5521,9 @@
         "type": "object",
         "properties": {
           "reason": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 0
           }
         }
       },
@@ -5702,6 +5648,60 @@
         "required": [
           "content"
         ]
+      },
+      "ApiResponseSearchReindexJobResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/SearchReindexJobResponse"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "SearchReindexJobResponse": {
+        "type": "object",
+        "properties": {
+          "jobId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "RUNNING",
+              "COMPLETED",
+              "FAILED"
+            ]
+          },
+          "processed": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "error": {
+            "type": "string"
+          }
+        }
       },
       "CreateCategoryRequest": {
         "type": "object",
@@ -6420,6 +6420,97 @@
           }
         }
       },
+      "SeriesArticleItem": {
+        "type": "object",
+        "properties": {
+          "uuid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "coverImageUrl": {
+            "type": "string"
+          },
+          "authorUuid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "authorNickname": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "PENDING_REVIEW",
+              "PUBLISHED",
+              "ARCHIVED",
+              "REJECTED"
+            ]
+          },
+          "viewCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "likeCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "commentCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TagSummaryResponse"
+            }
+          },
+          "rejectReason": {
+            "type": "string"
+          },
+          "liked": {
+            "type": "boolean"
+          },
+          "bookmarked": {
+            "type": "boolean"
+          },
+          "lastReadProgress": {
+            "type": "number"
+          },
+          "seriesUuid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "seriesTitle": {
+            "type": "string"
+          },
+          "seriesPosition": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "SeriesDetailResponse": {
         "type": "object",
         "properties": {
@@ -6449,7 +6540,7 @@
           "articles": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/ArticleSummaryResponse"
+              "$ref": "#/components/schemas/SeriesArticleItem"
             }
           },
           "myProgress": {
@@ -6632,6 +6723,51 @@
           "timestamp": {
             "type": "integer",
             "format": "int64"
+          }
+        }
+      },
+      "ApiResponsePageResultCommentResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageResultCommentResponse"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "PageResultCommentResponse": {
+        "type": "object",
+        "properties": {
+          "current": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommentResponse"
+            }
           }
         }
       },
@@ -6849,34 +6985,8 @@
           },
           "totalCommentCount": {
             "type": "integer",
-            "format": "int32"
-          }
-        }
-      },
-      "PageResultCommentResponse": {
-        "type": "object",
-        "properties": {
-          "current": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "size": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "pages": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "total": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "records": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CommentResponse"
-            }
+            "format": "int32",
+            "description": "文章的未刪除留言數（頂層加回覆合計，不含已刪除留言與頂層墓碑佔位）；與文章 commentCount 同一口徑"
           }
         }
       },
@@ -6956,6 +7066,9 @@
           },
           "healthy": {
             "type": "boolean"
+          },
+          "reindex": {
+            "$ref": "#/components/schemas/SearchReindexJobResponse"
           }
         }
       },
