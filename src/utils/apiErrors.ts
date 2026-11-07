@@ -1,4 +1,5 @@
-import { MAX_ARTICLE_IMAGE_BYTES, MAX_AVATAR_BYTES, formatLimitMb } from './uploadLimits'
+import type { FileUsageType } from '../types/editor'
+import { MAX_ARTICLE_IMAGE_BYTES, MAX_AVATAR_BYTES, formatLimitMb, getMaxUploadBytes } from './uploadLimits'
 
 /**
  * 後端業務錯誤碼判斷工具。
@@ -20,6 +21,15 @@ const FRIENDLY_ERROR_MESSAGES: Readonly<Record<string, string>> = {
   A0406: '圖片尺寸過大（總像素需小於 1 億）',
   // A0407 INVALID_AVATAR_FILE：設定頭像時，指定的站內檔案不是本人上傳的頭像
   A0407: '頭像檔案無效，請重新上傳',
+}
+
+/**
+ * 前端預檢用：呼叫端知道上傳情境，所以只顯示對應的上限（文章圖片／封面 20MB、頭像 5MB）。
+ * 後端回來的 A0402 在 apiClient 統一轉換時拿不到情境，保留上面的通用文案（兩種上限都列）。
+ */
+export function getFileTooLargeMessage(usageType: FileUsageType): string {
+  const label = usageType === 'AVATAR' ? '頭像' : '文章圖片'
+  return `檔案太大（${label}上限 ${formatLimitMb(getMaxUploadBytes(usageType))}）`
 }
 
 /** 錯誤碼對應的使用者友善訊息；沒有對應時回傳 undefined，呼叫端沿用後端 message */

@@ -139,3 +139,22 @@ describe('SettingsView — 公開個人頁', () => {
     })
   })
 })
+
+describe('SettingsView — 頭像選檔（A6b）', () => {
+  function bigImage(size: number) {
+    const file = new File(['x'], 'big.png', { type: 'image/png' })
+    Object.defineProperty(file, 'size', { value: size })
+    return file
+  }
+
+  it('頭像被大小檢查擋下後仍清掉 input.value，重選同一個檔案才會再觸發 change', async () => {
+    await renderWithRouterAsync(SettingsView, {}, '/settings')
+    const input = screen.getByTestId('avatar-upload-input') as HTMLInputElement
+    const valueSetter = vi.fn()
+    Object.defineProperty(input, 'value', { configurable: true, get: () => '', set: valueSetter })
+
+    await fireEvent.change(input, { target: { files: [bigImage(5 * 1024 * 1024 + 1)] } })
+
+    expect(valueSetter).toHaveBeenCalledWith('')
+  })
+})

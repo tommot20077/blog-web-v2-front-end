@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   ARTICLE_CONCURRENT_UPDATE_CODE,
   getApiErrorCode,
+  getFileTooLargeMessage,
   getFriendlyErrorMessage,
   isConcurrentUpdateError,
 } from './apiErrors'
@@ -46,7 +47,7 @@ describe('isConcurrentUpdateError（B2：A0208 文章已被其他人修改）', 
 })
 
 describe('getFriendlyErrorMessage（A6／A6b 上傳相關錯誤碼）', () => {
-  it('A0402 FILE_TOO_LARGE：說明文章圖片與頭像各自上限', () => {
+  it('A0402 FILE_TOO_LARGE（後端回來、拿不到上傳情境）：保留通用文案，說明兩種上限', () => {
     expect(getFriendlyErrorMessage('A0402')).toBe('檔案太大（文章圖片上限 20MB，頭像上限 5MB）')
   })
 
@@ -61,5 +62,19 @@ describe('getFriendlyErrorMessage（A6／A6b 上傳相關錯誤碼）', () => {
   it('其他錯誤碼或 undefined 回傳 undefined（沿用後端 message）', () => {
     expect(getFriendlyErrorMessage('A0200')).toBeUndefined()
     expect(getFriendlyErrorMessage(undefined)).toBeUndefined()
+  })
+})
+
+describe('getFileTooLargeMessage（前端預檢：依上傳情境只顯示對應上限）', () => {
+  it('內文圖片顯示 20MB', () => {
+    expect(getFileTooLargeMessage('ARTICLE_CONTENT')).toBe('檔案太大（文章圖片上限 20MB）')
+  })
+
+  it('封面顯示 20MB', () => {
+    expect(getFileTooLargeMessage('ARTICLE_COVER')).toBe('檔案太大（文章圖片上限 20MB）')
+  })
+
+  it('頭像顯示 5MB', () => {
+    expect(getFileTooLargeMessage('AVATAR')).toBe('檔案太大（頭像上限 5MB）')
   })
 })

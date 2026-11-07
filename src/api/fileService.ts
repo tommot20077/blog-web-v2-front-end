@@ -1,13 +1,13 @@
 import type { FileUploadResponse, FileUsageType } from '../types/editor'
 import type { FileListParams, FileMetadata } from '../types/user'
 import { exceedsUploadLimit } from '../utils/uploadLimits'
-import { FILE_TOO_LARGE_CODE, getFriendlyErrorMessage } from '../utils/apiErrors'
+import { FILE_TOO_LARGE_CODE, getFileTooLargeMessage } from '../utils/apiErrors'
 
 export const fileService = {
   async uploadFile(file: File, usageType: FileUsageType): Promise<FileUploadResponse> {
     // A6b：超過上限直接擋下、不送出（省一次往返）；錯誤形狀與後端 A0402 一致
     if (exceedsUploadLimit(file, usageType)) {
-      throw Object.assign(new Error(getFriendlyErrorMessage(FILE_TOO_LARGE_CODE)), {
+      throw Object.assign(new Error(getFileTooLargeMessage(usageType)), {
         code: FILE_TOO_LARGE_CODE,
       })
     }

@@ -6,7 +6,7 @@ import { useToast } from './useToast'
 import { getPasswordRules, PASSWORD_POLICY_MESSAGE } from './useFormValidation'
 import { isSafeHandle, isHttpUrl } from '../utils/socialLinks'
 import { exceedsUploadLimit } from '../utils/uploadLimits'
-import { FILE_TOO_LARGE_CODE, getApiErrorCode, getFriendlyErrorMessage } from '../utils/apiErrors'
+import { getApiErrorCode, getFileTooLargeMessage, getFriendlyErrorMessage } from '../utils/apiErrors'
 
 type SaveStatus = 'idle' | 'saving' | 'saved'
 
@@ -167,7 +167,7 @@ export function useSettings() {
    */
   function selectAvatarFile(file: File): boolean {
     if (exceedsUploadLimit(file, 'AVATAR')) {
-      showToast(getFriendlyErrorMessage(FILE_TOO_LARGE_CODE) ?? '檔案太大', 'error')
+      showToast(getFileTooLargeMessage('AVATAR'), 'error')
       return false
     }
     avatarFile.value = file

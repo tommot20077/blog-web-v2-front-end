@@ -158,7 +158,18 @@ onMounted(async () => {
 //   - 重新載入：以伺服器最新內容取代本機內容（loadArticle 會一併重置 D5 的 dirty 與 version）
 //   - 取消：留在原頁、本機內容不動，使用者可以先自行複製內容
 // 沿用專案既有的確認慣例（window.confirm；確定 = 重新載入）。
-const CONFLICT_MESSAGE = '這篇文章已在其他地方被修改。重新載入會捨棄你目前未儲存的內容。'
+// 後端對所有 version 不一致一律回 A0208，所以內容被改、狀態轉換、加入／移出系列都會觸發，文案要涵蓋。
+const CONFLICT_MESSAGE = '這篇文章已在其他地方被修改（內容、狀態或系列設定）。重新載入會捨棄你目前未儲存的內容。'
+
+// 使用者按「取消」後留下常駐提示列：在重新載入成功之前，存檔 / 送審都不再送出，
+// 也不再重複跳 confirm（否則每按一次存檔都被同一個對話框打斷）。不自動合併、不強制覆蓋。
+const hasUnresolvedConflict = ref(false)
+const conflictBannerEl = ref<HTMLElement | null>(null)
+
+function remindToReload() {
+  showToast('請先複製你的內容，再按提示列的「重新載入」', 'error')
+  conflictBannerEl.value?.focus()
+}
 
 async function reloadLatestArticle(): Promise<boolean> {
   const latest = await loadArticle()
@@ -168,13 +179,10 @@ async function reloadLatestArticle(): Promise<boolean> {
   return true
 }
 
-async function handleSaveConflict() {
-  if (!window.confirm(CONFLICT_MESSAGE)) {
-    showToast('尚未儲存：這篇文章已在其他地方被修改', 'error')
-    return
-  }
+async function reloadAfterConflict() {
   try {
     if (await reloadLatestArticle()) {
+      hasUnresolvedConflict.value = false
       showToast('已重新載入最新內容', 'success')
       return
     }
@@ -184,8 +192,21 @@ async function handleSaveConflict() {
   showToast('重新載入失敗，請稍後再試', 'error')
 }
 
+async function handleSaveConflict() {
+  if (!window.confirm(CONFLICT_MESSAGE)) {
+    hasUnresolvedConflict.value = true
+    showToast('尚未儲存：這篇文章已在其他地方被修改', 'error')
+    return
+  }
+  await reloadAfterConflict()
+}
+
 // ── Save draft ─────────────────────────────────────────────────────────────
 async function onSaveDraft() {
+  if (hasUnresolvedConflict.value) {
+    remindToReload()
+    return
+  }
   try {
     const contentToSave = markdownContent.value
     const saved = await saveDraft(contentToSave)
@@ -205,6 +226,10 @@ async function onSaveDraft() {
 
 // ── Submit for review ──────────────────────────────────────────────────────
 async function onSubmitForReview() {
+  if (hasUnresolvedConflict.value) {
+    remindToReload()
+    return
+  }
   try {
     const contentToSave = markdownContent.value
     await saveDraft(contentToSave)
@@ -362,6 +387,27 @@ async function onVersionRestored() {
       @insert-images="onInsertImages"
     />
 
+    <!-- 存檔衝突提示列（B2）：使用者取消重新載入後常駐，直到重新載入成功 -->
+    <div
+      v-if="hasUnresolvedConflict"
+      ref="conflictBannerEl"
+      class="ed-image-warning ed-conflict-banner"
+      role="alert"
+      tabindex="-1"
+      data-testid="editor-conflict-banner"
+    >
+      <span>文章已在其他地方被修改，請先複製你的內容，再按「重新載入」</span>
+      <button
+        type="button"
+        class="ed-btn"
+        data-testid="editor-conflict-reload"
+        :disabled="isLoadingArticle"
+        @click="reloadAfterConflict"
+      >
+        重新載入
+      </button>
+    </div>
+
     <!-- 外部圖片警告（CSP 不放行外部圖片，發布後讀者端會破圖） -->
     <div
       v-if="externalImageCount > 0 && !isFocusMode"
@@ -459,6 +505,7 @@ async function onVersionRestored() {
   background: color-mix(in srgb, var(--danger-strong) 10%, transparent);
   border-bottom: 1px solid color-mix(in srgb, var(--danger-strong) 25%, transparent);
 }
+.ed-conflict-banner { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .editor-body { flex: 1; display: flex; overflow: hidden; }
 .editor-pane { position: relative; flex: 1; min-width: 0; overflow-y: auto; border-right: 1px solid var(--divider); }
 .editor-pane-inner { height: 100%; }

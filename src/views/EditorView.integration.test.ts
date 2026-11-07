@@ -258,7 +258,7 @@ describe('EditorView Integration', () => {
 
   // ── B2：樂觀鎖衝突（409 / A0208） ─────────────────────────────────────────
   describe('B2：存檔衝突提示', () => {
-    const CONFLICT_MESSAGE = '這篇文章已在其他地方被修改。重新載入會捨棄你目前未儲存的內容。'
+    const CONFLICT_MESSAGE = '這篇文章已在其他地方被修改（內容、狀態或系列設定）。重新載入會捨棄你目前未儲存的內容。'
     const loaded = createMockEditorArticle({ uuid: 'edit-uuid', title: '原標題', content: '原內容', version: 3 })
     const conflict = () => Object.assign(new Error('文章已被其他人修改'), { status: 409, code: 'A0208' })
 
@@ -348,6 +348,80 @@ describe('EditorView Integration', () => {
       expect(editorService.getArticleForEdit).toHaveBeenCalledTimes(1)
       expect(screen.getByTestId('editor-title-input')).toHaveValue('我的修改')
       expect(mockShowToast).toHaveBeenCalledWith(expect.stringContaining('其他地方被修改'), 'error')
+    })
+
+    it('選「取消」後出現常駐提示列；再按存檔不呼叫 API、不再跳 confirm，改以 toast 提醒先重新載入', async () => {
+      vi.mocked(editorService.getArticleForEdit).mockResolvedValue(loaded)
+      vi.mocked(editorService.updateArticle).mockRejectedValue(conflict())
+      const confirmSpy = vi.fn().mockReturnValue(false)
+      vi.stubGlobal('confirm', confirmSpy)
+
+      const user = userEvent.setup()
+      renderEditor({ uuid: 'edit-uuid' })
+      await waitFor(() => expect(screen.getByTestId('editor-save-btn')).toBeEnabled())
+      expect(screen.queryByTestId('editor-conflict-banner')).not.toBeInTheDocument()
+
+      await user.click(screen.getByTestId('editor-save-btn'))
+      await waitFor(() => expect(screen.getByTestId('editor-conflict-banner')).toBeInTheDocument())
+      expect(screen.getByTestId('editor-conflict-banner')).toHaveTextContent('文章已在其他地方被修改，請先複製你的內容，再按「重新載入」')
+
+      mockShowToast.mockClear()
+      await user.click(screen.getByTestId('editor-save-btn'))
+      expect(editorService.updateArticle).toHaveBeenCalledTimes(1)
+      expect(confirmSpy).toHaveBeenCalledTimes(1)
+      expect(mockShowToast).toHaveBeenCalledWith(expect.stringContaining('重新載入'), 'error')
+
+      await user.click(screen.getByTestId('editor-publish-btn'))
+      expect(editorService.updateArticle).toHaveBeenCalledTimes(1)
+      expect(confirmSpy).toHaveBeenCalledTimes(1)
+      expect(myArticlesService.submitForReview).not.toHaveBeenCalled()
+    })
+
+    it('提示列的「重新載入」：重抓最新內容、取代本機內容，成功後提示列消失、可再存檔', async () => {
+      const latest = { ...loaded, title: '別處改的標題', content: '別處改的內容', version: 9 }
+      vi.mocked(editorService.getArticleForEdit)
+        .mockResolvedValueOnce(loaded)
+        .mockResolvedValueOnce(latest)
+      vi.mocked(editorService.updateArticle)
+        .mockRejectedValueOnce(conflict())
+        .mockResolvedValueOnce({ ...latest, version: 10 })
+      const confirmSpy = vi.fn().mockReturnValue(false)
+      vi.stubGlobal('confirm', confirmSpy)
+
+      const user = userEvent.setup()
+      renderEditor({ uuid: 'edit-uuid' })
+      await waitFor(() => expect(screen.getByTestId('editor-save-btn')).toBeEnabled())
+      await user.type(screen.getByTestId('editor-title-input'), '我的修改')
+      await user.click(screen.getByTestId('editor-save-btn'))
+      await waitFor(() => expect(screen.getByTestId('editor-conflict-banner')).toBeInTheDocument())
+
+      await user.click(screen.getByTestId('editor-conflict-reload'))
+
+      await waitFor(() => expect(screen.queryByTestId('editor-conflict-banner')).not.toBeInTheDocument())
+      expect(editorService.getArticleForEdit).toHaveBeenCalledTimes(2)
+      expect(screen.getByTestId('editor-title-input')).toHaveValue('別處改的標題')
+      expect(mockSetContent).toHaveBeenLastCalledWith('別處改的內容')
+
+      await user.click(screen.getByTestId('editor-save-btn'))
+      await waitFor(() => expect(editorService.updateArticle).toHaveBeenCalledTimes(2))
+      expect(vi.mocked(editorService.updateArticle).mock.calls[1]![1]).toEqual(expect.objectContaining({ version: 9 }))
+      expect(confirmSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it('提示列的重新載入失敗時提示列保留', async () => {
+      vi.mocked(editorService.getArticleForEdit).mockResolvedValueOnce(loaded).mockResolvedValueOnce(null)
+      vi.mocked(editorService.updateArticle).mockRejectedValue(conflict())
+      vi.stubGlobal('confirm', vi.fn().mockReturnValue(false))
+
+      const user = userEvent.setup()
+      renderEditor({ uuid: 'edit-uuid' })
+      await waitFor(() => expect(screen.getByTestId('editor-save-btn')).toBeEnabled())
+      await user.click(screen.getByTestId('editor-save-btn'))
+      await waitFor(() => expect(screen.getByTestId('editor-conflict-banner')).toBeInTheDocument())
+      await user.click(screen.getByTestId('editor-conflict-reload'))
+
+      await waitFor(() => expect(mockShowToast).toHaveBeenCalledWith('重新載入失敗，請稍後再試', 'error'))
+      expect(screen.getByTestId('editor-conflict-banner')).toBeInTheDocument()
     })
 
     it('送出審核途中的儲存遇到 A0208 也提示，且不送審', async () => {

@@ -20,7 +20,7 @@ test.describe('上傳大小檢查', () => {
     await page.goto('/editor')
     await page.getByTestId('cover-upload-input').setInputFiles(pngBuffer(20 * MB + 1))
 
-    await expect(page.getByText('檔案太大（文章圖片上限 20MB，頭像上限 5MB）').first()).toBeVisible()
+    await expect(page.getByText('檔案太大（文章圖片上限 20MB）').first()).toBeVisible()
     await expect(page.locator('img[alt="封面圖預覽"]')).toHaveCount(0)
   })
 
@@ -37,7 +37,7 @@ test.describe('上傳大小檢查', () => {
     await expect(input).toBeAttached()
     await input.setInputFiles(pngBuffer(5 * MB + 1))
 
-    await expect(page.getByText('檔案太大（文章圖片上限 20MB，頭像上限 5MB）').first()).toBeVisible()
+    await expect(page.getByText('檔案太大（頭像上限 5MB）').first()).toBeVisible()
     await expect(page.locator('.st-avatar-box img')).toHaveCount(0)
   })
 

@@ -6,7 +6,7 @@ import { test, expect } from '../fixtures/mock-app'
  * 「別處改過」以 mock 控制 simulateExternalArticleUpdate 模擬。
  */
 const ARTICLE_UUID = 'editor-draft-1'
-const CONFLICT_MESSAGE = '這篇文章已在其他地方被修改。重新載入會捨棄你目前未儲存的內容。'
+const CONFLICT_MESSAGE = '這篇文章已在其他地方被修改（內容、狀態或系列設定）。重新載入會捨棄你目前未儲存的內容。'
 
 test.describe('編輯器存檔衝突（B2）', () => {
   test.beforeEach(async ({ page, resetMockStateInApp, loginAs }) => {
@@ -44,6 +44,23 @@ test.describe('編輯器存檔衝突（B2）', () => {
     await expect.poll(() => messages).toEqual([CONFLICT_MESSAGE])
     await expect(title).toHaveValue('我的修改')
     await expect(page.getByText('草稿已儲存')).toHaveCount(0)
+
+    // 取消後留下常駐提示列；再按存檔不會再跳 confirm，也不會送出
+    const banner = page.getByTestId('editor-conflict-banner')
+    await expect(banner).toBeVisible()
+    page.on('dialog', (dialog) => {
+      messages.push(dialog.message())
+      void dialog.dismiss()
+    })
+    await page.getByTestId('editor-save-btn').click()
+    await expect(page.getByText('請先複製你的內容').first()).toBeVisible()
+    expect(messages).toHaveLength(1)
+    await expect(page.getByText('草稿已儲存')).toHaveCount(0)
+
+    // 提示列的重新載入：取代本機內容，提示列消失
+    await page.getByTestId('editor-conflict-reload').click()
+    await expect(title).toHaveValue('別處改的標題')
+    await expect(banner).toHaveCount(0)
   })
 
   test('別處改過後存檔 → 重新載入：以最新內容取代本機內容，之後可正常存檔', async ({ page, simulateExternalArticleUpdate }) => {

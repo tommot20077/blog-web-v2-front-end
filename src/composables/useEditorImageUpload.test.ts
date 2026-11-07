@@ -179,7 +179,7 @@ describe('useEditorImageUpload', () => {
     expect(insertText).not.toHaveBeenCalled()
     expect(content.value).toBe('原文')
     expect(mockShowToast).toHaveBeenCalledWith(
-      '圖片上傳失敗：檔案太大（文章圖片上限 20MB，頭像上限 5MB）',
+      '圖片上傳失敗：檔案太大（文章圖片上限 20MB）',
       'error',
     )
   })

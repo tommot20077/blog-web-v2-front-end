@@ -188,7 +188,7 @@ describe('useSettings', () => {
       const { s, mockShowToast } = await setupSettings()
       expect(s.selectAvatarFile(sizedFile(5 * MB + 1))).toBe(false)
       expect(s.avatarFile.value).toBeNull()
-      expect(mockShowToast).toHaveBeenCalledWith('檔案太大（文章圖片上限 20MB，頭像上限 5MB）', 'error')
+      expect(mockShowToast).toHaveBeenCalledWith('檔案太大（頭像上限 5MB）', 'error')
     })
 
     it('selectAvatarFile：剛好 5MB 可以', async () => {
@@ -201,7 +201,7 @@ describe('useSettings', () => {
     })
 
     it.each([
-      ['A0402', '檔案太大（文章圖片上限 20MB，頭像上限 5MB）'],
+      ['A0402', '檔案太大（文章圖片上限 20MB，頭像上限 5MB）'], // 後端回來的 A0402 拿不到情境，保留通用文案
       ['A0406', '圖片尺寸過大（總像素需小於 1 億）'],
       ['A0407', '頭像檔案無效，請重新上傳'],
     ])('saveProfile 遇到 %s 時顯示對應的友善訊息', async (code, friendly) => {

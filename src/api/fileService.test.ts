@@ -143,17 +143,19 @@ describe('fileService', () => {
       })
       afterEach(() => vi.unstubAllEnvs())
 
-      it('頭像超過 5MB：reject A0402 友善訊息，不送出', async () => {
+      it('頭像超過 5MB：reject A0402，訊息只顯示頭像上限，不送出', async () => {
         await expect(fileService.uploadFile(sizedFile(5 * MB + 1), 'AVATAR')).rejects.toMatchObject({
           code: 'A0402',
-          message: '檔案太大（文章圖片上限 20MB，頭像上限 5MB）',
+          message: '檔案太大（頭像上限 5MB）',
         })
         expect(apiClient.post).not.toHaveBeenCalled()
       })
 
-      it('文章圖片超過 20MB（內文與封面）：reject A0402，不送出', async () => {
-        await expect(fileService.uploadFile(sizedFile(20 * MB + 1), 'ARTICLE_CONTENT')).rejects.toMatchObject({ code: 'A0402' })
-        await expect(fileService.uploadFile(sizedFile(20 * MB + 1), 'ARTICLE_COVER')).rejects.toMatchObject({ code: 'A0402' })
+      it.each(['ARTICLE_CONTENT', 'ARTICLE_COVER'] as const)('%s 超過 20MB：reject A0402，訊息只顯示文章圖片上限，不送出', async (usage) => {
+        await expect(fileService.uploadFile(sizedFile(20 * MB + 1), usage)).rejects.toMatchObject({
+          code: 'A0402',
+          message: '檔案太大（文章圖片上限 20MB）',
+        })
         expect(apiClient.post).not.toHaveBeenCalled()
       })
     })
