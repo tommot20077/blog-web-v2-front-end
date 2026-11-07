@@ -12,7 +12,13 @@ import type { AxiosError, InternalAxiosRequestConfig } from 'axios'
 import type { ApiResponse } from '../types/auth'
 import { useAuthStore } from '../stores/auth'
 import { markErrorHandled } from '../utils/errorReporting'
-import { getFriendlyErrorMessage } from '../utils/apiErrors'
+import { useToast } from '../composables/useToast'
+import {
+  TOO_MANY_REQUESTS_STATUS,
+  getFriendlyErrorMessage,
+  getRateLimitMessage,
+  parseRetryAfterSeconds,
+} from '../utils/apiErrors'
 
 /** 待重發請求佇列項目 */
 interface QueueItem {
@@ -84,12 +90,23 @@ apiClient.interceptors.response.use(
     // 非 401 或無 response：直接 reject
     if (!error.response || error.response.status !== 401) {
       const code = error.response?.data?.code
+      // 429（通用限流）：訊息帶 Retry-After 秒數；不自動重試，也不走 401 的 refresh 流程
+      const isRateLimited = error.response?.status === TOO_MANY_REQUESTS_STATUS
+      const retryAfterSeconds = isRateLimited ? parseRetryAfterSeconds(error.response?.headers) : undefined
       // 上傳相關錯誤碼（A0402／A0406／A0407）改用友善訊息；其他沿用後端 message
-      const message = getFriendlyErrorMessage(code) ?? error.response?.data?.message ?? error.message
+      const message = isRateLimited
+        ? getRateLimitMessage(retryAfterSeconds)
+        : getFriendlyErrorMessage(code) ?? error.response?.data?.message ?? error.message
       // 附上 HTTP status 與業務碼，讓呼叫端能區分「不存在（404／A0101）」與其他失敗（不影響 401 refresh 流程）
+      if (isRateLimited) {
+        // 呼叫端多半只顯示自己的固定文案，所以在這裡統一提示等待時間；同一則訊息顯示中就不重複堆疊
+        const { toasts, showToast } = useToast()
+        if (!toasts.value.some(t => t.message === message)) showToast(message, 'warning')
+      }
       const failure = Object.assign(new Error(message), {
         status: error.response?.status,
         code,
+        ...(retryAfterSeconds !== undefined && { retryAfterSeconds }),
       })
       return Promise.reject(markErrorHandled(failure))
     }

@@ -1,10 +1,13 @@
 import { describe, it, expect } from 'vitest'
+import { AxiosHeaders } from 'axios'
 import {
   ARTICLE_CONCURRENT_UPDATE_CODE,
   getApiErrorCode,
   getFileTooLargeMessage,
   getFriendlyErrorMessage,
+  getRateLimitMessage,
   isConcurrentUpdateError,
+  parseRetryAfterSeconds,
 } from './apiErrors'
 
 describe('getApiErrorCode', () => {
@@ -76,5 +79,28 @@ describe('getFileTooLargeMessage（前端預檢：依上傳情境只顯示對應
 
   it('頭像顯示 5MB', () => {
     expect(getFileTooLargeMessage('AVATAR')).toBe('檔案太大（頭像上限 5MB）')
+  })
+})
+
+describe('parseRetryAfterSeconds（A4）', () => {
+  it('plain object（小寫 key）與 AxiosHeaders 形狀都能讀', () => {
+    expect(parseRetryAfterSeconds({ 'retry-after': '30' })).toBe(30)
+    expect(parseRetryAfterSeconds({ 'Retry-After': '9' })).toBe(9)
+    expect(parseRetryAfterSeconds(new AxiosHeaders({ 'Retry-After': '12' }))).toBe(12)
+  })
+
+  it('缺少、非正整數、HTTP-date 一律回 undefined', () => {
+    expect(parseRetryAfterSeconds(undefined)).toBeUndefined()
+    expect(parseRetryAfterSeconds({})).toBeUndefined()
+    expect(parseRetryAfterSeconds({ 'retry-after': '0' })).toBeUndefined()
+    expect(parseRetryAfterSeconds({ 'retry-after': '1.5' })).toBeUndefined()
+    expect(parseRetryAfterSeconds({ 'retry-after': 'Wed, 21 Oct 2026 07:28:00 GMT' })).toBeUndefined()
+  })
+})
+
+describe('getRateLimitMessage（A4）', () => {
+  it('有秒數 → 操作太頻繁，請 N 秒後再試；沒有 → 通用訊息', () => {
+    expect(getRateLimitMessage(30)).toBe('操作太頻繁，請 30 秒後再試')
+    expect(getRateLimitMessage(undefined)).toBe('操作太頻繁，請稍後再試')
   })
 })

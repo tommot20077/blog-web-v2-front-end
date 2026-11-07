@@ -32,6 +32,32 @@ export function getFileTooLargeMessage(usageType: FileUsageType): string {
   return `檔案太大（${label}上限 ${formatLimitMb(getMaxUploadBytes(usageType))}）`
 }
 
+/** 通用限流（後端 CommonErrorCode.TOO_MANY_REQUESTS）的 HTTP 狀態；超限時帶 Retry-After（秒） */
+export const TOO_MANY_REQUESTS_STATUS = 429
+
+/**
+ * 讀取 Retry-After（秒）。只認正整數秒；缺少、空字串、0、負數、小數或 HTTP-date 一律視為沒有。
+ * 同時支援 AxiosHeaders（get）與 plain object（key 大小寫皆可）。
+ */
+export function parseRetryAfterSeconds(headers: unknown): number | undefined {
+  if (typeof headers !== 'object' || headers === null) return undefined
+  const source = headers as { get?: (name: string) => unknown } & Record<string, unknown>
+  const raw = typeof source.get === 'function'
+    ? source.get('retry-after')
+    : (source['retry-after'] ?? source['Retry-After'])
+  const text = typeof raw === 'number' ? String(raw) : raw
+  if (typeof text !== 'string' || !/^\d+$/.test(text.trim())) return undefined
+  const seconds = Number(text.trim())
+  return seconds > 0 ? seconds : undefined
+}
+
+/** 429 的使用者訊息：有秒數時告知等待時間，否則通用提示 */
+export function getRateLimitMessage(retryAfterSeconds: number | undefined): string {
+  return retryAfterSeconds === undefined
+    ? '操作太頻繁，請稍後再試'
+    : `操作太頻繁，請 ${retryAfterSeconds} 秒後再試`
+}
+
 /** 錯誤碼對應的使用者友善訊息；沒有對應時回傳 undefined，呼叫端沿用後端 message */
 export function getFriendlyErrorMessage(code: string | undefined): string | undefined {
   return code === undefined ? undefined : FRIENDLY_ERROR_MESSAGES[code]

@@ -323,6 +323,106 @@ describe('apiClient', () => {
       await expect(responseRejected(error)).rejects.toMatchObject({ message: friendly, status, code })
     })
 
+    describe('A4：HTTP 429 通用限流', () => {
+      function create429Error(headers?: Record<string, string>) {
+        return {
+          config: createConfig('/api/v1/articles/a/comments'),
+          response: {
+            status: 429,
+            headers,
+            data: { code: 'A0009', message: '請求過於頻繁，請稍後再試', data: null },
+          },
+          isAxiosError: true,
+          message: 'Request failed with status code 429',
+        }
+      }
+
+      it('有 Retry-After → 顯示「操作太頻繁，請 N 秒後再試」，並保留 status、code 與秒數', async () => {
+        await expect(responseRejected(create429Error({ 'retry-after': '30' }))).rejects.toMatchObject({
+          message: '操作太頻繁，請 30 秒後再試',
+          status: 429,
+          code: 'A0009',
+          retryAfterSeconds: 30,
+        })
+      })
+
+      it('AxiosHeaders 形狀（以 get 讀取）也能取得 Retry-After', async () => {
+        const headers = new AxiosHeaders({ 'Retry-After': '12' })
+        await expect(responseRejected(create429Error(headers as never))).rejects.toMatchObject({
+          message: '操作太頻繁，請 12 秒後再試',
+        })
+      })
+
+      it.each([[undefined], [{}], [{ 'retry-after': '' }], [{ 'retry-after': 'abc' }], [{ 'retry-after': '0' }], [{ 'retry-after': '-5' }]])(
+        '沒有可用的 Retry-After（%j）→ 顯示通用訊息「請稍後再試」',
+        async (headers) => {
+          await expect(responseRejected(create429Error(headers))).rejects.toMatchObject({
+            message: '操作太頻繁，請稍後再試',
+            status: 429,
+          })
+        },
+      )
+
+      it('不觸發 401 的 refresh 流程、不自動重試，且標記為已處理', async () => {
+        const authStore = useAuthStore()
+        authStore.refreshToken = vi.fn()
+
+        const error = await responseRejected(create429Error({ 'retry-after': '5' })).catch((e: unknown) => e)
+
+        expect(authStore.refreshToken).not.toHaveBeenCalled()
+        expect(mockInstanceRequest).not.toHaveBeenCalled()
+        expect(isErrorHandled(error)).toBe(true)
+      })
+
+      it('429 沒有 response body 也能顯示友善訊息', async () => {
+        const error = {
+          config: createConfig('/api/v1/search'),
+          response: { status: 429, headers: { 'retry-after': '7' }, data: undefined },
+          isAxiosError: true,
+          message: 'Request failed with status code 429',
+        }
+        await expect(responseRejected(error)).rejects.toMatchObject({ message: '操作太頻繁，請 7 秒後再試', status: 429 })
+      })
+
+      it('顯示 warning toast：有秒數時帶秒數，連續同一則 429 不重複堆疊', async () => {
+        // resetModules 後 apiClient 載入的是新的 useToast 實例，這裡必須動態取同一個
+        const { useToast } = await import('../composables/useToast')
+        const { toasts } = useToast()
+        toasts.value = []
+
+        await responseRejected(create429Error({ 'retry-after': '30' })).catch(() => undefined)
+        await responseRejected(create429Error({ 'retry-after': '30' })).catch(() => undefined)
+
+        expect(toasts.value).toHaveLength(1)
+        expect(toasts.value[0]).toMatchObject({ message: '操作太頻繁，請 30 秒後再試', type: 'warning' })
+      })
+
+      it('沒有 Retry-After 時 toast 顯示通用訊息', async () => {
+        // resetModules 後 apiClient 載入的是新的 useToast 實例，這裡必須動態取同一個
+        const { useToast } = await import('../composables/useToast')
+        const { toasts } = useToast()
+        toasts.value = []
+
+        await responseRejected(create429Error()).catch(() => undefined)
+
+        expect(toasts.value.map(t => t.message)).toEqual(['操作太頻繁，請稍後再試'])
+      })
+
+      it('A0113（auth 限流，HTTP 400）維持沿用後端訊息，不走 429 邏輯', async () => {
+        const error = {
+          config: createConfig('/api/v1/auth/login'),
+          response: { status: 400, headers: { 'retry-after': '30' }, data: { code: 'A0113', message: '請求過於頻繁，請稍後再試', data: null } },
+          isAxiosError: true,
+          message: 'Request failed with status code 400',
+        }
+        await expect(responseRejected(error)).rejects.toMatchObject({
+          message: '請求過於頻繁，請稍後再試',
+          status: 400,
+          code: 'A0113',
+        })
+      })
+    })
+
     it('404 錯誤帶上 HTTP status 與後端業務碼，供呼叫端判斷「不存在」（公開作者頁 A0101）', async () => {
       const error = {
         config: createConfig('/api/v1/users/x/profile'),
