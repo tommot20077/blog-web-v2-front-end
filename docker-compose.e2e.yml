@@ -68,6 +68,18 @@ services:
       retries: 20
       start_period: 30s
 
+  # 郵件測試服務：後端把信寄到這裡（SMTP 1025，僅 compose 網路內可達），E2E 透過 8025 的 HTTP API 讀信。
+  # 後端 A1 決策後 verification_tokens 只存雜湊，明文 token 只在信件連結裡。映像檔釘死確切版本。
+  mailpit:
+    image: axllent/mailpit:v1.21.8
+    ports:
+      - "8025:8025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   backend:
     image: blog-backend:e2e
     ports:
@@ -102,6 +114,11 @@ services:
       JWT_EXPIRATION: "86400000"
       MANAGEMENT_HEALTH_ELASTICSEARCH_ENABLED: "false"
       MANAGEMENT_HEALTH_MAIL_ENABLED: "false"
+      # 寄信改到 mailpit（既有 Spring mail 屬性）：無帳密、不用 STARTTLS
+      SPRING_MAIL_HOST: mailpit
+      SPRING_MAIL_PORT: "1025"
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: "false"
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: "false"
       # 後端 A4 通用寫入限流（article-write 30/分、search 120/分 per IP 等）：整套 E2E 全部來自同一個 IP、
       # 同一組種子帳號，數分鐘內會超過預設門檻而回 A0009（429），使建立文章等 fixture 拿到 data=null。
       # 限流本身由後端 RateLimitE2E 等測試覆蓋；這裡只把 E2E 堆疊的門檻調高（後端支援以環境變數覆寫）。
@@ -123,6 +140,8 @@ services:
       seaweedfs:
         condition: service_healthy
       elasticsearch:
+        condition: service_healthy
+      mailpit:
         condition: service_healthy
     # 新後端：主 port 只剩 /readyz（actuator 搬到 management port，該 port 刻意不發布到 host）；
     # 舊後端：仍是 /actuator/health。CI 會 checkout 後端預設分支，兩種都可能出現，任一成功即視為健康

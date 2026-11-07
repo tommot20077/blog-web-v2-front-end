@@ -262,4 +262,37 @@ describe('frontend CI workflow', () => {
     expect(tsconfig).toContain('"src/**/*.spec.ts"')
     expect(tsconfig).toContain('"src/test-utils/**"')
   })
+
+  describe('real-backend E2E 郵件服務（mailpit）', () => {
+    const compose = () => readFileSync('docker-compose.e2e.yml', 'utf8')
+    const service = (name: string, next: string) => {
+      const c = compose()
+      const start = c.indexOf(`  ${name}:`)
+      return c.slice(start, c.indexOf(`  ${next}:`, start))
+    }
+
+    it('mailpit 映像檔釘死確切版本，不用 latest', () => {
+      expect(compose()).toMatch(/image: axllent\/mailpit:v\d+\.\d+\.\d+/)
+      expect(compose()).not.toContain('mailpit:latest')
+    })
+
+    it('mailpit 發布 8025（測試讀信的 HTTP API），不發布 SMTP 1025', () => {
+      const mailpit = service('mailpit', 'backend')
+      expect(mailpit).toContain('"8025:8025"')
+      expect(mailpit).not.toContain('1025:1025')
+    })
+
+    it('backend 以既有 Spring mail 屬性寄信到 mailpit，關閉 auth 與 starttls', () => {
+      const backend = compose().slice(compose().indexOf('  backend:'))
+      expect(backend).toContain('SPRING_MAIL_HOST: mailpit')
+      expect(backend).toContain('SPRING_MAIL_PORT: "1025"')
+      expect(backend).toContain('SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: "false"')
+      expect(backend).toContain('SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: "false"')
+    })
+
+    it('backend 等 mailpit 起來才啟動', () => {
+      const backend = compose().slice(compose().indexOf('  backend:'))
+      expect(backend).toMatch(/depends_on:[\s\S]*mailpit:\s+condition: service_healthy/)
+    })
+  })
 })

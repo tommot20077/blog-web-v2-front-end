@@ -19,15 +19,6 @@ function buildActivationSql(email: string, role: string): string {
   return `UPDATE users SET email_verified=true, status='ACTIVE', role=${sqlLiteral(role)} WHERE email=${sqlLiteral(email)}`
 }
 
-function buildVerificationTokenSql(email: string): string {
-  return [
-    'SELECT vt.token FROM verification_tokens vt',
-    'JOIN users u ON u.id = vt.user_id',
-    `WHERE u.email = ${sqlLiteral(email)} AND vt.type = 'EMAIL_VERIFICATION'`,
-    'ORDER BY vt.id DESC LIMIT 1',
-  ].join(' ')
-}
-
 /**
  * 組出連遠端 dev DB 的一次性 psql client 命令。
  *
@@ -156,51 +147,4 @@ export function resetAuthRateLimits(): void {
   }
 
   console.warn('Could not reset auth rate limits — skipping (re-run may hit per-IP limits)')
-}
-
-/**
- * 取得指定 email 的信箱驗證 token。
- *
- * <p>用於「註冊 → 信箱驗證 → 登入」旅程的 E2E：compose 內沒有 SMTP 服務，
- * 但 token 於註冊當下即寫入 verification_tokens，故直接查表取得，
- * 等同使用者從驗證信連結取得 token。做法比照後端 AuthE2E。</p>
- *
- * <p>與 activateUser 走同一組 psql 管線（CI 走 e2e compose 的 postgres；
- * 本地依序退回 kubectl / 遠端 dev DB）。使用 psql 的 -t -A 讓輸出為
- * 純值、不含表格框線與欄位標題。</p>
- *
- * @param email 註冊時使用的 email
- * @returns 該 email 最新一筆的信箱驗證 token
- * @throws 找不到 token 時拋錯 —— 不回空字串，避免測試帶著空 token 假性往下跑
- */
-export function fetchVerificationToken(email: string): string {
-  const sql = buildVerificationTokenSql(email)
-  // tupleOnly=true → 遠端 fallback 同樣加 -t -A 純值輸出（由函式內統一插旗，
-  // 不再對組好的命令字串做脆弱的 .replace）。
-  const remoteFallback = IS_CI ? null : remoteDevPsqlClientCommand(sql, true)
-  const localComposeCommand = `docker compose -f "${COMPOSE_FILE}" exec -T postgres psql -U e2e_user -d blog_e2e -t -A -c "${sql}"`
-  const commands = IS_CI
-    ? [localComposeCommand]
-    : [
-        localComposeCommand,
-        `kubectl exec -n infra-dev deploy/postgres -- psql -U luca -d blog_v2_db -t -A -c "${sql}"`,
-        ...(remoteFallback ? [remoteFallback] : []),
-      ]
-
-  for (const cmd of commands) {
-    try {
-      const out = execSync(cmd, { stdio: 'pipe', encoding: 'utf-8' })
-      const token = String(out).trim()
-      if (token) {
-        return token
-      }
-    } catch {
-      // Try the next lookup path.
-    }
-  }
-
-  throw new Error(
-    `Could not fetch verification token for ${email}. ` +
-      'Is the e2e stack up and did registration succeed?',
-  )
 }
