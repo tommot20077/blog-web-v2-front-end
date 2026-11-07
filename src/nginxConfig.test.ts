@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 
 /**
- * nginx.conf 的 CSP Report-Only 守衛（後端 findings XSS-03 / 決策紀錄 §3「CSP 另立一項，先以 Report-Only 上線觀察」）。
+ * nginx.conf 的 CSP 守衛（後端 findings XSS-03；決策 A2：用 Playwright E2E 收集違規、零違規後改為強制 Content-Security-Policy）。
+ * 政策本身的正確性由 e2e/csp/csp-violations.spec.ts 以同一份 nginx.conf 的 CSP 實際驗證；這裡鎖住 header 形態與關鍵屬性。
  * 這是純設定變更，沒有可單元執行的程式碼，故以讀檔斷言鎖住政策的關鍵屬性；
  * 實際的語法與 header 輸出另以 `nginx -t` 與 curl 驗證（見 PR 說明）。
  */
@@ -14,10 +15,10 @@ const activeConf = conf
   .filter((line) => !line.trim().startsWith('#'))
   .join('\n')
 
-/** 取出 `set $csp_report_only "...";` 的政策字串。 */
+/** 取出 `set $csp "...";` 的政策字串。 */
 function readPolicy(): string {
-  const match = activeConf.match(/set\s+\$csp_report_only\s+"([^"]+)"\s*;/)
-  expect(match, 'nginx.conf 應以 set $csp_report_only "..." 定義政策').not.toBeNull()
+  const match = activeConf.match(/set\s+\$csp\s+"([^"]+)"\s*;/)
+  expect(match, 'nginx.conf 應以 set $csp "..." 定義政策').not.toBeNull()
   return match![1]
 }
 
@@ -37,18 +38,32 @@ function readBlock(header: RegExp): string {
 const directive = (policy: string, name: string) =>
   policy.split(';').map((part) => part.trim()).find((part) => part.startsWith(`${name} `) || part === name)
 
-describe('nginx.conf CSP Report-Only', () => {
-  it('送出 Content-Security-Policy-Report-Only header', () => {
-    expect(activeConf).toMatch(/add_header\s+Content-Security-Policy-Report-Only\s+\$csp_report_only\s+always\s*;/)
+describe('nginx.conf CSP（強制）', () => {
+  it('送出強制的 Content-Security-Policy header', () => {
+    expect(activeConf).toMatch(/add_header\s+Content-Security-Policy\s+\$csp\s+always\s*;/)
   })
 
-  it('尚未啟用強制版 Content-Security-Policy（先觀察，不阻擋）', () => {
-    expect(activeConf).not.toMatch(/add_header\s+Content-Security-Policy\s/)
+  it('不再送 Report-Only 版本（零違規後已改為強制；不建收報端點）', () => {
+    expect(activeConf).not.toMatch(/Content-Security-Policy-Report-Only/)
+    expect(activeConf).not.toMatch(/report-uri|report-to/)
   })
 
   it('index.html 的 location 也要帶 CSP header（nginx 的 add_header 在子層宣告時不繼承上層）', () => {
     const indexBlock = readBlock(/location\s*=\s*\/index\.html\s*\{/)
-    expect(indexBlock).toMatch(/add_header\s+Content-Security-Policy-Report-Only\s+\$csp_report_only\s+always\s*;/)
+    expect(indexBlock).toMatch(/add_header\s+Content-Security-Policy\s+\$csp\s+always\s*;/)
+  })
+
+  it('靜態資源 location（/assets/、圖片字型等）自己宣告了 add_header，必須重複安全標頭（不會繼承 server 層）', () => {
+    const blocks = {
+      '/assets/': readBlock(/location\s+\/assets\/\s*\{/),
+      '副檔名靜態資源': readBlock(/location\s+~\*\s+\\\.\(\?:ico\|svg/),
+    }
+    for (const [name, block] of Object.entries(blocks)) {
+      expect(block, `${name} 缺 CSP`).toMatch(/add_header\s+Content-Security-Policy\s+\$csp\s+always\s*;/)
+      expect(block, `${name} 缺 X-Frame-Options`).toMatch(/add_header\s+X-Frame-Options\s+"SAMEORIGIN"\s+always/)
+      expect(block, `${name} 缺 Referrer-Policy`).toMatch(/add_header\s+Referrer-Policy\s+"strict-origin-when-cross-origin"\s+always/)
+      expect(block, `${name} 缺 X-Content-Type-Options`).toMatch(/add_header\s+X-Content-Type-Options\s+"nosniff"\s+always/)
+    }
   })
 
   it('政策從嚴開始：default-src self、禁 object、鎖 base-uri / form-action / frame-ancestors', () => {
@@ -95,6 +110,12 @@ describe('nginx.conf CSP Report-Only', () => {
         `${origin} 缺少註解說明放行理由`,
       ).toBe(true)
     }
+  })
+
+  it("img-src 不放行外部圖片，且註解說明這是刻意決定、編輯器會警告", () => {
+    expect(directive(readPolicy(), 'img-src')).toBe("img-src 'self' blob:")
+    expect(conf).toContain('外部圖片')
+    expect(conf).toContain('編輯器偵測到內文含外部圖片時會顯示警告')
   })
 
   it('既有安全標頭仍在（X-Content-Type-Options / X-Frame-Options / Referrer-Policy）', () => {
