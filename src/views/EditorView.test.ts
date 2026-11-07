@@ -1,5 +1,6 @@
 import { ref, nextTick } from 'vue'
 import { readFileSync } from 'node:fs'
+import { flushPromises } from '@vue/test-utils'
 import { render, screen, waitFor } from '@testing-library/vue'
 import userEvent from '@testing-library/user-event'
 import { createPinia, setActivePinia } from 'pinia'
@@ -8,6 +9,7 @@ import { useAuthStore } from '../stores/auth'
 import { editorService } from '../api/editorService'
 import { categoryService } from '../api/categoryService'
 import { fileService } from '../api/fileService'
+import { myArticlesService } from '../api/myArticlesService'
 import { articleVersionService } from '../api/articleVersionService'
 import type { VersionSummaryResponse } from '../api/articleVersionService'
 import { useMarkdownEditor } from '../composables/useMarkdownEditor'
@@ -1209,6 +1211,116 @@ describe('EditorView', () => {
       expect(source).not.toContain('.editor-meta {')
       expect(source).not.toContain('.editor-word-count {')
       expect(source).not.toContain('.editor-title-input {')
+    })
+  })
+
+  // ── W7F-6：內文／標題／摘要上限（快照 Create/UpdateArticleRequest：content 200000、title 120、summary 500）──
+  describe('輸入上限預檢', () => {
+    beforeEach(() => {
+      vi.mocked(editorService.createArticle).mockResolvedValue(createMockEditorArticle())
+    })
+
+    async function setValue(testId: string, value: string) {
+      const el = screen.getByTestId(testId) as HTMLInputElement | HTMLTextAreaElement
+      el.value = value
+      el.dispatchEvent(new Event('input', { bubbles: true }))
+      await flushPromises()
+    }
+
+    describe('內文 200,000 字', () => {
+      it('剛好 200000 字可以儲存', async () => {
+        setupMarkdownEditorMock('a'.repeat(200000))
+        renderEditor()
+        await userEvent.click(screen.getByTestId('editor-save-btn'))
+        await waitFor(() => expect(editorService.createArticle).toHaveBeenCalled())
+      })
+
+      it('200001 字：儲存不呼叫 API，toast 說明上限與目前字數', async () => {
+        setupMarkdownEditorMock('a'.repeat(200001))
+        renderEditor()
+        await userEvent.click(screen.getByTestId('editor-save-btn'))
+        await flushPromises()
+        expect(editorService.createArticle).not.toHaveBeenCalled()
+        expect(mockShowToast).toHaveBeenCalledWith(
+          expect.stringContaining('內文超過 200,000 字上限（目前 200,001 字）'),
+          'error',
+        )
+      })
+
+      it('200001 字：送出審核也不呼叫 API', async () => {
+        setupMarkdownEditorMock('a'.repeat(200001))
+        renderEditor()
+        await userEvent.click(screen.getByTestId('editor-publish-btn'))
+        await flushPromises()
+        expect(editorService.createArticle).not.toHaveBeenCalled()
+        expect(myArticlesService.submitForReview).not.toHaveBeenCalled()
+      })
+
+      it('未達 90%（179999 字）不顯示字數提示', () => {
+        setupMarkdownEditorMock('a'.repeat(179999))
+        renderEditor()
+        expect(screen.queryByTestId('editor-content-limit-hint')).toBeNull()
+      })
+
+      it('達 90%（180000 字）顯示接近上限提示', () => {
+        setupMarkdownEditorMock('a'.repeat(180000))
+        renderEditor()
+        const hint = screen.getByTestId('editor-content-limit-hint')
+        expect(hint.textContent).toContain('180,000')
+        expect(hint.textContent).toContain('200,000')
+      })
+
+      it('超過上限時提示改為超出訊息', () => {
+        setupMarkdownEditorMock('a'.repeat(200001))
+        renderEditor()
+        expect(screen.getByTestId('editor-content-limit-hint').textContent).toContain('超過')
+      })
+    })
+
+    describe('標題 120 字', () => {
+      it('輸入框帶 maxlength=120', () => {
+        renderEditor()
+        expect(screen.getByTestId('editor-title-input').getAttribute('maxlength')).toBe('120')
+      })
+
+      it('剛好 120 字可以儲存', async () => {
+        renderEditor()
+        await setValue('editor-title-input', 't'.repeat(120))
+        await userEvent.click(screen.getByTestId('editor-save-btn'))
+        await waitFor(() => expect(editorService.createArticle).toHaveBeenCalled())
+      })
+
+      it('121 字不呼叫 API 並提示', async () => {
+        renderEditor()
+        await setValue('editor-title-input', 't'.repeat(121))
+        await userEvent.click(screen.getByTestId('editor-save-btn'))
+        await flushPromises()
+        expect(editorService.createArticle).not.toHaveBeenCalled()
+        expect(mockShowToast).toHaveBeenCalledWith(expect.stringContaining('標題最多 120 字'), 'error')
+      })
+    })
+
+    describe('摘要 500 字', () => {
+      it('輸入框帶 maxlength=500', () => {
+        renderEditor()
+        expect(screen.getByTestId('editor-summary-input').getAttribute('maxlength')).toBe('500')
+      })
+
+      it('剛好 500 字可以儲存', async () => {
+        renderEditor()
+        await setValue('editor-summary-input', 's'.repeat(500))
+        await userEvent.click(screen.getByTestId('editor-save-btn'))
+        await waitFor(() => expect(editorService.createArticle).toHaveBeenCalled())
+      })
+
+      it('501 字不呼叫 API 並提示', async () => {
+        renderEditor()
+        await setValue('editor-summary-input', 's'.repeat(501))
+        await userEvent.click(screen.getByTestId('editor-save-btn'))
+        await flushPromises()
+        expect(editorService.createArticle).not.toHaveBeenCalled()
+        expect(mockShowToast).toHaveBeenCalledWith(expect.stringContaining('摘要最多 500 字'), 'error')
+      })
     })
   })
 })

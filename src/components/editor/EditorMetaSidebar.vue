@@ -9,6 +9,7 @@ import { isRateLimited } from '../../utils/apiErrors'
 import { useAuthedImages } from '../../composables/useAuthedImages'
 import type { ArticleStatus, CategoryOption, TagSuggestion } from '../../types/editor'
 import type { OutlineItem } from '../../composables/useEditorOutline'
+import { MAX_ARTICLE_SUMMARY_LENGTH } from '../../utils/inputLimits'
 
 const props = defineProps<{
   summary: string
@@ -318,6 +319,8 @@ async function onRestoreClick(version: VersionSummaryResponse) {
           :value="summary"
           placeholder="文章摘要..."
           rows="4"
+          :maxlength="MAX_ARTICLE_SUMMARY_LENGTH"
+          data-testid="editor-summary-input"
           class="w-full px-3 py-2 rounded-xl bg-white/60 dark:bg-white/10 border border-white/80 dark:border-white/15 text-sm resize-none outline-none focus:ring-2 focus:ring-[var(--accent)]/40"
           @input="emit('update:summary', ($event.target as HTMLTextAreaElement).value)"
         />

@@ -5,6 +5,13 @@ import { useEditorForm } from '../composables/useEditorForm'
 import { useMarkdownEditor } from '../composables/useMarkdownEditor'
 import { useMarkdownRenderer } from '../composables/useMarkdownRenderer'
 import { useWordCount } from '../composables/useWordCount'
+import {
+  MAX_ARTICLE_CONTENT_LENGTH,
+  MAX_ARTICLE_TITLE_LENGTH,
+  MAX_ARTICLE_SUMMARY_LENGTH,
+  exceedsLength,
+  isNearLimit,
+} from '../utils/inputLimits'
 import { useEditorMode } from '../composables/useEditorMode'
 import { useEditorWordUnit } from '../composables/useEditorWordUnit'
 import { useToast } from '../composables/useToast'
@@ -105,6 +112,18 @@ const { wordCount, characterCount } = useWordCount(markdownContent)
 const { wordUnit } = useEditorWordUnit()
 const displayWordCount = computed(() => (wordUnit.value === 'words' ? wordCount.value : characterCount.value))
 
+// ── 輸入上限預檢（快照 Create/UpdateArticleRequest：content／title／summary）──────────
+// 內文字數以 UTF-16 code unit 計（與後端 @Size 一致），不同於上面給讀者看的字數／字元統計。
+const fmt = (n: number) => n.toLocaleString('en-US')
+const contentLength = computed(() => markdownContent.value.length)
+const contentExceeded = computed(() => exceedsLength(markdownContent.value, MAX_ARTICLE_CONTENT_LENGTH))
+const showContentLimitHint = computed(() => isNearLimit(contentLength.value, MAX_ARTICLE_CONTENT_LENGTH))
+const contentLimitHint = computed(() =>
+  contentExceeded.value
+    ? `內文超過 ${fmt(MAX_ARTICLE_CONTENT_LENGTH)} 字上限（目前 ${fmt(contentLength.value)} 字），請刪減後再儲存`
+    : `內文已 ${fmt(contentLength.value)} / ${fmt(MAX_ARTICLE_CONTENT_LENGTH)} 字，快到上限了`,
+)
+
 // ── Editor mode (Write / Split / Preview) ───────────────────────────────────
 const { mode, setMode } = useEditorMode()
 
@@ -201,8 +220,25 @@ async function handleSaveConflict() {
   await reloadAfterConflict()
 }
 
+/** 存檔前預檢；回傳要給使用者看的訊息，通過則回傳 null */
+function findLimitViolation(): string | null {
+  if (exceedsLength(title.value, MAX_ARTICLE_TITLE_LENGTH)) {
+    return `標題最多 ${MAX_ARTICLE_TITLE_LENGTH} 字（目前 ${title.value.length} 字），請刪減後再儲存`
+  }
+  if (exceedsLength(summary.value, MAX_ARTICLE_SUMMARY_LENGTH)) {
+    return `摘要最多 ${MAX_ARTICLE_SUMMARY_LENGTH} 字（目前 ${summary.value.length} 字），請刪減後再儲存`
+  }
+  if (contentExceeded.value) return contentLimitHint.value
+  return null
+}
+
 // ── Save draft ─────────────────────────────────────────────────────────────
 async function onSaveDraft() {
+  const violation = findLimitViolation()
+  if (violation) {
+    showToast(violation, 'error')
+    return
+  }
   if (hasUnresolvedConflict.value) {
     remindToReload()
     return
@@ -227,6 +263,11 @@ async function onSaveDraft() {
 
 // ── Submit for review ──────────────────────────────────────────────────────
 async function onSubmitForReview() {
+  const violation = findLimitViolation()
+  if (violation) {
+    showToast(violation, 'error')
+    return
+  }
   if (hasUnresolvedConflict.value) {
     remindToReload()
     return
@@ -295,6 +336,7 @@ async function onVersionRestored() {
         v-model="title"
         class="ed-title-input"
         data-testid="editor-title-input"
+        :maxlength="MAX_ARTICLE_TITLE_LENGTH"
         type="text"
         aria-label="文章標題"
         placeholder="文章標題..."
@@ -409,6 +451,16 @@ async function onVersionRestored() {
       </button>
     </div>
 
+    <!-- 內文字數接近／超過上限（快照 content maxLength 200000）；超過時存檔與送審會被擋下 -->
+    <div
+      v-if="showContentLimitHint"
+      :class="contentExceeded ? 'ed-image-warning' : 'ed-limit-hint'"
+      :role="contentExceeded ? 'alert' : 'status'"
+      data-testid="editor-content-limit-hint"
+    >
+      {{ contentLimitHint }}
+    </div>
+
     <!-- 外部圖片警告（CSP 不放行外部圖片，發布後讀者端會破圖） -->
     <div
       v-if="externalImageCount > 0 && !isFocusMode"
@@ -505,6 +557,12 @@ async function onVersionRestored() {
   color: var(--danger);
   background: color-mix(in srgb, var(--danger-strong) 10%, transparent);
   border-bottom: 1px solid color-mix(in srgb, var(--danger-strong) 25%, transparent);
+}
+.ed-limit-hint {
+  padding: 0.5rem 1rem;
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+  border-bottom: 1px solid var(--divider);
 }
 .ed-conflict-banner { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .editor-body { flex: 1; display: flex; overflow: hidden; }
