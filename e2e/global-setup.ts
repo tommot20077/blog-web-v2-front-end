@@ -1,5 +1,6 @@
 import { execSync } from 'child_process'
 import { activateUser, resetAuthRateLimits } from './fixtures/admin-helpers'
+import { BACKEND_READINESS_PATHS } from './readinessPaths'
 
 const BACKEND = process.env.VITE_API_BASE_URL || 'http://localhost:8080'
 const IS_CI = process.env.E2E_CI === '1'
@@ -82,22 +83,25 @@ export async function waitForBackendReadiness({
   delayMs = 1000,
   attemptTimeoutMs = 5000,
 }: ReadinessOptions = {}) {
-  const readinessUrl = `${backendBase}/actuator/health/readiness`
+  const readinessUrls = BACKEND_READINESS_PATHS.map(path => `${backendBase}${path}`)
   let lastError = 'unknown'
 
   for (let attempt = 1; attempt <= retries; attempt += 1) {
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), attemptTimeoutMs)
-    try {
-      const res = await fetchImpl(readinessUrl, { signal: controller.signal })
-      if (res.ok) {
-        return
+    // 每輪依序試新、舊路徑，任一 2xx 即就緒
+    for (const readinessUrl of readinessUrls) {
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), attemptTimeoutMs)
+      try {
+        const res = await fetchImpl(readinessUrl, { signal: controller.signal })
+        if (res.ok) {
+          return
+        }
+        lastError = `status ${res.status} ${await res.text().catch(() => '')}`.trim()
+      } catch (error) {
+        lastError = error instanceof Error ? error.message : String(error)
+      } finally {
+        clearTimeout(timeout)
       }
-      lastError = `status ${res.status} ${await res.text().catch(() => '')}`.trim()
-    } catch (error) {
-      lastError = error instanceof Error ? error.message : String(error)
-    } finally {
-      clearTimeout(timeout)
     }
 
     if (attempt < retries) {
@@ -106,7 +110,7 @@ export async function waitForBackendReadiness({
   }
 
   throw new Error(
-    `Backend readiness check failed at ${readinessUrl} — ${lastError}. ` +
+    `Backend readiness check failed at ${readinessUrls.join(' , ')} — ${lastError}. ` +
     'please start infra and backend before running E2E tests. ' +
     'Or run with E2E_MOCK=1 for mock mode.',
   )

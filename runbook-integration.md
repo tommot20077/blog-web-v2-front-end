@@ -19,7 +19,8 @@ Backend listens on **port 9010**.
 ## 2. Verify the backend is up
 
 ```bash
-curl http://localhost:9010/actuator/health
+# 新後端（actuator 已搬到 management port）：主 port 只提供 /readyz；舊後端：/actuator/health
+curl -f http://localhost:9010/readyz || curl -f http://localhost:9010/actuator/health
 # Expected: {"status":"UP"}
 
 curl http://localhost:9010/v3/api-docs | jq '.info'
@@ -88,7 +89,8 @@ docker build -t blog-backend:e2e .
 
 # 前端 repo：起堆疊、等後端健康、抓快照（格式：2 空白縮排、保留中文）
 docker compose -f docker-compose.e2e.yml -p openapi-snap up -d
-until curl -sf http://localhost:9010/actuator/health > /dev/null; do sleep 5; done
+# 新後端只有 /readyz，舊後端只有 /actuator/health：任一成功即視為健康
+until curl -sf http://localhost:9010/readyz > /dev/null || curl -sf http://localhost:9010/actuator/health > /dev/null; do sleep 5; done
 curl -s http://localhost:9010/v3/api-docs \
   | python3 -c "import json,sys; print(json.dumps(json.load(sys.stdin), ensure_ascii=False, indent=2))" \
   > api-reference/openapi.json
