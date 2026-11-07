@@ -11,7 +11,7 @@ import { useToast } from '../composables/useToast'
 import { useEditorFocusMode } from '../composables/useEditorFocusMode'
 import { useEditorOutline } from '../composables/useEditorOutline'
 import { useEditorImageUpload } from '../composables/useEditorImageUpload'
-import { findExternalImages } from '../utils/externalImages'
+import { findUnrenderableImages } from '../utils/unrenderableImages'
 import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard'
 import { useAuthStore } from '../stores/auth'
 import { useAuthedImages } from '../composables/useAuthedImages'
@@ -93,10 +93,10 @@ const { renderedHtml } = useMarkdownRenderer(markdownContent)
 const editorPreviewEl = ref<HTMLElement | null>(null)
 useAuthedImages(editorPreviewEl, () => renderedHtml.value)
 
-// ── 外部圖片警告 ───────────────────────────────────────────────────────────
-// 正式環境 CSP 的 img-src 只放行 'self' blob:，外部圖床的圖片在讀者端會破圖（Yuan 2026-11-07：CSP 維持嚴格，改在編輯器警告）。
+// ── 讀者端無法顯示的圖片警告 ───────────────────────────────────────────────
+// 正式環境 CSP 的 img-src 只放行 'self' blob:，外部圖床與 data: 內嵌圖片在讀者端會破圖（Yuan 2026-11-07：CSP 維持嚴格，改在編輯器警告）。
 const externalImageCount = computed(
-  () => findExternalImages(markdownContent.value, window.location.origin).length,
+  () => findUnrenderableImages(markdownContent.value, window.location.origin).length,
 )
 
 // ── Word count ─────────────────────────────────────────────────────────────
@@ -328,7 +328,7 @@ async function onVersionRestored() {
       role="status"
       data-testid="editor-external-image-warning"
     >
-      內文含 {{ externalImageCount }} 張外部圖片，發布後讀者端無法顯示，請改用上傳插圖
+      內文含 {{ externalImageCount }} 張外部或內嵌（data:）圖片，發布後讀者端無法顯示，請改用上傳插圖
     </div>
 
     <!-- Split pane body -->

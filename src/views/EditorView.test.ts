@@ -303,9 +303,9 @@ describe('EditorView', () => {
       const { content } = setupMarkdownEditorMock()
       renderEditor()
 
-      content.value = '![a](https://img.example.com/a.png)\n<img src="https://x.com/b.png">'
+      content.value = '![a](https://img.example.com/a.png)\n<img src="data:image/png;base64,AAAA">'
       const warning = await screen.findByTestId('editor-external-image-warning')
-      expect(warning).toHaveTextContent('內文含 2 張外部圖片，發布後讀者端無法顯示，請改用上傳插圖')
+      expect(warning).toHaveTextContent('內文含 2 張外部或內嵌（data:）圖片，發布後讀者端無法顯示，請改用上傳插圖')
 
       content.value = '![a](/api/v1/files/abc/content)'
       await waitFor(() => {
