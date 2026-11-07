@@ -19,7 +19,7 @@
 ---
 
 ## 📌 契約快照待補註解 + 部署順序：檔案存取控制（後端 #54）
-**狀態**：`Pending`——2026-09-27 已整份重抓快照：`GET /api/v1/files/{id}/content` **已收錄**，但快照宣告回應為 `200` 而非實際的 `302`，且 `FileUploadResponse.url` 仍只宣告 `type: string`、未描述「相對路徑」語意。下方結案條件第 2 點因此尚未滿足——需後端在該端點補 `@ApiResponse(responseCode = "302")`、在 `url` 補 `@Schema(description = ...)` 後再重抓。另：物件儲存已於 2026-09-27 由 MinIO 改為 SeaweedFS（後端仍以 MinIO Java SDK 連線），下方「瀏覽器可達」的風險同樣適用。
+**狀態**：`Pending`——**2026-11-07 更新（快照重抓，後端 W7 PR tommot20077/blog-web-v2#102）**：快照把 `GET /api/v1/files/{id}/content` 宣告為 **200 二進位串流**（`ETag`／304；後端 `FileControllerIT` 亦斷言無 `Location`），**不再是 302 導向 presigned URL**。因此下方「MinIO 瀏覽器可達」「wildcard CORS＋credentials 跨來源 302」兩項風險不再適用（需 Yuan 確認後端確已改為串流並部署）；`FileUploadResponse.url` 仍只有 `type: string`、無語意描述，結案條件 2 仍未完全滿足。`useAuthedImages.ts` 內仍有「302」字樣的舊註解，待 Yuan 確認後再清理。以下為 2026-09-27 的歷史記錄——2026-09-27 已整份重抓快照：`GET /api/v1/files/{id}/content` **已收錄**，但快照宣告回應為 `200` 而非實際的 `302`，且 `FileUploadResponse.url` 仍只宣告 `type: string`、未描述「相對路徑」語意。下方結案條件第 2 點因此尚未滿足——需後端在該端點補 `@ApiResponse(responseCode = "302")`、在 `url` 補 `@Schema(description = ...)` 後再重抓。另：物件儲存已於 2026-09-27 由 MinIO 改為 SeaweedFS（後端仍以 MinIO Java SDK 連線），下方「瀏覽器可達」的風險同樣適用。
 **描述**：
 後端 #54 新增 `GET /api/v1/files/{id}/content`（302 導向 presigned MinIO URL，非位元組代理），並將 `FileUploadResponse.url` 的語意由絕對網址改為相對路徑。但 `api-reference/openapi.json` 仍是 **#54 前的快照**——缺少 `/api/v1/files/{id}/content` 端點，且 `FileUploadResponse.url` 仍宣告為未區分語意的 `type: string`，與現行程式的相對路徑語意不一致。
 

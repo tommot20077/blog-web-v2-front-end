@@ -2,6 +2,10 @@
 
 本文件記錄前後端共用的 API 契約，確保雙方對接一致。
 
+> **唯一真相**：後端 springdoc 產生的 OpenAPI（前端快照 `api-reference/openapi.json`，抓取方式見 `runbook-integration.md` §8）。錯誤碼現在全部集中在後端 `blog-common`；後端已刪除 `docs/api-contract/`，不再有第二份手寫契約。本文件只記**慣例與前端行為**，欄位與狀態碼以快照為準；兩者衝突時以快照為準並回頭修本文件。
+>
+> ⚠️ **快照已知缺陷（2026-11-07 重抓）**：93 個操作中有 70 個**沒有宣告 `200` 回應**（只剩 4xx／5xx／429），因此這些端點的成功回應 schema 無法從 `paths` 讀出，只能從 `components.schemas` 反查（schema 本身完整）。待後端補齊後重抓；在那之前不要把「paths 裡沒有 200」解讀成端點沒有回應 body。
+
 ## Response Wrapper
 
 所有後端回應遵循 `ApiResponse<T>` 包裝：
@@ -27,6 +31,14 @@ interface PageResult<T> {
   pages: number      // 總頁數
 }
 ```
+
+留言列表 `GET /api/v1/articles/{articleUuid}/comments` 回 `{ topLevels: PageResult<CommentResponse>, totalCommentCount }`——`topLevels` 與其他分頁端點同形（`current`／`size`／`pages`／`total`／`records`），**欄位是 `current` 不是 `page`**（前端型別 `ArticleCommentList.topLevels` 為 `PageResult<CommentItem>`）。
+
+### 留言回覆分頁（後端 W7；2026-11-07 起）
+
+- 列表每則頂層留言內嵌**前 3 則**回覆（`replies`），`CommentResponse.replyCount` 為**未刪除**回覆總數（回覆本身為 0）；`replyCount > replies.length` 代表還有更多。
+- `GET /api/v1/comments/{commentUuid}/replies?page=&size=`：匿名可存取，回 `PageResult<CommentResponse>`，依 `created_at` 升冪，`size` 上限 100。
+- 留言不存在、傳入的是回覆（非頂層）的 uuid、文章對檢視者不可讀——三者一律 **200 + `total: 0` 的空頁**，不形成存在性探測（前端不可把空頁當錯誤）。
 
 ### 分頁參數驗證（後端 2026-09-27 起）
 
@@ -172,6 +184,27 @@ Response 401:
 - 前端：編輯器載入時記住 version，每次存檔帶上，存檔或狀態轉換成功後改用回應的新 version（`useEditorForm.version`）。收到 A0208 → `window.confirm` 提示，「重新載入」重抓並取代本機內容、重置未存檔狀態；「取消」保留本機內容。不做自動合併。
 - 全域 409 `A0008`（OPTIMISTIC_LOCK_CONFLICT）是另一個錯誤碼，不走這條流程。
 
+### 限流 429 與 `Retry-After`（後端 W7；2026-11-07 起）
+
+- 快照中 27 個寫入／搜尋端點（建立文章、留言、按讚、收藏、上傳、搜尋、搜尋建議、改密碼、改個人資料等）宣告 **HTTP 429＋錯誤碼 `A0009`**（應用層限流），並帶 `Retry-After` header（整數秒，至少 1）。登入等 `/auth/**` 端點的限流不在此列。
+- 前端行為（`apiClient`）：429 不自動重試、不走 401 的 refresh 流程，統一顯示「操作太頻繁，請 N 秒後再試」toast（同一時段去重），**呼叫端不重複提示**（`isRateLimited`）；`/auth/refresh` 被限流**不登出**。
+- `Retry-After` 只接受正整數秒；缺 header 或格式不合時 toast 退回「操作太頻繁，請稍後再試」（`parseRetryAfterSeconds`／`getRateLimitMessage`）。
+
+### 全量重建搜尋索引（後端 W7；2026-11-07 起）
+
+- `POST /api/v1/admin/search/reindex`：**202**，`data` 為剛建立的 `SearchReindexJob`（背景執行，不再同步等待）。已有作業在跑 → **409＋`A0501`**，`data` 為進行中的作業。
+- `GET /api/v1/admin/search/status` 的 `reindex` 欄位為最近一次作業，從未重建過（或後端讀 Redis 失敗）時為 `null`；前端以此輪詢進度。
+- `SearchReindexJob`：`jobId`（UUID 字串）、`state`（`RUNNING`／`COMPLETED`／`FAILED`）、`processed`、`total`（尚未算出時為 `null`）、`startedAt`／`finishedAt`（LocalDateTime 字串，`finishedAt` 執行中為 `null`）、`error`（僅 `FAILED`）。
+- 搜尋 `GET /api/v1/search` 的 `sort` 只接受 `relevance`（預設）／`latest`（不分大小寫），其他值（含已移除的 `hot`）回 400。
+
+### 健康檢查
+
+後端主 port 的健康檢查端點是 **`/readyz`**（actuator 已搬到 management port，不再從主 port 提供 `/actuator/health`）。前端 E2E／CI 等待後端就緒一律用 `/readyz`（`e2e/readinessPaths.ts` 仍保留舊後端 fallback）。
+
+### 輸入長度／格式上限（後端 2026-11-07 快照新增；前端尚未逐一預檢）
+
+超過一律 400（`A0001`），由後端驗證：文章 `content` ≤ 200000 字、註冊 `nickname` ≤ 50、退稿 `reason` ≤ 500、標籤 `color` 須為 `#RRGGBB`、`icon` ≤ 100。
+
 ## File Upload
 
 ```
@@ -190,5 +223,7 @@ Response: ApiResponse<{ url, fileId }>
 | `A0402` FILE_TOO_LARGE | 「檔案太大（文章圖片上限 20MB，頭像上限 5MB）」 |
 | `A0406` INVALID_IMAGE_DIMENSIONS | 總像素超過 100MP：「圖片尺寸過大（總像素需小於 1 億）」 |
 | `A0407` INVALID_AVATAR_FILE | 設定頭像時指定的站內檔案不是本人上傳的頭像：「頭像檔案無效，請重新上傳」 |
+
+> 檔案內容端點 `GET /api/v1/files/{id}/content` 在 2026-11-07 快照中宣告為 **200 二進位串流**（支援 `ETag`／`If-None-Match`→304；公開檔案 `public` 快取，非公開 `private, no-store`），**不是 302 導向 presigned URL**；403＝`A0405`、404＝`A0401`。
 
 錯誤碼對照表在 `src/utils/apiErrors.ts`；`apiClient` 遇到這三個碼會以友善訊息取代後端 message（`Error.code` 仍保留）。
