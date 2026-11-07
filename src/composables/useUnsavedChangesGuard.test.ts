@@ -17,9 +17,11 @@ function stubConfirm(answer = true) {
 
 const hasUnsaved = ref(false)
 
+const skipFor = vi.fn<(to: { name?: unknown }) => boolean>(() => false)
+
 const Guarded = defineComponent({
   setup() {
-    useUnsavedChangesGuard(hasUnsaved)
+    useUnsavedChangesGuard(hasUnsaved, { skipFor: (to) => skipFor(to) })
     return () => h('div', 'guarded')
   },
 })
@@ -30,7 +32,9 @@ async function setup() {
     history: createMemoryHistory(),
     routes: [
       { path: '/editor', component: Guarded },
+      { path: '/editor/:id', component: Guarded },
       { path: '/other', component: Other },
+      { path: '/login', name: 'login', component: Other },
     ],
   })
   router.push('/editor')
@@ -51,6 +55,8 @@ describe('useUnsavedChangesGuard', () => {
 
   beforeEach(() => {
     hasUnsaved.value = false
+    skipFor.mockReset()
+    skipFor.mockReturnValue(false)
     confirmSpy = stubConfirm()
   })
   afterEach(() => {
@@ -101,6 +107,82 @@ describe('useUnsavedChangesGuard', () => {
 
       expect(confirmSpy).not.toHaveBeenCalled()
       expect(router.currentRoute.value.path).toBe('/other')
+      wrapper.unmount()
+    })
+  })
+
+  describe('同一路由、參數變更（/editor/:id 之間切換）', () => {
+    async function setupParam() {
+      const router = createRouter({
+        history: createMemoryHistory(),
+        routes: [{ path: '/editor/:id', component: Guarded }, { path: '/other', component: Other }],
+      })
+      router.push('/editor/a')
+      await router.isReady()
+      const wrapper = mount(RouterView, { global: { plugins: [router] } })
+      await nextTick()
+      return { router, wrapper }
+    }
+
+    it('dirty 時切到另一篇：跳確認，取消則留在原文章', async () => {
+      confirmSpy.mockReturnValue(false)
+      const { router, wrapper } = await setupParam()
+      hasUnsaved.value = true
+
+      await router.push('/editor/b')
+
+      expect(confirmSpy).toHaveBeenCalledWith(UNSAVED_CHANGES_MESSAGE)
+      expect(router.currentRoute.value.path).toBe('/editor/a')
+      wrapper.unmount()
+    })
+
+    it('dirty 時切到另一篇：確認則放行', async () => {
+      confirmSpy.mockReturnValue(true)
+      const { router, wrapper } = await setupParam()
+      hasUnsaved.value = true
+
+      await router.push('/editor/b')
+
+      expect(router.currentRoute.value.path).toBe('/editor/b')
+      wrapper.unmount()
+    })
+
+    it('非 dirty、或只有 query / hash 變動：不跳確認', async () => {
+      const { router, wrapper } = await setupParam()
+      await router.push('/editor/b')
+      expect(confirmSpy).not.toHaveBeenCalled()
+
+      hasUnsaved.value = true
+      await router.push({ path: '/editor/b', query: { x: '1' } })
+      await router.push({ path: '/editor/b', query: { x: '1' }, hash: '#h' })
+      expect(confirmSpy).not.toHaveBeenCalled()
+      wrapper.unmount()
+    })
+  })
+
+  describe('系統觸發的導頁（skipFor）', () => {
+    it('skipFor 回傳 true：dirty 也直接放行，不跳確認', async () => {
+      skipFor.mockImplementation((to) => to.name === 'login')
+      const { router, wrapper } = await setup()
+      hasUnsaved.value = true
+
+      await router.push('/login')
+
+      expect(confirmSpy).not.toHaveBeenCalled()
+      expect(router.currentRoute.value.path).toBe('/login')
+      wrapper.unmount()
+    })
+
+    it('skipFor 回傳 false 的目標仍照常確認', async () => {
+      skipFor.mockImplementation((to) => to.name === 'login')
+      confirmSpy.mockReturnValue(false)
+      const { router, wrapper } = await setup()
+      hasUnsaved.value = true
+
+      await router.push('/other')
+
+      expect(confirmSpy).toHaveBeenCalledTimes(1)
+      expect(router.currentRoute.value.path).toBe('/editor')
       wrapper.unmount()
     })
   })

@@ -4,6 +4,7 @@ import { render, screen, waitFor } from '@testing-library/vue'
 import userEvent from '@testing-library/user-event'
 import { createPinia, setActivePinia } from 'pinia'
 import EditorView from './EditorView.vue'
+import { useAuthStore } from '../stores/auth'
 import { editorService } from '../api/editorService'
 import { categoryService } from '../api/categoryService'
 import { fileService } from '../api/fileService'
@@ -17,11 +18,12 @@ import apiClient from '../api/apiClient'
 // ── Mock vue-router ──────────────────────────────────────────────────────────
 const mockRouterReplace = vi.fn()
 // onBeforeRouteLeave 只記下 guard，讓測試能直接呼叫它驗證「離開前確認」（D5）。
-const routeLeaveGuards: Array<() => unknown> = []
+const routeLeaveGuards: Array<(to?: unknown) => unknown> = []
 vi.mock('vue-router', () => ({
   useRouter: () => ({ replace: mockRouterReplace }),
   useRoute: () => ({ params: {} }),
-  onBeforeRouteLeave: (guard: () => unknown) => { routeLeaveGuards.push(guard) },
+  onBeforeRouteLeave: (guard: (...args: never[]) => unknown) => { routeLeaveGuards.push(guard as (to?: unknown) => unknown) },
+  onBeforeRouteUpdate: vi.fn(),
 }))
 
 // ── Mock API ──────────────────────────────────────────────────────────────────
@@ -176,7 +178,7 @@ describe('EditorView', () => {
 
   // ── D5：離開前確認 ───────────────────────────────────────────────────────
   describe('離開前確認（D5 / FE-02）', () => {
-    const runLeaveGuard = () => routeLeaveGuards[0]()
+    const runLeaveGuard = () => routeLeaveGuards[0]({ name: 'my-articles' })
 
     function fireBeforeUnload() {
       const event = new Event('beforeunload', { cancelable: true })
@@ -204,6 +206,22 @@ describe('EditorView', () => {
       confirmSpy.mockReturnValueOnce(true)
       expect(runLeaveGuard()).toBe(true)
       expect(confirmSpy).toHaveBeenCalledTimes(2)
+      vi.unstubAllGlobals()
+    })
+
+    it('系統觸發的導向登入頁（session 已失效）不被守衛攔下；session 有效時照常確認', async () => {
+      const confirmSpy = stubConfirm(false)
+      renderEditor()
+      await userEvent.type(screen.getByTestId('editor-title-input'), 'x')
+      const auth = useAuthStore()
+
+      auth.accessToken = null
+      expect(routeLeaveGuards[0]({ name: 'login' })).toBe(true)
+      expect(confirmSpy).not.toHaveBeenCalled()
+
+      auth.accessToken = 'valid-token'
+      expect(routeLeaveGuards[0]({ name: 'login' })).toBe(false)
+      expect(confirmSpy).toHaveBeenCalledTimes(1)
       vi.unstubAllGlobals()
     })
 

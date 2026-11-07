@@ -1,7 +1,15 @@
 import { onScopeDispose, watch, type Ref } from 'vue'
-import { onBeforeRouteLeave } from 'vue-router'
+import { onBeforeRouteLeave, onBeforeRouteUpdate, type RouteLocationNormalized } from 'vue-router'
 
 export const UNSAVED_CHANGES_MESSAGE = '你有尚未儲存的修改，確定要離開嗎？'
+
+export type UnsavedChangesGuardOptions = {
+  /**
+   * 回傳 true 的導頁直接放行、不跳確認。用於「系統觸發」的導頁，
+   * 例如 session 已失效時導向登入頁——此時使用者按取消只會卡在已失效的 session 裡。
+   */
+  skipFor?: (to: RouteLocationNormalized) => boolean
+}
 
 /**
  * 有未儲存修改時的離開保護（D5 / FE-02）：
@@ -9,11 +17,18 @@ export const UNSAVED_CHANGES_MESSAGE = '你有尚未儲存的修改，確定要�
  * - 關閉分頁 / 重新整理：beforeunload 只在 hasUnsaved 為 true 期間註冊，變乾淨（存檔）或
  *   元件卸載時移除，避免乾淨狀態下也被瀏覽器提示。
  */
-export function useUnsavedChangesGuard(hasUnsaved: Readonly<Ref<boolean>>): void {
-  onBeforeRouteLeave(() => {
+export function useUnsavedChangesGuard(
+  hasUnsaved: Readonly<Ref<boolean>>,
+  options: UnsavedChangesGuardOptions = {},
+): void {
+  function confirmLeave(to: RouteLocationNormalized): boolean {
     if (!hasUnsaved.value) return true
+    if (options.skipFor?.(to)) return true
     return window.confirm(UNSAVED_CHANGES_MESSAGE)
-  })
+  }
+
+  onBeforeRouteLeave((to) => confirmLeave(to))
+  onBeforeRouteUpdate((to, from) => (to.path === from.path ? true : confirmLeave(to)))
 
   function onBeforeUnload(event: BeforeUnloadEvent) {
     event.preventDefault()

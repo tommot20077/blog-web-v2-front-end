@@ -13,6 +13,7 @@ import { useEditorOutline } from '../composables/useEditorOutline'
 import { useEditorImageUpload } from '../composables/useEditorImageUpload'
 import { findExternalImages } from '../utils/externalImages'
 import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard'
+import { useAuthStore } from '../stores/auth'
 import { useAuthedImages } from '../composables/useAuthedImages'
 import { categoryService } from '../api/categoryService'
 import EditorToolbar from '../components/editor/EditorToolbar.vue'
@@ -117,7 +118,11 @@ const {
 // 另以「與最後一次載入 / 儲存的內容比對」判斷。載入既有文章、儲存、還原版本都會更新基準。
 const baselineContent = ref('')
 const hasUnsavedChanges = computed(() => isDirty.value || markdownContent.value !== baselineContent.value)
-useUnsavedChangesGuard(hasUnsavedChanges)
+const authStore = useAuthStore()
+// session 已失效時導向登入頁是系統行為：使用者按取消只會停在已失效的 session 裡（儲存也會 401），故放行
+useUnsavedChangesGuard(hasUnsavedChanges, {
+  skipFor: (to) => to.name === 'login' && !authStore.isAuthenticated,
+})
 
 // ── Categories ─────────────────────────────────────────────────────────────
 const categories = ref<CategoryOption[]>([])

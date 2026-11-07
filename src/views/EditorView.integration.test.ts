@@ -13,6 +13,7 @@ vi.mock('vue-router', () => ({
   useRouter: () => ({ replace: mockRouterReplace }),
   useRoute: () => ({ params: {} }),
   onBeforeRouteLeave: vi.fn(),
+  onBeforeRouteUpdate: vi.fn(),
 }))
 
 // ── Mock 相依模組 ────────────────────────────────────────────────────────────

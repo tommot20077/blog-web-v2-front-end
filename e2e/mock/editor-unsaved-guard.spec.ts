@@ -74,4 +74,34 @@ test.describe('編輯器離開前確認', () => {
     await expect(page).toHaveURL(/\/my-articles/)
     expect(dialogShown).toBe(false)
   })
+
+  test('瀏覽器上一頁（popstate）也會跳確認；取消留在編輯器，確認才離開', async ({ page, editorPage }) => {
+    await editorPage.fillTitle('按上一頁的未儲存標題')
+
+    const messages: string[] = []
+    page.once('dialog', (dialog) => {
+      messages.push(dialog.message())
+      void dialog.dismiss()
+    })
+    await page.goBack()
+    await expect.poll(() => messages.length).toBe(1)
+    expect(messages[0]).toBe('你有尚未儲存的修改，確定要離開嗎？')
+    await expect(page).toHaveURL('/editor')
+    await expect(editorPage.titleInput).toHaveValue('按上一頁的未儲存標題')
+
+    page.once('dialog', (dialog) => void dialog.accept())
+    await page.goBack()
+    await expect(page).not.toHaveURL('/editor')
+  })
+
+  test('沒有修改時按上一頁直接離開，不跳確認', async ({ page }) => {
+    let dialogShown = false
+    page.on('dialog', (dialog) => {
+      dialogShown = true
+      void dialog.dismiss()
+    })
+    await page.goBack()
+    await expect(page).not.toHaveURL('/editor')
+    expect(dialogShown).toBe(false)
+  })
 })
