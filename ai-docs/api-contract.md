@@ -4,7 +4,7 @@
 
 > **唯一真相**：後端 springdoc 產生的 OpenAPI（前端快照 `api-reference/openapi.json`，抓取方式見 `runbook-integration.md` §8）。錯誤碼現在全部集中在後端 `blog-common`；後端已刪除 `docs/api-contract/`，不再有第二份手寫契約。本文件只記**慣例與前端行為**，欄位與狀態碼以快照為準；兩者衝突時以快照為準並回頭修本文件。
 >
-> ⚠️ **快照已知缺陷（2026-11-07 重抓）**：93 個操作中有 70 個**沒有宣告 `200` 回應**（只剩 4xx／5xx／429），因此這些端點的成功回應 schema 無法從 `paths` 讀出，只能從 `components.schemas` 反查（schema 本身完整）。待後端補齊後重抓；在那之前不要把「paths 裡沒有 200」解讀成端點沒有回應 body。
+> **錯誤回應形狀（2026-11-07 重抓後）**：所有 operation 皆宣告 2xx，且 4xx／5xx 的 body 一律引用 `ApiErrorResponse`（`code` 字串、`message`、`data` 恆為 `null`、`timestamp` 毫秒），欄位以快照為準。**唯一例外是 `POST /api/v1/admin/search/reindex` 的 409**：其 `data` 是進行中的作業，與 202 同形（`SearchReindexJob`）。前端 `ApiResponse<T>`（`src/types/auth.ts`）的 `code`／`message`／`data` 與 `ApiErrorResponse` 一致。
 
 ## Response Wrapper
 
