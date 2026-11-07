@@ -137,6 +137,40 @@ describe('frontend CI workflow', () => {
     expect(realBackendE2eStep).toContain('VITE_API_BASE_URL: http://localhost:9010')
   })
 
+  // 後端把 actuator 搬到 management port（主 port 的 /actuator/health 消失），主 port 改提供 /livez、/readyz。
+  // CI 會 checkout 後端預設分支建 image，新舊後端都可能出現：先試 /readyz，失敗再退回 /actuator/health。
+  describe('real-backend E2E 健康檢查同時相容新舊後端', () => {
+    const readyz = 'http://localhost:9010/readyz'
+    const legacy = 'http://localhost:9010/actuator/health'
+
+    it('compose 的 backend healthcheck 先試 /readyz，失敗再試 /actuator/health', () => {
+      const compose = readFileSync('docker-compose.e2e.yml', 'utf8')
+      const backendService = compose.slice(compose.indexOf('  backend:'))
+      const test = backendService.match(/healthcheck:\s*\n\s*test:\s*(\[.*\])/)?.[1] ?? ''
+
+      expect(test).toContain('CMD-SHELL')
+      expect(test).toContain(readyz)
+      expect(test).toContain(legacy)
+      expect(test.indexOf(readyz)).toBeLessThan(test.indexOf(legacy))
+      expect(test).toMatch(/readyz[^|]*\|\|[^|]*actuator\/health/)
+    })
+
+    it('CI 等待迴圈先試 /readyz，失敗再試 /actuator/health，任一成功即視為健康', () => {
+      const wait = workflowStep(workflowJob('e2e-integration'), 'Wait for backend healthy')
+
+      expect(wait).toContain(readyz)
+      expect(wait).toContain(legacy)
+      expect(wait.indexOf(readyz)).toBeLessThan(wait.indexOf(legacy))
+      expect(wait).toMatch(/curl -sf http:\/\/localhost:9010\/readyz[^\n|]*\|\|\s*curl -sf http:\/\/localhost:9010\/actuator\/health/)
+    })
+
+    it('compose 不把後端 management port（9091）發布到 host', () => {
+      const compose = readFileSync('docker-compose.e2e.yml', 'utf8')
+
+      expect(compose).not.toContain('9091')
+    })
+  })
+
   it('real-backend E2E captures stack logs on failure and always tears down containers', () => {
     const integration = workflowJob('e2e-integration')
     const captureLogs = workflowStep(integration, 'Capture E2E stack logs')

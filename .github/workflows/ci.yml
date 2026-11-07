@@ -143,7 +143,8 @@ jobs:
       - name: Wait for backend healthy
         run: |
           for i in $(seq 1 60); do
-            if curl -sf http://localhost:9010/actuator/health > /dev/null; then
+            # 新後端只有 /readyz（actuator 已搬到 management port），舊後端只有 /actuator/health：任一成功即視為健康
+            if curl -sf http://localhost:9010/readyz > /dev/null || curl -sf http://localhost:9010/actuator/health > /dev/null; then
               echo "Backend is healthy"
               exit 0
             fi
