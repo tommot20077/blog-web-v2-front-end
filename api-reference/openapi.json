@@ -70,16 +70,40 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseSeriesSummaryResponse"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "403": {
-            "description": "A0006 權限不足"
+            "description": "A0006 權限不足",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "429": {
             "description": "A0009 請求過於頻繁（應用層限流）",
@@ -91,10 +115,24 @@
                   "format": "int32"
                 }
               }
+            },
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -122,19 +160,50 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseVoid"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "403": {
-            "description": "A0006 權限不足"
+            "description": "A0006 權限不足",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -183,16 +252,40 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseVoid"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "403": {
-            "description": "A0006 權限不足"
+            "description": "A0006 權限不足",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "429": {
             "description": "A0009 請求過於頻繁（應用層限流）",
@@ -204,10 +297,24 @@
                   "format": "int32"
                 }
               }
+            },
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -244,19 +351,50 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseVoid"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "403": {
-            "description": "A0006 權限不足"
+            "description": "A0006 權限不足",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -281,10 +419,24 @@
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -311,13 +463,30 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseEffectiveConfigResponse"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "429": {
             "description": "A0009 請求過於頻繁（應用層限流）",
@@ -329,10 +498,24 @@
                   "format": "int32"
                 }
               }
+            },
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -372,13 +555,30 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseHighlightResponse"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "429": {
             "description": "A0009 請求過於頻繁（應用層限流）",
@@ -390,10 +590,24 @@
                   "format": "int32"
                 }
               }
+            },
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -421,16 +635,40 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseVoid"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -470,7 +708,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseCommentResponse"
+                  "$ref": "#/components/schemas/ApiErrorResponse"
                 }
               }
             }
@@ -480,13 +718,30 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseCommentResponse"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "429": {
             "description": "A0009 請求過於頻繁（應用層限流）",
@@ -498,10 +753,24 @@
                   "format": "int32"
                 }
               }
+            },
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -529,7 +798,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseVoid"
+                  "$ref": "#/components/schemas/ApiErrorResponse"
                 }
               }
             }
@@ -539,16 +808,40 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseVoid"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -578,13 +871,30 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseArticleResponse"
                 }
               }
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -622,7 +932,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseEditorArticleResponse"
+                  "$ref": "#/components/schemas/ApiErrorResponse"
                 }
               }
             }
@@ -632,16 +942,40 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseEditorArticleResponse"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "403": {
-            "description": "A0006 權限不足"
+            "description": "A0006 權限不足",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "429": {
             "description": "A0009 請求過於頻繁（應用層限流）",
@@ -653,10 +987,24 @@
                   "format": "int32"
                 }
               }
+            },
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -684,19 +1032,50 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseVoid"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "403": {
-            "description": "A0006 權限不足"
+            "description": "A0006 權限不足",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -732,10 +1111,24 @@
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -773,13 +1166,30 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseVoid"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "429": {
             "description": "A0009 請求過於頻繁（應用層限流）",
@@ -791,10 +1201,24 @@
                   "format": "int32"
                 }
               }
+            },
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -834,19 +1258,50 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseTag"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "403": {
-            "description": "A0006 權限不足"
+            "description": "A0006 權限不足",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -874,19 +1329,50 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseVoid"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "403": {
-            "description": "A0006 權限不足"
+            "description": "A0006 權限不足",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -926,19 +1412,50 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseCategoryResponse"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "403": {
-            "description": "A0006 權限不足"
+            "description": "A0006 權限不足",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -966,19 +1483,50 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseVoid"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "403": {
-            "description": "A0006 權限不足"
+            "description": "A0006 權限不足",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1007,13 +1555,30 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseVoid"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "429": {
             "description": "A0009 請求過於頻繁（應用層限流）",
@@ -1025,10 +1590,24 @@
                   "format": "int32"
                 }
               }
+            },
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1064,7 +1643,14 @@
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "429": {
             "description": "A0009 請求過於頻繁（應用層限流）",
@@ -1076,10 +1662,24 @@
                   "format": "int32"
                 }
               }
+            },
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -1113,10 +1713,24 @@
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1161,7 +1775,14 @@
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -1188,16 +1809,40 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseSeriesSummaryResponse"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "403": {
-            "description": "A0006 權限不足"
+            "description": "A0006 權限不足",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "429": {
             "description": "A0009 請求過於頻繁（應用層限流）",
@@ -1209,10 +1854,24 @@
                   "format": "int32"
                 }
               }
+            },
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1241,16 +1900,40 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseFileUploadResponse"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "403": {
-            "description": "A0006 權限不足"
+            "description": "A0006 權限不足",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "429": {
             "description": "A0009 請求過於頻繁（應用層限流）",
@@ -1262,10 +1945,24 @@
                   "format": "int32"
                 }
               }
+            },
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1295,16 +1992,40 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseVoid"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "403": {
-            "description": "A0006 權限不足"
+            "description": "A0006 權限不足",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "429": {
             "description": "A0009 請求過於頻繁（應用層限流）",
@@ -1316,10 +2037,24 @@
                   "format": "int32"
                 }
               }
+            },
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -1347,19 +2082,50 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseVoid"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "403": {
-            "description": "A0006 權限不足"
+            "description": "A0006 權限不足",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1388,13 +2154,30 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseVoid"
                 }
               }
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1423,13 +2206,30 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseVoid"
                 }
               }
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1458,13 +2258,30 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseVoid"
                 }
               }
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1493,13 +2310,30 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseVoid"
                 }
               }
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1528,13 +2362,30 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseVoid"
                 }
               }
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1563,7 +2414,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseAuthResponse"
+                  "$ref": "#/components/schemas/ApiErrorResponse"
                 }
               }
             }
@@ -1573,13 +2424,30 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseAuthResponse"
                 }
               }
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1614,10 +2482,24 @@
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1646,13 +2528,30 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseAuthResponse"
                 }
               }
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1681,13 +2580,30 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseVoid"
                 }
               }
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1777,13 +2693,30 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponsePageResultArticleSummaryResponse"
                 }
               }
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -1810,16 +2743,40 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseEditorArticleResponse"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "403": {
-            "description": "A0006 權限不足"
+            "description": "A0006 權限不足",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "429": {
             "description": "A0009 請求過於頻繁（應用層限流）",
@@ -1831,10 +2788,24 @@
                   "format": "int32"
                 }
               }
+            },
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1864,16 +2835,40 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseArticleResponse"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "403": {
-            "description": "A0006 權限不足"
+            "description": "A0006 權限不足",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "429": {
             "description": "A0009 請求過於頻繁（應用層限流）",
@@ -1885,10 +2880,24 @@
                   "format": "int32"
                 }
               }
+            },
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1918,16 +2927,40 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseArticleResponse"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "403": {
-            "description": "A0006 權限不足"
+            "description": "A0006 權限不足",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "429": {
             "description": "A0009 請求過於頻繁（應用層限流）",
@@ -1939,10 +2972,24 @@
                   "format": "int32"
                 }
               }
+            },
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1982,19 +3029,50 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseArticleResponse"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "403": {
-            "description": "A0006 權限不足"
+            "description": "A0006 權限不足",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -2024,16 +3102,40 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseArticleResponse"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "403": {
-            "description": "A0006 權限不足"
+            "description": "A0006 權限不足",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "429": {
             "description": "A0009 請求過於頻繁（應用層限流）",
@@ -2045,10 +3147,24 @@
                   "format": "int32"
                 }
               }
+            },
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -2087,16 +3203,40 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseVoid"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "403": {
-            "description": "A0006 權限不足"
+            "description": "A0006 權限不足",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "429": {
             "description": "A0009 請求過於頻繁（應用層限流）",
@@ -2108,10 +3248,24 @@
                   "format": "int32"
                 }
               }
+            },
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -2150,16 +3304,40 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseVersionDetailResponse"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "403": {
-            "description": "A0006 權限不足"
+            "description": "A0006 權限不足",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "429": {
             "description": "A0009 請求過於頻繁（應用層限流）",
@@ -2171,10 +3349,24 @@
                   "format": "int32"
                 }
               }
+            },
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -2213,16 +3405,40 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseVersionDetailResponse"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "403": {
-            "description": "A0006 權限不足"
+            "description": "A0006 權限不足",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "429": {
             "description": "A0009 請求過於頻繁（應用層限流）",
@@ -2234,10 +3450,24 @@
                   "format": "int32"
                 }
               }
+            },
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -2267,13 +3497,30 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseVoid"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "429": {
             "description": "A0009 請求過於頻繁（應用層限流）",
@@ -2285,10 +3532,24 @@
                   "format": "int32"
                 }
               }
+            },
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -2316,16 +3577,40 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseVoid"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -2361,10 +3646,24 @@
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -2402,13 +3701,30 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseHighlightResponse"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "429": {
             "description": "A0009 請求過於頻繁（應用層限流）",
@@ -2420,10 +3736,24 @@
                   "format": "int32"
                 }
               }
+            },
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -2486,7 +3816,14 @@
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -2524,16 +3861,40 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseCommentResponse"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "403": {
-            "description": "A0006 權限不足"
+            "description": "A0006 權限不足",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "429": {
             "description": "A0009 請求過於頻繁（應用層限流）",
@@ -2545,10 +3906,24 @@
                   "format": "int32"
                 }
               }
+            },
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -2578,13 +3953,30 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseVoid"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "429": {
             "description": "A0009 請求過於頻繁（應用層限流）",
@@ -2596,10 +3988,24 @@
                   "format": "int32"
                 }
               }
+            },
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -2627,16 +4033,40 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseVoid"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -2661,7 +4091,7 @@
             }
           },
           "409": {
-            "description": "A0501 已有搜尋索引重建作業執行中，body 為進行中的作業",
+            "description": "A0501 已有搜尋索引重建作業執行中，body 為進行中的作業（data 為該作業，與 202 同形）",
             "content": {
               "*/*": {
                 "schema": {
@@ -2671,13 +4101,34 @@
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "403": {
-            "description": "A0006 權限不足"
+            "description": "A0006 權限不足",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -2706,19 +4157,50 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseCategoryResponse"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "403": {
-            "description": "A0006 權限不足"
+            "description": "A0006 權限不足",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -2748,19 +4230,50 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseArticleResponse"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "403": {
-            "description": "A0006 權限不足"
+            "description": "A0006 權限不足",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -2790,19 +4303,50 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseArticleResponse"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "403": {
-            "description": "A0006 權限不足"
+            "description": "A0006 權限不足",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -2831,13 +4375,30 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseVoid"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "429": {
             "description": "A0009 請求過於頻繁（應用層限流）",
@@ -2849,10 +4410,24 @@
                   "format": "int32"
                 }
               }
+            },
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -2881,13 +4456,30 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseVoid"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "429": {
             "description": "A0009 請求過於頻繁（應用層限流）",
@@ -2899,10 +4491,24 @@
                   "format": "int32"
                 }
               }
+            },
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -2932,13 +4538,30 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponsePublicProfileResponse"
                 }
               }
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -2963,10 +4586,24 @@
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -2993,16 +4630,40 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseVoid"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -3027,10 +4688,24 @@
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -3085,16 +4760,40 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseListFileMetadata"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -3139,10 +4838,24 @@
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -3171,13 +4884,30 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseTagDetailResponse"
                 }
               }
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -3222,7 +4952,14 @@
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -3259,7 +4996,14 @@
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -3284,7 +5028,14 @@
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -3313,13 +5064,30 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseSeriesDetailResponse"
                 }
               }
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -3387,6 +5155,16 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponsePageResultSearchResultResponse"
                 }
               }
@@ -3402,10 +5180,24 @@
                   "format": "int32"
                 }
               }
+            },
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -3435,6 +5227,16 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseListString"
                 }
               }
@@ -3450,10 +5252,24 @@
                   "format": "int32"
                 }
               }
+            },
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -3472,16 +5288,40 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseListString"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -3498,16 +5338,40 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseVoid"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -3553,7 +5417,14 @@
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -3599,7 +5470,14 @@
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -3629,7 +5507,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseFileMetadata"
+                  "$ref": "#/components/schemas/ApiErrorResponse"
                 }
               }
             }
@@ -3639,13 +5517,30 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseFileMetadata"
                 }
               }
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -3673,16 +5568,40 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseVoid"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -3722,13 +5641,34 @@
             "description": "ETag 未變更，無 body"
           },
           "403": {
-            "description": "A0405 無權限讀取此檔案"
+            "description": "A0405 無權限讀取此檔案",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "404": {
-            "description": "A0401 檔案不存在"
+            "description": "A0401 檔案不存在",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -3782,7 +5722,14 @@
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -3807,7 +5754,14 @@
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -3836,13 +5790,30 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseCategoryResponse"
                 }
               }
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -3871,13 +5842,30 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseListAuthorSummaryResponse"
                 }
               }
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -3907,19 +5895,50 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseEditorArticleResponse"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "403": {
-            "description": "A0006 權限不足"
+            "description": "A0006 權限不足",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -3975,19 +5994,50 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponsePageResultVersionSummaryResponse"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "403": {
-            "description": "A0006 權限不足"
+            "description": "A0006 權限不足",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -4026,19 +6076,50 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseVersionDetailResponse"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "403": {
-            "description": "A0006 權限不足"
+            "description": "A0006 權限不足",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -4075,19 +6156,50 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseVoid"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "403": {
-            "description": "A0006 權限不足"
+            "description": "A0006 權限不足",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -4116,13 +6228,30 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseArticleResponse"
                 }
               }
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -4176,16 +6305,40 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponsePageResultArticleSummaryResponse"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -4210,7 +6363,14 @@
             }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -4235,13 +6395,34 @@
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "403": {
-            "description": "A0006 權限不足"
+            "description": "A0006 權限不足",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -4286,13 +6467,34 @@
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "403": {
-            "description": "A0006 權限不足"
+            "description": "A0006 權限不足",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -4321,16 +6523,40 @@
             "content": {
               "*/*": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "*/*": {
+                "schema": {
                   "$ref": "#/components/schemas/ApiResponseEffectiveConfigResponse"
                 }
               }
             }
           },
           "401": {
-            "description": "A0005 未登入或 token 無效／過期"
+            "description": "A0005 未登入或 token 無效／過期",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "500": {
-            "description": "B0001 系統執行出錯"
+            "description": "B0001 系統執行出錯",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -4338,6 +6564,34 @@
   },
   "components": {
     "schemas": {
+      "ApiErrorResponse": {
+        "description": "錯誤回應：HTTP 狀態碼非 2xx 時的 body，data 恆為 null（reindex 的 409 為例外，見該端點說明）",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "錯誤碼，例如 A0001"
+          },
+          "message": {
+            "type": "string",
+            "description": "錯誤訊息"
+          },
+          "data": {
+            "type": "null",
+            "description": "恆為 null"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64",
+            "description": "伺服器時間戳（毫秒）"
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "message",
+          "timestamp"
+        ]
+      },
       "UpdateSeriesRequest": {
         "type": "object",
         "properties": {
