@@ -7,6 +7,7 @@ import { useAuthStore } from '../stores/auth'
 import ShellRail from '../components/layout/ShellRail.vue'
 import { ARTICLE_STATUS_LABELS } from '../types/editor'
 import type { MyArticle, ArticleStatusFilter } from '../types/editor'
+import { isRateLimited } from '../utils/apiErrors'
 
 const { showToast } = useToast()
 const authStore = useAuthStore()
@@ -53,8 +54,9 @@ async function handleSubmit(uuid: string) {
     await myArticlesService.submitForReview(uuid)
     showToast('已送出審核', 'success')
     await fetchArticles()
-  } catch {
-    showToast('送出失敗', 'error')
+  } catch (error) {
+    // 429 由 apiClient 的全域 toast 提示，不再疊自己的錯誤 toast
+    if (!isRateLimited(error)) showToast('送出失敗', 'error')
   }
 }
 
@@ -65,7 +67,7 @@ async function handleWithdraw(uuid: string) {
     showToast('已抽回文章', 'success')
     await fetchArticles()
   } catch (error) {
-    showToast(error instanceof Error ? error.message : '抽回失敗', 'error')
+    if (!isRateLimited(error)) showToast(error instanceof Error ? error.message : '抽回失敗', 'error')
   } finally {
     withdrawingUuid.value = null
   }
@@ -75,8 +77,8 @@ async function handleDelete(uuid: string) {
   try {
     await myArticlesService.deleteArticle(uuid)
     await fetchArticles()
-  } catch {
-    showToast('刪除失敗', 'error')
+  } catch (error) {
+    if (!isRateLimited(error)) showToast('刪除失敗', 'error')
   }
 }
 function formatDate(iso: string) {

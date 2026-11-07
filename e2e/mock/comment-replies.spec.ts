@@ -44,6 +44,22 @@ test.describe('留言回覆分頁（載入更多）', () => {
     await expect(page.getByTestId('comment-replies-load-more')).toHaveCount(0)
   })
 
+  test('未展開時回覆：新回覆直接可見，不被藏在載入更多後面（M1）', async ({ page, loginAs, seedCommentThread }) => {
+    await loginAs('reader')
+    await seedCommentThread(ARTICLE, '父留言', ['回覆 1', '回覆 2', '回覆 3', '回覆 4', '回覆 5'])
+    await page.goto(`/articles/${ARTICLE}`)
+    await expect(page.getByTestId('comment-item')).toHaveCount(1 + 3)
+
+    await page.getByTestId('comment-reply-btn').first().click()
+    const form = page.getByTestId('comment-reply-form')
+    await form.locator('textarea').fill('我的新回覆')
+    await form.getByRole('button', { name: 'Reply' }).click()
+
+    await expect(page.getByTestId('comment-item')).toHaveCount(1 + 6)
+    await expect(page.getByTestId('comment-item').last()).toContainText('我的新回覆')
+    await expect(page.getByTestId('comment-replies-load-more')).toHaveCount(0)
+  })
+
   test('載入失敗：顯示錯誤並可重試', async ({ page, seedCommentThread, mockApiFailure, clearMockApiFailures }) => {
     await seedCommentThread(ARTICLE, '父留言', ['回覆 1', '回覆 2', '回覆 3', '回覆 4'])
     await page.goto(`/articles/${ARTICLE}`)

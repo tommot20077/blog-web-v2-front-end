@@ -17,6 +17,7 @@ import {
   TOO_MANY_REQUESTS_STATUS,
   getFriendlyErrorMessage,
   getRateLimitMessage,
+  isRateLimited,
   parseRetryAfterSeconds,
 } from '../utils/apiErrors'
 
@@ -26,6 +27,9 @@ interface QueueItem {
   reject: (reason: unknown) => void
   config: InternalAxiosRequestConfig
 }
+
+/** 429 全域 toast 的去重 key */
+const RATE_LIMIT_TOAST_KEY = 'rate-limit'
 
 let isRefreshing = false
 let failedQueue: QueueItem[] = []
@@ -99,9 +103,10 @@ apiClient.interceptors.response.use(
         : getFriendlyErrorMessage(code) ?? error.response?.data?.message ?? error.message
       // 附上 HTTP status 與業務碼，讓呼叫端能區分「不存在（404／A0101）」與其他失敗（不影響 401 refresh 流程）
       if (isRateLimited) {
-        // 呼叫端多半只顯示自己的固定文案，所以在這裡統一提示等待時間；同一則訊息顯示中就不重複堆疊
-        const { toasts, showToast } = useToast()
-        if (!toasts.value.some(t => t.message === message)) showToast(message, 'warning')
+        // 統一在這裡提示等待時間（呼叫端遇到 429 不再顯示自己的錯誤 toast）；
+        // 固定 key：畫面上同時最多一則，秒數不同時以最新的取代，不疊加
+        const { showToast } = useToast()
+        showToast(message, 'warning', 4000, undefined, RATE_LIMIT_TOAST_KEY)
       }
       const failure = Object.assign(new Error(message), {
         status: error.response?.status,
@@ -140,7 +145,8 @@ apiClient.interceptors.response.use(
       return apiClient.request(originalConfig)
     } catch (refreshError) {
       markErrorHandled(refreshError)
-      authStore.logout()
+      // refresh 本身被限流（429）是暫時性錯誤，不代表登入失效：不登出，把該錯誤往上拋即可
+      if (!isRateLimited(refreshError)) authStore.logout()
       processQueue(refreshError)
       return Promise.reject(refreshError)
     } finally {

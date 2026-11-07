@@ -272,6 +272,36 @@ describe('apiClient', () => {
       expect(authStore.logout).toHaveBeenCalledOnce()
     })
 
+    it('m1：refresh 本身被限流（429）→ 不登出，直接把該錯誤拋給原請求與佇列中的請求', async () => {
+      const authStore = useAuthStore()
+      const rateLimited = Object.assign(new Error('操作太頻繁，請 5 秒後再試'), { status: 429, code: 'A0009' })
+      authStore.refreshToken = vi.fn().mockRejectedValue(rateLimited)
+      authStore.logout = vi.fn()
+
+      const p1 = responseRejected(create401Error('/api/v1/articles'))
+      const p2 = responseRejected(create401Error('/api/v1/tags'))
+
+      await expect(p1).rejects.toBe(rateLimited)
+      await expect(p2).rejects.toBe(rateLimited)
+      expect(authStore.logout).not.toHaveBeenCalled()
+      expect(authStore.refreshToken).toHaveBeenCalledOnce()
+    })
+
+    it('m1：refresh 被限流後旗標復原，下一次 401 仍可重新 refresh', async () => {
+      const authStore = useAuthStore()
+      authStore.logout = vi.fn()
+      authStore.refreshToken = vi.fn()
+        .mockRejectedValueOnce(Object.assign(new Error('限流'), { status: 429 }))
+        .mockImplementationOnce(async () => { authStore.accessToken = 'fresh' })
+      mockInstanceRequest.mockResolvedValue({ data: { code: '00000', message: 'OK', data: 1 } })
+
+      await expect(responseRejected(create401Error('/api/v1/a'))).rejects.toBeDefined()
+      await responseRejected(create401Error('/api/v1/b'))
+
+      expect(authStore.refreshToken).toHaveBeenCalledTimes(2)
+      expect(authStore.logout).not.toHaveBeenCalled()
+    })
+
     it('/auth/refresh 本身的 401 不觸發再次 refresh（防無限迴圈）', async () => {
       const authStore = useAuthStore()
       authStore.refreshToken = vi.fn()
@@ -382,6 +412,19 @@ describe('apiClient', () => {
           message: 'Request failed with status code 429',
         }
         await expect(responseRejected(error)).rejects.toMatchObject({ message: '操作太頻繁，請 7 秒後再試', status: 429 })
+      })
+
+      it('M3：秒數不同的連續 429 也只留一則 toast，內容為最新的', async () => {
+        const { useToast } = await import('../composables/useToast')
+        const { toasts } = useToast()
+        toasts.value = []
+
+        for (const seconds of ['30', '29', '28', '27', '26', '25']) {
+          await responseRejected(create429Error({ 'retry-after': seconds })).catch(() => undefined)
+        }
+
+        expect(toasts.value).toHaveLength(1)
+        expect(toasts.value[0]).toMatchObject({ message: '操作太頻繁，請 25 秒後再試', type: 'warning' })
       })
 
       it('顯示 warning toast：有秒數時帶秒數，連續同一則 429 不重複堆疊', async () => {

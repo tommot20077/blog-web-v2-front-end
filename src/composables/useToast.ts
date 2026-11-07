@@ -22,6 +22,8 @@ interface ToastMessage {
   duration: number;
   /** 選用：toast 附帶的動作按鈕（例如「重新整理」） */
   action?: ToastAction;
+  /** 選用：去重 key。同 key 的 toast 同時最多一則，新的取代舊的（例如 429 限流提示） */
+  key?: string;
 }
 
 const MAX_TOASTS = 5;
@@ -41,9 +43,18 @@ export function useToast() {
     type: ToastType = 'info',
     duration = 4000,
     action?: ToastAction,
+    key?: string,
   ) => {
+    // 同 key 先移除舊的（連同計時器），再加入新的
+    if (key !== undefined) {
+      toasts.value.filter(t => t.key === key).forEach(t => removeToast(t.id));
+    }
     const id = `toast-${++idCounter}`;
-    const toast: ToastMessage = { id, message, type, duration, ...(action ? { action } : {}) };
+    const toast: ToastMessage = {
+      id, message, type, duration,
+      ...(action ? { action } : {}),
+      ...(key !== undefined ? { key } : {}),
+    };
 
     toasts.value.push(toast);
 

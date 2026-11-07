@@ -383,17 +383,103 @@ describe('useComments', () => {
       expect(c.hasMoreReplies(c.list.value[0])).toBe(false)
     })
 
-    it('未展開時新增回覆：只更新 replyCount，仍顯示內嵌 3 則與載入更多', async () => {
+    it('M1：未展開時新增回覆 → 新回覆（升冪排序在最後一頁）直接載出，不被藏在載入更多後面', async () => {
       const c = await setup(topList(5))
       vi.mocked(commentService.create).mockResolvedValue({ uuid: 'r6' } as never)
       vi.mocked(commentService.list).mockResolvedValue(topList(6))
+      vi.mocked(commentService.listReplies).mockResolvedValueOnce(repliesPage(range(1, 6), 6))
+
+      await c.reply('p1', 'new')
+
+      expect(uuids(c)).toEqual(['r1', 'r2', 'r3', 'r4', 'r5', 'r6'])
+      expect(c.list.value[0].replyCount).toBe(6)
+      expect(c.hasMoreReplies(c.list.value[0])).toBe(false)
+    })
+
+    it('M1：回覆很多的未展開留言 → 載到最後一頁，新回覆可見，計數正確', async () => {
+      const c = await setup(topList(45))
+      vi.mocked(commentService.create).mockResolvedValue({ uuid: 'r46' } as never)
+      vi.mocked(commentService.list).mockResolvedValue(topList(46))
+      vi.mocked(commentService.listReplies)
+        .mockResolvedValueOnce(repliesPage(range(1, 20), 46, 1))
+        .mockResolvedValueOnce(repliesPage(range(21, 40), 46, 2))
+        .mockResolvedValueOnce(repliesPage(range(41, 46), 46, 3))
+
+      await c.reply('p1', 'new')
+
+      expect(commentService.listReplies).toHaveBeenCalledTimes(3)
+      expect(uuids(c)?.at(-1)).toBe('r46')
+      expect(c.list.value[0].replyCount).toBe(46)
+      expect(c.hasMoreReplies(c.list.value[0])).toBe(false)
+    })
+
+    it('M1：回覆總數仍 ≤ 3（內嵌即完整）→ 不額外打回覆端點', async () => {
+      const c = await setup(topList(1))
+      vi.mocked(commentService.create).mockResolvedValue({ uuid: 'r2' } as never)
+      vi.mocked(commentService.list).mockResolvedValue(topList(2))
 
       await c.reply('p1', 'new')
 
       expect(commentService.listReplies).not.toHaveBeenCalled()
-      expect(c.list.value[0].replyCount).toBe(6)
-      expect(uuids(c)).toEqual(['r1', 'r2', 'r3'])
-      expect(c.hasMoreReplies(c.list.value[0])).toBe(true)
+      expect(uuids(c)).toEqual(['r1', 'r2'])
+    })
+
+    it('m5：還原展開期間 getReplyState().isLoading 為 true，載入更多不會用舊頁碼重複送請求', async () => {
+      const c = await setup(topList(45))
+      vi.mocked(commentService.listReplies).mockResolvedValueOnce(repliesPage(range(1, 20), 45, 1))
+      await c.loadMoreReplies('p1') // pagesLoaded = 1
+      vi.mocked(commentService.edit).mockResolvedValue({ uuid: 'r4' } as never)
+      vi.mocked(commentService.list).mockResolvedValue(topList(45))
+      const restore = deferred<RepliesRes>()
+      vi.mocked(commentService.listReplies).mockReset()
+      vi.mocked(commentService.listReplies).mockReturnValueOnce(restore.promise)
+
+      const editing = c.edit('r4', 'edited')
+      await vi.waitFor(() => expect(commentService.listReplies).toHaveBeenCalledTimes(1))
+
+      expect(c.getReplyState('p1').isLoading).toBe(true)
+      await c.loadMoreReplies('p1')
+      expect(commentService.listReplies).toHaveBeenCalledTimes(1)
+
+      restore.resolve(repliesPage(range(1, 20), 45, 1))
+      await editing
+      expect(c.getReplyState('p1').isLoading).toBe(false)
+      expect(c.getReplyState('p1').pagesLoaded).toBe(1)
+    })
+
+    describe('A4：429 限流時不重複顯示呼叫端自己的錯誤 toast', () => {
+      const rateLimited = () => Object.assign(new Error('操作太頻繁，請 30 秒後再試'), { status: 429, code: 'A0009' })
+      async function errorToasts() {
+        const { useToast } = await import('./useToast')
+        const { toasts } = useToast()
+        toasts.value.splice(0)
+        return toasts
+      }
+
+      it.each([
+        ['post', (c: ReturnType<typeof useComments>) => c.post('x')],
+        ['reply', (c: ReturnType<typeof useComments>) => c.reply('p1', 'x')],
+        ['edit', (c: ReturnType<typeof useComments>) => c.edit('p1', 'x')],
+      ])('%s 遇到 429 → 回傳 false、不顯示「失敗」toast', async (_name, act) => {
+        const c = await setup(topList(0))
+        const toasts = await errorToasts()
+        vi.mocked(commentService.create).mockRejectedValue(rateLimited())
+        vi.mocked(commentService.edit).mockRejectedValue(rateLimited())
+
+        expect(await act(c)).toBe(false)
+
+        expect(toasts.value.filter(t => t.type === 'error')).toHaveLength(0)
+      })
+
+      it('非 429 的失敗仍顯示原本的錯誤 toast', async () => {
+        const c = await setup(topList(0))
+        const toasts = await errorToasts()
+        vi.mocked(commentService.create).mockRejectedValue(Object.assign(new Error('boom'), { status: 500 }))
+
+        await c.post('x')
+
+        expect(toasts.value.map(t => t.message)).toEqual(['留言失敗，請稍後再試'])
+      })
     })
 
     it('已展開後編輯：載入過的回覆維持展開', async () => {

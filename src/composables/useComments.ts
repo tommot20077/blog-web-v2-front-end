@@ -2,6 +2,7 @@ import { reactive, ref, watchEffect, type Ref } from 'vue'
 import { commentService } from '../api/commentService'
 import { useAuthWall } from './useAuthWall'
 import { useToast } from './useToast'
+import { isRateLimited } from '../utils/apiErrors'
 import type { CommentItem } from '../types/comment'
 
 /** 回覆分頁每頁筆數：第一次載入取代內嵌的前 3 則，之後 page 遞增；單一來源 */
@@ -36,6 +37,8 @@ export function useComments(articleUuid: Ref<string>) {
   // 回覆請求的 token：每個頂層留言各自遞增；列表被取代（listGeneration 改變）時一併讓舊請求失效
   const replyRequestIds: Record<string, number> = {}
   let listGeneration = 0
+  // 新增回覆成功後，這些頂層留言在下一次列表重新載入時要展開到最後一頁（新回覆在升冪排序的最後）
+  const expandToEnd = new Set<string>()
 
   // 遞增的 request token：只有最新一次請求可以寫 state（commentService 不支援 signal，故不用 abort）
   let latestRequestId = 0
@@ -108,7 +111,8 @@ export function useComments(articleUuid: Ref<string>) {
   ) {
     await Promise.all(records.map(async (record) => {
       const state = replyStates[record.uuid]
-      if (!state || state.pagesLoaded === 0) return
+      const forced = expandToEnd.has(record.uuid)
+      if (!state || (state.pagesLoaded === 0 && !forced)) return
       const total = record.replyCount ?? 0
       const embedded = record.replies?.length ?? 0
       if (total <= embedded) {
@@ -116,10 +120,12 @@ export function useComments(articleUuid: Ref<string>) {
         return
       }
       const maxPages = Math.ceil(total / REPLY_PAGE_SIZE)
-      const pages = wasComplete.has(record.uuid)
+      const pages = wasComplete.has(record.uuid) || forced
         ? maxPages
         : Math.min(state.pagesLoaded, maxPages)
       let merged: CommentItem[] = []
+      // 還原期間視為載入中：避免使用者拿舊的 pagesLoaded 觸發載入更多，造成頁碼倒退或重複請求
+      state.isLoading = true
       try {
         let lastTotal = total
         for (let n = 1; n <= pages; n++) {
@@ -135,12 +141,16 @@ export function useComments(articleUuid: Ref<string>) {
         if (requestId !== latestRequestId) return
         state.pagesLoaded = 0
         state.error = true
+      } finally {
+        if (requestId === latestRequestId) state.isLoading = false
       }
     }))
   }
 
   /**
    * 載入某頂層留言的下一批回覆。
+   * 已知限制（接受）：offset 分頁在兩次請求之間若有人刪除較前面的回覆，後面的資料會前移，可能漏掉一筆；
+   * 重新整理或重新展開即可補回，uuid 去重只防重複、不防漏。
    * 第一次（pagesLoaded = 0）以 page=1 取回並「取代」內嵌的前 3 則，之後 page 遞增並附加；
    * 以 uuid 去重，避免兩次請求之間資料位移造成重複。失敗時不推進頁碼，下一次點擊即重試。
    */
@@ -184,8 +194,9 @@ export function useComments(articleUuid: Ref<string>) {
       await fetchPage(1)
       showToast('留言已送出', 'success')
       return true
-    } catch {
-      showToast('留言失敗，請稍後再試', 'error')
+    } catch (error) {
+      // 429 已由 apiClient 的全域 toast 告知等待時間，不再疊自己的錯誤 toast
+      if (!isRateLimited(error)) showToast('留言失敗，請稍後再試', 'error')
       return false
     }
   }
@@ -194,11 +205,18 @@ export function useComments(articleUuid: Ref<string>) {
     if (!requireAuth()) return false
     try {
       await commentService.create(articleUuid.value, { content, parentUuid })
-      await fetchPage(page.value)
+      // 回覆依建立時間升冪，新回覆一定在最後一頁；未展開時也要載到最後，否則新回覆會藏在「載入更多」後面
+      replyStates[parentUuid] ??= { pagesLoaded: 0, isLoading: false, error: false }
+      expandToEnd.add(parentUuid)
+      try {
+        await fetchPage(page.value)
+      } finally {
+        expandToEnd.delete(parentUuid)
+      }
       showToast('回覆已送出', 'success')
       return true
-    } catch {
-      showToast('回覆失敗，請稍後再試', 'error')
+    } catch (error) {
+      if (!isRateLimited(error)) showToast('回覆失敗，請稍後再試', 'error')
       return false
     }
   }
@@ -210,8 +228,8 @@ export function useComments(articleUuid: Ref<string>) {
       await fetchPage(page.value)
       showToast('已更新', 'success')
       return true
-    } catch {
-      showToast('更新失敗', 'error')
+    } catch (error) {
+      if (!isRateLimited(error)) showToast('更新失敗', 'error')
       return false
     }
   }

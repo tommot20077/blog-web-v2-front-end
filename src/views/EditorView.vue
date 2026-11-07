@@ -12,7 +12,7 @@ import { useEditorFocusMode } from '../composables/useEditorFocusMode'
 import { useEditorOutline } from '../composables/useEditorOutline'
 import { useEditorImageUpload } from '../composables/useEditorImageUpload'
 import { findUnrenderableImages } from '../utils/unrenderableImages'
-import { isConcurrentUpdateError } from '../utils/apiErrors'
+import { isConcurrentUpdateError, isRateLimited } from '../utils/apiErrors'
 import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard'
 import { useAuthStore } from '../stores/auth'
 import { useAuthedImages } from '../composables/useAuthedImages'
@@ -220,7 +220,8 @@ async function onSaveDraft() {
       await handleSaveConflict()
       return
     }
-    showToast('儲存失敗', 'error')
+    // 429 由 apiClient 的全域 toast 提示等待時間，不再疊自己的錯誤 toast
+    if (!isRateLimited(err)) showToast('儲存失敗', 'error')
   }
 }
 
@@ -239,14 +240,14 @@ async function onSubmitForReview() {
       await handleSaveConflict()
       return
     }
-    showToast('儲存失敗', 'error')
+    if (!isRateLimited(err)) showToast('儲存失敗', 'error')
     return
   }
   try {
     await submitForReview()
     showToast('已送出審核', 'success')
-  } catch {
-    showToast('送出失敗', 'error')
+  } catch (err) {
+    if (!isRateLimited(err)) showToast('送出失敗', 'error')
   }
 }
 

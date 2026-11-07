@@ -5,6 +5,7 @@ import { tagSuggestService } from '../../api/tagSuggestService'
 import { articleVersionService } from '../../api/articleVersionService'
 import type { VersionSummaryResponse } from '../../api/articleVersionService'
 import { useToast } from '../../composables/useToast'
+import { isRateLimited } from '../../utils/apiErrors'
 import { useAuthedImages } from '../../composables/useAuthedImages'
 import type { ArticleStatus, CategoryOption, TagSuggestion } from '../../types/editor'
 import type { OutlineItem } from '../../composables/useEditorOutline'
@@ -109,7 +110,8 @@ async function onFileChange(e: Event) {
   } catch (err) {
     const message = getErrorMessage(err)
     uploadError.value = '上傳失敗：' + message
-    showToast('上傳失敗：' + message, 'error')
+    // 429 由 apiClient 的全域 toast 提示；欄位內的 uploadError 仍保留
+    if (!isRateLimited(err)) showToast('上傳失敗：' + message, 'error')
   } finally {
     isUploading.value = false
     input.value = ''

@@ -483,6 +483,18 @@ describe('EditorView', () => {
         expect(mockShowToast).toHaveBeenCalledWith('儲存失敗', 'error')
       })
     })
+
+    it('A4：儲存遇到 429 → 不顯示自己的「儲存失敗」toast（全域 429 toast 已提示）', async () => {
+      vi.mocked(editorService.createArticle).mockRejectedValue(Object.assign(new Error('操作太頻繁，請 30 秒後再試'), { status: 429, code: 'A0009' }))
+
+      const user = userEvent.setup()
+      renderEditor()
+      await user.click(screen.getByTestId('editor-save-btn'))
+
+      await waitFor(() => expect(editorService.createArticle).toHaveBeenCalled())
+      await new Promise(r => setTimeout(r, 0))
+      expect(mockShowToast).not.toHaveBeenCalledWith('儲存失敗', 'error')
+    })
   })
 
   // ── Editor mode switching ───────────────────────────────────────────────

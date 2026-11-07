@@ -2,6 +2,7 @@ import { ref, type Ref } from 'vue'
 import { bookmarkService } from '../api/bookmarkService'
 import { useAuthWall } from './useAuthWall'
 import { useToast } from './useToast'
+import { isRateLimited } from '../utils/apiErrors'
 
 export function useArticleBookmark(
   articleUuid: Ref<string>,
@@ -22,9 +23,10 @@ export function useArticleBookmark(
     try {
       if (bookmarked.value) await bookmarkService.bookmark(articleUuid.value)
       else await bookmarkService.unbookmark(articleUuid.value)
-    } catch {
+    } catch (error) {
       bookmarked.value = previous
-      showToast('收藏失敗，請稍後再試', 'error')
+      // 429 已由 apiClient 的全域 toast 提示等待時間，不再疊自己的錯誤 toast
+      if (!isRateLimited(error)) showToast('收藏失敗，請稍後再試', 'error')
     } finally {
       isPending.value = false
     }

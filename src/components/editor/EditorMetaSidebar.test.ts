@@ -187,6 +187,20 @@ describe('EditorMetaSidebar', () => {
       })
     })
 
+    it('A4：上傳遇到 429 → 不另外跳錯誤 toast（全域 429 toast 已提示），欄位內仍顯示失敗', async () => {
+      mockShowToast.mockClear()
+      vi.mocked(fileService.uploadFile).mockRejectedValue(Object.assign(new Error('操作太頻繁，請 30 秒後再試'), { status: 429, code: 'A0009' }))
+
+      const user = userEvent.setup()
+      render(EditorMetaSidebar, { props: defaultProps })
+      const file = new File(['img'], 'cover.jpg', { type: 'image/jpeg' })
+      const input = document.querySelector('input[type="file"]') as HTMLInputElement
+      await user.upload(input, file)
+
+      await waitFor(() => expect(screen.getByText(/上傳失敗/)).toBeInTheDocument())
+      expect(mockShowToast).not.toHaveBeenCalledWith(expect.stringContaining('上傳失敗'), 'error')
+    })
+
     it('上傳檔案後呼叫 fileService.uploadFile 並 emit update:coverImageUrl', async () => {
       const mockUrl = 'https://mock-cdn.example.com/cover.jpg'
       vi.mocked(fileService.uploadFile).mockResolvedValue({

@@ -21,6 +21,32 @@ describe('useToast', () => {
     expect(toasts.value[0].type).toBe('info');
   });
 
+  it('帶 key 的 toast：同 key 只保留一則，新的取代舊的文字並重新計時', () => {
+    const { toasts, showToast } = useToast();
+    showToast('請 30 秒後再試', 'warning', 4000, undefined, 'rate-limit');
+    vi.advanceTimersByTime(3000);
+    showToast('請 20 秒後再試', 'warning', 4000, undefined, 'rate-limit');
+
+    expect(toasts.value).toHaveLength(1);
+    expect(toasts.value[0].message).toBe('請 20 秒後再試');
+
+    // 舊的計時器已被取消：距第一次顯示 4 秒時，新的那則仍在
+    vi.advanceTimersByTime(2000);
+    expect(toasts.value).toHaveLength(1);
+    vi.advanceTimersByTime(2100);
+    expect(toasts.value).toHaveLength(0);
+  });
+
+  it('不同 key 或沒有 key 的 toast 互不影響', () => {
+    const { toasts, showToast } = useToast();
+    showToast('A', 'info', 4000, undefined, 'k1');
+    showToast('B', 'info', 4000, undefined, 'k2');
+    showToast('C', 'info');
+    showToast('D', 'info');
+
+    expect(toasts.value.map(t => t.message)).toEqual(['A', 'B', 'C', 'D']);
+  });
+
   it('removeToast 移除指定 toast', () => {
     const { toasts, showToast, removeToast } = useToast();
     showToast('訊息1', 'info');

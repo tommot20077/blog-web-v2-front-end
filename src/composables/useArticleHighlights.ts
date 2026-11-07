@@ -8,6 +8,7 @@ import {
 import { useAuthStore } from '../stores/auth'
 import { useAuthWall } from './useAuthWall'
 import { useToast } from './useToast'
+import { isRateLimited } from '../utils/apiErrors'
 
 export function useArticleHighlights(articleUuid: Readonly<Ref<string>>) {
   const authStore = useAuthStore()
@@ -52,7 +53,7 @@ export function useArticleHighlights(articleUuid: Readonly<Ref<string>>) {
       return created
     } catch (error) {
       console.error('Failed to create article highlight:', error)
-      showToast('建立劃線失敗，請稍後再試', 'error')
+      if (!isRateLimited(error)) showToast('建立劃線失敗，請稍後再試', 'error') // 429 由 apiClient 全域 toast 提示
       return null
     } finally {
       isMutating.value = false
@@ -71,7 +72,7 @@ export function useArticleHighlights(articleUuid: Readonly<Ref<string>>) {
     } catch (error) {
       highlights.value = [...previous]
       console.error('Failed to update article highlight:', error)
-      showToast('更新劃線失敗，請稍後再試', 'error')
+      if (!isRateLimited(error)) showToast('更新劃線失敗，請稍後再試', 'error')
       return null
     } finally {
       isMutating.value = false
@@ -88,7 +89,7 @@ export function useArticleHighlights(articleUuid: Readonly<Ref<string>>) {
       return true
     } catch (error) {
       console.error('Failed to delete article highlight:', error)
-      showToast('刪除劃線失敗，請稍後再試', 'error')
+      if (!isRateLimited(error)) showToast('刪除劃線失敗，請稍後再試', 'error')
       return false
     } finally {
       isMutating.value = false

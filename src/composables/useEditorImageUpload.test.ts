@@ -138,6 +138,16 @@ describe('useEditorImageUpload', () => {
     expect(mockShowToast).toHaveBeenCalledWith(expect.stringContaining('上傳逾時'), 'error')
   })
 
+  it('A4：上傳遇到 429 → 仍移除佔位文字，但不顯示自己的錯誤 toast', async () => {
+    vi.mocked(fileService.uploadFile).mockRejectedValue(Object.assign(new Error('操作太頻繁，請 30 秒後再試'), { status: 429, code: 'A0009' }))
+    const { uploadImages, content } = setup()
+
+    await uploadImages([new File(['a'], 'a.png', { type: 'image/png' })])
+
+    expect(content.value).toBe('')
+    expect(mockShowToast).not.toHaveBeenCalled()
+  })
+
   it('非圖片檔案被忽略，不呼叫 uploadFile', async () => {
     const { uploadImages, content } = setup()
 

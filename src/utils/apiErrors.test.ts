@@ -6,6 +6,7 @@ import {
   getFileTooLargeMessage,
   getFriendlyErrorMessage,
   getRateLimitMessage,
+  isRateLimited,
   isConcurrentUpdateError,
   parseRetryAfterSeconds,
 } from './apiErrors'
@@ -95,6 +96,21 @@ describe('parseRetryAfterSeconds（A4）', () => {
     expect(parseRetryAfterSeconds({ 'retry-after': '0' })).toBeUndefined()
     expect(parseRetryAfterSeconds({ 'retry-after': '1.5' })).toBeUndefined()
     expect(parseRetryAfterSeconds({ 'retry-after': 'Wed, 21 Oct 2026 07:28:00 GMT' })).toBeUndefined()
+  })
+})
+
+describe('isRateLimited（A4）', () => {
+  it('apiClient 形狀（status 429）與 axios 風格（response.status 429）都為 true', () => {
+    expect(isRateLimited(Object.assign(new Error('x'), { status: 429, code: 'A0009' }))).toBe(true)
+    expect(isRateLimited(Object.assign(new Error('x'), { response: { status: 429 } }))).toBe(true)
+  })
+
+  it('其他狀態、非物件、auth 限流 A0113（HTTP 400）都為 false', () => {
+    expect(isRateLimited(Object.assign(new Error('x'), { status: 400, code: 'A0113' }))).toBe(false)
+    expect(isRateLimited(Object.assign(new Error('x'), { status: 500 }))).toBe(false)
+    expect(isRateLimited(new Error('x'))).toBe(false)
+    expect(isRateLimited(null)).toBe(false)
+    expect(isRateLimited('429')).toBe(false)
   })
 })
 

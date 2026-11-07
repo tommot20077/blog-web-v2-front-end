@@ -45,6 +45,20 @@ describe('useCommentLike', () => {
     expect(likeCount.value).toBe(0)
   })
 
+  it('A4：遇到 429 → 仍 rollback，但不顯示自己的錯誤 toast', async () => {
+    const { useToast } = await import('./useToast')
+    const { toasts } = useToast()
+    toasts.value.splice(0)
+    vi.mocked(commentService.like).mockRejectedValue(Object.assign(new Error('操作太頻繁，請 30 秒後再試'), { status: 429, code: 'A0009' }))
+    const { liked, likeCount, toggle } = useCommentLike(ref('c-uuid'), { liked: false, likeCount: 0 })
+
+    await toggle()
+
+    expect(liked.value).toBe(false)
+    expect(likeCount.value).toBe(0)
+    expect(toasts.value.filter(t => t.type === 'error')).toHaveLength(0)
+  })
+
   it('未登入 → redirect', async () => {
     const auth = useAuthStore()
     auth.user = null

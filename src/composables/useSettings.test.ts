@@ -118,6 +118,33 @@ describe('useSettings', () => {
   })
 
   describe('saveProfile error/toast', () => {
+    it('A4：saveProfile 遇到 429 → 不顯示自己的失敗 toast（全域 429 toast 已提示）', async () => {
+      const { userService } = await import('../api/userService')
+      vi.mocked(userService.updateProfile).mockRejectedValueOnce(
+        Object.assign(new Error('操作太頻繁，請 30 秒後再試'), { status: 429, code: 'A0009' }),
+      )
+
+      const { useToast } = await import('./useToast')
+      const mockShowToast = vi.fn()
+      vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast })
+
+      vi.resetModules()
+      const { useSettings } = await import('./useSettings')
+
+      let capturedSaveProfile: (() => Promise<void>) | null = null
+      const TestComp = makeTestComponent(() => {
+        const s = useSettings()
+        capturedSaveProfile = s.saveProfile
+        return {}
+      })
+
+      mount(TestComp)
+      await capturedSaveProfile!()
+
+      expect(userService.updateProfile).toHaveBeenCalled()
+      expect(mockShowToast).not.toHaveBeenCalledWith(expect.anything(), 'error')
+    })
+
     it('saveProfile 失敗時顯示 error toast', async () => {
       const { userService } = await import('../api/userService')
       vi.mocked(userService.updateProfile).mockRejectedValueOnce(new Error('Network error'))

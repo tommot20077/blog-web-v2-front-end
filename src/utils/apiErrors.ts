@@ -51,6 +51,17 @@ export function parseRetryAfterSeconds(headers: unknown): number | undefined {
   return seconds > 0 ? seconds : undefined
 }
 
+/**
+ * 是否為通用限流（HTTP 429）。apiClient 已經用全域 toast 告知等待時間，
+ * 呼叫端遇到時不必再顯示自己的「失敗」toast（避免兩則同時出現）。
+ * 同時認得 apiClient 形狀（status）與 axios 風格（response.status，mock 失敗物件）。
+ */
+export function isRateLimited(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false
+  const { status, response } = error as { status?: unknown; response?: { status?: unknown } }
+  return status === TOO_MANY_REQUESTS_STATUS || response?.status === TOO_MANY_REQUESTS_STATUS
+}
+
 /** 429 的使用者訊息：有秒數時告知等待時間，否則通用提示 */
 export function getRateLimitMessage(retryAfterSeconds: number | undefined): string {
   return retryAfterSeconds === undefined

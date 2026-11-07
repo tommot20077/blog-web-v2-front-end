@@ -6,7 +6,7 @@ import { useToast } from './useToast'
 import { getPasswordRules, PASSWORD_POLICY_MESSAGE } from './useFormValidation'
 import { isSafeHandle, isHttpUrl } from '../utils/socialLinks'
 import { exceedsUploadLimit } from '../utils/uploadLimits'
-import { getApiErrorCode, getFileTooLargeMessage, getFriendlyErrorMessage } from '../utils/apiErrors'
+import { getApiErrorCode, getFileTooLargeMessage, getFriendlyErrorMessage, isRateLimited } from '../utils/apiErrors'
 
 type SaveStatus = 'idle' | 'saving' | 'saved'
 
@@ -213,7 +213,8 @@ export function useSettings() {
       })
     } catch (err) {
       // A0402／A0406／A0407（頭像上傳或設定頭像失敗）有專屬訊息；其他維持通用提示
-      showToast(getFriendlyErrorMessage(getApiErrorCode(err)) ?? '儲存個人資料失敗', 'error')
+      // 429 由 apiClient 的全域 toast 提示等待時間
+      if (!isRateLimited(err)) showToast(getFriendlyErrorMessage(getApiErrorCode(err)) ?? '儲存個人資料失敗', 'error')
     }
   }
 
