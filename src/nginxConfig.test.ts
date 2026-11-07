@@ -99,6 +99,12 @@ describe('nginx.conf CSP（強制）', () => {
     }
   })
 
+  it("img-src 不放行外部圖片，且註解說明這是刻意決定、編輯器會警告", () => {
+    expect(directive(readPolicy(), 'img-src')).toBe("img-src 'self' blob:")
+    expect(conf).toContain('外部圖片')
+    expect(conf).toContain('編輯器偵測到內文含外部圖片時會顯示警告')
+  })
+
   it('既有安全標頭仍在（X-Content-Type-Options / X-Frame-Options / Referrer-Policy）', () => {
     expect(activeConf).toMatch(/add_header\s+X-Content-Type-Options\s+"nosniff"\s+always/)
     expect(activeConf).toMatch(/add_header\s+X-Frame-Options\s+"SAMEORIGIN"\s+always/)

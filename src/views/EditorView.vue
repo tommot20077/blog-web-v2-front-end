@@ -11,6 +11,7 @@ import { useToast } from '../composables/useToast'
 import { useEditorFocusMode } from '../composables/useEditorFocusMode'
 import { useEditorOutline } from '../composables/useEditorOutline'
 import { useEditorImageUpload } from '../composables/useEditorImageUpload'
+import { findExternalImages } from '../utils/externalImages'
 import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard'
 import { useAuthedImages } from '../composables/useAuthedImages'
 import { categoryService } from '../api/categoryService'
@@ -90,6 +91,12 @@ const { renderedHtml } = useMarkdownRenderer(markdownContent)
 // ── 未發布草稿圖片改走帶認證 blob 載入（會開編輯器的必是作者/管理員，永遠啟用）──────
 const editorPreviewEl = ref<HTMLElement | null>(null)
 useAuthedImages(editorPreviewEl, () => renderedHtml.value)
+
+// ── 外部圖片警告 ───────────────────────────────────────────────────────────
+// 正式環境 CSP 的 img-src 只放行 'self' blob:，外部圖床的圖片在讀者端會破圖（Yuan 2026-11-07：CSP 維持嚴格，改在編輯器警告）。
+const externalImageCount = computed(
+  () => findExternalImages(markdownContent.value, window.location.origin).length,
+)
 
 // ── Word count ─────────────────────────────────────────────────────────────
 const { wordCount, characterCount } = useWordCount(markdownContent)
@@ -309,6 +316,16 @@ async function onVersionRestored() {
       @insert-images="onInsertImages"
     />
 
+    <!-- 外部圖片警告（CSP 不放行外部圖片，發布後讀者端會破圖） -->
+    <div
+      v-if="externalImageCount > 0 && !isFocusMode"
+      class="ed-image-warning"
+      role="status"
+      data-testid="editor-external-image-warning"
+    >
+      內文含 {{ externalImageCount }} 張外部圖片，發布後讀者端無法顯示，請改用上傳插圖
+    </div>
+
     <!-- Split pane body -->
     <div class="editor-body">
       <!-- Left: CodeMirror editor (v-show, not v-if — 保留 CodeMirror 實例，避免 mode 切換時重建) -->
@@ -389,6 +406,13 @@ async function onVersionRestored() {
 /* 設計系統原樣把 .ed-title-input 的 cursor 設為 none（等同隱藏插入點），
    套用在真的可輸入的欄位上會讓打字時看不到游標，體驗有問題，故覆寫回 text。 */
 .ed-title-input { cursor: text; }
+.ed-image-warning {
+  padding: 0.5rem 1rem;
+  font-size: 0.8125rem;
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger-strong) 10%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--danger-strong) 25%, transparent);
+}
 .editor-body { flex: 1; display: flex; overflow: hidden; }
 .editor-pane { position: relative; flex: 1; min-width: 0; overflow-y: auto; border-right: 1px solid var(--divider); }
 .editor-pane-inner { height: 100%; }

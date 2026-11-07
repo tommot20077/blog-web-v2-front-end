@@ -270,6 +270,32 @@ describe('EditorView', () => {
     })
   })
 
+  // ── 外部圖片警告（CSP img-src 不放行外部圖片）────────────────────────────
+  describe('外部圖片警告', () => {
+    it('內文沒有外部圖片：不顯示警告', async () => {
+      const { content } = setupMarkdownEditorMock()
+      renderEditor()
+      content.value = '![a](/api/v1/files/abc/content)'
+      await nextTick()
+
+      expect(screen.queryByTestId('editor-external-image-warning')).not.toBeInTheDocument()
+    })
+
+    it('輸入外部圖片網址時出現提示（含張數），移除後提示消失', async () => {
+      const { content } = setupMarkdownEditorMock()
+      renderEditor()
+
+      content.value = '![a](https://img.example.com/a.png)\n<img src="https://x.com/b.png">'
+      const warning = await screen.findByTestId('editor-external-image-warning')
+      expect(warning).toHaveTextContent('內文含 2 張外部圖片，發布後讀者端無法顯示，請改用上傳插圖')
+
+      content.value = '![a](/api/v1/files/abc/content)'
+      await waitFor(() => {
+        expect(screen.queryByTestId('editor-external-image-warning')).not.toBeInTheDocument()
+      })
+    })
+  })
+
   // ── Structure ────────────────────────────────────────────────────────────
   describe('structure', () => {
     it('category service 回傳 undefined 時仍以空陣列渲染 sidebar，不輸出 categories prop warning', async () => {
