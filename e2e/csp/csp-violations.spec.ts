@@ -1,4 +1,4 @@
-import { test as base, expect, type Page } from '@playwright/test'
+import { test as base, expect, type Locator, type Page } from '@playwright/test'
 import { readNginxCsp } from './nginxCsp'
 
 /**
@@ -73,12 +73,20 @@ const test = base.extend<{ violations: Violation[] }>({
   },
 })
 
-async function settle(page: Page) {
-  await page.waitForLoadState('networkidle')
+/**
+ * 頁面穩定一律等「該頁具體的主要元素」出現，不用 networkidle：
+ * 被 CSP 擋下的外部圖片（mock 的 picsum.photos）與背景請求會讓網路遲遲不 idle，在 CI 上容易逾時。
+ * 被擋下的請求會立即失敗並觸發 error / load，不會讓這些等待卡住。
+ */
+async function visit(page: Page, path: string, ready: (page: Page) => Locator) {
+  await page.goto(path)
+  await expect(ready(page)).toBeVisible()
 }
 
+const byTestId = (id: string) => (page: Page) => page.getByTestId(id)
+
 /** 站內導覽（不 reload）：vue-router 會處理 popstate。 */
-async function spaNavigate(page: Page, path: string) {
+async function spaNavigate(page: Page, path: string, ready: (page: Page) => Locator) {
   // 若有「未儲存修改」確認框擋住導覽，要讓測試明確失敗而不是被 Playwright 自動關掉後卡在原頁
   page.once('dialog', (dialog) => {
     throw new Error(`導覽到 ${path} 時出現非預期對話框：${dialog.message()}`)
@@ -88,7 +96,7 @@ async function spaNavigate(page: Page, path: string) {
     window.dispatchEvent(new PopStateEvent('popstate', { state: {} }))
   }, path)
   await page.waitForURL((url) => url.pathname + url.search === path || url.pathname === path.split('?')[0])
-  await settle(page)
+  await expect(ready(page)).toBeVisible()
 }
 
 async function login(page: Page, role: 'author' | 'admin') {
@@ -101,7 +109,7 @@ async function login(page: Page, role: 'author' | 'admin') {
   await page.getByTestId('auth-login-field-password').fill(creds.password)
   await page.getByTestId('auth-login-submit').click()
   await page.waitForURL((url) => !url.pathname.startsWith('/login'))
-  await settle(page)
+  await expect(page.getByTestId('navbar-root')).toBeVisible()
 }
 
 test.describe('CSP 違規收集（零違規才允許強制）', () => {
@@ -121,57 +129,44 @@ test.describe('CSP 違規收集（零違規才允許強制）', () => {
   })
 
   test('公開頁面：首頁、文章列表、文章詳情、標籤、作者、搜尋', async ({ page, violations }) => {
-    await page.goto('/')
-    await settle(page)
+    await visit(page, '/', byTestId('navbar-root'))
 
-    await page.goto('/articles')
-    await settle(page)
-    const articleHref = await page.locator('a[href^="/articles/"]').first().getAttribute('href')
-    expect(articleHref, '文章列表應有至少一篇文章').toBeTruthy()
+    await visit(page, '/articles', byTestId('articles-root'))
+    const articleLink = page.locator('a[href^="/articles/"]').first()
+    await expect(articleLink, '文章列表應有至少一篇文章').toBeVisible()
+    const articleHref = (await articleLink.getAttribute('href'))!
 
-    await page.goto(articleHref!)
-    await settle(page)
-    await expect(page.locator('article, .prose').first()).toBeVisible()
+    await visit(page, articleHref, byTestId('article-title'))
+    const authorLink = page.locator('a[href^="/author/"]').first()
+    const authorHref = (await authorLink.count()) > 0 ? await authorLink.getAttribute('href') : null
 
     await page.goto('/tags')
-    await settle(page)
-    const tagHref = await page.locator('a[href^="/tags/"]').first().getAttribute('href')
-    if (tagHref) {
-      await page.goto(tagHref)
-      await settle(page)
-    }
+    const tagLink = page.locator('a[href^="/tags/"]').first()
+    await expect(tagLink).toBeVisible()
+    await visit(page, (await tagLink.getAttribute('href'))!, byTestId('tag-title'))
 
-    const authorHref = await page
-      .goto(articleHref!)
-      .then(() => settle(page))
-      .then(() => page.locator('a[href^="/author/"]').first().getAttribute('href'))
-    if (authorHref) {
-      await page.goto(authorHref)
-      await settle(page)
-    }
+    if (authorHref) await visit(page, authorHref, byTestId('author-name'))
 
-    await page.goto('/search')
+    await visit(page, '/search', byTestId('search-input'))
     await page.getByTestId('search-input').fill('Vue')
     await page.keyboard.press('Enter')
-    await settle(page)
+    await expect(page.getByTestId('search-article-card').first()).toBeVisible()
 
-    await page.goto('/archive')
-    await settle(page)
+    await visit(page, '/archive', byTestId('archive-root'))
 
     expect(violations).toEqual([])
   })
 
   test('登入、錯誤密碼與註冊頁', async ({ page, violations }) => {
-    await page.goto('/login')
+    await visit(page, '/login', byTestId('auth-login-submit'))
     await page.getByTestId('auth-login-field-email').fill('nobody@test.com')
     await page.getByTestId('auth-login-field-password').fill('WrongPass1')
     await page.getByTestId('auth-login-submit').click()
-    await settle(page)
+    await expect(page.getByTestId('toast-message').first()).toBeVisible()
+    await expect(page).toHaveURL(/\/login/)
 
-    await page.goto('/register')
-    await settle(page)
-    await page.goto('/forgot-password')
-    await settle(page)
+    await visit(page, '/register', byTestId('auth-register-field-email'))
+    await visit(page, '/forgot-password', byTestId('auth-forgot-field-email'))
 
     expect(violations).toEqual([])
   })
@@ -179,7 +174,7 @@ test.describe('CSP 違規收集（零違規才允許強制）', () => {
   test('作者：編輯器（CodeMirror 輸入、程式碼高亮預覽）、設定頁頭像預覽 blob:、我的文章', async ({ page, violations }) => {
     await login(page, 'author')
 
-    await spaNavigate(page, '/editor')
+    await spaNavigate(page, '/editor', byTestId('editor-root'))
     await page.getByTestId('editor-title-input').fill('CSP 測試文章')
     await page.locator('.cm-content').click()
     await page.keyboard.type('# 標題\n\n內文 **粗體**\n\n```js\nconst answer = 42\n```\n\n![同源圖片](/api/v1/files/csp-e2e/content)\n\n')
@@ -187,17 +182,14 @@ test.describe('CSP 違規收集（零違規才允許強制）', () => {
     await page.getByTestId('editor-mode-split').click()
     await page.getByTestId('editor-save-btn').click()
     await expect(page.getByText('草稿已儲存')).toBeVisible()
-    await settle(page)
 
-    await spaNavigate(page, '/my-articles')
-    await spaNavigate(page, '/settings')
-    await expect(page.getByTestId('settings-public-note')).toBeVisible()
+    await spaNavigate(page, '/my-articles', byTestId('my-root'))
+    await spaNavigate(page, '/settings', byTestId('settings-public-note'))
     await page.locator('input[type="file"][accept="image/*"]').setInputFiles('e2e/fixtures/test-image.png')
     await expect(page.locator('img[src^="blob:"]').first()).toBeVisible()
-    await settle(page)
 
-    await spaNavigate(page, '/bookmarks')
-    await spaNavigate(page, '/my-stats')
+    await spaNavigate(page, '/bookmarks', byTestId('bookmarks-root'))
+    await spaNavigate(page, '/my-stats', byTestId('stats-root'))
 
     expect(violations).toEqual([])
   })
@@ -205,9 +197,11 @@ test.describe('CSP 違規收集（零違規才允許強制）', () => {
   test('管理員：後台各頁', async ({ page, violations }) => {
     await login(page, 'admin')
 
-    for (const path of ['/admin', '/admin/review', '/admin/categories', '/admin/tags', '/admin/search']) {
-      await spaNavigate(page, path)
-    }
+    await spaNavigate(page, '/admin', byTestId('admin-dashboard-root'))
+    await spaNavigate(page, '/admin/review', byTestId('admin-review-shell'))
+    await spaNavigate(page, '/admin/categories', byTestId('admin-categories-root'))
+    await spaNavigate(page, '/admin/tags', byTestId('admin-tags-root'))
+    await spaNavigate(page, '/admin/search', byTestId('admin-search-root'))
 
     expect(violations).toEqual([])
   })

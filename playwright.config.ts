@@ -7,7 +7,7 @@ const USE_CSP = process.env.E2E_CSP === '1' && !USE_FULLSTACK_RED
 const USE_MOCK = process.env.E2E_MOCK === '1' && !USE_FULLSTACK_RED && !USE_CSP
 const projects = USE_CSP
   ? [
-      { name: 'csp', testDir: './e2e/csp', use: { ...devices['Desktop Chrome'] } },
+      { name: 'csp', testDir: './e2e/csp', timeout: 45_000, use: { ...devices['Desktop Chrome'] } },
     ]
   : USE_FULLSTACK_RED
   ? [
