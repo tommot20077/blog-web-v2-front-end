@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import type { Highlight, UpdateHighlightRequest } from '../../api/highlightService'
+import { MAX_HIGHLIGHT_NOTE_LENGTH, exceedsLength } from '../../utils/inputLimits'
 
 const props = defineProps<{
   highlights: Highlight[]
@@ -51,8 +52,20 @@ function markNoteDirty(uuid: string) {
   dirtyNoteUuids.value = new Set(dirtyNoteUuids.value).add(uuid)
 }
 
+// 筆記超過上限（快照 note maxLength 2000）時不送出並提示；記錄是哪幾則超過
+const overLimitUuids = ref<Set<string>>(new Set())
+
 function saveNote(uuid: string) {
-  emit('update', uuid, { note: noteDrafts.value[uuid] ?? '' })
+  const note = noteDrafts.value[uuid] ?? ''
+  const next = new Set(overLimitUuids.value)
+  if (exceedsLength(note, MAX_HIGHLIGHT_NOTE_LENGTH)) {
+    next.add(uuid)
+    overLimitUuids.value = next
+    return
+  }
+  next.delete(uuid)
+  overLimitUuids.value = next
+  emit('update', uuid, { note })
 }
 </script>
 
@@ -98,11 +111,18 @@ function saveNote(uuid: string) {
       <textarea
         v-model="noteDrafts[highlight.uuid]"
         class="highlight-note"
-        maxlength="2000"
+        :maxlength="MAX_HIGHLIGHT_NOTE_LENGTH"
         aria-label="劃線筆記"
         :disabled="isMutating"
         @input="markNoteDirty(highlight.uuid)"
       />
+
+      <p
+        v-if="overLimitUuids.has(highlight.uuid)"
+        class="highlight-note-error"
+        role="alert"
+        :data-testid="`highlight-note-error-${highlight.uuid}`"
+      >筆記最多 {{ MAX_HIGHLIGHT_NOTE_LENGTH }} 字（目前 {{ (noteDrafts[highlight.uuid] ?? '').length }} 字），請刪減後再儲存</p>
 
       <div class="highlight-actions">
         <button
@@ -203,6 +223,11 @@ function saveNote(uuid: string) {
 .highlight-color.active {
   outline: 2px solid var(--ink);
   outline-offset: 2px;
+}
+.highlight-note-error {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #e15554;
 }
 .highlight-note {
   width: 100%;

@@ -2,6 +2,7 @@ import { ref, type Ref } from 'vue'
 import { articleLikeService } from '../api/articleLikeService'
 import { useAuthWall } from './useAuthWall'
 import { useToast } from './useToast'
+import { isRateLimited } from '../utils/apiErrors'
 
 export function useArticleLike(
   articleUuid: Ref<string>,
@@ -23,10 +24,11 @@ export function useArticleLike(
     try {
       if (liked.value) await articleLikeService.like(articleUuid.value)
       else await articleLikeService.unlike(articleUuid.value)
-    } catch {
+    } catch (error) {
       liked.value = prev.liked
       likeCount.value = prev.count
-      showToast('操作失敗，請稍後再試', 'error')
+      // 429 已由 apiClient 的全域 toast 提示等待時間，不再疊自己的錯誤 toast
+      if (!isRateLimited(error)) showToast('操作失敗，請稍後再試', 'error')
     } finally {
       isPending.value = false
     }

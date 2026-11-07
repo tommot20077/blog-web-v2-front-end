@@ -1,7 +1,7 @@
 import apiClient from '../apiClient'
 import { mapPageResult } from '../utils'
 import type { BackendPageResult } from '../utils'
-import type { MyArticle, ArticleStatusFilter, PageResult, ArticleStatus } from '../../types/editor'
+import type { MyArticle, ArticleStatusFilter, PageResult, ArticleStatus, ArticleTransitionResult } from '../../types/editor'
 
 interface BackendMyArticle {
   uuid: string
@@ -39,11 +39,14 @@ export const myArticlesService = {
     return apiClient.delete<unknown, void>(`/api/v1/articles/${uuid}`)
   },
 
-  async submitForReview(uuid: string): Promise<void> {
-    return apiClient.post<unknown, void>(`/api/v1/articles/${uuid}/submit`)
+  // 狀態轉換回傳 ArticleResponse（B2 起帶 version）：呼叫端要改用新 version 才能接著存檔
+  async submitForReview(uuid: string): Promise<ArticleTransitionResult> {
+    const raw = await apiClient.post<unknown, { version: number }>(`/api/v1/articles/${uuid}/submit`)
+    return { version: raw?.version }
   },
 
-  async withdrawArticle(uuid: string): Promise<void> {
-    return apiClient.post<unknown, void>(`/api/v1/articles/${uuid}/withdraw`)
+  async withdrawArticle(uuid: string): Promise<ArticleTransitionResult> {
+    const raw = await apiClient.post<unknown, { version: number }>(`/api/v1/articles/${uuid}/withdraw`)
+    return { version: raw?.version }
   },
 }

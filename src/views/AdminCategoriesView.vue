@@ -4,6 +4,12 @@ import { adminService } from '../api/adminService'
 import { useToast } from '../composables/useToast'
 import AdminRail from '../components/layout/AdminRail.vue'
 import type { CategoryResponse } from '../types/editor'
+import {
+  MAX_CATEGORY_NAME_LENGTH,
+  MAX_CATEGORY_SLUG_LENGTH,
+  MAX_CATEGORY_DESCRIPTION_LENGTH,
+  exceedsLength,
+} from '../utils/inputLimits'
 
 /**
  * AdminCategoriesView — 分類管理（`/admin/categories`）
@@ -39,10 +45,28 @@ const CATEGORY_SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/
 const slugError = computed(() => {
   const slug = form.slug.trim()
   if (slug === '') return null // 空白沿用後端 @NotBlank 回報，不在此重複
-  return CATEGORY_SLUG_PATTERN.test(slug)
-    ? null
-    : 'Slug 只能使用小寫英數字與單一連字號，且不可以連字號開頭或結尾'
+  if (!CATEGORY_SLUG_PATTERN.test(slug)) {
+    return 'Slug 只能使用小寫英數字與單一連字號，且不可以連字號開頭或結尾'
+  }
+  return exceedsLength(slug, MAX_CATEGORY_SLUG_LENGTH)
+    ? `Slug 最多 ${MAX_CATEGORY_SLUG_LENGTH} 字（目前 ${slug.length} 字），請刪減後再儲存`
+    : null
 })
+
+// 送出前預檢（對齊快照 Create／UpdateCategoryRequest：name ≤ 50、description ≤ 200）；以 trim 後的值計，與 payload 一致
+const nameError = computed(() => {
+  const name = form.name.trim()
+  return exceedsLength(name, MAX_CATEGORY_NAME_LENGTH)
+    ? `名稱最多 ${MAX_CATEGORY_NAME_LENGTH} 字（目前 ${name.length} 字），請刪減後再儲存`
+    : null
+})
+const descriptionError = computed(() => {
+  const description = form.description.trim()
+  return exceedsLength(description, MAX_CATEGORY_DESCRIPTION_LENGTH)
+    ? `描述最多 ${MAX_CATEGORY_DESCRIPTION_LENGTH} 字（目前 ${description.length} 字），請刪減後再儲存`
+    : null
+})
+const hasFormError = computed(() => !!(nameError.value || slugError.value || descriptionError.value))
 
 // 刪除確認狀態
 const deletingUuid = ref<string | null>(null)
@@ -84,7 +108,7 @@ function closeForm() {
 }
 
 async function submitForm() {
-  if (slugError.value) return
+  if (hasFormError.value) return
   isSubmitting.value = true
   const payload = {
     name: form.name.trim(),
@@ -161,11 +185,24 @@ onMounted(fetchCategories)
         <div v-if="formMode" class="cat-form" data-testid="admin-categories-form">
           <div class="cat-form-row">
             <label for="cat-form-name">名稱</label>
-            <input id="cat-form-name" v-model="form.name" data-testid="admin-categories-form-name" />
+            <input
+              id="cat-form-name"
+              v-model="form.name"
+              :maxlength="MAX_CATEGORY_NAME_LENGTH"
+              data-testid="admin-categories-form-name"
+            />
+            <p v-if="nameError" class="cat-form-error" role="alert" data-testid="admin-categories-form-name-error">
+              {{ nameError }}
+            </p>
           </div>
           <div class="cat-form-row">
             <label for="cat-form-slug">Slug</label>
-            <input id="cat-form-slug" v-model="form.slug" data-testid="admin-categories-form-slug" />
+            <input
+              id="cat-form-slug"
+              v-model="form.slug"
+              :maxlength="MAX_CATEGORY_SLUG_LENGTH"
+              data-testid="admin-categories-form-slug"
+            />
             <p v-if="slugError" class="cat-form-error" data-testid="admin-categories-form-slug-error">
               {{ slugError }}
             </p>
@@ -175,8 +212,17 @@ onMounted(fetchCategories)
             <input
               id="cat-form-description"
               v-model="form.description"
+              :maxlength="MAX_CATEGORY_DESCRIPTION_LENGTH"
               data-testid="admin-categories-form-description"
             />
+            <p
+              v-if="descriptionError"
+              class="cat-form-error"
+              role="alert"
+              data-testid="admin-categories-form-description-error"
+            >
+              {{ descriptionError }}
+            </p>
           </div>
           <div class="cat-form-row">
             <label for="cat-form-sortOrder">排序</label>
@@ -200,7 +246,7 @@ onMounted(fetchCategories)
               type="button"
               class="cat-btn cat-btn-primary"
               data-testid="admin-categories-form-submit"
-              :disabled="isSubmitting || !!slugError"
+              :disabled="isSubmitting || hasFormError"
               @click="submitForm"
             >
               {{ formMode === 'edit' ? '儲存' : '新增' }}

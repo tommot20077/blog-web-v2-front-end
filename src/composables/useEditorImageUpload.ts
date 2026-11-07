@@ -1,5 +1,7 @@
 import { fileService } from '../api/fileService'
 import { useToast } from './useToast'
+import { exceedsUploadLimit } from '../utils/uploadLimits'
+import { getFileTooLargeMessage, isRateLimited } from '../utils/apiErrors'
 
 // 每次上傳配一個遞增序號，確保同名檔案同時上傳時佔位文字仍唯一，
 // 避免取代時命中錯誤的佔位區塊。
@@ -23,6 +25,11 @@ export function useEditorImageUpload({ insertText, replaceRange }: EditorImageUp
   const { showToast } = useToast()
 
   async function uploadOne(file: File): Promise<void> {
+    // A6b：超過上限不插入佔位文字、不呼叫 API，直接提示
+    if (exceedsUploadLimit(file, 'ARTICLE_CONTENT')) {
+      showToast('圖片上傳失敗：' + getFileTooLargeMessage('ARTICLE_CONTENT'), 'error')
+      return
+    }
     const placeholder = `![上傳中...](pending:${Date.now()}-${++uploadSeq})`
     insertText(placeholder)
 
@@ -33,7 +40,8 @@ export function useEditorImageUpload({ insertText, replaceRange }: EditorImageUp
       replaceRange(placeholder, `![${file.name}](${result.url})`)
     } catch (err) {
       replaceRange(placeholder, '')
-      showToast('圖片上傳失敗：' + getErrorMessage(err), 'error')
+      // 429 由 apiClient 的全域 toast 提示，不再疊自己的錯誤 toast
+      if (!isRateLimited(err)) showToast('圖片上傳失敗：' + getErrorMessage(err), 'error')
     }
   }
 

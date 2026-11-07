@@ -197,6 +197,26 @@ describe('useArticleHighlights', () => {
     expect(mockShowToast).toHaveBeenCalledWith('建立劃線失敗，請稍後再試', 'error')
   })
 
+  it('A4：create／update／delete 遇到 429 時不顯示自己的錯誤 toast', async () => {
+    const rateLimited = Object.assign(new Error('操作太頻繁，請 30 秒後再試'), { status: 429, code: 'A0009' })
+    vi.mocked(highlightService.list).mockResolvedValue([makeHighlight({ uuid: 'h-1' })])
+    vi.mocked(highlightService.create).mockRejectedValueOnce(rateLimited)
+    vi.mocked(highlightService.update).mockRejectedValueOnce(rateLimited)
+    vi.mocked(highlightService.delete).mockRejectedValueOnce(rateLimited)
+    const wrapper = mountHarness()
+    await nextTick()
+    await flushPromises()
+
+    await wrapper.vm.createHighlight({ snippet: 'selected text', color: '#FFEB3B' })
+    await wrapper.vm.updateHighlight('h-1', { note: 'x' })
+    await wrapper.vm.deleteHighlight('h-1')
+
+    expect(highlightService.create).toHaveBeenCalled()
+    expect(highlightService.update).toHaveBeenCalled()
+    expect(highlightService.delete).toHaveBeenCalled()
+    expect(mockShowToast).not.toHaveBeenCalled()
+  })
+
   it('does not create when auth wall blocks', async () => {
     mockRequireAuth.mockReturnValue(false)
     const wrapper = mountHarness()

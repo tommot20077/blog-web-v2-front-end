@@ -193,6 +193,7 @@ html, body { overflow-x: hidden; }
 .admin-reject-form { margin-top: 12px; display: flex; flex-direction: column; gap: 10px; }
 .admin-reject-textarea { width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--glass-border); background: var(--glass); font-size: 14px; color: var(--ink); resize: none; outline: none; transition: border-color .2s; box-sizing: border-box; }
 .admin-reject-textarea:focus { border-color: var(--accent); }
+.admin-reject-error { margin: 0; font-size: 13px; color: var(--danger); }
 .admin-reject-actions { display: flex; gap: 8px; justify-content: flex-end; }
 .admin-btn-cancel { background: var(--glass); border: 1px solid var(--glass-border) !important; color: var(--ink); }
 .admin-btn-confirm-reject { background: color-mix(in srgb, var(--danger-solid) 90%, transparent); color: #fff; transition: background-color .2s; }

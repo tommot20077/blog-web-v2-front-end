@@ -70,6 +70,7 @@ export function createMockEditorArticle(overrides: Partial<EditorArticle> = {}):
     rejectReason: null,
     createdAt: '2026-03-01T10:00:00Z',
     updatedAt: '2026-03-15T12:00:00Z',
+    version: 1,
     ...overrides,
   }
 }

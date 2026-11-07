@@ -8,7 +8,7 @@ export interface UseAuthedImagesOptions {
   /**
    * 是否啟用；預設一律啟用。
    * 回傳 false 時完全不介入（不掃描、不 fetch），並清空目前持有的 blob url。
-   * 用於「已發布文章走匿名 302 本來就通，不需要這個機制」的情境。
+   * 用於「已發布文章的檔案內容端點可匿名讀取，不需要這個機制」的情境。
    */
   enabled?: () => boolean
 }
@@ -28,7 +28,7 @@ export interface UseAuthedImagesOptions {
  * - fetch 失敗（403/404/網路錯誤）時保留原 src，不掩蓋真正無權限的情況。
  * - 每輪掃描後，快取中不再被目前容器引用的 src 會被 revoke；元件卸載時
  *   剩餘快取全部 revoke，避免 blob url 記憶體洩漏。
- * - enabled() 回傳 false 時完全不介入（例如已發布文章走匿名 302 不需要）。
+ * - enabled() 回傳 false 時完全不介入（例如已發布文章可匿名讀取，不需要）。
  */
 export function useAuthedImages(
   containerRef: Ref<HTMLElement | null | undefined>,
@@ -48,11 +48,9 @@ export function useAuthedImages(
 
   async function fetchBlobUrl(src: string): Promise<string | null> {
     try {
-      // apiClient 全域 withCredentials:true（憑證模式 include），但這支請求對 9010 靠 Authorization
-      // header 認證（interceptor 已加），不需要 cookie；若沿用 include，瀏覽器跟隨 302 導到 MinIO
-      // presigned URL（9000）時，因 MinIO 回應 Access-Control-Allow-Origin: *（wildcard）而
-      // credentials 模式為 include，會被瀏覽器 CORS 規則直接擋下（wildcard + credentials 不相容）。
-      // 故此處 per-request 覆寫為 false：對 9000 改靠 presigned query 簽章認證，不需要 cookie。
+      // 後端 GET /api/v1/files/{id}/content 為 200 位元組串流（支援 ETag／304），不再 302 導向
+      // presigned URL，物件儲存不對外。這支請求靠 Authorization header 認證（interceptor 已加），
+      // 不需要 cookie，故 per-request 覆寫 withCredentials:false（apiClient 全域為 true）。
       const blob = await apiClient.get<unknown, Blob>(src, { responseType: 'blob', withCredentials: false })
       return URL.createObjectURL(blob)
     } catch {

@@ -1,5 +1,5 @@
 import { flushPromises } from '@vue/test-utils'
-import { screen, waitFor } from '@testing-library/vue'
+import { screen, waitFor, fireEvent } from '@testing-library/vue'
 import userEvent from '@testing-library/user-event'
 import AdminCategoriesView from './AdminCategoriesView.vue'
 import { renderWithRouter } from '../test-utils'
@@ -379,6 +379,66 @@ describe('AdminCategoriesView', () => {
       expect(screen.getByTestId('admin-categories-row-cat-uuid-1')).toBeInTheDocument()
       // 不應重新拉列表（失敗不重載）
       expect(mockGetCategoriesFull).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  // ── W7F-7：長度上限（快照 Create/UpdateCategoryRequest：name 50、slug 60、description 200）──
+  describe('長度上限預檢', () => {
+    async function openCreateAndFill(fields: { name?: string; slug?: string; description?: string }) {
+      renderWithRouter(AdminCategoriesView)
+      await flushPromises()
+      await fireEvent.click(screen.getByTestId('admin-categories-add-btn'))
+      await fireEvent.update(screen.getByTestId('admin-categories-form-name'), fields.name ?? '名稱')
+      await fireEvent.update(screen.getByTestId('admin-categories-form-slug'), fields.slug ?? 'valid-slug')
+      await fireEvent.update(screen.getByTestId('admin-categories-form-description'), fields.description ?? '')
+      await flushPromises()
+    }
+
+    it('輸入框帶 maxlength：name 50、slug 60、description 200', async () => {
+      await openCreateAndFill({})
+      expect(screen.getByTestId('admin-categories-form-name').getAttribute('maxlength')).toBe('50')
+      expect(screen.getByTestId('admin-categories-form-slug').getAttribute('maxlength')).toBe('60')
+      expect(screen.getByTestId('admin-categories-form-description').getAttribute('maxlength')).toBe('200')
+    })
+
+    it('name 剛好 50、slug 剛好 60、description 剛好 200 → 可以送出', async () => {
+      await openCreateAndFill({ name: '名'.repeat(50), slug: 'a'.repeat(60), description: '述'.repeat(200) })
+      await fireEvent.click(screen.getByTestId('admin-categories-form-submit'))
+      await flushPromises()
+      expect(mockCreateCategory).toHaveBeenCalledTimes(1)
+    })
+
+    it('name 51 字 → 提示、停用送出、不呼叫 API', async () => {
+      await openCreateAndFill({ name: '名'.repeat(51) })
+      expect(screen.getByTestId('admin-categories-form-name-error')).toHaveTextContent('名稱最多 50 字')
+      expect(screen.getByTestId('admin-categories-form-submit')).toBeDisabled()
+      await fireEvent.click(screen.getByTestId('admin-categories-form-submit'))
+      expect(mockCreateCategory).not.toHaveBeenCalled()
+    })
+
+    it('slug 61 字（格式正確）→ 提示、停用送出、不呼叫 API', async () => {
+      await openCreateAndFill({ slug: 'a'.repeat(61) })
+      expect(screen.getByTestId('admin-categories-form-slug-error')).toHaveTextContent('Slug 最多 60 字')
+      expect(screen.getByTestId('admin-categories-form-submit')).toBeDisabled()
+      await fireEvent.click(screen.getByTestId('admin-categories-form-submit'))
+      expect(mockCreateCategory).not.toHaveBeenCalled()
+    })
+
+    it('description 201 字 → 提示、停用送出、不呼叫 API', async () => {
+      await openCreateAndFill({ description: '述'.repeat(201) })
+      expect(screen.getByTestId('admin-categories-form-description-error')).toHaveTextContent('描述最多 200 字')
+      expect(screen.getByTestId('admin-categories-form-submit')).toBeDisabled()
+      await fireEvent.click(screen.getByTestId('admin-categories-form-submit'))
+      expect(mockCreateCategory).not.toHaveBeenCalled()
+    })
+
+    it('編輯時 name 超過 50 字同樣不呼叫 updateCategory', async () => {
+      renderWithRouter(AdminCategoriesView)
+      await flushPromises()
+      await fireEvent.click(screen.getByTestId('admin-categories-edit-cat-uuid-1'))
+      await fireEvent.update(screen.getByTestId('admin-categories-form-name'), '名'.repeat(51))
+      await fireEvent.click(screen.getByTestId('admin-categories-form-submit'))
+      expect(mockUpdateCategory).not.toHaveBeenCalled()
     })
   })
 })

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import {
   getPendingArticlesMock,
   publishArticleMock,
@@ -7,6 +7,12 @@ import {
   getCategoriesFullMock,
   getTagsFullMock,
   getSearchStatusMock,
+  reindexSearchMock,
+  resetAdminSearchMockState,
+  setMockReindexOutcome,
+  MOCK_REINDEX_DURATION_MS,
+  MOCK_REINDEX_FAIL_AT_MS,
+  MOCK_REINDEX_TOTAL,
 } from './adminMockService'
 import { resetEditorArticleStore } from './data'
 import { mockApiFailure, resetMockApiFailures } from './mockApiFailureState'
@@ -14,6 +20,7 @@ import { mockApiFailure, resetMockApiFailures } from './mockApiFailureState'
 beforeEach(() => {
   resetEditorArticleStore()
   resetMockApiFailures()
+  resetAdminSearchMockState()
 })
 
 describe('mockApiFailure 的生效時機', () => {
@@ -126,5 +133,91 @@ describe('getSearchStatusMock', () => {
     expect(Number.isInteger(result.documentCount)).toBe(true)
     expect(typeof result.lastReindexAt).toBe('string')
     expect(() => new Date(result.lastReindexAt as string).toISOString()).not.toThrow()
+  })
+})
+
+describe('reindexSearchMock / getSearchStatusMock：背景重建作業（D1）', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-11-07T10:00:00Z'))
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('尚未重建過：status.reindex 為 null', async () => {
+    expect((await getSearchStatusMock()).reindex).toBeNull()
+  })
+
+  it('reindexSearchMock 回傳 RUNNING 作業（processed=0、finishedAt/error=null）', async () => {
+    const job = await reindexSearchMock()
+    expect(job).toMatchObject({ state: 'RUNNING', processed: 0, finishedAt: null, error: null })
+    expect(typeof job.jobId).toBe('string')
+    expect(job.startedAt).toBe('2026-11-07T10:00:00.000Z')
+  })
+
+  it('status.reindex 依時間推進 processed，且不超過 total', async () => {
+    await reindexSearchMock()
+    vi.advanceTimersByTime(MOCK_REINDEX_DURATION_MS / 2)
+    const mid = (await getSearchStatusMock()).reindex!
+    expect(mid.state).toBe('RUNNING')
+    expect(mid.total).toBe(MOCK_REINDEX_TOTAL)
+    expect(mid.processed).toBeGreaterThan(0)
+    expect(mid.processed).toBeLessThan(MOCK_REINDEX_TOTAL)
+  })
+
+  it('經過 duration 後變成 COMPLETED：processed=total、有 finishedAt，lastReindexAt 更新', async () => {
+    await reindexSearchMock()
+    vi.advanceTimersByTime(MOCK_REINDEX_DURATION_MS)
+    const status = await getSearchStatusMock()
+    expect(status.reindex).toMatchObject({
+      state: 'COMPLETED',
+      processed: MOCK_REINDEX_TOTAL,
+      total: MOCK_REINDEX_TOTAL,
+      error: null,
+    })
+    expect(status.reindex!.finishedAt).not.toBeNull()
+    expect(status.lastReindexAt).toBe(status.reindex!.finishedAt)
+  })
+
+  it('已有作業 RUNNING 時再觸發：拒絕 409／A0501（與後端一致）', async () => {
+    await reindexSearchMock()
+    await expect(reindexSearchMock()).rejects.toMatchObject({
+      response: { status: 409, data: { code: 'A0501' } },
+    })
+  })
+
+  it('作業結束後可再觸發新作業（新 jobId）', async () => {
+    const first = await reindexSearchMock()
+    vi.advanceTimersByTime(MOCK_REINDEX_DURATION_MS)
+    const second = await reindexSearchMock()
+    expect(second.jobId).not.toBe(first.jobId)
+    expect(second.state).toBe('RUNNING')
+  })
+
+  it('setMockReindexOutcome(FAILED)：進行到 failAt 後變 FAILED 並帶 error 摘要，不更新 lastReindexAt', async () => {
+    const before = (await getSearchStatusMock()).lastReindexAt
+    setMockReindexOutcome('FAILED')
+    await reindexSearchMock()
+    vi.advanceTimersByTime(MOCK_REINDEX_FAIL_AT_MS)
+    const status = await getSearchStatusMock()
+    expect(status.reindex!.state).toBe('FAILED')
+    expect(status.reindex!.error).toBeTruthy()
+    expect(status.reindex!.finishedAt).not.toBeNull()
+    expect(status.lastReindexAt).toBe(before)
+  })
+
+  it('mockApiFailure 註冊 POST reindex 的失敗（例如 409）時，reindexSearchMock 拒絕且不建立作業', async () => {
+    mockApiFailure('/api/v1/admin/search/reindex', { code: 'A0501', message: '已有搜尋索引重建作業執行中' }, 409)
+    await expect(reindexSearchMock()).rejects.toMatchObject({ response: { status: 409, data: { code: 'A0501' } } })
+    resetMockApiFailures()
+    expect((await getSearchStatusMock()).reindex).toBeNull()
+  })
+
+  it('resetAdminSearchMockState 清掉作業與 outcome', async () => {
+    setMockReindexOutcome('FAILED')
+    await reindexSearchMock()
+    resetAdminSearchMockState()
+    expect((await getSearchStatusMock()).reindex).toBeNull()
   })
 })

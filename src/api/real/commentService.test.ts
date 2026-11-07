@@ -9,7 +9,7 @@ describe('real commentService', () => {
 
   it('list 呼叫 GET /articles/{uuid}/comments with page/size/sort', async () => {
     const mockResponse = {
-      topLevels: { records: [], total: 0, page: 1, size: 20 },
+      topLevels: { records: [], total: 0, current: 1, size: 20, pages: 1 },
       totalCommentCount: 0,
     }
     vi.mocked(apiClient.get).mockResolvedValue(mockResponse)
@@ -19,6 +19,17 @@ describe('real commentService', () => {
       { params: { page: 1, size: 20, sort: 'newest' } },
     )
     expect(res).toEqual(mockResponse)
+  })
+
+  it('listReplies 呼叫 GET /comments/{uuid}/replies with page/size（D3）', async () => {
+    const page = { records: [{ uuid: 'r1' }], total: 5, size: 20, current: 1, pages: 1 }
+    vi.mocked(apiClient.get).mockResolvedValue(page)
+    const res = await commentService.listReplies('parent-uuid', 1, 20)
+    expect(apiClient.get).toHaveBeenCalledWith(
+      '/api/v1/comments/parent-uuid/replies',
+      { params: { page: 1, size: 20 } },
+    )
+    expect(res).toEqual(page)
   })
 
   it('create 呼叫 POST /articles/{uuid}/comments', async () => {

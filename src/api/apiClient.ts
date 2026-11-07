@@ -12,6 +12,14 @@ import type { AxiosError, InternalAxiosRequestConfig } from 'axios'
 import type { ApiResponse } from '../types/auth'
 import { useAuthStore } from '../stores/auth'
 import { markErrorHandled } from '../utils/errorReporting'
+import { useToast } from '../composables/useToast'
+import {
+  TOO_MANY_REQUESTS_STATUS,
+  getFriendlyErrorMessage,
+  getRateLimitMessage,
+  isRateLimited,
+  parseRetryAfterSeconds,
+} from '../utils/apiErrors'
 
 /** 待重發請求佇列項目 */
 interface QueueItem {
@@ -19,6 +27,9 @@ interface QueueItem {
   reject: (reason: unknown) => void
   config: InternalAxiosRequestConfig
 }
+
+/** 429 全域 toast 的去重 key */
+const RATE_LIMIT_TOAST_KEY = 'rate-limit'
 
 let isRefreshing = false
 let failedQueue: QueueItem[] = []
@@ -82,11 +93,25 @@ apiClient.interceptors.response.use(
 
     // 非 401 或無 response：直接 reject
     if (!error.response || error.response.status !== 401) {
-      const message = error.response?.data?.message ?? error.message
+      const code = error.response?.data?.code
+      // 429（通用限流）：訊息帶 Retry-After 秒數；不自動重試，也不走 401 的 refresh 流程
+      const rateLimited = error.response?.status === TOO_MANY_REQUESTS_STATUS
+      const retryAfterSeconds = rateLimited ? parseRetryAfterSeconds(error.response?.headers) : undefined
+      // 上傳相關錯誤碼（A0402／A0406／A0407）改用友善訊息；其他沿用後端 message
+      const message = rateLimited
+        ? getRateLimitMessage(retryAfterSeconds)
+        : getFriendlyErrorMessage(code) ?? error.response?.data?.message ?? error.message
       // 附上 HTTP status 與業務碼，讓呼叫端能區分「不存在（404／A0101）」與其他失敗（不影響 401 refresh 流程）
+      if (rateLimited) {
+        // 統一在這裡提示等待時間（呼叫端遇到 429 不再顯示自己的錯誤 toast）；
+        // 固定 key：畫面上同時最多一則，秒數不同時以最新的取代，不疊加
+        const { showToast } = useToast()
+        showToast(message, 'warning', 4000, undefined, RATE_LIMIT_TOAST_KEY)
+      }
       const failure = Object.assign(new Error(message), {
         status: error.response?.status,
-        code: error.response?.data?.code,
+        code,
+        ...(retryAfterSeconds !== undefined && { retryAfterSeconds }),
       })
       return Promise.reject(markErrorHandled(failure))
     }
@@ -120,7 +145,8 @@ apiClient.interceptors.response.use(
       return apiClient.request(originalConfig)
     } catch (refreshError) {
       markErrorHandled(refreshError)
-      authStore.logout()
+      // refresh 本身被限流（429）是暫時性錯誤，不代表登入失效：不登出，把該錯誤往上拋即可
+      if (!isRateLimited(refreshError)) authStore.logout()
       processQueue(refreshError)
       return Promise.reject(refreshError)
     } finally {

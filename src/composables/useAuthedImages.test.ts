@@ -63,9 +63,8 @@ describe('useAuthedImages', () => {
     expect(img.getAttribute('src')).toBe('blob:http://localhost/fake-1')
   })
 
-  // ── withCredentials 覆寫：MinIO presigned URL redirect 回 wildcard CORS，
-  //    與全域 apiClient 的 withCredentials:true（credentials include）衝突會被瀏覽器擋下 ──
-  it('fetch blob 時 per-request 覆寫 withCredentials:false，避免 redirect 到 MinIO presigned URL 時因 wildcard CORS + credentials 被瀏覽器擋下', async () => {
+  // ── withCredentials 覆寫：檔案內容端點為同源 200 串流，靠 Authorization header 認證，不需要 cookie ──
+  it('fetch blob 時 per-request 覆寫 withCredentials:false（靠 Authorization header 認證，不需 cookie）', async () => {
     vi.mocked(apiClient.get).mockResolvedValue(new Blob(['x'], { type: 'image/png' }))
 
     mountHarness('<img src="/api/v1/files/f1/content" />')
@@ -135,7 +134,7 @@ describe('useAuthedImages', () => {
     expect(revokeObjectURLMock).toHaveBeenCalledWith(secondBlobUrl)
   })
 
-  // ── (e) enabled() 回傳 false → 完全不介入（已發布文章走匿名 302 不需要）────────
+  // ── (e) enabled() 回傳 false → 完全不介入（已發布文章可匿名讀取，不需要）────────
   it('enabled 回傳 false 時完全不介入，不呼叫 apiClient.get 也不改動 src', async () => {
     const { containerRef } = mountHarness('<img src="/api/v1/files/f1/content" />', { enabled: () => false })
     await flushPromises()

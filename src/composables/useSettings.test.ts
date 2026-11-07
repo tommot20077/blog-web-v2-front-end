@@ -118,6 +118,33 @@ describe('useSettings', () => {
   })
 
   describe('saveProfile error/toast', () => {
+    it('A4：saveProfile 遇到 429 → 不顯示自己的失敗 toast（全域 429 toast 已提示）', async () => {
+      const { userService } = await import('../api/userService')
+      vi.mocked(userService.updateProfile).mockRejectedValueOnce(
+        Object.assign(new Error('操作太頻繁，請 30 秒後再試'), { status: 429, code: 'A0009' }),
+      )
+
+      const { useToast } = await import('./useToast')
+      const mockShowToast = vi.fn()
+      vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast })
+
+      vi.resetModules()
+      const { useSettings } = await import('./useSettings')
+
+      let capturedSaveProfile: (() => Promise<void>) | null = null
+      const TestComp = makeTestComponent(() => {
+        const s = useSettings()
+        capturedSaveProfile = s.saveProfile
+        return {}
+      })
+
+      mount(TestComp)
+      await capturedSaveProfile!()
+
+      expect(userService.updateProfile).toHaveBeenCalled()
+      expect(mockShowToast).not.toHaveBeenCalledWith(expect.anything(), 'error')
+    })
+
     it('saveProfile 失敗時顯示 error toast', async () => {
       const { userService } = await import('../api/userService')
       vi.mocked(userService.updateProfile).mockRejectedValueOnce(new Error('Network error'))
@@ -162,6 +189,54 @@ describe('useSettings', () => {
 
       await savePromise
       expect(capturedStatus!.value).toBe('saved')
+    })
+  })
+
+  describe('A6／A6b：頭像大小與錯誤訊息', () => {
+    const MB = 1024 * 1024
+    const sizedFile = (size: number) => {
+      const file = new File(['x'], 'avatar.png', { type: 'image/png' })
+      Object.defineProperty(file, 'size', { value: size })
+      return file
+    }
+
+    async function setupSettings() {
+      const { useToast } = await import('./useToast')
+      const mockShowToast = vi.fn()
+      vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast })
+      vi.resetModules()
+      const { useSettings } = await import('./useSettings')
+      let s: ReturnType<typeof useSettings> | null = null
+      mount(makeTestComponent(() => { s = useSettings(); return {} }))
+      return { s: s!, mockShowToast }
+    }
+
+    it('selectAvatarFile：超過 5MB 直接提示、不接受該檔案', async () => {
+      const { s, mockShowToast } = await setupSettings()
+      expect(s.selectAvatarFile(sizedFile(5 * MB + 1))).toBe(false)
+      expect(s.avatarFile.value).toBeNull()
+      expect(mockShowToast).toHaveBeenCalledWith('檔案太大（頭像上限 5MB）', 'error')
+    })
+
+    it('selectAvatarFile：剛好 5MB 可以', async () => {
+      const { s, mockShowToast } = await setupSettings()
+      const file = sizedFile(5 * MB)
+      expect(s.selectAvatarFile(file)).toBe(true)
+      expect(s.avatarFile.value?.size).toBe(5 * MB)
+      expect(s.avatarFile.value?.name).toBe('avatar.png')
+      expect(mockShowToast).not.toHaveBeenCalled()
+    })
+
+    it.each([
+      ['A0402', '檔案太大（文章圖片上限 20MB，頭像上限 5MB）'], // 後端回來的 A0402 拿不到情境，保留通用文案
+      ['A0406', '圖片尺寸過大（總像素需小於 1 億）'],
+      ['A0407', '頭像檔案無效，請重新上傳'],
+    ])('saveProfile 遇到 %s 時顯示對應的友善訊息', async (code, friendly) => {
+      const { userService } = await import('../api/userService')
+      vi.mocked(userService.updateProfile).mockRejectedValueOnce(Object.assign(new Error('後端訊息'), { code }))
+      const { s, mockShowToast } = await setupSettings()
+      await s.saveProfile()
+      expect(mockShowToast).toHaveBeenCalledWith(friendly, 'error')
     })
   })
 
@@ -551,6 +626,62 @@ describe('useSettings', () => {
       } finally {
         URL.revokeObjectURL = original
       }
+    })
+  })
+
+  // ── W7F-7：個人資料與刪除帳號的長度預檢（快照 UpdateProfileRequest／DeleteAccountRequest）──
+  describe('W7F-7 長度上限預檢', () => {
+    async function setup() {
+      const { userService } = await import('../api/userService')
+      vi.mocked(userService.updateProfile).mockClear()
+      vi.mocked(userService.deleteAccount).mockClear()
+      const { useToast } = await import('./useToast')
+      const mockShowToast = vi.fn()
+      vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast })
+      vi.resetModules()
+      const { useSettings } = await import('./useSettings')
+      let s!: ReturnType<typeof useSettings>
+      mount(makeTestComponent(() => {
+        s = useSettings()
+        return {}
+      }))
+      return { s, userService, mockShowToast }
+    }
+
+    it.each([
+      ['nickname', 50, '顯示名稱最多 50 字'],
+      ['bio', 500, '個人簡介最多 500 字'],
+      ['location', 100, '所在地最多 100 字'],
+    ] as const)('%s 剛好 %i 字可以儲存', async (field, max) => {
+      const { s, userService } = await setup()
+      s[field].value = '字'.repeat(max)
+      await s.saveProfile()
+      expect(userService.updateProfile).toHaveBeenCalledTimes(1)
+    })
+
+    it.each([
+      ['nickname', 50, '顯示名稱最多 50 字'],
+      ['bio', 500, '個人簡介最多 500 字'],
+      ['location', 100, '所在地最多 100 字'],
+    ] as const)('%s 超過 %i 字不呼叫 API 並提示', async (field, max, message) => {
+      const { s, userService, mockShowToast } = await setup()
+      s[field].value = '字'.repeat(max + 1)
+      await s.saveProfile()
+      expect(userService.updateProfile).not.toHaveBeenCalled()
+      expect(mockShowToast).toHaveBeenCalledWith(expect.stringContaining(message), 'error')
+    })
+
+    it.each([6, 50])('刪除帳號：密碼剛好 %i 字可以送出', async (len) => {
+      const { s, userService } = await setup()
+      await s.deleteAccount('p'.repeat(len))
+      expect(userService.deleteAccount).toHaveBeenCalledWith({ password: 'p'.repeat(len) })
+    })
+
+    it.each([5, 51])('刪除帳號：密碼 %i 字不呼叫 API 並提示', async (len) => {
+      const { s, userService, mockShowToast } = await setup()
+      await s.deleteAccount('p'.repeat(len))
+      expect(userService.deleteAccount).not.toHaveBeenCalled()
+      expect(mockShowToast).toHaveBeenCalledWith(expect.stringContaining('密碼長度須為 6 到 50 字'), 'error')
     })
   })
 })

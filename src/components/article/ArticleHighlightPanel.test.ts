@@ -200,4 +200,33 @@ describe('ArticleHighlightPanel', () => {
 
     expect(emitted().delete?.[0]).toEqual(['h-1'])
   })
+
+  // ── W7F-7：劃線筆記上限 2000（快照 Create/UpdateHighlightRequest.note）──
+  describe('筆記長度上限', () => {
+    function renderPanel() {
+      return render(ArticleHighlightPanel, {
+        props: {
+          highlights: [highlight()],
+          locatedByHighlightUuid: new Map([['h-1', true]]),
+          isLoading: false,
+          isMutating: false,
+        },
+      })
+    }
+
+    it('剛好 2000 字可以儲存', async () => {
+      const { emitted } = renderPanel()
+      await fireEvent.update(screen.getByRole('textbox', { name: '劃線筆記' }), '筆'.repeat(2000))
+      await fireEvent.click(screen.getByTestId('highlight-note-save-h-1'))
+      expect(emitted().update?.[0]).toEqual(['h-1', { note: '筆'.repeat(2000) }])
+    })
+
+    it('2001 字不送出並顯示提示', async () => {
+      const { emitted } = renderPanel()
+      await fireEvent.update(screen.getByRole('textbox', { name: '劃線筆記' }), '筆'.repeat(2001))
+      await fireEvent.click(screen.getByTestId('highlight-note-save-h-1'))
+      expect(emitted().update).toBeUndefined()
+      expect(screen.getByTestId('highlight-note-error-h-1')).toHaveTextContent('筆記最多 2000 字')
+    })
+  })
 })

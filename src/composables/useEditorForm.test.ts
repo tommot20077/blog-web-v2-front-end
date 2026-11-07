@@ -259,4 +259,102 @@ describe('useEditorForm', () => {
       expect(myArticlesService.submitForReview).toHaveBeenCalledWith(mockArticle.uuid)
     })
   })
+  // ── B2：樂觀鎖 version ─────────────────────────────────────────────────────
+  describe('B2：樂觀鎖 version', () => {
+    const loaded = createMockEditorArticle({ version: 3 })
+
+    it('loadArticle() 記住 version', async () => {
+      vi.mocked(editorService.getArticleForEdit).mockResolvedValue(loaded)
+      const { version, loadArticle } = useEditorForm(loaded.uuid)
+      await loadArticle()
+      expect(version.value).toBe(3)
+    })
+
+    it('既有文章存檔 payload 帶 version', async () => {
+      vi.mocked(editorService.getArticleForEdit).mockResolvedValue(loaded)
+      vi.mocked(editorService.updateArticle).mockResolvedValue({ ...loaded, version: 4 })
+      const { loadArticle, saveDraft } = useEditorForm(loaded.uuid)
+      await loadArticle()
+      await saveDraft('內容')
+      expect(editorService.updateArticle).toHaveBeenCalledWith(
+        loaded.uuid,
+        expect.objectContaining({ version: 3 }),
+      )
+    })
+
+    it('存檔成功後改用回應的新 version，可連續存檔', async () => {
+      vi.mocked(editorService.getArticleForEdit).mockResolvedValue(loaded)
+      vi.mocked(editorService.updateArticle)
+        .mockResolvedValueOnce({ ...loaded, version: 4 })
+        .mockResolvedValueOnce({ ...loaded, version: 5 })
+      const { version, loadArticle, saveDraft } = useEditorForm(loaded.uuid)
+      await loadArticle()
+      await saveDraft('第一次')
+      expect(version.value).toBe(4)
+      await saveDraft('第二次')
+      expect(vi.mocked(editorService.updateArticle).mock.calls[1]![1]).toEqual(
+        expect.objectContaining({ version: 4 }),
+      )
+      expect(version.value).toBe(5)
+    })
+
+    it('新建文章 payload 不帶 version；建立成功後記住回應的 version，第二次存檔帶上', async () => {
+      vi.mocked(editorService.createArticle).mockResolvedValue({ ...loaded, version: 0 })
+      vi.mocked(editorService.updateArticle).mockResolvedValue({ ...loaded, version: 1 })
+      const { version, saveDraft } = useEditorForm()
+      await saveDraft('第一次')
+      expect(vi.mocked(editorService.createArticle).mock.calls[0]![0]).not.toHaveProperty('version')
+      expect(version.value).toBe(0)
+      await saveDraft('第二次')
+      expect(editorService.updateArticle).toHaveBeenCalledWith(
+        loaded.uuid,
+        expect.objectContaining({ version: 0 }),
+      )
+    })
+
+    it('狀態轉換（送審）成功後改用回應的新 version', async () => {
+      vi.mocked(editorService.getArticleForEdit).mockResolvedValue(loaded)
+      vi.mocked(myArticlesService.submitForReview).mockResolvedValue({ version: 7 })
+      const { version, loadArticle, submitForReview } = useEditorForm(loaded.uuid)
+      await loadArticle()
+      await submitForReview()
+      expect(version.value).toBe(7)
+    })
+
+    it('送審回應沒有 version 時保留原 version', async () => {
+      vi.mocked(editorService.getArticleForEdit).mockResolvedValue(loaded)
+      vi.mocked(myArticlesService.submitForReview).mockResolvedValue(undefined)
+      const { version, loadArticle, submitForReview } = useEditorForm(loaded.uuid)
+      await loadArticle()
+      await submitForReview()
+      expect(version.value).toBe(3)
+    })
+
+    it('存檔被 409 拒絕時 version 不變、dirty 保留', async () => {
+      vi.mocked(editorService.getArticleForEdit).mockResolvedValue(loaded)
+      vi.mocked(editorService.updateArticle).mockRejectedValue(
+        Object.assign(new Error('conflict'), { status: 409, code: 'A0208' }),
+      )
+      const { title, version, isDirty, loadArticle, saveDraft } = useEditorForm(loaded.uuid)
+      await loadArticle()
+      title.value = '我的修改'
+      await expect(saveDraft('內容')).rejects.toThrow('conflict')
+      expect(version.value).toBe(3)
+      expect(isDirty.value).toBe(true)
+    })
+
+    it('重新載入（loadArticle）取得最新 version 並重置 dirty', async () => {
+      vi.mocked(editorService.getArticleForEdit)
+        .mockResolvedValueOnce(loaded)
+        .mockResolvedValueOnce({ ...loaded, version: 9, title: '別處改的標題' })
+      const { title, version, isDirty, loadArticle } = useEditorForm(loaded.uuid)
+      await loadArticle()
+      title.value = '我的修改'
+      expect(isDirty.value).toBe(true)
+      await loadArticle()
+      expect(version.value).toBe(9)
+      expect(title.value).toBe('別處改的標題')
+      expect(isDirty.value).toBe(false)
+    })
+  })
 })

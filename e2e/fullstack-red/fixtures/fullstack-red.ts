@@ -1,6 +1,7 @@
 import { test as base } from '@playwright/test'
 import type { APIRequestContext, Page } from '@playwright/test'
 import { activateUser } from '../../fixtures/admin-helpers'
+import { BACKEND_READINESS_PATHS } from '../../readinessPaths'
 
 const BACKEND = process.env.VITE_API_BASE_URL || 'http://localhost:9010'
 
@@ -19,20 +20,23 @@ type FullstackRedFixtures = {
 }
 
 async function assertBackendReadiness(request: APIRequestContext): Promise<void> {
-  const readinessUrl = `${BACKEND}/actuator/health/readiness`
+  const readinessUrls = BACKEND_READINESS_PATHS.map(path => `${BACKEND}${path}`)
+  let lastError = 'unknown'
 
-  try {
-    const response = await request.get(readinessUrl, { timeout: 5000 })
-    if (response.ok()) {
-      return
+  // 先試新後端的 /readyz，失敗再退回舊後端的 /actuator/health/readiness，任一 2xx 即就緒
+  for (const readinessUrl of readinessUrls) {
+    try {
+      const response = await request.get(readinessUrl, { timeout: 5000 })
+      if (response.ok()) {
+        return
+      }
+      lastError = `status ${response.status()} ${await response.text()}`
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : String(error)
     }
-
-    const body = await response.text()
-    throw new Error(`status ${response.status()} ${body}`)
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    throw new Error(`backend readiness failed: ${readinessUrl} - ${message}`)
   }
+
+  throw new Error(`backend readiness failed: ${readinessUrls.join(' , ')} - ${lastError}`)
 }
 
 async function loginWithApi(

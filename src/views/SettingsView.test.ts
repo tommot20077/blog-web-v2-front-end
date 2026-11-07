@@ -139,3 +139,34 @@ describe('SettingsView — 公開個人頁', () => {
     })
   })
 })
+
+describe('SettingsView — 頭像選檔（A6b）', () => {
+  function bigImage(size: number) {
+    const file = new File(['x'], 'big.png', { type: 'image/png' })
+    Object.defineProperty(file, 'size', { value: size })
+    return file
+  }
+
+  it('頭像被大小檢查擋下後仍清掉 input.value，重選同一個檔案才會再觸發 change', async () => {
+    await renderWithRouterAsync(SettingsView, {}, '/settings')
+    const input = screen.getByTestId('avatar-upload-input') as HTMLInputElement
+    const valueSetter = vi.fn()
+    Object.defineProperty(input, 'value', { configurable: true, get: () => '', set: valueSetter })
+
+    await fireEvent.change(input, { target: { files: [bigImage(5 * 1024 * 1024 + 1)] } })
+
+    expect(valueSetter).toHaveBeenCalledWith('')
+  })
+})
+
+describe('SettingsView — 欄位上限與後端對齊（W7F-7）', () => {
+  it('顯示名稱 maxlength=50、個人簡介 maxlength=500、所在地 maxlength=100，提示文字同步', async () => {
+    await renderWithRouterAsync(SettingsView, {}, '/settings')
+    expect(screen.getByPlaceholderText('輸入你的顯示名稱').getAttribute('maxlength')).toBe('50')
+    expect(screen.getByPlaceholderText('介紹一下你自己…').getAttribute('maxlength')).toBe('500')
+    expect(screen.getByPlaceholderText('例如：台灣 台北').getAttribute('maxlength')).toBe('100')
+    expect(screen.getByText('最多 50 個字元')).toBeInTheDocument()
+    expect(screen.getByText('最多 500 個字元')).toBeInTheDocument()
+    expect(screen.getByText('0 / 500')).toBeInTheDocument()
+  })
+})

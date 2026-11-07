@@ -2,6 +2,10 @@
 
 本文件記錄前後端共用的 API 契約，確保雙方對接一致。
 
+> **唯一真相**：後端 springdoc 產生的 OpenAPI（前端快照 `api-reference/openapi.json`，抓取方式見 `runbook-integration.md` §8）。錯誤碼現在全部集中在後端 `blog-common`；後端已刪除 `docs/api-contract/`，不再有第二份手寫契約。本文件只記**慣例與前端行為**，欄位與狀態碼以快照為準；兩者衝突時以快照為準並回頭修本文件。
+>
+> **錯誤回應形狀（2026-11-07 重抓後）**：所有 operation 皆宣告 2xx，且 4xx／5xx 的 body 一律引用 `ApiErrorResponse`（`code` 字串、`message`、`data` 恆為 `null`、`timestamp` 毫秒），欄位以快照為準。**唯一例外是 `POST /api/v1/admin/search/reindex` 的 409**：其 `data` 是進行中的作業，與 202 同形（`SearchReindexJob`）。前端 `ApiResponse<T>`（`src/types/auth.ts`）的 `code`／`message`／`data` 與 `ApiErrorResponse` 一致。
+
 ## Response Wrapper
 
 所有後端回應遵循 `ApiResponse<T>` 包裝：
@@ -27,6 +31,14 @@ interface PageResult<T> {
   pages: number      // 總頁數
 }
 ```
+
+留言列表 `GET /api/v1/articles/{articleUuid}/comments` 回 `{ topLevels: PageResult<CommentResponse>, totalCommentCount }`——`topLevels` 與其他分頁端點同形（`current`／`size`／`pages`／`total`／`records`），**欄位是 `current` 不是 `page`**（前端型別 `ArticleCommentList.topLevels` 為 `PageResult<CommentItem>`）。
+
+### 留言回覆分頁（後端 W7；2026-11-07 起）
+
+- 列表每則頂層留言內嵌**前 3 則**回覆（`replies`），`CommentResponse.replyCount` 為**未刪除**回覆總數（回覆本身為 0）；`replyCount > replies.length` 代表還有更多。
+- `GET /api/v1/comments/{commentUuid}/replies?page=&size=`：匿名可存取，回 `PageResult<CommentResponse>`，依 `created_at` 升冪，`size` 上限 100。
+- 留言不存在、傳入的是回覆（非頂層）的 uuid、文章對檢視者不可讀——三者一律 **200 + `total: 0` 的空頁**，不形成存在性探測（前端不可把空頁當錯誤）。
 
 ### 分頁參數驗證（後端 2026-09-27 起）
 
@@ -165,6 +177,48 @@ Response 401:
 | HTTP 403 | 顯示「權限不足」提示 |
 | HTTP 5xx | 顯示通用錯誤訊息 |
 
+### 文章樂觀鎖（後端 B2；2026-11-07 起）
+
+- `GET /api/v1/articles/{uuid}/edit`、`PUT /api/v1/articles/{uuid}` 的回應（EditorArticleResponse）與狀態轉換（submit / withdraw / publish / reject）回傳的 ArticleResponse 都帶 `version`（number）。
+- `PUT` 的 request 可選填 `version`：與 DB 不一致回 **HTTP 409、錯誤碼 `A0208`**（ARTICLE_CONCURRENT_UPDATE）；省略則不比對。新建文章不帶。
+- 前端：編輯器載入時記住 version，每次存檔帶上，存檔或狀態轉換成功後改用回應的新 version（`useEditorForm.version`）。收到 A0208 → `window.confirm` 提示，「重新載入」重抓並取代本機內容、重置未存檔狀態；「取消」保留本機內容。不做自動合併。
+- 全域 409 `A0008`（OPTIMISTIC_LOCK_CONFLICT）是另一個錯誤碼，不走這條流程。
+
+### 限流 429 與 `Retry-After`（後端 W7；2026-11-07 起）
+
+- 快照中 27 個寫入／搜尋端點（建立文章、留言、按讚、收藏、上傳、搜尋、搜尋建議、改密碼、改個人資料等）宣告 **HTTP 429＋錯誤碼 `A0009`**（應用層限流），並帶 `Retry-After` header（整數秒，至少 1）。登入等 `/auth/**` 端點的限流不在此列。
+- 前端行為（`apiClient`）：429 不自動重試、不走 401 的 refresh 流程，統一顯示「操作太頻繁，請 N 秒後再試」toast（同一時段去重），**呼叫端不重複提示**（`isRateLimited`）；`/auth/refresh` 被限流**不登出**。
+- `Retry-After` 只接受正整數秒；缺 header 或格式不合時 toast 退回「操作太頻繁，請稍後再試」（`parseRetryAfterSeconds`／`getRateLimitMessage`）。
+
+### 全量重建搜尋索引（後端 W7；2026-11-07 起）
+
+- `POST /api/v1/admin/search/reindex`：**202**，`data` 為剛建立的 `SearchReindexJob`（背景執行，不再同步等待）。已有作業在跑 → **409＋`A0501`**，`data` 為進行中的作業。
+- `GET /api/v1/admin/search/status` 的 `reindex` 欄位為最近一次作業，從未重建過（或後端讀 Redis 失敗）時為 `null`；前端以此輪詢進度。
+- `SearchReindexJob`：`jobId`（UUID 字串）、`state`（`RUNNING`／`COMPLETED`／`FAILED`）、`processed`、`total`（尚未算出時為 `null`）、`startedAt`／`finishedAt`（LocalDateTime 字串，`finishedAt` 執行中為 `null`）、`error`（僅 `FAILED`）。
+- 搜尋 `GET /api/v1/search` 的 `sort` 只接受 `relevance`（預設）／`latest`（不分大小寫），其他值（含已移除的 `hot`）回 400。
+
+### 健康檢查
+
+後端主 port 的健康檢查端點是 **`/readyz`**（actuator 已搬到 management port，不再從主 port 提供 `/actuator/health`）。前端 E2E／CI 等待後端就緒一律用 `/readyz`（`e2e/readinessPaths.ts` 仍保留舊後端 fallback）。
+
+### 輸入長度／格式上限（後端 2026-11-07 快照；前端已預檢，W7F-6）
+
+超過一律 400（`A0001`），由後端驗證：文章 `content` ≤ 200000 字、`title` ≤ 120、`summary` ≤ 500、註冊 `nickname` ≤ 50、退稿 `reason` ≤ 500、標籤 `color` 須為 `#RRGGBB`、`icon` ≤ 100、`description` ≤ 200。前端常數只定義在 `src/utils/inputLimits.ts`（長度以 UTF-16 code unit 計，與後端 `@Size` 一致）；輸入框帶 `maxlength`，送出前預檢，超過不呼叫 API 並提示。內文達 90% 在編輯器顯示字數提示。
+
+W7F-7 補齊其餘欄位（常數同在 `src/utils/inputLimits.ts`，超過一律不呼叫 API 並提示）：
+
+| 欄位 | 快照依據 | 前端位置 |
+|------|----------|----------|
+| 留言 `content` ≤ 2000（新增／編輯／回覆共用） | Create／EditCommentRequest.content | `CommentForm`；達 90% 顯示字數、超過停用送出 |
+| 分類 `name` ≤ 50、`slug` ≤ 60（另有 pattern）、`description` ≤ 200 | Create／UpdateCategoryRequest | `AdminCategoriesView` |
+| 註冊 `username` 3～50（**快照無 pattern**，不自創格式限制） | RegisterRequest.username | `RegisterView` |
+| 個人資料 `nickname` ≤ 50、`bio` ≤ 500、`location` ≤ 100、`website` ≤ 255 | UpdateProfileRequest | `useSettings`／`SettingsView`（舊值 32／200 已改為與註冊頁、後端一致） |
+| 劃線 `note` ≤ 2000 | Create／UpdateHighlightRequest.note | `ArticleHighlightPanel` |
+| 刪除帳號 `password` 6～50 | DeleteAccountRequest.password | `useSettings.deleteAccount` |
+| 手動快照 `note` ≤ 255；系列 `title`／`slug` ≤ 255、slug 須符合 `^[a-z0-9-]+$` | CreateManualSnapshotRequest／Create、UpdateSeriesRequest | 常數與 `isSeriesSlug` 已備；**目前前端沒有這兩個表單**，日後新增時直接套用 |
+
+快照中其餘有限制的欄位不是使用者手打的，故不預檢：劃線 `snippet`／`prefix`／`suffix`（由選取文字產生）、系列 `coverImageUrl`、個人資料 `avatarUrl`（由上傳回傳）、閱讀進度 `lastHeading`。
+
 ## File Upload
 
 ```
@@ -173,3 +227,17 @@ Content-Type: multipart/form-data
 Body: file (binary), usageType (ARTICLE_CONTENT | ARTICLE_COVER | AVATAR)
 Response: ApiResponse<{ url, fileId }>
 ```
+
+### 上傳限制與錯誤碼（後端 A6／A6b；2026-11-07 起）
+
+| 項目 | 規則 |
+|------|------|
+| 單檔大小 | 文章圖片（`ARTICLE_CONTENT`／`ARTICLE_COVER`）20MB、頭像（`AVATAR`）5MB；常數只定義在 `src/utils/uploadLimits.ts` |
+| 前端行為 | 上傳前先檢查，超過就直接提示、不送出（剛好等於上限可送出）；後端仍會再擋 |
+| `A0402` FILE_TOO_LARGE | 「檔案太大（文章圖片上限 20MB，頭像上限 5MB）」 |
+| `A0406` INVALID_IMAGE_DIMENSIONS | 總像素超過 100MP：「圖片尺寸過大（總像素需小於 1 億）」 |
+| `A0407` INVALID_AVATAR_FILE | 設定頭像時指定的站內檔案不是本人上傳的頭像：「頭像檔案無效，請重新上傳」 |
+
+> 檔案內容端點 `GET /api/v1/files/{id}/content` 在 2026-11-07 快照中宣告為 **200 二進位串流**（支援 `ETag`／`If-None-Match`→304；公開檔案 `public` 快取，非公開 `private, no-store`），**不是 302 導向 presigned URL**；403＝`A0405`、404＝`A0401`。
+
+錯誤碼對照表在 `src/utils/apiErrors.ts`；`apiClient` 遇到這三個碼會以友善訊息取代後端 message（`Error.code` 仍保留）。

@@ -9,7 +9,7 @@ import type {
   UpdateCategoryRequest,
   UpdateTagRequest,
 } from '../../types/editor'
-import type { SearchIndexStatus } from '../../types/search'
+import type { SearchIndexStatus, SearchReindexJob } from '../../types/search'
 
 export const adminService = {
   async getPendingArticles(page: number, size: number): Promise<PageResult<MyArticle>> {
@@ -57,8 +57,12 @@ export const adminService = {
     return apiClient.delete<unknown, void>(`/api/v1/admin/tags/${id}`)
   },
 
-  async reindexSearch(): Promise<void> {
-    return apiClient.post<unknown, void>('/api/v1/admin/search/reindex')
+  /**
+   * 觸發背景重建：後端立即回 202，data 為剛建立的 RUNNING 作業，進度改由 getSearchStatus().reindex 輪詢。
+   * 已有作業在跑時後端回 409／A0501（apiClient 會 reject，錯誤物件帶 status 與 code）。
+   */
+  async reindexSearch(): Promise<SearchReindexJob> {
+    return apiClient.post<unknown, SearchReindexJob>('/api/v1/admin/search/reindex')
   },
 
   /**

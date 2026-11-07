@@ -137,6 +137,41 @@ describe('frontend CI workflow', () => {
     expect(realBackendE2eStep).toContain('VITE_API_BASE_URL: http://localhost:9010')
   })
 
+  // 後端把 actuator 搬到 management port（主 port 的 /actuator/health 消失），主 port 改提供 /livez、/readyz。
+  // CI 會 checkout 後端預設分支建 image，新舊後端都可能出現：先試 /readyz，失敗再退回 /actuator/health。
+  describe('real-backend E2E 健康檢查同時相容新舊後端', () => {
+    const readyz = 'http://localhost:9010/readyz'
+    const legacy = 'http://localhost:9010/actuator/health'
+    // 後端 image（eclipse-temurin:21-jre-alpine）沒有 curl，只有 busybox wget；容器內用 127.0.0.1
+    const composeReadyz = 'wget -q -O /dev/null http://127.0.0.1:9010/readyz'
+    const composeLegacy = 'wget -q -O /dev/null http://127.0.0.1:9010/actuator/health'
+
+    it('compose 的 backend healthcheck 先試 /readyz，失敗再試 /actuator/health', () => {
+      const compose = readFileSync('docker-compose.e2e.yml', 'utf8')
+      const backendService = compose.slice(compose.indexOf('  backend:'))
+      const test = backendService.match(/healthcheck:\s*\n\s*test:\s*(\[.*\])/)?.[1] ?? ''
+
+      expect(test).toContain('CMD-SHELL')
+      expect(test).toContain(`${composeReadyz} || ${composeLegacy}`)
+      expect(test).not.toContain('curl')
+    })
+
+    it('CI 等待迴圈先試 /readyz，失敗再試 /actuator/health，任一成功即視為健康', () => {
+      const wait = workflowStep(workflowJob('e2e-integration'), 'Wait for backend healthy')
+
+      expect(wait).toContain(readyz)
+      expect(wait).toContain(legacy)
+      expect(wait.indexOf(readyz)).toBeLessThan(wait.indexOf(legacy))
+      expect(wait).toMatch(/curl -sf --max-time 5 http:\/\/localhost:9010\/readyz[^\n|]*\|\|\s*curl -sf --max-time 5 http:\/\/localhost:9010\/actuator\/health/)
+    })
+
+    it('compose 不把後端 management port（9091）發布到 host', () => {
+      const compose = readFileSync('docker-compose.e2e.yml', 'utf8')
+
+      expect(compose).not.toContain('9091')
+    })
+  })
+
   it('real-backend E2E captures stack logs on failure and always tears down containers', () => {
     const integration = workflowJob('e2e-integration')
     const captureLogs = workflowStep(integration, 'Capture E2E stack logs')
@@ -226,5 +261,38 @@ describe('frontend CI workflow', () => {
     expect(tsconfig).toContain('"src/**/*.test.ts"')
     expect(tsconfig).toContain('"src/**/*.spec.ts"')
     expect(tsconfig).toContain('"src/test-utils/**"')
+  })
+
+  describe('real-backend E2E 郵件服務（mailpit）', () => {
+    const compose = () => readFileSync('docker-compose.e2e.yml', 'utf8')
+    const service = (name: string, next: string) => {
+      const c = compose()
+      const start = c.indexOf(`  ${name}:`)
+      return c.slice(start, c.indexOf(`  ${next}:`, start))
+    }
+
+    it('mailpit 映像檔釘死確切版本，不用 latest', () => {
+      expect(compose()).toMatch(/image: axllent\/mailpit:v\d+\.\d+\.\d+/)
+      expect(compose()).not.toContain('mailpit:latest')
+    })
+
+    it('mailpit 發布 8025（測試讀信的 HTTP API），不發布 SMTP 1025', () => {
+      const mailpit = service('mailpit', 'backend')
+      expect(mailpit).toContain('"8025:8025"')
+      expect(mailpit).not.toContain('1025:1025')
+    })
+
+    it('backend 以既有 Spring mail 屬性寄信到 mailpit，關閉 auth 與 starttls', () => {
+      const backend = compose().slice(compose().indexOf('  backend:'))
+      expect(backend).toContain('SPRING_MAIL_HOST: mailpit')
+      expect(backend).toContain('SPRING_MAIL_PORT: "1025"')
+      expect(backend).toContain('SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: "false"')
+      expect(backend).toContain('SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: "false"')
+    })
+
+    it('backend 等 mailpit 起來才啟動', () => {
+      const backend = compose().slice(compose().indexOf('  backend:'))
+      expect(backend).toMatch(/depends_on:[\s\S]*mailpit:\s+condition: service_healthy/)
+    })
   })
 })

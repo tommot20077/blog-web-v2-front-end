@@ -200,4 +200,79 @@ describe('RegisterView', () => {
     renderRegisterView();
     expect(screen.getByTestId('auth-register-alt-link')).toBeTruthy();
   });
+
+  // ── W7F-6：暱稱長度上限（快照 RegisterRequest.nickname maxLength 50；暱稱無格式限制）──
+  describe('暱稱長度上限', () => {
+    async function submitWithNickname(nickname: string) {
+      const { pinia } = renderRegisterView();
+      const authStore = useAuthStore(pinia);
+      authStore.register = vi.fn().mockResolvedValue(undefined);
+      await fireEvent.update(screen.getByPlaceholderText('請輸入 Email'), 'test@example.com');
+      await fireEvent.update(screen.getByPlaceholderText('請輸入使用者名稱（英文、數字）'), 'test_user');
+      await fireEvent.update(screen.getByPlaceholderText('請輸入暱稱'), nickname);
+      await fireEvent.update(screen.getByPlaceholderText('請輸入密碼'), 'Password123!');
+      // 直接觸發 submit：happy-dom 的原生 maxlength 約束檢查會先擋掉 click 送出，
+      // 這裡要驗證的是 JS 預檢（瀏覽器中使用者無法超過 maxlength，貼上或程式寫入才會走到這條）
+      await fireEvent.submit(screen.getByRole('button', { name: '註冊' }).closest('form')!);
+      return authStore;
+    }
+
+    it('輸入框帶 maxlength=50', () => {
+      renderRegisterView();
+      expect(screen.getByPlaceholderText('請輸入暱稱').getAttribute('maxlength')).toBe('50');
+    });
+
+    it('剛好 50 字可以送出', async () => {
+      const authStore = await submitWithNickname('暱'.repeat(50));
+      await waitFor(() => expect(authStore.register).toHaveBeenCalled());
+    });
+
+    it('51 字不呼叫 API 並顯示提示', async () => {
+      const authStore = await submitWithNickname('暱'.repeat(51));
+      await waitFor(() => expect(screen.getByText('暱稱最多 50 個字元')).toBeTruthy());
+      expect(authStore.register).not.toHaveBeenCalled();
+    });
+  });
+
+  // ── W7F-7：使用者名稱長度上限（快照 RegisterRequest.username minLength 3／maxLength 50；快照無 pattern）──
+  describe('使用者名稱長度', () => {
+    async function submitWithUsername(username: string) {
+      const { pinia } = renderRegisterView();
+      const authStore = useAuthStore(pinia);
+      authStore.register = vi.fn().mockResolvedValue(undefined);
+      await fireEvent.update(screen.getByPlaceholderText('請輸入 Email'), 'test@example.com');
+      await fireEvent.update(screen.getByPlaceholderText('請輸入使用者名稱（英文、數字）'), username);
+      await fireEvent.update(screen.getByPlaceholderText('請輸入暱稱'), '暱稱');
+      await fireEvent.update(screen.getByPlaceholderText('請輸入密碼'), 'Password123!');
+      await fireEvent.submit(screen.getByRole('button', { name: '註冊' }).closest('form')!);
+      return authStore;
+    }
+
+    it('輸入框帶 maxlength=50', () => {
+      renderRegisterView();
+      expect(screen.getByPlaceholderText('請輸入使用者名稱（英文、數字）').getAttribute('maxlength')).toBe('50');
+    });
+
+    it('剛好 3 字可以送出', async () => {
+      const authStore = await submitWithUsername('abc');
+      await waitFor(() => expect(authStore.register).toHaveBeenCalled());
+    });
+
+    it('2 字不呼叫 API 並顯示提示', async () => {
+      const authStore = await submitWithUsername('ab');
+      await waitFor(() => expect(screen.getByText('使用者名稱最少需要 3 個字元')).toBeTruthy());
+      expect(authStore.register).not.toHaveBeenCalled();
+    });
+
+    it('剛好 50 字可以送出', async () => {
+      const authStore = await submitWithUsername('a'.repeat(50));
+      await waitFor(() => expect(authStore.register).toHaveBeenCalled());
+    });
+
+    it('51 字不呼叫 API 並顯示提示', async () => {
+      const authStore = await submitWithUsername('a'.repeat(51));
+      await waitFor(() => expect(screen.getByText('使用者名稱最多 50 個字元')).toBeTruthy());
+      expect(authStore.register).not.toHaveBeenCalled();
+    });
+  });
 });

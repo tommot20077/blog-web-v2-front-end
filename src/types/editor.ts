@@ -47,6 +47,8 @@ export interface EditorArticle {
   rejectReason: string | null;
   createdAt: string;
   updatedAt: string;
+  /** 樂觀鎖版本號（B2）：存檔時原樣帶回 UpdateArticleRequest.version */
+  version: number;
 }
 
 // 我的文章列表用（含 rejectReason）
@@ -78,6 +80,13 @@ export interface ArticleFormData {
   coverImageUrl: string | null;
   categoryIds: string[];
   tagNames: string[];
+  /** 樂觀鎖版本號（B2）：僅更新時帶；新建文章不需要 */
+  version?: number;
+}
+
+/** 狀態轉換（送審、退回草稿等）回應中我們需要的部分：新的樂觀鎖版本號 */
+export interface ArticleTransitionResult {
+  version: number;
 }
 
 // ── 檔案上傳 ────────────────────────────────────────────────────────────────

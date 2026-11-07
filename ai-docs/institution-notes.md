@@ -10,7 +10,7 @@
 ## 三件沒人問但最重要的事
 
 1. **本 repo 的飛輪是 0 轉**:`ai-docs/bug-reports/` 空的、`/review-bugs` 沒跑過,但這幾個月一定修過 bug——教訓全蒸發了。從下一個 `fix:` commit 開始跑 `/post-bug`,制度才會活。
-2. **契約漂移是本 repo 最大的結構性風險**:`openapi.json` 快照與 `diff.md` 都停在 2026-05-14,後端在 `feature/pre-launch-remediation` 上持續動。上線前必須重抓快照+重比對(`maintenance.md` §2)。跨 repo 契約的單一真相源(如契約倉庫或型別生成)是需要 Yuan 決策的下一步。
+2. **契約漂移是本 repo 最大的結構性風險**:`openapi.json` 快照與 `diff.md` 都停在 2026-05-14,後端在 `feature/pre-launch-remediation` 上持續動。上線前必須重抓快照+重比對(`maintenance.md` §2)。契約單一真相已確立：後端 springdoc 產生的 openapi.json 是唯一真相，快照依 `runbook-integration.md` §8 整份重抓；後端已刪除 `docs/api-contract/`，錯誤碼集中在 `blog-common`。
 3. **root 歷史檔會誤導弱模型**:`todo.md`(858 行)看起來像現行任務清單,其實 4 月起就凍結;決策記錄埋在它第 3-14 行。已在 CLAUDE.md 與 `maintenance.md` §3 標明狀態,但若有人往 `todo.md` 續寫,地圖就失效——新增待辦請走 `pending.md` 或開新的正典位置。
 
 ## 這套制度最可能的退化方式(與預防)

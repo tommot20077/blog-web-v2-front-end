@@ -57,6 +57,16 @@ describe('useArticleBookmark', () => {
     expect(mockShowToast).toHaveBeenCalledWith('收藏失敗，請稍後再試', 'error')
   })
 
+  it('A4：遇到 429 → 仍 rollback，但不顯示自己的錯誤 toast', async () => {
+    vi.mocked(bookmarkService.bookmark).mockRejectedValue(Object.assign(new Error('操作太頻繁，請 30 秒後再試'), { status: 429, code: 'A0009' }))
+    const state = useArticleBookmark(ref('article-uuid'), { bookmarked: false })
+
+    await state.toggle()
+
+    expect(state.bookmarked.value).toBe(false)
+    expect(mockShowToast).not.toHaveBeenCalled()
+  })
+
   it('未登入時不呼叫 API', async () => {
     mockRequireAuth.mockReturnValue(false)
     const state = useArticleBookmark(ref('article-uuid'), { bookmarked: false })

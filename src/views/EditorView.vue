@@ -5,6 +5,13 @@ import { useEditorForm } from '../composables/useEditorForm'
 import { useMarkdownEditor } from '../composables/useMarkdownEditor'
 import { useMarkdownRenderer } from '../composables/useMarkdownRenderer'
 import { useWordCount } from '../composables/useWordCount'
+import {
+  MAX_ARTICLE_CONTENT_LENGTH,
+  MAX_ARTICLE_TITLE_LENGTH,
+  MAX_ARTICLE_SUMMARY_LENGTH,
+  exceedsLength,
+  isNearLimit,
+} from '../utils/inputLimits'
 import { useEditorMode } from '../composables/useEditorMode'
 import { useEditorWordUnit } from '../composables/useEditorWordUnit'
 import { useToast } from '../composables/useToast'
@@ -12,6 +19,7 @@ import { useEditorFocusMode } from '../composables/useEditorFocusMode'
 import { useEditorOutline } from '../composables/useEditorOutline'
 import { useEditorImageUpload } from '../composables/useEditorImageUpload'
 import { findUnrenderableImages } from '../utils/unrenderableImages'
+import { isConcurrentUpdateError, isRateLimited } from '../utils/apiErrors'
 import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard'
 import { useAuthStore } from '../stores/auth'
 import { useAuthedImages } from '../composables/useAuthedImages'
@@ -104,6 +112,18 @@ const { wordCount, characterCount } = useWordCount(markdownContent)
 const { wordUnit } = useEditorWordUnit()
 const displayWordCount = computed(() => (wordUnit.value === 'words' ? wordCount.value : characterCount.value))
 
+// ── 輸入上限預檢（快照 Create/UpdateArticleRequest：content／title／summary）──────────
+// 內文字數以 UTF-16 code unit 計（與後端 @Size 一致），不同於上面給讀者看的字數／字元統計。
+const fmt = (n: number) => n.toLocaleString('en-US')
+const contentLength = computed(() => markdownContent.value.length)
+const contentExceeded = computed(() => exceedsLength(markdownContent.value, MAX_ARTICLE_CONTENT_LENGTH))
+const showContentLimitHint = computed(() => isNearLimit(contentLength.value, MAX_ARTICLE_CONTENT_LENGTH))
+const contentLimitHint = computed(() =>
+  contentExceeded.value
+    ? `內文超過 ${fmt(MAX_ARTICLE_CONTENT_LENGTH)} 字上限（目前 ${fmt(contentLength.value)} 字），請刪減後再儲存`
+    : `內文已 ${fmt(contentLength.value)} / ${fmt(MAX_ARTICLE_CONTENT_LENGTH)} 字，快到上限了`,
+)
+
 // ── Editor mode (Write / Split / Preview) ───────────────────────────────────
 const { mode, setMode } = useEditorMode()
 
@@ -151,8 +171,78 @@ onMounted(async () => {
   }
 })
 
+// ── 存檔衝突（B2）─────────────────────────────────────────────────────────
+// 存檔帶的 version 與伺服器不一致（HTTP 409 / A0208）：文章在別處被改過。
+// 不做自動合併，由使用者決定：
+//   - 重新載入：以伺服器最新內容取代本機內容（loadArticle 會一併重置 D5 的 dirty 與 version）
+//   - 取消：留在原頁、本機內容不動，使用者可以先自行複製內容
+// 沿用專案既有的確認慣例（window.confirm；確定 = 重新載入）。
+// 後端對所有 version 不一致一律回 A0208，所以內容被改、狀態轉換、加入／移出系列都會觸發，文案要涵蓋。
+const CONFLICT_MESSAGE = '這篇文章已在其他地方被修改（內容、狀態或系列設定）。重新載入會捨棄你目前未儲存的內容。'
+
+// 使用者按「取消」後留下常駐提示列：在重新載入成功之前，存檔 / 送審都不再送出，
+// 也不再重複跳 confirm（否則每按一次存檔都被同一個對話框打斷）。不自動合併、不強制覆蓋。
+const hasUnresolvedConflict = ref(false)
+const conflictBannerEl = ref<HTMLElement | null>(null)
+
+function remindToReload() {
+  showToast('請先複製你的內容，再按提示列的「重新載入」', 'error')
+  conflictBannerEl.value?.focus()
+}
+
+async function reloadLatestArticle(): Promise<boolean> {
+  const latest = await loadArticle()
+  if (!latest) return false
+  setContent(latest.content)
+  baselineContent.value = markdownContent.value
+  return true
+}
+
+async function reloadAfterConflict() {
+  try {
+    if (await reloadLatestArticle()) {
+      hasUnresolvedConflict.value = false
+      showToast('已重新載入最新內容', 'success')
+      return
+    }
+  } catch {
+    // 落到下方錯誤提示
+  }
+  showToast('重新載入失敗，請稍後再試', 'error')
+}
+
+async function handleSaveConflict() {
+  if (!window.confirm(CONFLICT_MESSAGE)) {
+    hasUnresolvedConflict.value = true
+    showToast('尚未儲存：這篇文章已在其他地方被修改', 'error')
+    return
+  }
+  await reloadAfterConflict()
+}
+
+/** 存檔前預檢；回傳要給使用者看的訊息，通過則回傳 null */
+function findLimitViolation(): string | null {
+  if (exceedsLength(title.value, MAX_ARTICLE_TITLE_LENGTH)) {
+    return `標題最多 ${MAX_ARTICLE_TITLE_LENGTH} 字（目前 ${title.value.length} 字），請刪減後再儲存`
+  }
+  if (exceedsLength(summary.value, MAX_ARTICLE_SUMMARY_LENGTH)) {
+    return `摘要最多 ${MAX_ARTICLE_SUMMARY_LENGTH} 字（目前 ${summary.value.length} 字），請刪減後再儲存`
+  }
+  if (contentExceeded.value) return contentLimitHint.value
+  return null
+}
+
 // ── Save draft ─────────────────────────────────────────────────────────────
 async function onSaveDraft() {
+  const violation = findLimitViolation()
+  if (violation) {
+    showToast(violation, 'error')
+    return
+  }
+  if (hasUnresolvedConflict.value) {
+    remindToReload()
+    return
+  }
   try {
     const contentToSave = markdownContent.value
     const saved = await saveDraft(contentToSave)
@@ -161,26 +251,44 @@ async function onSaveDraft() {
     if (!props.uuid && saved?.uuid) {
       await router.replace(`/editor/${saved.uuid}`)
     }
-  } catch {
-    showToast('儲存失敗', 'error')
+  } catch (err) {
+    if (isConcurrentUpdateError(err)) {
+      await handleSaveConflict()
+      return
+    }
+    // 429 由 apiClient 的全域 toast 提示等待時間，不再疊自己的錯誤 toast
+    if (!isRateLimited(err)) showToast('儲存失敗', 'error')
   }
 }
 
 // ── Submit for review ──────────────────────────────────────────────────────
 async function onSubmitForReview() {
+  const violation = findLimitViolation()
+  if (violation) {
+    showToast(violation, 'error')
+    return
+  }
+  if (hasUnresolvedConflict.value) {
+    remindToReload()
+    return
+  }
   try {
     const contentToSave = markdownContent.value
     await saveDraft(contentToSave)
     baselineContent.value = contentToSave
-  } catch {
-    showToast('儲存失敗', 'error')
+  } catch (err) {
+    if (isConcurrentUpdateError(err)) {
+      await handleSaveConflict()
+      return
+    }
+    if (!isRateLimited(err)) showToast('儲存失敗', 'error')
     return
   }
   try {
     await submitForReview()
     showToast('已送出審核', 'success')
-  } catch {
-    showToast('送出失敗', 'error')
+  } catch (err) {
+    if (!isRateLimited(err)) showToast('送出失敗', 'error')
   }
 }
 
@@ -228,6 +336,7 @@ async function onVersionRestored() {
         v-model="title"
         class="ed-title-input"
         data-testid="editor-title-input"
+        :maxlength="MAX_ARTICLE_TITLE_LENGTH"
         type="text"
         aria-label="文章標題"
         placeholder="文章標題..."
@@ -320,6 +429,37 @@ async function onVersionRestored() {
       @redo="redo"
       @insert-images="onInsertImages"
     />
+
+    <!-- 存檔衝突提示列（B2）：使用者取消重新載入後常駐，直到重新載入成功 -->
+    <div
+      v-if="hasUnresolvedConflict"
+      ref="conflictBannerEl"
+      class="ed-image-warning ed-conflict-banner"
+      role="alert"
+      tabindex="-1"
+      data-testid="editor-conflict-banner"
+    >
+      <span>文章已在其他地方被修改，請先複製你的內容，再按「重新載入」</span>
+      <button
+        type="button"
+        class="ed-btn"
+        data-testid="editor-conflict-reload"
+        :disabled="isLoadingArticle"
+        @click="reloadAfterConflict"
+      >
+        重新載入
+      </button>
+    </div>
+
+    <!-- 內文字數接近／超過上限（快照 content maxLength 200000）；超過時存檔與送審會被擋下 -->
+    <div
+      v-if="showContentLimitHint"
+      :class="contentExceeded ? 'ed-image-warning' : 'ed-limit-hint'"
+      :role="contentExceeded ? 'alert' : 'status'"
+      data-testid="editor-content-limit-hint"
+    >
+      {{ contentLimitHint }}
+    </div>
 
     <!-- 外部圖片警告（CSP 不放行外部圖片，發布後讀者端會破圖） -->
     <div
@@ -418,6 +558,13 @@ async function onVersionRestored() {
   background: color-mix(in srgb, var(--danger-strong) 10%, transparent);
   border-bottom: 1px solid color-mix(in srgb, var(--danger-strong) 25%, transparent);
 }
+.ed-limit-hint {
+  padding: 0.5rem 1rem;
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+  border-bottom: 1px solid var(--divider);
+}
+.ed-conflict-banner { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .editor-body { flex: 1; display: flex; overflow: hidden; }
 .editor-pane { position: relative; flex: 1; min-width: 0; overflow-y: auto; border-right: 1px solid var(--divider); }
 .editor-pane-inner { height: 100%; }

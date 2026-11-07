@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
-import { fetchVerificationToken, resetAuthRateLimits } from '../fixtures/admin-helpers'
+import { resetAuthRateLimits } from '../fixtures/admin-helpers'
+import { fetchVerificationTokenFromMail } from '../fixtures/mailpit'
 
 /**
  * N1：註冊 → 信箱驗證 → 登入（全鏈）
@@ -58,10 +59,10 @@ test('N1 註冊 → 信箱驗證 → 登入', async ({ page }) => {
   // 後端回應後仍停留在 /login ⇒ 未取得 session（成功時 LoginView 會導離 /login）
   await expect(page).toHaveURL(/\/login/)
 
-  // ── 3. 取得驗證 token（等同使用者從驗證信取得）──────────────────────
-  // compose 內無 SMTP，但 token 於註冊當下即寫入 verification_tokens。
-  // fetchVerificationToken 查無 token 會自行拋錯，故此處不需再斷言非空。
-  const token = fetchVerificationToken(email)
+  // ── 3. 取得驗證 token（從 mailpit 收到的驗證信取得，等同使用者從信箱點連結）──────
+  // 後端只存 token 雜湊（V35），明文 token 只出現在寄信當下的信件連結。
+  // 查無信件會在逾時後自行拋出清楚錯誤，故此處不需再斷言非空。
+  const token = await fetchVerificationTokenFromMail(email)
 
   // ── 4. 走驗證頁（真瀏覽器 → 真 HTTP → 真後端 → 真 DB）───────────────
   await page.goto(`/verify-email?token=${encodeURIComponent(token)}`)

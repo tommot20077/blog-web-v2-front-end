@@ -340,6 +340,21 @@ describe('MyArticlesView', () => {
       expect(mockShowToast).toHaveBeenCalledWith('文章狀態轉換不合法', 'error')
     })
 
+    it('A4：送出審核與抽回遇到 429 → 不顯示自己的錯誤 toast', async () => {
+      const rateLimited = Object.assign(new Error('操作太頻繁，請 30 秒後再試'), { status: 429, code: 'A0009' })
+      mockGetMyArticles.mockResolvedValue(createMockPageResult([buildPendingArticle()]))
+      mockWithdrawArticle.mockRejectedValue(rateLimited)
+
+      const user = userEvent.setup()
+      renderWithRouter(MyArticlesView)
+      await flushPromises()
+      await user.click(screen.getByTestId('my-row-action-withdraw-pending-uuid'))
+      await flushPromises()
+
+      expect(mockWithdrawArticle).toHaveBeenCalled()
+      expect(mockShowToast).not.toHaveBeenCalledWith(expect.any(String), 'error')
+    })
+
     it('withdrawArticle 送出期間按鈕進入 disabled 狀態，避免重複點擊', async () => {
       mockGetMyArticles.mockResolvedValue(createMockPageResult([buildPendingArticle()]))
       let resolveWithdraw: () => void = () => {}

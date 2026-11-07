@@ -8,7 +8,7 @@ import type {
   UpdateCategoryRequest,
   UpdateTagRequest,
 } from '../types/editor'
-import type { SearchIndexStatus } from '../types/search'
+import type { SearchIndexStatus, SearchReindexJob } from '../types/search'
 
 export const adminService = {
   async getPendingArticles(page: number, size: number): Promise<PageResult<MyArticle>> {
@@ -92,7 +92,7 @@ export const adminService = {
     return svc.deleteTag(id)
   },
 
-  async reindexSearch(): Promise<void> {
+  async reindexSearch(): Promise<SearchReindexJob> {
     if (import.meta.env.VITE_USE_MOCK === 'true') {
       const { adminService: svc } = await import('./mock/adminService')
       return svc.reindexSearch()

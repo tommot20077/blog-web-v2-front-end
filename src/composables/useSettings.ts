@@ -5,6 +5,17 @@ import { useAuthStore } from '../stores/auth'
 import { useToast } from './useToast'
 import { getPasswordRules, PASSWORD_POLICY_MESSAGE } from './useFormValidation'
 import { isSafeHandle, isHttpUrl } from '../utils/socialLinks'
+import { exceedsUploadLimit } from '../utils/uploadLimits'
+import {
+  MAX_NICKNAME_LENGTH,
+  MAX_BIO_LENGTH,
+  MAX_LOCATION_LENGTH,
+  MAX_WEBSITE_LENGTH,
+  MIN_ACCOUNT_PASSWORD_LENGTH,
+  MAX_ACCOUNT_PASSWORD_LENGTH,
+  exceedsLength,
+} from '../utils/inputLimits'
+import { getApiErrorCode, getFileTooLargeMessage, getFriendlyErrorMessage, isRateLimited } from '../utils/apiErrors'
 
 type SaveStatus = 'idle' | 'saving' | 'saved'
 
@@ -32,8 +43,6 @@ function useSaveStatus() {
   return { status, withSave }
 }
 
-/** 對齊後端 UpdateProfileRequest.website 的 maxLength */
-const MAX_WEBSITE_LENGTH = 255
 const HANDLE_ERROR = '請只填帳號名稱，不要貼網址（不可含 / : \\ < > " 或空白，最多 100 字，@ 只能放在開頭一個）'
 const WEBSITE_ERROR = '請輸入以 http:// 或 https:// 開頭的完整網址（最多 255 字）'
 
@@ -159,7 +168,39 @@ export function useSettings() {
   watch(() => authStore.user, (user) => hydrateProfile(user))
 
   // Save functions
+  /**
+   * 選擇頭像檔案（A6b）：超過 5MB 直接提示、不接受；通過才記下，存檔時才會上傳。
+   * 回傳是否接受，呼叫端據此決定要不要更新預覽。
+   */
+  function selectAvatarFile(file: File): boolean {
+    if (exceedsUploadLimit(file, 'AVATAR')) {
+      showToast(getFileTooLargeMessage('AVATAR'), 'error')
+      return false
+    }
+    avatarFile.value = file
+    return true
+  }
+
+  /** 個人資料長度預檢（快照 UpdateProfileRequest：nickname 50、bio 500、location 100）；通過回傳 null */
+  function profileLimitError(): string | null {
+    if (exceedsLength(nickname.value, MAX_NICKNAME_LENGTH)) {
+      return `顯示名稱最多 ${MAX_NICKNAME_LENGTH} 字（目前 ${nickname.value.length} 字），請刪減後再儲存`
+    }
+    if (exceedsLength(bio.value, MAX_BIO_LENGTH)) {
+      return `個人簡介最多 ${MAX_BIO_LENGTH} 字（目前 ${bio.value.length} 字），請刪減後再儲存`
+    }
+    if (exceedsLength(location.value, MAX_LOCATION_LENGTH)) {
+      return `所在地最多 ${MAX_LOCATION_LENGTH} 字（目前 ${location.value.length} 字），請刪減後再儲存`
+    }
+    return null
+  }
+
   async function saveProfile() {
+    const limitError = profileLimitError()
+    if (limitError) {
+      showToast(limitError, 'error')
+      return
+    }
     if (websiteError.value) {
       showToast('個人網站格式不正確', 'error')
       return
@@ -196,8 +237,10 @@ export function useSettings() {
         // Refresh the auth store user object so the rest of the app sees updated data
         await authStore.fetchUser()
       })
-    } catch {
-      showToast('儲存個人資料失敗', 'error')
+    } catch (err) {
+      // A0402／A0406／A0407（頭像上傳或設定頭像失敗）有專屬訊息；其他維持通用提示
+      // 429 由 apiClient 的全域 toast 提示等待時間
+      if (!isRateLimited(err)) showToast(getFriendlyErrorMessage(getApiErrorCode(err)) ?? '儲存個人資料失敗', 'error')
     }
   }
 
@@ -298,6 +341,11 @@ export function useSettings() {
   }
 
   async function deleteAccount(password: string) {
+    // 快照 DeleteAccountRequest.password：6 到 50 字；不符不呼叫 API
+    if (password.length < MIN_ACCOUNT_PASSWORD_LENGTH || exceedsLength(password, MAX_ACCOUNT_PASSWORD_LENGTH)) {
+      showToast(`密碼長度須為 ${MIN_ACCOUNT_PASSWORD_LENGTH} 到 ${MAX_ACCOUNT_PASSWORD_LENGTH} 字`, 'error')
+      return
+    }
     try {
       await userService.deleteAccount({ password })
       authStore.logout()
@@ -309,7 +357,7 @@ export function useSettings() {
 
   return {
     // Profile
-    nickname, bio, location, website, avatarUrl, avatarFile, profileStatus, saveProfile,
+    nickname, bio, location, website, avatarUrl, avatarFile, selectAvatarFile, profileStatus, saveProfile,
     // Account
     email, pwCurrent, pwNew, pwConfirm, accountStatus, saveAccount,
     // Social

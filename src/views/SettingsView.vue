@@ -7,9 +7,14 @@ import SettingFieldGroup from '../components/settings/SettingFieldGroup.vue'
 import SettingSaveToast from '../components/settings/SettingSaveToast.vue'
 import PasswordRulesChecklist from '../components/auth/PasswordRulesChecklist.vue'
 import ShellRail from '../components/layout/ShellRail.vue'
+import {
+  MAX_NICKNAME_LENGTH,
+  MAX_BIO_LENGTH,
+  MAX_LOCATION_LENGTH,
+} from '../utils/inputLimits'
 
 const {
-  nickname, bio, location, website, avatarUrl, avatarFile, profileStatus, saveProfile,
+  nickname, bio, location, website, avatarUrl, selectAvatarFile, profileStatus, saveProfile,
   removeAvatar,
   email, pwCurrent, pwNew, pwConfirm, accountStatus, saveAccount,
   github, twitter, linkedin, socialStatus, saveSocial,
@@ -68,8 +73,7 @@ function onAvatarClick() {
 function onFileChange(e: Event) {
   const input = e.target as HTMLInputElement
   const file = input.files?.[0]
-  if (file && file.type.startsWith('image/')) {
-    avatarFile.value = file
+  if (file && file.type.startsWith('image/') && selectAvatarFile(file)) {
     if (avatarUrl.value?.startsWith('blob:')) URL.revokeObjectURL(avatarUrl.value)
     avatarUrl.value = URL.createObjectURL(file)
   }
@@ -90,8 +94,7 @@ function onDrop(e: DragEvent) {
   e.preventDefault()
   isDragging.value = false
   const file = e.dataTransfer?.files?.[0]
-  if (file && file.type.startsWith('image/')) {
-    avatarFile.value = file
+  if (file && file.type.startsWith('image/') && selectAvatarFile(file)) {
     if (avatarUrl.value?.startsWith('blob:')) URL.revokeObjectURL(avatarUrl.value)
     avatarUrl.value = URL.createObjectURL(file)
   }
@@ -159,6 +162,7 @@ async function handleDeleteAccount() {
             </div>
             <input
               ref="fileInputRef"
+              data-testid="avatar-upload-input"
               type="file"
               accept="image/*"
               style="display:none"
@@ -171,21 +175,21 @@ async function handleDeleteAccount() {
         </SettingFieldGroup>
 
         <!-- Nickname -->
-        <SettingFieldGroup label="顯示名稱" hint="最多 32 個字元">
-          <input class="st-input" v-model="nickname" maxlength="32" placeholder="輸入你的顯示名稱" />
+        <SettingFieldGroup label="顯示名稱" :hint="`最多 ${MAX_NICKNAME_LENGTH} 個字元`">
+          <input class="st-input" v-model="nickname" :maxlength="MAX_NICKNAME_LENGTH" placeholder="輸入你的顯示名稱" />
         </SettingFieldGroup>
 
         <!-- Bio -->
-        <SettingFieldGroup label="個人簡介" hint="最多 200 個字元">
+        <SettingFieldGroup label="個人簡介" :hint="`最多 ${MAX_BIO_LENGTH} 個字元`">
           <div class="st-textarea-wrap">
-            <textarea class="st-textarea" v-model="bio" maxlength="200" rows="4" placeholder="介紹一下你自己…" />
-            <span class="st-char-count">{{ (bio || '').length }} / 200</span>
+            <textarea class="st-textarea" v-model="bio" :maxlength="MAX_BIO_LENGTH" rows="4" placeholder="介紹一下你自己…" />
+            <span class="st-char-count">{{ (bio || '').length }} / {{ MAX_BIO_LENGTH }}</span>
           </div>
         </SettingFieldGroup>
 
         <!-- Location -->
         <SettingFieldGroup label="所在地">
-          <input class="st-input" v-model="location" placeholder="例如：台灣 台北" />
+          <input class="st-input" v-model="location" :maxlength="MAX_LOCATION_LENGTH" placeholder="例如：台灣 台北" />
         </SettingFieldGroup>
 
         <!-- Website -->

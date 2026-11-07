@@ -116,6 +116,7 @@ export function restoreArticleVersionMock(articleUuid: string, versionUuid: stri
         status: version.status,
         tags: [...version.tagNames],
         updatedAt: now,
+        version: current.version + 1,
       }
       resolve()
     }, MOCK_DELAY)

@@ -27,6 +27,7 @@ interface BackendEditorArticle {
   rejectReason: string | null
   createdAt: string
   updatedAt: string
+  version: number
 }
 
 function mapCategory(raw: BackendCategory): CategoryOption {
@@ -46,6 +47,7 @@ function mapEditorArticle(raw: BackendEditorArticle): EditorArticle {
     rejectReason: raw.rejectReason,
     createdAt: raw.createdAt,
     updatedAt: raw.updatedAt,
+    version: raw.version,
   }
 }
 
