@@ -64,9 +64,9 @@ export const commentService = {
     })
     return {
       topLevels: { records, total: topLevels.length, page, size },
-      // 對齊 backend CommentService.countByArticle 行為：
-      // 計入所有 top-level（含 deleted tombstone）+ active reply，排除 deleted reply
-      totalCommentCount: all.filter(c => !c.parentUuid || !c.deleted).length,
+      // 對齊 backend（B5）：未刪除的留言數（頂層加回覆），不含任何已刪除留言，包括頂層墓碑佔位。
+      // 因此可能小於列表實際顯示的列數（墓碑仍會出現在列表中）
+      totalCommentCount: all.filter(c => !c.deleted).length,
     }
   },
 

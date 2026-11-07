@@ -50,3 +50,39 @@ describe('mock commentService（D3 回覆分頁）', () => {
     expect(missing.total).toBe(0)
   })
 })
+
+describe('mock commentService（B5 留言數語意：不含墓碑）', () => {
+  beforeEach(() => resetCommentMockState())
+
+  it('刪除有回覆的頂層留言：totalCommentCount 減 1，墓碑與回覆仍在列表', async () => {
+    const parent = await seedThread(2)
+    const before = await commentService.list(ARTICLE, 1, 20, 'newest')
+    expect(before.totalCommentCount).toBe(3)
+
+    await commentService.delete(parent.uuid)
+
+    const after = await commentService.list(ARTICLE, 1, 20, 'newest')
+    expect(after.totalCommentCount).toBe(2)
+    const top = after.topLevels.records[0]
+    expect(top.deleted).toBe(true)
+    expect(top.replies).toHaveLength(2)
+    expect(after.topLevels.total).toBe(1)
+  })
+
+  it('刪除沒有回覆的頂層留言：墓碑仍顯示，計數為 0', async () => {
+    const parent = await seedThread(0)
+    await commentService.delete(parent.uuid)
+    const res = await commentService.list(ARTICLE, 1, 20, 'newest')
+    expect(res.totalCommentCount).toBe(0)
+    expect(res.topLevels.records).toHaveLength(1)
+    expect(res.topLevels.records[0].deleted).toBe(true)
+  })
+
+  it('刪除回覆：計數減 1', async () => {
+    const parent = await seedThread(2)
+    const replies = await commentService.listReplies(parent.uuid, 1, 10)
+    await commentService.delete(replies.records[0].uuid)
+    const res = await commentService.list(ARTICLE, 1, 20, 'newest')
+    expect(res.totalCommentCount).toBe(2)
+  })
+})

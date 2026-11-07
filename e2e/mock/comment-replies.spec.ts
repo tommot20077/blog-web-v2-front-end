@@ -59,3 +59,24 @@ test.describe('留言回覆分頁（載入更多）', () => {
     await expect(page.getByTestId('comment-replies-error')).toHaveCount(0)
   })
 })
+
+// B5：留言數 = 未刪除的留言數，不含墓碑佔位
+test.describe('留言數語意', () => {
+  test.beforeEach(async ({ resetMockStateInApp }) => {
+    await resetMockStateInApp()
+  })
+
+  test('刪除有回覆的頂層留言：計數減 1，墓碑仍顯示', async ({ page, loginAs, seedCommentThread }) => {
+    await loginAs('admin')
+    await seedCommentThread(ARTICLE, '父留言', ['回覆 1', '回覆 2'])
+    await page.goto(`/articles/${ARTICLE}`)
+    await expect(page.getByTestId('comment-total-count')).toContainText('3 comments')
+
+    page.once('dialog', dialog => dialog.accept())
+    await page.getByTestId('comment-item').first().getByTestId('comment-delete-btn').first().click()
+
+    await expect(page.getByTestId('comment-total-count')).toContainText('2 comments')
+    await expect(page.getByText('此留言已被')).toBeVisible()
+    await expect(page.getByTestId('comment-item')).toHaveCount(1 + 2)
+  })
+})
