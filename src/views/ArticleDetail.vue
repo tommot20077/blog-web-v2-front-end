@@ -55,7 +55,7 @@ const tocIds = computed(() => toc.value.map((entry) => entry.id))
 const { activeId, resubscribe: resubscribeScrollSpy } = useScrollSpy(tocIds)
 
 // 作者檢視自己未發布（DRAFT/PENDING_REVIEW/REJECTED）文章時，內文圖走 canRead 授權矩陣，
-// 改用帶認證的 blob 載入避免 403 破圖。已發布文章走匿名 302 本來就通，不需要介入。
+// 改用帶認證的 blob 載入避免 403 破圖。已發布文章的檔案內容端點可匿名讀取（公開檔案），不需要介入。
 useAuthedImages(articleBodyEl, () => renderedHtml.value, {
   enabled: () => article.value?.status !== 'PUBLISHED',
 })
