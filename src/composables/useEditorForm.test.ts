@@ -150,6 +150,22 @@ describe('useEditorForm', () => {
       expect(isDirty.value).toBe(false)
     })
 
+    it('儲存進行中又修改標題：儲存完成後仍為 dirty（修改不會被吃掉）', async () => {
+      let resolveCreate!: (a: typeof mockArticle) => void
+      vi.mocked(editorService.createArticle).mockReturnValue(
+        new Promise((resolve) => { resolveCreate = resolve }),
+      )
+
+      const { title, isDirty, saveDraft } = useEditorForm()
+      title.value = '舊標題'
+      const saving = saveDraft('內容')
+      title.value = '儲存期間改的標題'
+      resolveCreate(mockArticle)
+      await saving
+
+      expect(isDirty.value).toBe(true)
+    })
+
     it('新建模式：儲存成功後回傳 EditorArticle', async () => {
       vi.mocked(editorService.createArticle).mockResolvedValue(mockArticle)
 
