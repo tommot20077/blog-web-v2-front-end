@@ -12,7 +12,12 @@ import FormField from '../components/ui/FormField.vue';
 import PasswordStrengthMeter from '../components/auth/PasswordStrengthMeter.vue';
 import PasswordRulesChecklist from '../components/auth/PasswordRulesChecklist.vue';
 import RegisterSuccess from '../components/auth/RegisterSuccess.vue';
-import { MAX_NICKNAME_LENGTH, exceedsLength } from '../utils/inputLimits';
+import {
+  MAX_NICKNAME_LENGTH,
+  MIN_USERNAME_LENGTH,
+  MAX_USERNAME_LENGTH,
+  exceedsLength,
+} from '../utils/inputLimits';
 
 const authStore = useAuthStore();
 const { showToast } = useToast();
@@ -49,7 +54,16 @@ const { errors, validateForm, getPasswordStrength } = useFormValidation<{
   ],
   username: [
     { type: 'required', message: '請輸入使用者名稱' },
-    { type: 'minLength', message: '使用者名稱最少需要 3 個字元', params: { min: 3 } },
+    {
+      type: 'minLength',
+      message: `使用者名稱最少需要 ${MIN_USERNAME_LENGTH} 個字元`,
+      params: { min: MIN_USERNAME_LENGTH },
+    },
+    {
+      type: 'custom',
+      message: `使用者名稱最多 ${MAX_USERNAME_LENGTH} 個字元`,
+      validator: (v) => !exceedsLength(String(v), MAX_USERNAME_LENGTH),
+    },
   ],
   nickname: [
     { type: 'required', message: '請輸入暱稱' },
@@ -136,6 +150,7 @@ async function handleSubmit() {
         label="使用者名稱"
         type="text"
         placeholder="請輸入使用者名稱（英文、數字）"
+        :maxlength="MAX_USERNAME_LENGTH"
         :error="errors.username"
         :disabled="isLoading"
       />

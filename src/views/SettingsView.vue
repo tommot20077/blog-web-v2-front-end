@@ -7,6 +7,11 @@ import SettingFieldGroup from '../components/settings/SettingFieldGroup.vue'
 import SettingSaveToast from '../components/settings/SettingSaveToast.vue'
 import PasswordRulesChecklist from '../components/auth/PasswordRulesChecklist.vue'
 import ShellRail from '../components/layout/ShellRail.vue'
+import {
+  MAX_NICKNAME_LENGTH,
+  MAX_BIO_LENGTH,
+  MAX_LOCATION_LENGTH,
+} from '../utils/inputLimits'
 
 const {
   nickname, bio, location, website, avatarUrl, selectAvatarFile, profileStatus, saveProfile,
@@ -170,21 +175,21 @@ async function handleDeleteAccount() {
         </SettingFieldGroup>
 
         <!-- Nickname -->
-        <SettingFieldGroup label="顯示名稱" hint="最多 32 個字元">
-          <input class="st-input" v-model="nickname" maxlength="32" placeholder="輸入你的顯示名稱" />
+        <SettingFieldGroup label="顯示名稱" :hint="`最多 ${MAX_NICKNAME_LENGTH} 個字元`">
+          <input class="st-input" v-model="nickname" :maxlength="MAX_NICKNAME_LENGTH" placeholder="輸入你的顯示名稱" />
         </SettingFieldGroup>
 
         <!-- Bio -->
-        <SettingFieldGroup label="個人簡介" hint="最多 200 個字元">
+        <SettingFieldGroup label="個人簡介" :hint="`最多 ${MAX_BIO_LENGTH} 個字元`">
           <div class="st-textarea-wrap">
-            <textarea class="st-textarea" v-model="bio" maxlength="200" rows="4" placeholder="介紹一下你自己…" />
-            <span class="st-char-count">{{ (bio || '').length }} / 200</span>
+            <textarea class="st-textarea" v-model="bio" :maxlength="MAX_BIO_LENGTH" rows="4" placeholder="介紹一下你自己…" />
+            <span class="st-char-count">{{ (bio || '').length }} / {{ MAX_BIO_LENGTH }}</span>
           </div>
         </SettingFieldGroup>
 
         <!-- Location -->
         <SettingFieldGroup label="所在地">
-          <input class="st-input" v-model="location" placeholder="例如：台灣 台北" />
+          <input class="st-input" v-model="location" :maxlength="MAX_LOCATION_LENGTH" placeholder="例如：台灣 台北" />
         </SettingFieldGroup>
 
         <!-- Website -->

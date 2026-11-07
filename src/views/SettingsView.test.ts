@@ -158,3 +158,15 @@ describe('SettingsView — 頭像選檔（A6b）', () => {
     expect(valueSetter).toHaveBeenCalledWith('')
   })
 })
+
+describe('SettingsView — 欄位上限與後端對齊（W7F-7）', () => {
+  it('顯示名稱 maxlength=50、個人簡介 maxlength=500、所在地 maxlength=100，提示文字同步', async () => {
+    await renderWithRouterAsync(SettingsView, {}, '/settings')
+    expect(screen.getByPlaceholderText('輸入你的顯示名稱').getAttribute('maxlength')).toBe('50')
+    expect(screen.getByPlaceholderText('介紹一下你自己…').getAttribute('maxlength')).toBe('500')
+    expect(screen.getByPlaceholderText('例如：台灣 台北').getAttribute('maxlength')).toBe('100')
+    expect(screen.getByText('最多 50 個字元')).toBeInTheDocument()
+    expect(screen.getByText('最多 500 個字元')).toBeInTheDocument()
+    expect(screen.getByText('0 / 500')).toBeInTheDocument()
+  })
+})

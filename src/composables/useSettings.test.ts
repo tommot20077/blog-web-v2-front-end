@@ -628,4 +628,60 @@ describe('useSettings', () => {
       }
     })
   })
+
+  // ── W7F-7：個人資料與刪除帳號的長度預檢（快照 UpdateProfileRequest／DeleteAccountRequest）──
+  describe('W7F-7 長度上限預檢', () => {
+    async function setup() {
+      const { userService } = await import('../api/userService')
+      vi.mocked(userService.updateProfile).mockClear()
+      vi.mocked(userService.deleteAccount).mockClear()
+      const { useToast } = await import('./useToast')
+      const mockShowToast = vi.fn()
+      vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast })
+      vi.resetModules()
+      const { useSettings } = await import('./useSettings')
+      let s!: ReturnType<typeof useSettings>
+      mount(makeTestComponent(() => {
+        s = useSettings()
+        return {}
+      }))
+      return { s, userService, mockShowToast }
+    }
+
+    it.each([
+      ['nickname', 50, '顯示名稱最多 50 字'],
+      ['bio', 500, '個人簡介最多 500 字'],
+      ['location', 100, '所在地最多 100 字'],
+    ] as const)('%s 剛好 %i 字可以儲存', async (field, max) => {
+      const { s, userService } = await setup()
+      s[field].value = '字'.repeat(max)
+      await s.saveProfile()
+      expect(userService.updateProfile).toHaveBeenCalledTimes(1)
+    })
+
+    it.each([
+      ['nickname', 50, '顯示名稱最多 50 字'],
+      ['bio', 500, '個人簡介最多 500 字'],
+      ['location', 100, '所在地最多 100 字'],
+    ] as const)('%s 超過 %i 字不呼叫 API 並提示', async (field, max, message) => {
+      const { s, userService, mockShowToast } = await setup()
+      s[field].value = '字'.repeat(max + 1)
+      await s.saveProfile()
+      expect(userService.updateProfile).not.toHaveBeenCalled()
+      expect(mockShowToast).toHaveBeenCalledWith(expect.stringContaining(message), 'error')
+    })
+
+    it.each([6, 50])('刪除帳號：密碼剛好 %i 字可以送出', async (len) => {
+      const { s, userService } = await setup()
+      await s.deleteAccount('p'.repeat(len))
+      expect(userService.deleteAccount).toHaveBeenCalledWith({ password: 'p'.repeat(len) })
+    })
+
+    it.each([5, 51])('刪除帳號：密碼 %i 字不呼叫 API 並提示', async (len) => {
+      const { s, userService, mockShowToast } = await setup()
+      await s.deleteAccount('p'.repeat(len))
+      expect(userService.deleteAccount).not.toHaveBeenCalled()
+      expect(mockShowToast).toHaveBeenCalledWith(expect.stringContaining('密碼長度須為 6 到 50 字'), 'error')
+    })
+  })
 })

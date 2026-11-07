@@ -205,6 +205,20 @@ Response 401:
 
 超過一律 400（`A0001`），由後端驗證：文章 `content` ≤ 200000 字、`title` ≤ 120、`summary` ≤ 500、註冊 `nickname` ≤ 50、退稿 `reason` ≤ 500、標籤 `color` 須為 `#RRGGBB`、`icon` ≤ 100、`description` ≤ 200。前端常數只定義在 `src/utils/inputLimits.ts`（長度以 UTF-16 code unit 計，與後端 `@Size` 一致）；輸入框帶 `maxlength`，送出前預檢，超過不呼叫 API 並提示。內文達 90% 在編輯器顯示字數提示。
 
+W7F-7 補齊其餘欄位（常數同在 `src/utils/inputLimits.ts`，超過一律不呼叫 API 並提示）：
+
+| 欄位 | 快照依據 | 前端位置 |
+|------|----------|----------|
+| 留言 `content` ≤ 2000（新增／編輯／回覆共用） | Create／EditCommentRequest.content | `CommentForm`；達 90% 顯示字數、超過停用送出 |
+| 分類 `name` ≤ 50、`slug` ≤ 60（另有 pattern）、`description` ≤ 200 | Create／UpdateCategoryRequest | `AdminCategoriesView` |
+| 註冊 `username` 3～50（**快照無 pattern**，不自創格式限制） | RegisterRequest.username | `RegisterView` |
+| 個人資料 `nickname` ≤ 50、`bio` ≤ 500、`location` ≤ 100、`website` ≤ 255 | UpdateProfileRequest | `useSettings`／`SettingsView`（舊值 32／200 已改為與註冊頁、後端一致） |
+| 劃線 `note` ≤ 2000 | Create／UpdateHighlightRequest.note | `ArticleHighlightPanel` |
+| 刪除帳號 `password` 6～50 | DeleteAccountRequest.password | `useSettings.deleteAccount` |
+| 手動快照 `note` ≤ 255；系列 `title`／`slug` ≤ 255、slug 須符合 `^[a-z0-9-]+$` | CreateManualSnapshotRequest／Create、UpdateSeriesRequest | 常數與 `isSeriesSlug` 已備；**目前前端沒有這兩個表單**，日後新增時直接套用 |
+
+快照中其餘有限制的欄位不是使用者手打的，故不預檢：劃線 `snippet`／`prefix`／`suffix`（由選取文字產生）、系列 `coverImageUrl`、個人資料 `avatarUrl`（由上傳回傳）、閱讀進度 `lastHeading`。
+
 ## File Upload
 
 ```

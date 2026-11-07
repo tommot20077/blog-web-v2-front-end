@@ -6,6 +6,15 @@ import { useToast } from './useToast'
 import { getPasswordRules, PASSWORD_POLICY_MESSAGE } from './useFormValidation'
 import { isSafeHandle, isHttpUrl } from '../utils/socialLinks'
 import { exceedsUploadLimit } from '../utils/uploadLimits'
+import {
+  MAX_NICKNAME_LENGTH,
+  MAX_BIO_LENGTH,
+  MAX_LOCATION_LENGTH,
+  MAX_WEBSITE_LENGTH,
+  MIN_ACCOUNT_PASSWORD_LENGTH,
+  MAX_ACCOUNT_PASSWORD_LENGTH,
+  exceedsLength,
+} from '../utils/inputLimits'
 import { getApiErrorCode, getFileTooLargeMessage, getFriendlyErrorMessage, isRateLimited } from '../utils/apiErrors'
 
 type SaveStatus = 'idle' | 'saving' | 'saved'
@@ -34,8 +43,6 @@ function useSaveStatus() {
   return { status, withSave }
 }
 
-/** 對齊後端 UpdateProfileRequest.website 的 maxLength */
-const MAX_WEBSITE_LENGTH = 255
 const HANDLE_ERROR = '請只填帳號名稱，不要貼網址（不可含 / : \\ < > " 或空白，最多 100 字，@ 只能放在開頭一個）'
 const WEBSITE_ERROR = '請輸入以 http:// 或 https:// 開頭的完整網址（最多 255 字）'
 
@@ -174,7 +181,26 @@ export function useSettings() {
     return true
   }
 
+  /** 個人資料長度預檢（快照 UpdateProfileRequest：nickname 50、bio 500、location 100）；通過回傳 null */
+  function profileLimitError(): string | null {
+    if (exceedsLength(nickname.value, MAX_NICKNAME_LENGTH)) {
+      return `顯示名稱最多 ${MAX_NICKNAME_LENGTH} 字（目前 ${nickname.value.length} 字），請刪減後再儲存`
+    }
+    if (exceedsLength(bio.value, MAX_BIO_LENGTH)) {
+      return `個人簡介最多 ${MAX_BIO_LENGTH} 字（目前 ${bio.value.length} 字），請刪減後再儲存`
+    }
+    if (exceedsLength(location.value, MAX_LOCATION_LENGTH)) {
+      return `所在地最多 ${MAX_LOCATION_LENGTH} 字（目前 ${location.value.length} 字），請刪減後再儲存`
+    }
+    return null
+  }
+
   async function saveProfile() {
+    const limitError = profileLimitError()
+    if (limitError) {
+      showToast(limitError, 'error')
+      return
+    }
     if (websiteError.value) {
       showToast('個人網站格式不正確', 'error')
       return
@@ -315,6 +341,11 @@ export function useSettings() {
   }
 
   async function deleteAccount(password: string) {
+    // 快照 DeleteAccountRequest.password：6 到 50 字；不符不呼叫 API
+    if (password.length < MIN_ACCOUNT_PASSWORD_LENGTH || exceedsLength(password, MAX_ACCOUNT_PASSWORD_LENGTH)) {
+      showToast(`密碼長度須為 ${MIN_ACCOUNT_PASSWORD_LENGTH} 到 ${MAX_ACCOUNT_PASSWORD_LENGTH} 字`, 'error')
+      return
+    }
     try {
       await userService.deleteAccount({ password })
       authStore.logout()
