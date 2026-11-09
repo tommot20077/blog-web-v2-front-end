@@ -2,7 +2,7 @@ name: blog-e2e
 
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     environment:
       POSTGRES_DB: blog_e2e
       POSTGRES_USER: e2e_user
@@ -14,7 +14,7 @@ services:
       retries: 10
 
   redis:
-    image: redis:8-alpine
+    image: redis:8.8.0-alpine
     command: redis-server --requirepass e2e_pass
     healthcheck:
       test: ["CMD", "redis-cli", "-a", "e2e_pass", "ping"]
@@ -23,7 +23,7 @@ services:
       retries: 10
 
   rabbitmq:
-    image: rabbitmq:3-management-alpine
+    image: rabbitmq:4.2.2-management-alpine
     environment:
       RABBITMQ_DEFAULT_USER: e2e_user
       RABBITMQ_DEFAULT_PASS: e2e_pass
@@ -53,7 +53,7 @@ services:
       start_period: 10s
 
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.17.4
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.2.4
     environment:
       discovery.type: single-node
       xpack.security.enabled: "true"
