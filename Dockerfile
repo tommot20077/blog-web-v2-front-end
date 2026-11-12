@@ -4,7 +4,9 @@
 # Stage 1: build
 # Node 22-alpine: 對齊本機 Node v22 並滿足 Vite 7 (>= 20.19 / >= 22.12) 需求。
 # ---------------------------------------------------------------------------
-FROM node:22-alpine AS build
+# 建置階段固定在 runner 的原生架構執行（$BUILDPLATFORM）：產物是與 CPU 架構無關的靜態檔，
+# 多架構建置（amd64＋arm64）時不必用 QEMU 模擬跑 npm ci / vite build。
+FROM --platform=$BUILDPLATFORM node:22-alpine AS build
 
 WORKDIR /app
 
