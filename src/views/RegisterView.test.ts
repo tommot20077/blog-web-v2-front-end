@@ -24,7 +24,6 @@ function createTestSetup() {
       { path: '/', component: { template: '<div>Home</div>' } },
       { path: '/register', component: RegisterView },
       { path: '/login', name: 'login', component: { template: '<div>Login</div>' } },
-      { path: '/check-email', name: 'check-email', component: { template: '<div>Check Email</div>' } },
     ],
   });
   router.push('/register');
@@ -88,12 +87,22 @@ describe('RegisterView', () => {
     expect(screen.getByTestId('password-strength')).toBeTruthy();
   });
 
-  it('註冊成功顯示成功 toast 並導向驗證信提示頁', async () => {
+  // D1「右欄原地切換」（Yuan 2026-07-19 定案）：
+  // 註冊成功後不再跳頁、不再彈一閃即逝的 toast，改為右欄原地換成
+  // 帶有 auth-register-success 的成功狀態畫面，並回顯註冊用 email。
+  // 舊斷言「顯示成功 toast 並導向 /login」對應的是已被明確廢棄的行為，故整條改寫，
+  // 而非弱化：新斷言同樣要求「不留在半殘狀態」，只是驗證的目標行為改變了。
+  it('註冊成功後右欄原地顯示成功畫面並回顯 email（不跳頁、不彈 toast）', async () => {
     const { router, pinia } = renderRegisterView();
     setActivePinia(pinia);
 
     const authStore = useAuthStore();
     authStore.register = vi.fn().mockResolvedValue(undefined);
+
+    // router setup 的初始 push('/register') 未 await，先等它 settle，
+    // 才能在提交後可靠地斷言「路徑沒有因為送出表單而改變」。
+    await router.isReady();
+    const pathBeforeSubmit = router.currentRoute.value.path;
 
     const emailInput = screen.getByPlaceholderText('請輸入 Email');
     const usernameInput = screen.getByPlaceholderText('請輸入使用者名稱（英文、數字）');
@@ -103,23 +112,26 @@ describe('RegisterView', () => {
     await fireEvent.update(emailInput, 'test@example.com');
     await fireEvent.update(usernameInput, 'test_user');
     await fireEvent.update(nicknameInput, 'TestUser');
-    await fireEvent.update(passwordInput, 'Password123');
+    await fireEvent.update(passwordInput, 'Password123!');
 
     const button = screen.getByRole('button', { name: '註冊' });
     await fireEvent.click(button);
 
     await waitFor(() => {
-      const { toasts } = useToast();
-      const successToast = toasts.value.find(
-        t => t.message === '註冊成功！請至信箱驗證您的帳號' && t.type === 'success',
-      );
-      expect(successToast).toBeTruthy();
+      expect(screen.getByTestId('auth-register-success')).toBeTruthy();
     });
 
-    await waitFor(() => {
-      expect(router.currentRoute.value.path).toBe('/check-email');
-      expect(router.currentRoute.value.query.email).toBe('test@example.com');
-    });
+    expect(screen.getByTestId('auth-register-success-email').textContent).toContain(
+      'test@example.com',
+    );
+
+    // 送出表單不應觸發任何導航 —— 不再自動跳轉到 /login
+    expect(router.currentRoute.value.path).toBe(pathBeforeSubmit);
+
+    // 不再彈出「註冊成功」toast —— 已改為右欄原地呈現的持久成功畫面
+    const { toasts } = useToast();
+    const successToast = toasts.value.find(t => t.type === 'success');
+    expect(successToast).toBeFalsy();
   });
 
   it('註冊失敗顯示錯誤 toast', async () => {
@@ -137,7 +149,7 @@ describe('RegisterView', () => {
     await fireEvent.update(emailInput, 'test@example.com');
     await fireEvent.update(usernameInput, 'test_user');
     await fireEvent.update(nicknameInput, 'TestUser');
-    await fireEvent.update(passwordInput, 'Password123');
+    await fireEvent.update(passwordInput, 'Password123!');
 
     const button = screen.getByRole('button', { name: '註冊' });
     await fireEvent.click(button);
@@ -187,5 +199,80 @@ describe('RegisterView', () => {
   it('data-testid: auth-register-alt-link 存在', () => {
     renderRegisterView();
     expect(screen.getByTestId('auth-register-alt-link')).toBeTruthy();
+  });
+
+  // ── W7F-6：暱稱長度上限（快照 RegisterRequest.nickname maxLength 50；暱稱無格式限制）──
+  describe('暱稱長度上限', () => {
+    async function submitWithNickname(nickname: string) {
+      const { pinia } = renderRegisterView();
+      const authStore = useAuthStore(pinia);
+      authStore.register = vi.fn().mockResolvedValue(undefined);
+      await fireEvent.update(screen.getByPlaceholderText('請輸入 Email'), 'test@example.com');
+      await fireEvent.update(screen.getByPlaceholderText('請輸入使用者名稱（英文、數字）'), 'test_user');
+      await fireEvent.update(screen.getByPlaceholderText('請輸入暱稱'), nickname);
+      await fireEvent.update(screen.getByPlaceholderText('請輸入密碼'), 'Password123!');
+      // 直接觸發 submit：happy-dom 的原生 maxlength 約束檢查會先擋掉 click 送出，
+      // 這裡要驗證的是 JS 預檢（瀏覽器中使用者無法超過 maxlength，貼上或程式寫入才會走到這條）
+      await fireEvent.submit(screen.getByRole('button', { name: '註冊' }).closest('form')!);
+      return authStore;
+    }
+
+    it('輸入框帶 maxlength=50', () => {
+      renderRegisterView();
+      expect(screen.getByPlaceholderText('請輸入暱稱').getAttribute('maxlength')).toBe('50');
+    });
+
+    it('剛好 50 字可以送出', async () => {
+      const authStore = await submitWithNickname('暱'.repeat(50));
+      await waitFor(() => expect(authStore.register).toHaveBeenCalled());
+    });
+
+    it('51 字不呼叫 API 並顯示提示', async () => {
+      const authStore = await submitWithNickname('暱'.repeat(51));
+      await waitFor(() => expect(screen.getByText('暱稱最多 50 個字元')).toBeTruthy());
+      expect(authStore.register).not.toHaveBeenCalled();
+    });
+  });
+
+  // ── W7F-7：使用者名稱長度上限（快照 RegisterRequest.username minLength 3／maxLength 50；快照無 pattern）──
+  describe('使用者名稱長度', () => {
+    async function submitWithUsername(username: string) {
+      const { pinia } = renderRegisterView();
+      const authStore = useAuthStore(pinia);
+      authStore.register = vi.fn().mockResolvedValue(undefined);
+      await fireEvent.update(screen.getByPlaceholderText('請輸入 Email'), 'test@example.com');
+      await fireEvent.update(screen.getByPlaceholderText('請輸入使用者名稱（英文、數字）'), username);
+      await fireEvent.update(screen.getByPlaceholderText('請輸入暱稱'), '暱稱');
+      await fireEvent.update(screen.getByPlaceholderText('請輸入密碼'), 'Password123!');
+      await fireEvent.submit(screen.getByRole('button', { name: '註冊' }).closest('form')!);
+      return authStore;
+    }
+
+    it('輸入框帶 maxlength=50', () => {
+      renderRegisterView();
+      expect(screen.getByPlaceholderText('請輸入使用者名稱（英文、數字）').getAttribute('maxlength')).toBe('50');
+    });
+
+    it('剛好 3 字可以送出', async () => {
+      const authStore = await submitWithUsername('abc');
+      await waitFor(() => expect(authStore.register).toHaveBeenCalled());
+    });
+
+    it('2 字不呼叫 API 並顯示提示', async () => {
+      const authStore = await submitWithUsername('ab');
+      await waitFor(() => expect(screen.getByText('使用者名稱最少需要 3 個字元')).toBeTruthy());
+      expect(authStore.register).not.toHaveBeenCalled();
+    });
+
+    it('剛好 50 字可以送出', async () => {
+      const authStore = await submitWithUsername('a'.repeat(50));
+      await waitFor(() => expect(authStore.register).toHaveBeenCalled());
+    });
+
+    it('51 字不呼叫 API 並顯示提示', async () => {
+      const authStore = await submitWithUsername('a'.repeat(51));
+      await waitFor(() => expect(screen.getByText('使用者名稱最多 50 個字元')).toBeTruthy());
+      expect(authStore.register).not.toHaveBeenCalled();
+    });
   });
 });

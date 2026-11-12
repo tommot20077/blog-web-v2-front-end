@@ -1,9 +1,15 @@
-import type { ArticleItem, ArticleDetailItem } from '../articleService';
+import type { ArticleItem, ArticleDetailItem, ArchiveItem, ArticleListFilters } from '../articleService';
 import type { PageResult } from '../../types/editor';
 import { allMockArticles, getMockArticleDetail } from './data';
 
 // 模擬後端分頁與過濾邏輯
-export function getArticlesMock(page: number, size: number, category: string, keyword: string): Promise<PageResult<ArticleItem>> {
+export function getArticlesMock(
+  page: number,
+  size: number,
+  category: string,
+  keyword: string,
+  filters: ArticleListFilters = {},
+): Promise<PageResult<ArticleItem>> {
   return new Promise((resolve) => {
     setTimeout(() => {
       let filtered = allMockArticles;
@@ -24,6 +30,38 @@ export function getArticlesMock(page: number, size: number, category: string, ke
           a.categories.some(c => c.toLowerCase() === category.toLowerCase())
         )
       }
+
+      // 3. 伺服器端篩選（與後端 tags／categorySlug 參數同語意，避免 mock 與 real 再度漂移）
+      const tagSlugs = filters.tags ?? [];
+      if (tagSlugs.length > 0) {
+        filtered = filtered.filter(a => tagSlugs.every(s => (a.tagRefs ?? []).some(r => r.slug === s)))
+      }
+      const categorySlugs = filters.categorySlugs ?? [];
+      if (categorySlugs.length > 0) {
+        filtered = filtered.filter(a => a.categories.some(c => categorySlugs.includes(c.toLowerCase())))
+      }
+
+      const authorUuids = filters.authorUuids ?? [];
+      if (authorUuids.length > 0) {
+        filtered = filtered.filter(a => a.authorUuid !== null && authorUuids.includes(a.authorUuid));
+      }
+      const days = filters.publishedWithinDays;
+      if (days !== undefined && days > 0) {
+        const cutoff = Date.now() - days * 86400000;
+        filtered = filtered.filter(a => new Date(a.publishedAt).getTime() >= cutoff);
+      }
+
+      // 4. 排序（對應後端：未知值退回 latest；每種排序附 id DESC tie-breaker，這裡以 uuid 降序代之）
+      const byUuidDesc = (a: ArticleItem, b: ArticleItem) => (a.uuid < b.uuid ? 1 : a.uuid > b.uuid ? -1 : 0);
+      const sorted = [...filtered];
+      if (filters.sort === 'popular') {
+        sorted.sort((a, b) => b.viewCount - a.viewCount || byUuidDesc(a, b));
+      } else if (filters.sort === 'commented') {
+        sorted.sort((a, b) => b.commentCount - a.commentCount || byUuidDesc(a, b));
+      } else {
+        sorted.sort((a, b) => b.publishedAt.localeCompare(a.publishedAt) || byUuidDesc(a, b));
+      }
+      filtered = sorted;
 
       const total = filtered.length;
       const pages = Math.ceil(total / size);
@@ -61,5 +99,24 @@ export function getArticleBySlugMock(slug: string): Promise<ArticleDetailItem | 
       }
       resolve(getMockArticleDetail(base.uuid));
     }, 500);
+  });
+}
+
+// 年度歸檔精簡投影（Mock 版本）
+// 重用 allMockArticles，投影成 ArchiveItem 並依 publishedAt 由新到舊排序，
+// 對齊後端 /api/v1/articles/archive 的回傳契約。
+export function getArchiveMock(): Promise<ArchiveItem[]> {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const items: ArchiveItem[] = allMockArticles.map(a => ({
+        uuid: a.uuid,
+        title: a.title,
+        slug: a.slug,
+        publishedAt: a.publishedAt,
+        tags: a.tags,
+      }));
+      items.sort((x, y) => y.publishedAt.localeCompare(x.publishedAt));
+      resolve(items);
+    }, 600);
   });
 }

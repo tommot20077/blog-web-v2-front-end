@@ -26,6 +26,14 @@ vi.mock('../composables/useArticleLike', () => ({
   })),
 }))
 
+vi.mock('../composables/useArticleBookmark', () => ({
+  useArticleBookmark: vi.fn((_uuid: unknown, initial: { bookmarked: boolean }) => ({
+    bookmarked: ref(initial.bookmarked),
+    isPending: ref(false),
+    toggle: vi.fn(),
+  })),
+}))
+
 vi.mock('../composables/useComments', () => ({
   useComments: vi.fn(() => ({
     list: ref([]),
@@ -66,12 +74,19 @@ describe('ArticleDetail Integration', () => {
       coverImageUrl: null,
       categories: [],
       liked: false,
+      bookmarked: false,
     })
   })
 
   it('掛載後以 uuid 呼叫 getArticleByUuid', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
     await renderWithRouterAsync(ArticleDetail, {}, '/articles/article-uuid-1')
     await flushPromises()
+
     expect(articleService.getArticleByUuid).toHaveBeenCalledWith('article-uuid-1')
+    const warningText = warnSpy.mock.calls.flat().join(' ')
+    expect(warningText).not.toContain('Invalid watch source')
+    warnSpy.mockRestore()
   })
 })

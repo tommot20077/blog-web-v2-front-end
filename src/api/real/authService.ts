@@ -27,7 +27,11 @@ export const authService = {
   },
 
   async verifyEmail(token: string): Promise<void> {
-    return apiClient.get('/api/v1/auth/verify-email', { params: { token } })
+    // 後端為 POST + @RequestBody VerifyEmailRequest（AuthController:221）。
+    // 原本用 GET + query param，導致點擊驗證信連結時後端回
+    // "Request method 'GET' is not supported"；且 security.md 原則 8 禁止以
+    // query param 傳遞 token（會外洩進伺服器日誌／瀏覽器歷史／Referer）。
+    return apiClient.post('/api/v1/auth/verify-email', { token })
   },
 
   async verifyEmailCode(email: string, code: string): Promise<void> {

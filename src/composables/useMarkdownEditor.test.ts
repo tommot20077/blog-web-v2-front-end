@@ -1,5 +1,7 @@
-import { shallowRef } from 'vue'
+import { mount } from '@vue/test-utils'
+import { defineComponent, shallowRef, type ShallowRef } from 'vue'
 import { EditorView } from '@codemirror/view'
+import { markdown } from '@codemirror/lang-markdown'
 import { useMarkdownEditor } from './useMarkdownEditor'
 
 // ── mock CodeMirror 6 ──────────────────────────────────────────────────────
@@ -54,7 +56,7 @@ vi.mock('@codemirror/language', () => ({
 }))
 
 vi.mock('@codemirror/language-data', () => ({
-  languages: [],
+  languages: [{ name: 'heavy-language-data-sentinel' }],
 }))
 
 vi.mock('@lezer/highlight', () => ({
@@ -62,6 +64,25 @@ vi.mock('@lezer/highlight', () => ({
 }))
 
 // ── tests ──────────────────────────────────────────────────────────────────
+
+type MarkdownEditorState = ReturnType<typeof useMarkdownEditor> & {
+  containerRef: ShallowRef<HTMLElement | null>
+}
+
+function mountHarness(initialContainer: HTMLElement | null = null) {
+  const state = {} as MarkdownEditorState
+  const Wrapper = defineComponent({
+    setup() {
+      const containerRef = shallowRef<HTMLElement | null>(initialContainer)
+      Object.assign(state, { containerRef, ...useMarkdownEditor(containerRef) })
+      return state
+    },
+    template: '<div />',
+  })
+
+  const wrapper = mount(Wrapper)
+  return { wrapper, state }
+}
 
 describe('useMarkdownEditor', () => {
   beforeEach(() => {
@@ -79,67 +100,69 @@ describe('useMarkdownEditor', () => {
   })
 
   it('containerRef 為 null 時不建立 EditorView', () => {
-    const containerRef = shallowRef<HTMLElement | null>(null)
-    const { editorView } = useMarkdownEditor(containerRef)
-    expect(editorView.value).toBeNull()
+    const { state } = mountHarness()
+    expect(state.editorView.value).toBeNull()
   })
 
   it('提供 markdownContent ref（初始為空字串）', () => {
-    const containerRef = shallowRef<HTMLElement | null>(null)
-    const { markdownContent } = useMarkdownEditor(containerRef)
-    expect(markdownContent.value).toBe('')
+    const { state } = mountHarness()
+    expect(state.markdownContent.value).toBe('')
   })
 
   it('editorView 初始為 null', () => {
-    const containerRef = shallowRef<HTMLElement | null>(null)
-    const { editorView } = useMarkdownEditor(containerRef)
-    expect(editorView.value).toBeNull()
+    const { state } = mountHarness()
+    expect(state.editorView.value).toBeNull()
+  })
+
+  it('不把完整 CodeMirror language-data 傳進 markdown editor chunk', () => {
+    const container = document.createElement('div')
+
+    mountHarness(container)
+
+    expect(markdown).toHaveBeenCalledWith({ codeLanguages: [] })
   })
 
   it('提供 wrapSelection 方法', () => {
-    const containerRef = shallowRef<HTMLElement | null>(null)
-    const { wrapSelection } = useMarkdownEditor(containerRef)
-    expect(typeof wrapSelection).toBe('function')
+    const { state } = mountHarness()
+    expect(typeof state.wrapSelection).toBe('function')
   })
 
   it('提供 insertText 方法', () => {
-    const containerRef = shallowRef<HTMLElement | null>(null)
-    const { insertText } = useMarkdownEditor(containerRef)
-    expect(typeof insertText).toBe('function')
+    const { state } = mountHarness()
+    expect(typeof state.insertText).toBe('function')
   })
 
   it('提供 prefixLines 方法', () => {
-    const containerRef = shallowRef<HTMLElement | null>(null)
-    const { prefixLines } = useMarkdownEditor(containerRef)
-    expect(typeof prefixLines).toBe('function')
+    const { state } = mountHarness()
+    expect(typeof state.prefixLines).toBe('function')
+  })
+
+  it('提供 replaceRange 方法', () => {
+    const { state } = mountHarness()
+    expect(typeof state.replaceRange).toBe('function')
   })
 
   it('提供 setContent 方法', () => {
-    const containerRef = shallowRef<HTMLElement | null>(null)
-    const { setContent } = useMarkdownEditor(containerRef)
-    expect(typeof setContent).toBe('function')
+    const { state } = mountHarness()
+    expect(typeof state.setContent).toBe('function')
   })
 
   it('提供 undo 方法', () => {
-    const containerRef = shallowRef<HTMLElement | null>(null)
-    const { undo } = useMarkdownEditor(containerRef)
-    expect(typeof undo).toBe('function')
+    const { state } = mountHarness()
+    expect(typeof state.undo).toBe('function')
   })
 
   it('提供 redo 方法', () => {
-    const containerRef = shallowRef<HTMLElement | null>(null)
-    const { redo } = useMarkdownEditor(containerRef)
-    expect(typeof redo).toBe('function')
+    const { state } = mountHarness()
+    expect(typeof state.redo).toBe('function')
   })
 
   describe('undo — EditorView 存在時', () => {
     it('呼叫 CodeMirror undo command', async () => {
       const { undo: cmUndo } = await import('@codemirror/commands')
       const container = document.createElement('div')
-      const containerRef = shallowRef<HTMLElement | null>(container)
-      const { undo } = useMarkdownEditor(containerRef)
-      containerRef.value = container
-      undo()
+      const { state } = mountHarness(container)
+      state.undo()
       expect(cmUndo).toHaveBeenCalled()
     })
   })
@@ -148,10 +171,8 @@ describe('useMarkdownEditor', () => {
     it('呼叫 CodeMirror redo command', async () => {
       const { redo: cmRedo } = await import('@codemirror/commands')
       const container = document.createElement('div')
-      const containerRef = shallowRef<HTMLElement | null>(container)
-      const { redo } = useMarkdownEditor(containerRef)
-      containerRef.value = container
-      redo()
+      const { state } = mountHarness(container)
+      state.redo()
       expect(cmRedo).toHaveBeenCalled()
     })
   })
@@ -159,11 +180,8 @@ describe('useMarkdownEditor', () => {
   describe('wrapSelection — EditorView 存在時', () => {
     it('呼叫 editorView.dispatch', () => {
       const container = document.createElement('div')
-      const containerRef = shallowRef<HTMLElement | null>(container)
-      const { wrapSelection } = useMarkdownEditor(containerRef)
-      // 手動觸發 containerRef 更新以讓 EditorView 初始化
-      containerRef.value = container
-      wrapSelection('**', '**')
+      const { state } = mountHarness(container)
+      state.wrapSelection('**', '**')
       expect(mockDispatch).toHaveBeenCalled()
     })
   })
@@ -171,21 +189,43 @@ describe('useMarkdownEditor', () => {
   describe('insertText — EditorView 存在時', () => {
     it('呼叫 editorView.dispatch', () => {
       const container = document.createElement('div')
-      const containerRef = shallowRef<HTMLElement | null>(container)
-      const { insertText } = useMarkdownEditor(containerRef)
-      containerRef.value = container
-      insertText('## 標題\n\n')
+      const { state } = mountHarness(container)
+      state.insertText('## 標題\n\n')
       expect(mockDispatch).toHaveBeenCalled()
+    })
+  })
+
+  describe('replaceRange — EditorView 存在時', () => {
+    it('以局部 range 取代命中的文字，游標留在取代後文字之後（不整份覆寫、不把游標帶到文末）', () => {
+      const container = document.createElement('div')
+      const { state } = mountHarness(container)
+
+      const replaced = state.replaceRange('initial', '![a.png](url)')
+
+      expect(replaced).toBe(true)
+      expect(mockDispatch).toHaveBeenCalledWith({
+        changes: { from: 0, to: 7, insert: '![a.png](url)' },
+        selection: { anchor: 13 },
+      })
+      expect(state.markdownContent.value).toBe('![a.png](url) content')
+    })
+
+    it('文件中找不到目標文字時不 dispatch，回傳 false', () => {
+      const container = document.createElement('div')
+      const { state } = mountHarness(container)
+
+      const replaced = state.replaceRange('不存在的佔位文字', 'x')
+
+      expect(replaced).toBe(false)
+      expect(mockDispatch).not.toHaveBeenCalled()
     })
   })
 
   describe('prefixLines — EditorView 存在時', () => {
     it('呼叫 editorView.dispatch', () => {
       const container = document.createElement('div')
-      const containerRef = shallowRef<HTMLElement | null>(container)
-      const { prefixLines } = useMarkdownEditor(containerRef)
-      containerRef.value = container
-      prefixLines('> ')
+      const { state } = mountHarness(container)
+      state.prefixLines('> ')
       expect(mockDispatch).toHaveBeenCalled()
     })
   })

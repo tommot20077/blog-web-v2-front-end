@@ -5,26 +5,57 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# image 發布（見 ai-docs/git-convention.md 的「發版與 image」）
+env:
+  IMAGE_NAME: ghcr.io/tommot20077/blog-web-v2-front-end
+  # main 每次 push（＝發版）後，自動開 PR 到 person-infra 更新正式環境的 image tag
+  INFRA_REPO: tommot20077/person-infra
+  INFRA_BASE: master
+  INFRA_APP_ENV: projects/blog/app.prod.env
+  INFRA_TAG_KEY: FRONTEND_TAG
 
 jobs:
   unit-and-component-tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
       - run: npm ci
       - run: npm test
 
-  coverage:
+  build:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build
+
+  coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
           cache: 'npm'
       - run: npm ci
       - run: npm run test:coverage
@@ -36,16 +67,18 @@ jobs:
           retention-days: 14
 
   e2e-tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # Playwright 1.58 不支援 ubuntu-latest（26.04）的 Chromium 安裝，固定 24.04
+    timeout-minutes: 20
+    needs: [unit-and-component-tests, build]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - run: npx playwright test
+      - run: npm run test:e2e:mock
         env:
           CI: true
           E2E_MOCK: '1'
@@ -55,10 +88,27 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 14
+      # CSP 違規收集（A2 / XSS-03）：用 nginx.conf 解析出的 CSP 供應 mock 模式的正式建置，違規數必須為 0。
+      # 與上一步不同的報告目錄，避免互相覆蓋。
+      - name: Run CSP violation E2E
+        if: ${{ !cancelled() }}
+        run: npm run test:e2e:csp
+        env:
+          CI: true
+          PLAYWRIGHT_HTML_REPORT: playwright-report-csp
+      - name: Upload CSP E2E report
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report-csp
+          path: playwright-report-csp/
+          retention-days: 14
 
   e2e-integration:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # Playwright 1.58 不支援 ubuntu-latest（26.04）的 Chromium 安裝，固定 24.04
+    timeout-minutes: 45
     if: github.event_name == 'pull_request'
+    needs: [unit-and-component-tests, build]
     steps:
       - name: Checkout frontend
         uses: actions/checkout@v4
@@ -87,7 +137,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install frontend dependencies
@@ -102,7 +152,8 @@ jobs:
       - name: Wait for backend healthy
         run: |
           for i in $(seq 1 60); do
-            if curl -sf http://localhost:9010/actuator/health > /dev/null; then
+            # 新後端只有 /readyz（actuator 已搬到 management port），舊後端只有 /actuator/health：任一成功即視為健康
+            if curl -sf --max-time 5 http://localhost:9010/readyz > /dev/null || curl -sf --max-time 5 http://localhost:9010/actuator/health > /dev/null; then
               echo "Backend is healthy"
               exit 0
             fi
@@ -127,21 +178,175 @@ jobs:
           path: playwright-report/
           retention-days: 14
 
+      - name: Capture E2E stack logs
+        if: failure()
+        run: |
+          mkdir -p e2e-artifacts
+          docker compose -f docker-compose.e2e.yml logs --no-color > e2e-artifacts/docker-compose.log
+
+      - name: Upload E2E stack logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-stack-logs
+          path: e2e-artifacts/
+          retention-days: 14
+
       - name: Tear down E2E stack
         if: always()
         run: docker compose -f docker-compose.e2e.yml down -v
 
+  # 匯總 job：branch ruleset 的 required status check 指向這一個 job，
+  # 之後增減 CI job 時只需改本檔的 needs，不必同步改 repo ruleset 設定。
+  # 注意 e2e-integration 只在 pull_request 事件執行（push 時為 skipped），
+  # 故 skipped 視為通過；其餘任何非 success 一律擋下。
   test:
+    name: test
     runs-on: ubuntu-latest
-    needs: [unit-and-component-tests, coverage, e2e-tests]
+    needs: [unit-and-component-tests, build, coverage, e2e-tests, e2e-integration]
     if: always()
     steps:
-      - name: All required checks passed
+      - name: Verify all required checks passed
         run: |
-          if [ "${{ needs.unit-and-component-tests.result }}" != "success" ] || \
-             [ "${{ needs.coverage.result }}" != "success" ] || \
-             [ "${{ needs.e2e-tests.result }}" != "success" ]; then
-            echo "One or more required checks failed"
+          declare -A results=(
+            [unit-and-component-tests]="${{ needs.unit-and-component-tests.result }}"
+            [build]="${{ needs.build.result }}"
+            [coverage]="${{ needs.coverage.result }}"
+            [e2e-tests]="${{ needs.e2e-tests.result }}"
+            [e2e-integration]="${{ needs.e2e-integration.result }}"
+          )
+          failed=0
+          for job in "${!results[@]}"; do
+            result="${results[$job]}"
+            if [ "$result" = "success" ] || [ "$result" = "skipped" ]; then
+              echo "OK       $job: $result"
+            else
+              echo "FAILED   $job: $result"
+              failed=1
+            fi
+          done
+          if [ "$failed" -ne 0 ]; then
+            echo "::error::One or more required checks did not pass"
             exit 1
           fi
-          echo "All checks passed"
+          echo "All required checks passed"
+
+  # image：PR 只建置不推（驗證 Dockerfile 與多架構建置）；main 的 push（發版）才推到 GHCR。
+  # Dockerfile 的建置階段跑在原生架構（--platform=$BUILDPLATFORM），runtime 階段只有 COPY，不需要 QEMU 模擬。
+  image:
+    name: 建置 image
+    runs-on: ubuntu-latest
+    needs: test
+    if: >-
+      needs.test.result == 'success' &&
+      (github.event_name == 'pull_request' ||
+       (github.event_name == 'push' && github.ref == 'refs/heads/main'))
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      tag: ${{ steps.vars.outputs.tag }}
+    steps:
+      - name: 取得程式碼
+        uses: actions/checkout@v4
+
+      - name: 決定 image tag
+        id: vars
+        run: echo "tag=sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: 設定 Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 登入 GHCR
+        if: github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 建置（main 才推送）
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name == 'push' }}
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.tag }}
+            ${{ env.IMAGE_NAME }}:main
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: 摘要
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "已推送 \`${IMAGE_NAME}:${{ steps.vars.outputs.tag }}\`（以及 \`:main\`），平台 amd64＋arm64" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "PR：image 建置成功（amd64＋arm64），未推送" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  # 發版後自動在 person-infra 開（或更新）PR，把正式環境的 image tag 換成這次的版本。
+  # 需要 repo secret INFRA_REPO_TOKEN：fine-grained PAT，只授權 person-infra 的 Contents 與 Pull requests 寫入。
+  # 沒有設定時只留下提示、不讓 CI 失敗；deploy 仍要人工執行（合併 PR 後 ./scripts/deploy.sh prod）。
+  infra-pr:
+    name: 更新 person-infra 的 image tag
+    runs-on: ubuntu-latest
+    needs: image
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+    env:
+      TAG: ${{ needs.image.outputs.tag }}
+      GH_TOKEN: ${{ secrets.INFRA_REPO_TOKEN }}
+    steps:
+      - name: 檢查 INFRA_REPO_TOKEN
+        id: token
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::notice::沒有設定 INFRA_REPO_TOKEN，略過自動開 PR；請手動把 ${INFRA_APP_ENV} 的 ${INFRA_TAG_KEY} 改成 ${TAG}"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 取得 person-infra
+        if: steps.token.outputs.skip != 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.INFRA_REPO }}
+          ref: ${{ env.INFRA_BASE }}
+          token: ${{ secrets.INFRA_REPO_TOKEN }}
+          path: person-infra
+
+      - name: 更新 tag 並開 PR
+        if: steps.token.outputs.skip != 'true'
+        working-directory: person-infra
+        run: |
+          branch="deploy/blog-${INFRA_TAG_KEY%_TAG}"
+          branch="${branch,,}"
+          if ! grep -q "^${INFRA_TAG_KEY}=" "$INFRA_APP_ENV"; then
+            echo "::error::${INFRA_REPO} 的 ${INFRA_APP_ENV} 沒有 ${INFRA_TAG_KEY}"
+            exit 1
+          fi
+          sed -i "s/^${INFRA_TAG_KEY}=.*/${INFRA_TAG_KEY}=${TAG}/" "$INFRA_APP_ENV"
+          if git diff --quiet; then
+            echo "${INFRA_TAG_KEY} 已經是 ${TAG}，不需要更新"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$branch"
+          git commit -am "deploy(blog): ${INFRA_TAG_KEY} 更新為 ${TAG}" \
+            -m "來源：${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}"
+          git push --force origin "$branch"
+          body="來源 commit：${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
+          CI：${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          image：\`${IMAGE_NAME}:${TAG}\`（amd64＋arm64）
+
+          合併後執行 \`./scripts/deploy.sh prod\` 部署。"
+          if gh pr view "$branch" --repo "$INFRA_REPO" --json state -q .state 2>/dev/null | grep -q OPEN; then
+            gh pr edit "$branch" --repo "$INFRA_REPO" --title "deploy(blog): ${INFRA_TAG_KEY} 更新為 ${TAG}" --body "$body"
+          else
+            gh pr create --repo "$INFRA_REPO" --base "$INFRA_BASE" --head "$branch" \
+              --title "deploy(blog): ${INFRA_TAG_KEY} 更新為 ${TAG}" --body "$body"
+          fi
+

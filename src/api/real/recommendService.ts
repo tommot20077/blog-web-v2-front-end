@@ -6,6 +6,8 @@ export interface RecommendArticleResponse {
   slug: string
   summary: string
   authorNickname: string
+  /** 推薦的 Redis 舊快取最多 1 小時內為 null → AuthorName 退回純文字 */
+  authorUuid?: string | null
   viewCount: number
   likeCount: number
   publishedAt: string
@@ -20,6 +22,7 @@ interface BackendRecommend {
   slug: string
   summary: string
   authorNickname: string
+  authorUuid?: string | null
   tagNames: string[]
   viewCount: number
   likeCount: number
@@ -33,6 +36,7 @@ function mapBackendRecommend(raw: BackendRecommend): RecommendArticleResponse {
     slug: raw.slug,
     summary: raw.summary,
     authorNickname: raw.authorNickname,
+    authorUuid: raw.authorUuid ?? null,
     viewCount: raw.viewCount,
     likeCount: raw.likeCount,
     publishedAt: raw.publishedAt,
@@ -54,9 +58,12 @@ export const recommendService = {
     }
   },
 
-  async getRelatedArticles(articleUuid: string): Promise<RecommendArticleResponse[]> {
+  async getRelatedArticles(articleUuid: string, limit: number = 5): Promise<RecommendArticleResponse[]> {
     try {
-      const data = await apiClient.get<unknown, BackendRecommend[]>(`/api/v1/recommend/related/${articleUuid}`)
+      const data = await apiClient.get<unknown, BackendRecommend[]>(
+        `/api/v1/recommend/related/${articleUuid}`,
+        { params: { limit } },
+      )
       return data.map(mapBackendRecommend)
     } catch (error) {
       console.error('Fetch related articles failed:', error)

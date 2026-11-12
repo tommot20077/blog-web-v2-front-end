@@ -262,7 +262,6 @@ src/<br>
 │   ├── ArchiveView.vue <span class="note">// Batch 1</span><br>
 │   ├── TagsView.vue<br>
 │   ├── SearchView.vue<br>
-│   ├── PrivacyView.vue<br>
 │   ├── NotFoundView.vue<br>
 │   ├── ReadingListView.vue <span class="note">// Batch 2</span><br>
 │   └── admin/<br>
@@ -442,7 +441,6 @@ src/<br>
         { path: <span class="tk-str">'archive'</span>,    name: <span class="tk-str">'archive'</span>, component: () =&gt; <span class="tk-fn">import</span>(<span class="tk-str">'@/views/ArchiveView.vue'</span>) },
         { path: <span class="tk-str">'tags/:tag?'</span>, name: <span class="tk-str">'tags'</span>,    component: () =&gt; <span class="tk-fn">import</span>(<span class="tk-str">'@/views/TagsView.vue'</span>) },
         { path: <span class="tk-str">'search'</span>,     name: <span class="tk-str">'search'</span>,  component: () =&gt; <span class="tk-fn">import</span>(<span class="tk-str">'@/views/SearchView.vue'</span>) },
-        { path: <span class="tk-str">'privacy'</span>,    name: <span class="tk-str">'privacy'</span>, component: () =&gt; <span class="tk-fn">import</span>(<span class="tk-str">'@/views/PrivacyView.vue'</span>) },
 
         <span class="tk-cm">// Batch 2 — reader features (gated by config)</span>
         ...(SITE.features.readingList ? [{
@@ -572,8 +570,8 @@ src/<br>
       <tr>
         <td class="src">site-pages/batch1.jsx</td>
         <td class="arrow">→</td>
-        <td><b>views/Archive · Tags · Search · NotFound · Privacy</b></td>
-        <td>5 個 view，HTML/CSS class 直接搬，把 useState 換成 ref。</td>
+        <td><b>views/Archive · Tags · Search · NotFound</b></td>
+        <td>4 個 view，HTML/CSS class 直接搬，把 useState 換成 ref。</td>
       </tr>
       <tr>
         <td class="src">site-pages/batch2.jsx</td>
@@ -630,7 +628,7 @@ src/<br>
     <div class="step">
       <span class="n">§ 03 · Day 4–5</span>
       <h4>Batch 1 — 站台基本盤</h4>
-      <p>Archive、Tags、Search、Privacy、404 五個 view。Search 用 FlexSearch 或 Pagefind。404 用 router catch-all。</p>
+      <p>Archive、Tags、Search、404 四個 view。Search 用 FlexSearch 或 Pagefind。404 用 router catch-all。</p>
       <span class="meta">交付：站長能找到任何文章</span>
     </div>
     <div class="step">

@@ -9,6 +9,29 @@ describe('TrendingSection', () => {
     { uuid: 'r-3', title: '熱門文章 3', slug: 'hot-3', summary: '摘要', coverImageUrl: null, authorNickname: 'Admin', viewCount: 200, likeCount: 20, publishedAt: '2026-03-03', tags: ['TypeScript'] },
   ];
 
+  it('featured 作者有 authorUuid → 連到 /author/{uuid}', async () => {
+    const router = createTestRouter();
+    await router.isReady();
+    const wrapper = mount(TrendingSection, {
+      props: { articles: [{ ...mockArticles[0], authorUuid: 'author-1' }, ...mockArticles.slice(1)], isLoading: false },
+      global: { plugins: [router] },
+    });
+    const link = wrapper.find('a[href="/author/author-1"]');
+    expect(link.exists()).toBe(true);
+    expect(link.text()).toBe('Yuan');
+  });
+
+  it('featured 作者 authorUuid 為 null（Redis 舊快取）→ 純文字', async () => {
+    const router = createTestRouter();
+    await router.isReady();
+    const wrapper = mount(TrendingSection, {
+      props: { articles: [{ ...mockArticles[0], authorUuid: null }, ...mockArticles.slice(1)], isLoading: false },
+      global: { plugins: [router] },
+    });
+    expect(wrapper.find('a[href^="/author/"]').exists()).toBe(false);
+    expect(wrapper.text()).toContain('Yuan');
+  });
+
   it('isLoading 時顯示骨架屏', async () => {
     const router = createTestRouter();
     await router.isReady();

@@ -22,8 +22,13 @@ describe('tagSuggestMockService', () => {
     expect(result).toHaveLength(0)
   })
 
-  it('最多回傳 8 筆結果', async () => {
+  it('預設最多回傳 10 筆結果', async () => {
     const result = await suggestTagsMock('V')
-    expect(result.length).toBeLessThanOrEqual(8)
+    expect(result.length).toBeLessThanOrEqual(10)
+  })
+
+  it('可用 limit 控制回傳筆數', async () => {
+    const result = await suggestTagsMock('V', 3)
+    expect(result.length).toBeLessThanOrEqual(3)
   })
 })

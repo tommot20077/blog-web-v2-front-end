@@ -94,5 +94,29 @@ describe('editorService', () => {
       const result = await editorService.getArticleForEdit('e1')
       expect(result).toBeNull()
     })
+
+    it('B2：getArticleForEdit 與 createArticle 回應映射 version', async () => {
+      const raw = {
+        uuid: 'v1', title: 't', summary: '', content: '', coverImageUrl: null, status: 'DRAFT',
+        categories: [], tags: [], rejectReason: null, createdAt: '2024-01-01', updatedAt: '2024-01-01',
+        version: 6,
+      }
+      vi.mocked(apiClient.get).mockResolvedValue(raw)
+      vi.mocked(apiClient.post).mockResolvedValue({ ...raw, version: 0 })
+      expect((await editorService.getArticleForEdit('v1'))?.version).toBe(6)
+      expect((await editorService.createArticle(mockFormData)).version).toBe(0)
+    })
+
+    it('B2：updateArticle 原樣送出 version 並映射回應的新 version', async () => {
+      const raw = {
+        uuid: 'v1', title: 't', summary: '', content: '', coverImageUrl: null, status: 'DRAFT',
+        categories: [], tags: [], rejectReason: null, createdAt: '2024-01-01', updatedAt: '2024-01-01',
+        version: 7,
+      }
+      vi.mocked(apiClient.put).mockResolvedValue(raw)
+      const result = await editorService.updateArticle('v1', { ...mockFormData, version: 6 })
+      expect(apiClient.put).toHaveBeenCalledWith('/api/v1/articles/v1', { ...mockFormData, version: 6 })
+      expect(result.version).toBe(7)
+    })
   })
 })

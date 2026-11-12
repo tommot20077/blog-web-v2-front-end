@@ -5,15 +5,15 @@ import './index.css'
 import router from './router'
 import App from './App.vue'
 import apiClient from './api/apiClient'
-import { useAuthStore } from './stores/auth'
+import { installGlobalErrorHandling } from './utils/globalErrorHandling'
 
 const pinia = createPinia()
 const head = createUnhead()
 
 const app = createApp(App)
+// FE-01：全域錯誤處理（errorHandler / unhandledrejection / error），須在 mount 前安裝
+installGlobalErrorHandling(app, { router })
 app.use(pinia)
-// Kick off auth initialization before first navigation — router guard will await it
-useAuthStore().initialize()
 app.use(router)
 // @unhead/vue v2: 手動提供 head 實例給整個應用程式
 app.provide(headSymbol, head)
@@ -28,4 +28,10 @@ if (import.meta.env.DEV) {
   ;(window as unknown as Record<string, unknown>).__router = router
   ;(window as unknown as Record<string, unknown>).__pinia = pinia
   ;(window as unknown as Record<string, unknown>).__apiClient = apiClient
+
+  if (import.meta.env.VITE_USE_MOCK === 'true') {
+    import('./api/mock/e2eMockState').then(({ mockE2E }) => {
+      ;(window as unknown as Record<string, unknown>).__mockE2E = mockE2E
+    })
+  }
 }

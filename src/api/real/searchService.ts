@@ -1,14 +1,25 @@
 import apiClient from '../apiClient'
 import { useAuthStore } from '../../stores/auth'
-import type { SearchParams, SearchResult } from '../../types/search'
+import { SEARCH_SORT_VALUES } from '../../types/search'
+import type { SearchParams, SearchResult, SearchSort } from '../../types/search'
 import type { PageResult } from '../../types/editor'
 import { mapPageResult } from '../utils'
 import type { BackendPageResult } from '../utils'
 
+/** 只送後端接受的 sort；非白名單值（例如舊型別的 date／popularity）會讓整個請求被 400 拒絕，故直接丟棄 */
+function toRequestParams(params: SearchParams): SearchParams {
+  const { sort, ...rest } = params
+  // 後端不分大小寫，先轉小寫再比對白名單
+  const normalized = typeof sort === 'string' ? (sort.toLowerCase() as SearchSort) : undefined
+  return normalized !== undefined && SEARCH_SORT_VALUES.includes(normalized) ? { ...rest, sort: normalized } : rest
+}
+
 export const searchService = {
   async search(params: SearchParams): Promise<PageResult<SearchResult>> {
     try {
-      const raw = await apiClient.get<unknown, BackendPageResult<SearchResult>>('/api/v1/search', { params })
+      const raw = await apiClient.get<unknown, BackendPageResult<SearchResult>>('/api/v1/search', {
+        params: toRequestParams(params),
+      })
       return mapPageResult(raw, (item) => item)
     } catch (error) {
       console.error('Failed to search:', error)

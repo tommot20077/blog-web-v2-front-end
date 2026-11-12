@@ -1,12 +1,15 @@
-import type { ArticleItem, ArticleDetailItem } from '../articleService';
+import type { ArticleItem, ArticleDetailItem, ArticleTagRef } from '../articleService';
 import type { TagDetailResponse } from '../tagService';
 import { mockMarkdownContent } from './mockArticleContent';
-import type { CategoryOption, TagSuggestion, QuotaInfo, EditorArticle, MyArticle, PendingArticle } from '../../types/editor';
-import { MOCK_AUTHOR_PROFILES } from './profiles';
+import type { ArticleStatus, CategoryOption, TagSuggestion, QuotaInfo, EditorArticle, MyArticle, PendingArticle } from '../../types/editor';
+import type { VersionType } from '../real/articleVersionService';
+import { MOCK_AUTHOR_PROFILES, mockAuthorUuid } from './profiles';
 import { ALL_MOCK_TAGS } from './tagRegistry';
+import { isArticleBookmarked, isArticleLiked } from './articleInteractionMockState';
 
 type MockCategoryOption = CategoryOption & { uuid: string };
 type MockArticleItem = ArticleItem & { categories: string[] };
+type MockArticleSeed = Omit<MockArticleItem, 'authorUuid'>;
 
 const yuan = MOCK_AUTHOR_PROFILES.yuan.nickname;
 const han = MOCK_AUTHOR_PROFILES.han.nickname;
@@ -21,7 +24,7 @@ function slugifyTag(tag: string): string {
   return tag.toLowerCase().replace(/\s+/g, '-').replace(/\//g, '-');
 }
 
-const articles2023: MockArticleItem[] = [
+const articles2023: MockArticleSeed[] = [
   {
     uuid: 'a-2023-01', title: '為什麼我又重寫了一次 useTheme()',
     summary: '從 v-bind:class 到 CSS variables，再到 useTheme composable，兩年內的第三次重構，這次我終於想清楚了。',
@@ -96,7 +99,7 @@ const articles2023: MockArticleItem[] = [
   },
 ];
 
-const articles2024: MockArticleItem[] = [
+const articles2024: MockArticleSeed[] = [
   {
     uuid: 'a-2024-01', title: '我把 React 加進原本純 Vue 的專案，後悔了三件事',
     summary: '為了 hire 而引入 React，預期省的時間都被吃掉了。寫給想 hybrid 的 lead 看的決策後悔錄。',
@@ -159,7 +162,7 @@ const articles2024: MockArticleItem[] = [
   },
 ];
 
-const articles2025_2026: MockArticleItem[] = [
+const articles2025_2026: MockArticleSeed[] = [
   {
     uuid: 'a-2025-01', title: 'Vue 3.5 的 useTemplateRef 改寫了我所有 ref 的習慣',
     summary: '不再 const el = ref 加 defineExpose。useTemplateRef 把流程縮成一行，且 type 推得更準。',
@@ -210,11 +213,25 @@ const articles2025_2026: MockArticleItem[] = [
   },
 ];
 
+// 補上 tagRefs（含 slug），讓 mock 模式下的標籤也可點擊連到 /tags/{slug}。
+// 與 real articleService mapper 對齊：tags（字串陣列）維持不變，tagRefs 並行提供。
+function withTagRefs<T extends { tags: string[] }>(article: T): T & { tagRefs: ArticleTagRef[] } {
+  return {
+    ...article,
+    tagRefs: article.tags.map((name): ArticleTagRef => ({ name, slug: slugifyTag(name) })),
+  };
+}
+
+// mock 作者以 nickname 衍生穩定的假 authorUuid，對齊 real mapper 的 authorUuid 欄位（供 authorUuids 篩選）。
+function withAuthorUuid<T extends { authorNickname: string }>(article: T): T & { authorUuid: string } {
+  return { ...article, authorUuid: mockAuthorUuid(article.authorNickname) };
+}
+
 export const allMockArticles: MockArticleItem[] = [
   ...articles2023,
   ...articles2024,
   ...articles2025_2026,
-];
+].map(withAuthorUuid).map(withTagRefs);
 
 export function getMockArticleDetail(uuid: string): ArticleDetailItem | null {
   const base = allMockArticles.find(a => a.uuid === uuid);
@@ -224,7 +241,13 @@ export function getMockArticleDetail(uuid: string): ArticleDetailItem | null {
     name,
     slug: name.toLowerCase(),
   }));
-  return { ...base, content: mockMarkdownContent, categories, liked: false };
+  return {
+    ...base,
+    content: mockMarkdownContent,
+    categories,
+    liked: isArticleLiked(base.uuid),
+    bookmarked: isArticleBookmarked(base.uuid),
+  };
 }
 
 export const allMockTags: TagDetailResponse[] = ALL_MOCK_TAGS.map((name, index) => ({
@@ -283,6 +306,7 @@ export const mockEditorArticles: EditorArticle[] = [
     rejectReason: null,
     createdAt: '2026-03-01T10:00:00Z',
     updatedAt: '2026-03-15T12:00:00Z',
+    version: 1,
   },
   {
     uuid: 'editor-pending-1',
@@ -296,6 +320,7 @@ export const mockEditorArticles: EditorArticle[] = [
     rejectReason: null,
     createdAt: '2026-03-10T10:00:00Z',
     updatedAt: '2026-03-20T09:00:00Z',
+    version: 1,
   },
   {
     uuid: 'editor-pending-2',
@@ -309,6 +334,7 @@ export const mockEditorArticles: EditorArticle[] = [
     rejectReason: null,
     createdAt: '2026-03-12T10:00:00Z',
     updatedAt: '2026-03-22T14:00:00Z',
+    version: 1,
   },
   {
     uuid: 'editor-published-1',
@@ -322,6 +348,23 @@ export const mockEditorArticles: EditorArticle[] = [
     rejectReason: null,
     createdAt: '2026-02-01T10:00:00Z',
     updatedAt: '2026-02-15T16:00:00Z',
+    version: 1,
+  },
+  // editor-published-1 是 articleVersionMockService.test.ts「沒有版本的文章回傳空清單」
+  // 的固定樣本，不能掛版本快照上去；還原凍結測試（PUBLISHED 狀態）改用這篇獨立樣本。
+  {
+    uuid: 'editor-published-2',
+    title: 'Nginx 反向代理實戰發布文章',
+    summary: '一篇已發布的 Nginx 文章。',
+    content: '# Nginx\n\nPublished content.',
+    coverImageUrl: null,
+    status: 'PUBLISHED',
+    categories: [mockCategories[1]!],
+    tags: ['Nginx'],
+    rejectReason: null,
+    createdAt: '2026-02-05T10:00:00Z',
+    updatedAt: '2026-02-18T16:00:00Z',
+    version: 1,
   },
   {
     uuid: 'editor-rejected-1',
@@ -335,6 +378,7 @@ export const mockEditorArticles: EditorArticle[] = [
     rejectReason: '內容需要補充實作步驟。',
     createdAt: '2026-01-15T10:00:00Z',
     updatedAt: '2026-03-05T11:00:00Z',
+    version: 1,
   },
   {
     uuid: 'editor-archived-1',
@@ -348,13 +392,138 @@ export const mockEditorArticles: EditorArticle[] = [
     rejectReason: null,
     createdAt: '2025-06-01T10:00:00Z',
     updatedAt: '2025-12-01T10:00:00Z',
+    version: 1,
   },
 ];
 
-export let editorArticleStore: EditorArticle[] = [...mockEditorArticles];
+function cloneEditorArticle(article: EditorArticle): EditorArticle {
+  return {
+    ...article,
+    categories: article.categories.map(category => ({ ...category })),
+    tags: [...article.tags],
+  };
+}
+
+function cloneEditorArticleStore(): EditorArticle[] {
+  return mockEditorArticles.map(cloneEditorArticle);
+}
+
+export let editorArticleStore: EditorArticle[] = cloneEditorArticleStore();
 
 export function resetEditorArticleStore(): void {
-  editorArticleStore = [...mockEditorArticles];
+  editorArticleStore = cloneEditorArticleStore();
+}
+
+// ── 文章版本快照（編輯器 History tab 用） ────────────────────────────────────
+// 對齊後端 ArticleVersion：快照存的是「當時的文章內容」，restore 會把它寫回文章本體。
+// tagNames 存標籤名稱，只為了讓 mock 還原後的文章狀態正確；後端
+// VersionDetailResponse.tags 是 tag UUID，而本 mock 不對外暴露 getDetail，故不會混淆。
+export interface MockArticleVersion {
+  uuid: string;
+  articleUuid: string;
+  type: VersionType;
+  createdAt: string;
+  note: string | null;
+  title: string;
+  content: string;
+  summary: string;
+  coverImageUrl: string | null;
+  status: ArticleStatus;
+  tagNames: string[];
+}
+
+export const mockArticleVersions: MockArticleVersion[] = [
+  {
+    uuid: 'version-draft-1-outline',
+    articleUuid: 'editor-draft-1',
+    type: 'MANUAL',
+    createdAt: '2026-03-05T09:30:00Z',
+    note: '大綱定稿',
+    title: 'Vue 3 Composition API 草稿（大綱版）',
+    content: '# Vue 3 Composition API\n\n## 大綱\n\n1. setup()\n2. ref 與 reactive\n3. 生命週期',
+    summary: '只有大綱的早期版本。',
+    coverImageUrl: null,
+    status: 'DRAFT',
+    tagNames: ['Vue'],
+  },
+  {
+    uuid: 'version-draft-1-auto',
+    articleUuid: 'editor-draft-1',
+    type: 'AUTO',
+    createdAt: '2026-03-12T14:05:00Z',
+    note: null,
+    title: 'Vue 3 Composition API 草稿',
+    content: '# Vue 3 Composition API\n\nDraft content.\n\n## setup()\n\n初稿補上 setup 說明。',
+    summary: '一篇關於 Composition API 的草稿。',
+    coverImageUrl: null,
+    status: 'DRAFT',
+    tagNames: ['Vue', 'TypeScript'],
+  },
+  // 還原凍結測試（fix/restore-content-freeze）用：對應 PENDING_REVIEW / PUBLISHED /
+  // ARCHIVED 三種凍結狀態，各掛一筆版本，讓 restoreArticleVersionMock 可以在這幾種
+  // 狀態下真的被呼叫到並驗證會 reject；REJECTED 則用來驗證仍維持可還原（不修過頭）。
+  {
+    uuid: 'version-pending-1-auto',
+    articleUuid: 'editor-pending-1',
+    type: 'AUTO',
+    createdAt: '2026-03-18T08:00:00Z',
+    note: null,
+    title: 'Pinia 狀態管理待審',
+    content: '# Pinia 提交審核前的自動快照。',
+    summary: 'Pinia 狀態管理文章。',
+    coverImageUrl: null,
+    status: 'PENDING_REVIEW',
+    tagNames: ['Vue', 'Pinia'],
+  },
+  {
+    uuid: 'version-published-2-auto',
+    articleUuid: 'editor-published-2',
+    type: 'AUTO',
+    createdAt: '2026-02-10T08:00:00Z',
+    note: null,
+    title: 'Nginx 反向代理實戰發布文章',
+    content: '# Nginx 發布前的自動快照。',
+    summary: '一篇已發布的 Nginx 文章。',
+    coverImageUrl: null,
+    status: 'PUBLISHED',
+    tagNames: ['Nginx'],
+  },
+  {
+    uuid: 'version-archived-1-auto',
+    articleUuid: 'editor-archived-1',
+    type: 'AUTO',
+    createdAt: '2025-11-01T08:00:00Z',
+    note: null,
+    title: 'Vue CLI 舊文章封存',
+    content: '# Vue CLI 封存前的自動快照。',
+    summary: '一篇封存的 Vue CLI 文章。',
+    coverImageUrl: null,
+    status: 'ARCHIVED',
+    tagNames: ['Vue'],
+  },
+  {
+    uuid: 'version-rejected-1-auto',
+    articleUuid: 'editor-rejected-1',
+    type: 'AUTO',
+    createdAt: '2026-01-20T08:00:00Z',
+    note: null,
+    title: 'Docker 入門退回文章',
+    content: '# Docker 退回前的自動快照。',
+    summary: '一篇被退回的 Docker 文章。',
+    coverImageUrl: null,
+    status: 'REJECTED',
+    tagNames: ['Docker'],
+  },
+];
+
+function cloneArticleVersion(version: MockArticleVersion): MockArticleVersion {
+  return { ...version, tagNames: [...version.tagNames] };
+}
+
+export let articleVersionStore: MockArticleVersion[] = mockArticleVersions.map(cloneArticleVersion);
+
+export function resetArticleVersionStore(): void {
+  articleVersionStore = mockArticleVersions.map(cloneArticleVersion);
 }
 
 export function toMyArticle(a: EditorArticle): MyArticle {

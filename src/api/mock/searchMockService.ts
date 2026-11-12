@@ -1,5 +1,6 @@
 import type { SearchParams, SearchResult } from '../../types/search'
 import type { PageResult } from '../../types/editor'
+import { mockAuthorUuid } from './profiles'
 
 const mockResults: SearchResult[] = [
   {
@@ -7,7 +8,8 @@ const mockResults: SearchResult[] = [
     title: 'Vue 3 入門',
     summary: 'Vue 3 的基礎入門教學，涵蓋 Composition API 與響應式系統。',
     slug: 'vue-3-intro',
-    authorNickname: 'Author1',
+    authorNickname: 'Yuan',
+    authorUuid: mockAuthorUuid('Yuan'),
     tagNames: ['Vue', 'Frontend'],
     publishedAt: '2024-01-01T00:00:00Z',
     viewCount: 100,
@@ -18,7 +20,8 @@ const mockResults: SearchResult[] = [
     title: 'TypeScript 進階技巧',
     summary: '深入探討 TypeScript 的型別系統與泛型應用。',
     slug: 'typescript-advanced',
-    authorNickname: 'Author2',
+    authorNickname: 'Han',
+    authorUuid: mockAuthorUuid('Han'),
     tagNames: ['TypeScript', 'Frontend'],
     publishedAt: '2024-02-01T00:00:00Z',
     viewCount: 200,
@@ -29,7 +32,8 @@ const mockResults: SearchResult[] = [
     title: 'React vs Vue 比較',
     summary: '全面比較 React 與 Vue 的差異與適用場景。',
     slug: 'react-vs-vue',
-    authorNickname: 'Author1',
+    authorNickname: 'Yuan',
+    authorUuid: mockAuthorUuid('Yuan'),
     tagNames: ['React', 'Vue', 'Frontend'],
     publishedAt: '2024-03-01T00:00:00Z',
     viewCount: 350,
@@ -40,7 +44,8 @@ const mockResults: SearchResult[] = [
     title: 'Pinia 狀態管理',
     summary: '使用 Pinia 進行 Vue 3 應用程式的狀態管理。',
     slug: 'pinia-state-management',
-    authorNickname: 'Author3',
+    authorNickname: 'Mira',
+    authorUuid: mockAuthorUuid('Mira'),
     tagNames: ['Vue', 'Pinia'],
     publishedAt: '2024-04-01T00:00:00Z',
     viewCount: 150,

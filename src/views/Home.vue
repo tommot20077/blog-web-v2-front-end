@@ -43,7 +43,8 @@ const latestUuid = computed(() => latestArticles.value?.[0]?.uuid)
     />
 
     <!-- About section -->
-    <section class="about-home wrap">
+    <!-- id="about"：導覽列 About 連到 /#about，需有對應錨點目標才捲得過來。 -->
+    <section id="about" class="about-home wrap">
       <div class="sec reveal">
         <div class="sec-head">
           <span class="tag">§ 04 — About</span>

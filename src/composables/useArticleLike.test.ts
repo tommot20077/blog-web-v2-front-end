@@ -56,6 +56,20 @@ describe('useArticleLike', () => {
     expect(likeCount.value).toBe(5)
   })
 
+  it('A4：遇到 429 → 仍 rollback，但不顯示自己的錯誤 toast（全域 429 toast 已提示）', async () => {
+    const { useToast } = await import('./useToast')
+    const { toasts } = useToast()
+    toasts.value.splice(0)
+    vi.mocked(articleLikeService.like).mockRejectedValue(Object.assign(new Error('操作太頻繁，請 30 秒後再試'), { status: 429, code: 'A0009' }))
+    const { liked, likeCount, toggle } = useArticleLike(ref('a-uuid'), { liked: false, likeCount: 5 })
+
+    await toggle()
+
+    expect(liked.value).toBe(false)
+    expect(likeCount.value).toBe(5)
+    expect(toasts.value.filter(t => t.type === 'error')).toHaveLength(0)
+  })
+
   it('未登入 → 不打 service，redirect /login', async () => {
     const auth = useAuthStore()
     auth.user = null

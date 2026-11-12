@@ -12,6 +12,16 @@ export function getHotTagsMock(limit: number): Promise<TagDetailResponse[]> {
   });
 }
 
+// 模擬全部標籤服務：依照 articleCount 由多到少排序回傳全部（對齊後端 /tags/all）
+export function getAllTagsMock(): Promise<TagDetailResponse[]> {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const sorted = [...allMockTags].sort((a, b) => b.articleCount - a.articleCount);
+      resolve(sorted);
+    }, 300);
+  });
+}
+
 // 模擬標籤詳情資料（TagDetail 完整結構）
 const mockTagDetails: TagDetail[] = allMockTags.map((tag) => ({
   uuid: tag.uuid,
@@ -24,17 +34,31 @@ const mockTagDetails: TagDetail[] = allMockTags.map((tag) => ({
   followed: false,
 }));
 
-// 根據 slug 取得標籤詳情
-export function getTagBySlugMock(slug: string): Promise<TagDetail | null> {
-  return Promise.resolve(mockTagDetails.find(t => t.slug === slug) ?? null);
+const followedTagIds = new Set<string>();
+
+export function resetTagMockState(): void {
+  followedTagIds.clear();
 }
 
-// 追蹤標籤（no-op）
-export function followTagMock(_id: string): Promise<void> {
+export function seedFollowedTag(id: string): void {
+  followedTagIds.add(id);
+}
+
+// 根據 slug 取得標籤詳情
+export function getTagBySlugMock(slug: string): Promise<TagDetail | null> {
+  const detail = mockTagDetails.find(t => t.slug === slug);
+  if (!detail) return Promise.resolve(null);
+  return Promise.resolve({ ...detail, followed: followedTagIds.has(detail.uuid) });
+}
+
+// 追蹤標籤
+export function followTagMock(id: string): Promise<void> {
+  followedTagIds.add(id);
   return Promise.resolve();
 }
 
-// 取消追蹤標籤（no-op）
-export function unfollowTagMock(_id: string): Promise<void> {
+// 取消追蹤標籤
+export function unfollowTagMock(id: string): Promise<void> {
+  followedTagIds.delete(id);
   return Promise.resolve();
 }

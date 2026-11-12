@@ -34,6 +34,26 @@ describe('ArticleCard', () => {
     expect(getByText('Yuan')).toBeTruthy()
   })
 
+  it('有 authorUuid → 作者名是連到 /author/{uuid} 的連結', () => {
+    const article = createMockArticle({ authorNickname: 'Yuan', authorUuid: 'author-1' })
+    const { getByRole } = renderWithRouter(ArticleCard, { props: { article } })
+    expect(getByRole('link', { name: 'Yuan' }).getAttribute('href')).toBe('/author/author-1')
+  })
+
+  it('authorUuid 為 null → 作者名是純文字', () => {
+    const article = createMockArticle({ authorNickname: 'Yuan', authorUuid: null })
+    const { queryByRole, getByText } = renderWithRouter(ArticleCard, { props: { article } })
+    expect(queryByRole('link', { name: 'Yuan' })).toBeNull()
+    expect(getByText('Yuan')).toBeTruthy()
+  })
+
+  it('點作者連結導向作者頁，不會同時導向文章詳情', async () => {
+    const article = createMockArticle({ uuid: 'art-9', authorNickname: 'Yuan', authorUuid: 'author-1' })
+    const { getByRole, router } = renderWithRouter(ArticleCard, { props: { article } })
+    await fireEvent.click(getByRole('link', { name: 'Yuan' }))
+    await waitFor(() => expect(router.currentRoute.value.fullPath).toBe('/author/author-1'))
+  })
+
   it('顯示按讚數和留言數', () => {
     const article = createMockArticle({ likeCount: 42, commentCount: 7 })
 
@@ -83,6 +103,82 @@ describe('ArticleCard', () => {
 
     await waitFor(() => {
       expect(router.currentRoute.value.path).toBe('/articles/abc-123')
+    })
+  })
+
+  describe('標籤連結', () => {
+    it('有 tagRefs 時，標籤渲染為連向 /tags/{slug} 的連結', () => {
+      const article = createMockArticle({
+        uuid: 'abc-123',
+        tags: ['Vue', 'Frontend'],
+        tagRefs: [
+          { name: 'Vue', slug: 'vue' },
+          { name: 'Frontend', slug: 'frontend' },
+        ],
+      })
+
+      const { container } = renderWithRouter(ArticleCard, {
+        props: { article },
+      })
+
+      const links = container.querySelectorAll('a[href^="/tags/"]')
+      expect(links).toHaveLength(2)
+      expect(links[0]).toHaveAttribute('href', '/tags/vue')
+      expect(links[1]).toHaveAttribute('href', '/tags/frontend')
+      expect(links[0]?.textContent).toContain('Vue')
+      expect(links[1]?.textContent).toContain('Frontend')
+    })
+
+    it('點擊標籤連結會導航至對應 tag 頁面，且不會觸發卡片本身的文章導航（阻止冒泡）', async () => {
+      const article = createMockArticle({
+        uuid: 'abc-123',
+        tags: ['Vue'],
+        tagRefs: [{ name: 'Vue', slug: 'vue' }],
+      })
+
+      const { container, router } = renderWithRouter(ArticleCard, {
+        props: { article },
+      })
+
+      await router.isReady()
+      const link = container.querySelector('a[href="/tags/vue"]')!
+      await fireEvent.click(link)
+
+      await waitFor(() => {
+        expect(router.currentRoute.value.path).toBe('/tags/vue')
+      })
+      // 關鍵斷言：若冒泡未被阻止，卡片的 @click 會接著把路由推去 /articles/abc-123，
+      // 最終路由會是文章詳情頁而非標籤頁。
+      expect(router.currentRoute.value.path).not.toBe('/articles/abc-123')
+    })
+
+    it('tagRefs 缺失時退回純文字渲染，不噴錯且標籤不消失', () => {
+      const article = createMockArticle({
+        tags: ['Vue', 'TypeScript'],
+        tagRefs: undefined,
+      })
+
+      const { container, getByText } = renderWithRouter(ArticleCard, {
+        props: { article },
+      })
+
+      expect(container.querySelectorAll('a[href^="/tags/"]')).toHaveLength(0)
+      expect(getByText('# Vue')).toBeTruthy()
+      expect(getByText('# TypeScript')).toBeTruthy()
+    })
+
+    it('tagRefs 為空陣列時同樣退回純文字渲染', () => {
+      const article = createMockArticle({
+        tags: ['Vue'],
+        tagRefs: [],
+      })
+
+      const { container, getByText } = renderWithRouter(ArticleCard, {
+        props: { article },
+      })
+
+      expect(container.querySelectorAll('a[href^="/tags/"]')).toHaveLength(0)
+      expect(getByText('# Vue')).toBeTruthy()
     })
   })
 })

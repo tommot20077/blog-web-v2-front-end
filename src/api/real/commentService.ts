@@ -1,4 +1,5 @@
 import apiClient from '../apiClient'
+import type { PageResult } from '../../types/editor'
 import type {
   ArticleCommentList,
   CommentItem,
@@ -16,6 +17,13 @@ export const commentService = {
     return await apiClient.get<unknown, ArticleCommentList>(
       `/api/v1/articles/${articleUuid}/comments`,
       { params: { page, size, sort } },
+    )
+  },
+
+  async listReplies(parentUuid: string, page: number, size: number): Promise<PageResult<CommentItem>> {
+    return await apiClient.get<unknown, PageResult<CommentItem>>(
+      `/api/v1/comments/${parentUuid}/replies`,
+      { params: { page, size } },
     )
   },
 

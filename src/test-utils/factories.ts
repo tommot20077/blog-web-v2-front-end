@@ -10,6 +10,7 @@ export function createMockArticle(overrides: Partial<ArticleItem> = {}): Article
     title: '測試文章標題',
     summary: '這是測試摘要內容',
     coverImageUrl: null,
+    authorUuid: 'test-author-uuid',
     authorNickname: 'TestAuthor',
     viewCount: 100,
     likeCount: 10,
@@ -27,6 +28,7 @@ export function createMockArticleDetail(overrides: Partial<ArticleDetailItem> = 
     content: '# Test\n\nHello world',
     categories: [] as ArticleCategory[],
     liked: false,
+    bookmarked: false,
     ...overrides,
   }
 }
@@ -68,6 +70,7 @@ export function createMockEditorArticle(overrides: Partial<EditorArticle> = {}):
     rejectReason: null,
     createdAt: '2026-03-01T10:00:00Z',
     updatedAt: '2026-03-15T12:00:00Z',
+    version: 1,
     ...overrides,
   }
 }

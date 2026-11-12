@@ -20,6 +20,8 @@ test.describe('認證流程', () => {
 
     await page.waitForURL((url) => !url.pathname.startsWith('/login'), { timeout: 5000 })
 
+    // NavigationBar A1（頭像下拉選單）：問候語收在選單裡，先展開選單
+    await page.getByTestId('navbar-avatar').click()
     // Use testid + partial match to be tolerant of different nicknames across environments
     await expect(page.getByTestId('navbar-user-greeting')).toBeVisible({ timeout: 5000 })
     await expect(page.getByTestId('navbar-user-greeting')).toContainText('你好')
@@ -46,6 +48,7 @@ test.describe('認證流程', () => {
     await page.getByTestId('auth-login-field-password').fill(AUTHOR_CREDENTIALS.password)
     await page.getByTestId('auth-login-submit').click()
     await page.waitForURL((url) => !url.pathname.startsWith('/login'), { timeout: 5000 })
+    await page.getByTestId('navbar-avatar').click()
     await expect(page.getByTestId('navbar-user-greeting')).toBeVisible({ timeout: 5000 })
 
     await page.getByTestId('navbar-logout-btn').click()

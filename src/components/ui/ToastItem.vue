@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue';
 import type { ToastMessage, ToastType } from '../../composables/useToast';
 
-const props = defineProps<{
+defineProps<{
   toast: ToastMessage;
 }>();
 
@@ -10,33 +9,51 @@ defineEmits<{
   close: [id: string];
 }>();
 
-const indicatorTextMap: Record<ToastType, string> = {
-  success: '✓',
-  error: '!',
-  warning: '!',
-  info: 'i',
+const indicatorColorMap: Record<ToastType, string> = {
+  success: 'bg-green-500',
+  error: 'bg-red-500',
+  warning: 'bg-yellow-500',
+  info: 'bg-blue-500',
 };
-
-const indicatorText = computed(() => indicatorTextMap[props.toast.type]);
 </script>
 
 <template>
-  <div :class="['toast', toast.type]">
-    <span data-testid="toast-indicator" class="ic">{{ indicatorText }}</span>
+  <div
+    class="flex items-stretch gap-3 rounded-2xl border px-4 py-3 shadow-lg min-w-[280px] max-w-[400px] transition-all duration-300"
+    style="background: var(--glass); border-color: var(--glass-border); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);"
+  >
+    <!-- 左側色條指示器 -->
+    <div
+      data-testid="toast-indicator"
+      class="w-1 rounded-full shrink-0"
+      :class="indicatorColorMap[toast.type]"
+    />
 
-    <div class="msg">
-      <b data-testid="toast-message">{{ toast.message }}</b>
-      <span v-if="toast.sub" data-testid="toast-sub">{{ toast.sub }}</span>
-    </div>
+    <!-- 訊息內容 -->
+    <p data-testid="toast-message" class="flex-1 text-sm font-medium py-0.5" style="color: var(--ink);">
+      {{ toast.message }}
+    </p>
 
+    <!-- 選用動作按鈕（例如「重新整理」） -->
+    <button
+      v-if="toast.action"
+      data-testid="toast-action"
+      class="shrink-0 self-center rounded-full px-3 py-1 text-xs font-medium transition-opacity hover:opacity-80"
+      style="background: var(--ink); color: var(--bg);"
+      @click="toast.action.onClick()"
+    >
+      {{ toast.action.label }}
+    </button>
+
+    <!-- 關閉按鈕 -->
     <button
       data-testid="toast-close"
-      class="close"
-      type="button"
+      class="shrink-0 opacity-40 hover:opacity-100 transition-opacity text-sm leading-none self-start pt-0.5"
+      style="color: var(--ink);"
       aria-label="關閉通知"
       @click="$emit('close', toast.id)"
     >
-      ✕
+      <span aria-hidden="true">✕</span>
     </button>
   </div>
 </template>

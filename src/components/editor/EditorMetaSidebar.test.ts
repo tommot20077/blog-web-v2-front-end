@@ -1,12 +1,21 @@
+import { readFileSync } from 'node:fs'
 import { render, screen, waitFor } from '@testing-library/vue'
 import userEvent from '@testing-library/user-event'
 import EditorMetaSidebar from './EditorMetaSidebar.vue'
 import { fileService } from '../../api/fileService'
 import { tagSuggestService } from '../../api/tagSuggestService'
+import { articleVersionService } from '../../api/articleVersionService'
+import type { VersionSummaryResponse, VersionPageResponse } from '../../api/articleVersionService'
 import { createMockCategoryOption } from '../../test-utils/factories'
 
 vi.mock('../../api/fileService')
 vi.mock('../../api/tagSuggestService')
+vi.mock('../../api/articleVersionService')
+
+const mockShowToast = vi.fn()
+vi.mock('../../composables/useToast', () => ({
+  useToast: () => ({ showToast: mockShowToast }),
+}))
 
 const defaultProps = {
   summary: '',
@@ -19,6 +28,7 @@ const defaultProps = {
   ],
   outline: [],
   activeHeadingLineIndex: -1,
+  articleUuid: null as string | null,
 }
 
 describe('EditorMetaSidebar', () => {
@@ -60,6 +70,22 @@ describe('EditorMetaSidebar', () => {
       // 使用不與分類重疊的標籤名稱
       expect(screen.getByTitle('移除 TypeScript')).toBeInTheDocument()
       expect(screen.getByTitle('移除 React')).toBeInTheDocument()
+    })
+
+    it('標籤建議不顯示未知數量的 0', async () => {
+      vi.mocked(tagSuggestService.suggestTags).mockResolvedValue([
+        { name: 'Vite', articleCount: 0 },
+      ])
+
+      const user = userEvent.setup()
+      render(EditorMetaSidebar, { props: defaultProps })
+      const input = screen.getByPlaceholderText(/標籤/)
+      await user.type(input, 'Vi')
+
+      await waitFor(() => {
+        expect(screen.getByText('Vite')).toBeInTheDocument()
+      })
+      expect(screen.queryByText('0')).not.toBeInTheDocument()
     })
   })
 
@@ -161,6 +187,20 @@ describe('EditorMetaSidebar', () => {
       })
     })
 
+    it('A4：上傳遇到 429 → 不另外跳錯誤 toast（全域 429 toast 已提示），欄位內仍顯示失敗', async () => {
+      mockShowToast.mockClear()
+      vi.mocked(fileService.uploadFile).mockRejectedValue(Object.assign(new Error('操作太頻繁，請 30 秒後再試'), { status: 429, code: 'A0009' }))
+
+      const user = userEvent.setup()
+      render(EditorMetaSidebar, { props: defaultProps })
+      const file = new File(['img'], 'cover.jpg', { type: 'image/jpeg' })
+      const input = document.querySelector('input[type="file"]') as HTMLInputElement
+      await user.upload(input, file)
+
+      await waitFor(() => expect(screen.getByText(/上傳失敗/)).toBeInTheDocument())
+      expect(mockShowToast).not.toHaveBeenCalledWith(expect.stringContaining('上傳失敗'), 'error')
+    })
+
     it('上傳檔案後呼叫 fileService.uploadFile 並 emit update:coverImageUrl', async () => {
       const mockUrl = 'https://mock-cdn.example.com/cover.jpg'
       vi.mocked(fileService.uploadFile).mockResolvedValue({
@@ -182,6 +222,296 @@ describe('EditorMetaSidebar', () => {
         expect(fileService.uploadFile).toHaveBeenCalledWith(file, 'ARTICLE_COVER')
         expect(emitted()['update:coverImageUrl']).toBeTruthy()
         expect(emitted()['update:coverImageUrl'][0]).toEqual([mockUrl])
+      })
+    })
+  })
+
+  // ── History tab ──────────────────────────────────────────────────────────
+  describe('History tab', () => {
+    const versionAuto: VersionSummaryResponse = {
+      uuid: 'v-1',
+      type: 'AUTO',
+      createdAt: '2026-07-26T12:34:00Z',
+      authorId: 1,
+      contentLength: 1840,
+      note: null,
+    }
+    const versionManual: VersionSummaryResponse = {
+      uuid: 'v-2',
+      type: 'MANUAL',
+      createdAt: '2026-07-26T11:42:00Z',
+      authorId: 1,
+      contentLength: 736,
+      note: '初稿',
+    }
+    const pageResponse: VersionPageResponse = {
+      records: [versionAuto, versionManual],
+      total: 2,
+      current: 1,
+      size: 20,
+      pages: 1,
+    }
+
+    beforeEach(() => {
+      vi.mocked(articleVersionService.list).mockReset()
+      vi.mocked(articleVersionService.restore).mockReset()
+      mockShowToast.mockClear()
+    })
+
+    it('版本歷史走 api/ facade，不直接 import api/real/（否則 mock 模式下 History 必壞）', () => {
+      // code-standards.md §Mock 資料分離（CRITICAL）：業務程式碼透過 facade 的 dynamic import()
+      // 條件載入 mock。直接 import api/real/ 會讓 npm run dev:mock 與 E2E_MOCK=1 下的
+      // History tab 打到不存在的後端，永遠停在錯誤狀態。
+      const source = readFileSync('src/components/editor/EditorMetaSidebar.vue', 'utf8')
+
+      expect(source).not.toContain('api/real/articleVersionService')
+      expect(source).toContain("from '../../api/articleVersionService'")
+    })
+
+    it('顯示 History tab 按鈕', () => {
+      render(EditorMetaSidebar, { props: { ...defaultProps, articleUuid: 'article-1' } })
+      expect(screen.getByRole('button', { name: /History/ })).toBeInTheDocument()
+    })
+
+    it('初始渲染（未切到 History）不呼叫 list()', () => {
+      render(EditorMetaSidebar, { props: { ...defaultProps, articleUuid: 'article-1' } })
+      expect(articleVersionService.list).not.toHaveBeenCalled()
+    })
+
+    it('切換到 History tab 時呼叫 list(articleUuid)', async () => {
+      vi.mocked(articleVersionService.list).mockResolvedValue(pageResponse)
+      const user = userEvent.setup()
+      render(EditorMetaSidebar, { props: { ...defaultProps, articleUuid: 'article-1' } })
+
+      await user.click(screen.getByRole('button', { name: /History/ }))
+
+      await waitFor(() => {
+        expect(articleVersionService.list).toHaveBeenCalledWith('article-1', expect.anything())
+      })
+    })
+
+    it('没有 articleUuid 時切到 History tab 不呼叫 list()，顯示提示文字', async () => {
+      const user = userEvent.setup()
+      render(EditorMetaSidebar, { props: { ...defaultProps, articleUuid: null } })
+
+      await user.click(screen.getByRole('button', { name: /History/ }))
+
+      expect(articleVersionService.list).not.toHaveBeenCalled()
+      expect(screen.getByText(/儲存.*後|尚未儲存/)).toBeInTheDocument()
+    })
+
+    it('載入中顯示 loading 狀態', async () => {
+      let resolveList: (value: VersionPageResponse) => void = () => {}
+      vi.mocked(articleVersionService.list).mockImplementation(
+        () => new Promise((resolve) => { resolveList = resolve }),
+      )
+      const user = userEvent.setup()
+      render(EditorMetaSidebar, { props: { ...defaultProps, articleUuid: 'article-1' } })
+
+      await user.click(screen.getByRole('button', { name: /History/ }))
+
+      expect(screen.getByText(/載入中/)).toBeInTheDocument()
+      resolveList(pageResponse)
+    })
+
+    it('版本清單渲染時間戳、Auto/Manual 標記、摘要與還原按鈕', async () => {
+      vi.mocked(articleVersionService.list).mockResolvedValue(pageResponse)
+      const user = userEvent.setup()
+      render(EditorMetaSidebar, { props: { ...defaultProps, articleUuid: 'article-1' } })
+
+      await user.click(screen.getByRole('button', { name: /History/ }))
+
+      await waitFor(() => {
+        expect(screen.getByText('Auto')).toBeInTheDocument()
+        expect(screen.getByText('Manual')).toBeInTheDocument()
+        expect(screen.getByText('初稿')).toBeInTheDocument()
+      })
+      expect(screen.getAllByRole('button', { name: /Restore/ })).toHaveLength(2)
+    })
+
+    it('清單為空時顯示空狀態提示', async () => {
+      vi.mocked(articleVersionService.list).mockResolvedValue({
+        records: [], total: 0, current: 1, size: 20, pages: 0,
+      })
+      const user = userEvent.setup()
+      render(EditorMetaSidebar, { props: { ...defaultProps, articleUuid: 'article-1' } })
+
+      await user.click(screen.getByRole('button', { name: /History/ }))
+
+      await waitFor(() => {
+        expect(screen.getByText(/尚無版本歷史/)).toBeInTheDocument()
+      })
+    })
+
+    it('載入失敗顯示錯誤訊息與重試按鈕，點重試會重新呼叫 list()', async () => {
+      vi.mocked(articleVersionService.list)
+        .mockRejectedValueOnce(new Error('網路錯誤'))
+        .mockResolvedValueOnce(pageResponse)
+      const user = userEvent.setup()
+      render(EditorMetaSidebar, { props: { ...defaultProps, articleUuid: 'article-1' } })
+
+      await user.click(screen.getByRole('button', { name: /History/ }))
+
+      await waitFor(() => {
+        expect(screen.getByText(/網路錯誤/)).toBeInTheDocument()
+      })
+
+      await user.click(screen.getByRole('button', { name: /重試/ }))
+
+      await waitFor(() => {
+        expect(articleVersionService.list).toHaveBeenCalledTimes(2)
+        expect(screen.getByText('Auto')).toBeInTheDocument()
+      })
+    })
+
+    describe('還原流程', () => {
+      afterEach(() => {
+        vi.unstubAllGlobals()
+      })
+
+      it('點 Restore 先跳出確認框；取消則不呼叫 restore()', async () => {
+        vi.mocked(articleVersionService.list).mockResolvedValue(pageResponse)
+        const confirmMock = vi.fn().mockReturnValue(false)
+        vi.stubGlobal('confirm', confirmMock)
+        const user = userEvent.setup()
+        render(EditorMetaSidebar, { props: { ...defaultProps, articleUuid: 'article-1' } })
+
+        await user.click(screen.getByRole('button', { name: /History/ }))
+        await waitFor(() => expect(screen.getAllByRole('button', { name: /Restore/ })).toHaveLength(2))
+
+        await user.click(screen.getAllByRole('button', { name: /Restore/ })[0])
+
+        expect(confirmMock).toHaveBeenCalled()
+        expect(articleVersionService.restore).not.toHaveBeenCalled()
+      })
+
+      it('確認後呼叫 restore()，成功時 emit version-restored 並顯示成功 toast', async () => {
+        vi.mocked(articleVersionService.list).mockResolvedValue(pageResponse)
+        vi.mocked(articleVersionService.restore).mockResolvedValue(undefined)
+        vi.stubGlobal('confirm', vi.fn().mockReturnValue(true))
+        const user = userEvent.setup()
+        const { emitted } = render(EditorMetaSidebar, { props: { ...defaultProps, articleUuid: 'article-1' } })
+
+        await user.click(screen.getByRole('button', { name: /History/ }))
+        await waitFor(() => expect(screen.getAllByRole('button', { name: /Restore/ })).toHaveLength(2))
+
+        await user.click(screen.getAllByRole('button', { name: /Restore/ })[0])
+
+        await waitFor(() => {
+          expect(articleVersionService.restore).toHaveBeenCalledWith('article-1', 'v-1')
+          expect(emitted()['version-restored']).toBeTruthy()
+          expect(emitted()['version-restored'][0]).toEqual([versionAuto])
+          expect(mockShowToast).toHaveBeenCalledWith(expect.stringMatching(/還原/), 'success')
+        })
+      })
+
+      it('restore() 失敗時顯示錯誤 toast，不 emit version-restored', async () => {
+        vi.mocked(articleVersionService.list).mockResolvedValue(pageResponse)
+        vi.mocked(articleVersionService.restore).mockRejectedValue(new Error('伺服器錯誤'))
+        vi.stubGlobal('confirm', vi.fn().mockReturnValue(true))
+        const user = userEvent.setup()
+        const { emitted } = render(EditorMetaSidebar, { props: { ...defaultProps, articleUuid: 'article-1' } })
+
+        await user.click(screen.getByRole('button', { name: /History/ }))
+        await waitFor(() => expect(screen.getAllByRole('button', { name: /Restore/ })).toHaveLength(2))
+
+        await user.click(screen.getAllByRole('button', { name: /Restore/ })[0])
+
+        await waitFor(() => {
+          expect(articleVersionService.restore).toHaveBeenCalled()
+          expect(mockShowToast).toHaveBeenCalledWith(expect.stringMatching(/還原失敗/), 'error')
+        })
+        expect(emitted()['version-restored']).toBeFalsy()
+      })
+    })
+
+    // ── 還原按鈕依文章狀態 gating ─────────────────────────────────────────────
+    // 後端 fix/restore-content-freeze：PENDING_REVIEW / PUBLISHED / ARCHIVED 狀態下
+    // 內容凍結，POST .../restore 改回 400（A0209）。前端提前擋下，避免使用者按下去才碰壁。
+    describe('還原按鈕依文章狀態 gating', () => {
+      beforeEach(() => {
+        vi.mocked(articleVersionService.list).mockResolvedValue(pageResponse)
+      })
+
+      it.each([
+        ['PENDING_REVIEW', /送審中/],
+        ['PUBLISHED', /已發布/],
+        ['ARCHIVED', /已封存/],
+      ] as const)('文章狀態為 %s 時，還原按鈕 disabled 且顯示具體原因', async (status, reasonPattern) => {
+        const user = userEvent.setup()
+        render(EditorMetaSidebar, {
+          props: { ...defaultProps, articleUuid: 'article-1', articleStatus: status },
+        })
+
+        await user.click(screen.getByRole('button', { name: /History/ }))
+        await waitFor(() => expect(screen.getAllByRole('button', { name: /Restore/ })).toHaveLength(2))
+
+        for (const btn of screen.getAllByRole('button', { name: /Restore/ })) {
+          expect(btn).toBeDisabled()
+          expect(btn.getAttribute('title')).toMatch(reasonPattern)
+        }
+      })
+
+      it('PENDING_REVIEW 的停用原因具體指引下一步（先抽回），不是只寫「無法還原」', async () => {
+        const user = userEvent.setup()
+        render(EditorMetaSidebar, {
+          props: { ...defaultProps, articleUuid: 'article-1', articleStatus: 'PENDING_REVIEW' },
+        })
+
+        await user.click(screen.getByRole('button', { name: /History/ }))
+        await waitFor(() => expect(screen.getAllByRole('button', { name: /Restore/ })).toHaveLength(2))
+
+        const title = screen.getAllByRole('button', { name: /Restore/ })[0]!.getAttribute('title')
+        expect(title).toContain('抽回')
+      })
+
+      it.each(['DRAFT', 'REJECTED'] as const)('文章狀態為 %s 時，還原按鈕仍可用（守住不修過頭）', async (status) => {
+        const user = userEvent.setup()
+        render(EditorMetaSidebar, {
+          props: { ...defaultProps, articleUuid: 'article-1', articleStatus: status },
+        })
+
+        await user.click(screen.getByRole('button', { name: /History/ }))
+        await waitFor(() => expect(screen.getAllByRole('button', { name: /Restore/ })).toHaveLength(2))
+
+        for (const btn of screen.getAllByRole('button', { name: /Restore/ })) {
+          expect(btn).not.toBeDisabled()
+          expect(btn.getAttribute('title')).toBeFalsy()
+        }
+      })
+
+      it('未帶 articleStatus（既有呼叫端尚未跟進）時，還原按鈕維持原本可用行為，不因新 prop 而炸開', async () => {
+        const user = userEvent.setup()
+        render(EditorMetaSidebar, {
+          props: { ...defaultProps, articleUuid: 'article-1' },
+        })
+
+        await user.click(screen.getByRole('button', { name: /History/ }))
+        await waitFor(() => expect(screen.getAllByRole('button', { name: /Restore/ })).toHaveLength(2))
+
+        expect(screen.getAllByRole('button', { name: /Restore/ })[0]).not.toBeDisabled()
+      })
+
+      it('狀態於使用者停留期間改變（前端仍顯示可還原）時，後端回 403 仍要顯示可讀錯誤 toast——gating 是 UX，後端才是最終權威', async () => {
+        vi.mocked(articleVersionService.restore).mockRejectedValue(new Error('目前狀態不允許還原'))
+        vi.stubGlobal('confirm', vi.fn().mockReturnValue(true))
+        const user = userEvent.setup()
+        const { emitted } = render(EditorMetaSidebar, {
+          // 本地仍是 DRAFT（gating 判為可還原），模擬另一分頁已把文章送審、後端狀態已變但前端未同步
+          props: { ...defaultProps, articleUuid: 'article-1', articleStatus: 'DRAFT' },
+        })
+
+        await user.click(screen.getByRole('button', { name: /History/ }))
+        await waitFor(() => expect(screen.getAllByRole('button', { name: /Restore/ })).toHaveLength(2))
+
+        await user.click(screen.getAllByRole('button', { name: /Restore/ })[0])
+
+        await waitFor(() => {
+          expect(articleVersionService.restore).toHaveBeenCalled()
+          expect(mockShowToast).toHaveBeenCalledWith('還原失敗：目前狀態不允許還原', 'error')
+        })
+        expect(emitted()['version-restored']).toBeFalsy()
+        vi.unstubAllGlobals()
       })
     })
   })

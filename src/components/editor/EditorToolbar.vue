@@ -1,11 +1,30 @@
 <script setup lang="ts">
+import { ref } from 'vue'
+
 const emit = defineEmits<{
   'wrap-selection': [before: string, after: string]
   'insert-text': [text: string]
   'prefix-lines': [prefix: string]
   'undo': []
   'redo': []
+  'insert-images': [files: File[]]
 }>()
+
+// ── 內文圖片上傳：點擊「圖片」按鈕觸發隱藏的檔案選取輸入框 ──────────────────
+const imageInputRef = ref<HTMLInputElement | null>(null)
+
+function openImagePicker() {
+  imageInputRef.value?.click()
+}
+
+function onImageInputChange(e: Event) {
+  const input = e.target as HTMLInputElement
+  const files = Array.from(input.files ?? [])
+  if (files.length > 0) {
+    emit('insert-images', files)
+  }
+  input.value = ''
+}
 
 const groups = [
   // 標題
@@ -34,7 +53,7 @@ const groups = [
   // 媒體
   [
     { title: '連結', icon: '🔗', action: () => emit('insert-text', '[連結文字](https://)') },
-    { title: '圖片', icon: '🖼', action: () => emit('insert-text', '![替代文字](https://)') },
+    { title: '圖片', icon: '🖼', action: () => openImagePicker() },
   ],
   // 歷史
   [
@@ -62,5 +81,14 @@ const groups = [
         class="w-px h-5 bg-gray-300 dark:bg-gray-600 mx-0.5"
       />
     </template>
+    <input
+      ref="imageInputRef"
+      type="file"
+      accept="image/*"
+      multiple
+      class="hidden"
+      data-testid="toolbar-image-input"
+      @change="onImageInputChange"
+    />
   </div>
 </template>

@@ -1,4 +1,4 @@
-import { waitFor } from '@testing-library/vue'
+import { waitFor, fireEvent } from '@testing-library/vue'
 import { renderWithRouterAsync } from '../test-utils'
 import VerifyEmailView from './VerifyEmailView.vue'
 import { authService } from '../api/authService'
@@ -23,6 +23,27 @@ describe('VerifyEmailView', () => {
     expect(authService.verifyEmail).toHaveBeenCalledWith('valid-token')
   })
 
+  it('讀取 token 後立即從網址移除，且不影響驗證流程', async () => {
+    vi.mocked(authService.verifyEmail).mockResolvedValue(undefined)
+
+    const { router, getByTestId } = await renderWithRouterAsync(
+      VerifyEmailView,
+      {},
+      '/verify-email?token=valid-token',
+    )
+
+    // token 留在網址會進入瀏覽器歷史、書籤與分享連結
+    await waitFor(() => {
+      expect(router.currentRoute.value.query.token).toBeUndefined()
+    })
+
+    // 清掉網址參數後，驗證仍須以原 token 送出，且成功畫面不得被誤判為「無效連結」
+    expect(authService.verifyEmail).toHaveBeenCalledWith('valid-token')
+    await waitFor(() => {
+      expect(getByTestId('auth-verify-success')).toBeInTheDocument()
+    })
+  })
+
   it('驗證成功顯示成功訊息', async () => {
     vi.mocked(authService.verifyEmail).mockResolvedValue(undefined)
 
@@ -35,6 +56,24 @@ describe('VerifyEmailView', () => {
     await waitFor(() => {
       expect(getByTestId('auth-verify-success')).toBeInTheDocument()
     })
+  })
+
+  it('驗證成功訊息不含驚嘆號', async () => {
+    vi.mocked(authService.verifyEmail).mockResolvedValue(undefined)
+
+    const { getByTestId } = await renderWithRouterAsync(
+      VerifyEmailView,
+      {},
+      '/verify-email?token=valid-token',
+    )
+
+    await waitFor(() => {
+      expect(getByTestId('auth-verify-success')).toBeInTheDocument()
+    })
+
+    const successBlock = getByTestId('auth-verify-success')
+    expect(successBlock.textContent).toContain('信箱驗證成功')
+    expect(successBlock.textContent).not.toContain('！')
   })
 
   it('驗證失敗顯示錯誤', async () => {
@@ -73,7 +112,7 @@ describe('VerifyEmailView', () => {
     expect(getByTestId('auth-verify-title')).toBeInTheDocument()
   })
 
-  it('驗證失敗時提供前往重發驗證信頁面的入口', async () => {
+  it('data-testid: auth-verify-resend-btn 存在（驗證失敗時）', async () => {
     vi.mocked(authService.verifyEmail).mockRejectedValue(new Error('Token 已過期'))
     const { getByTestId } = await renderWithRouterAsync(
       VerifyEmailView,
@@ -81,9 +120,81 @@ describe('VerifyEmailView', () => {
       '/verify-email?token=expired-token',
     )
     await waitFor(() => {
-      const link = getByTestId('auth-verify-resend-link')
-      expect(link).toBeInTheDocument()
-      expect(link.closest('a')).toHaveAttribute('href', '/check-email')
+      expect(getByTestId('auth-verify-resend-btn')).toBeInTheDocument()
+    })
+  })
+
+  // 驗證失敗後的重寄流程：token 屬憑證且常已過期，故重寄以 email 指認帳號，
+  // 而非重試同一個 token（見 VerifyEmailView.vue 說明）
+  describe('驗證失敗後重新發送驗證信', () => {
+    beforeEach(() => {
+      vi.mocked(authService.verifyEmail).mockRejectedValue(new Error('Token 已過期'))
+    })
+
+    it('顯示 email 輸入框', async () => {
+      const { getByTestId } = await renderWithRouterAsync(
+        VerifyEmailView,
+        {},
+        '/verify-email?token=expired-token',
+      )
+      await waitFor(() => {
+        expect(getByTestId('auth-verify-failure')).toBeInTheDocument()
+      })
+      expect(getByTestId('auth-verify-resend-email')).toBeInTheDocument()
+    })
+
+    it('輸入 email 後點重寄 → 呼叫 resendVerification 並顯示已寄出', async () => {
+      vi.mocked(authService.resendVerification).mockResolvedValue(undefined)
+      const { getByTestId } = await renderWithRouterAsync(
+        VerifyEmailView,
+        {},
+        '/verify-email?token=expired-token',
+      )
+      await waitFor(() => {
+        expect(getByTestId('auth-verify-failure')).toBeInTheDocument()
+      })
+
+      await fireEvent.update(getByTestId('auth-verify-resend-email'), 'user@example.com')
+      await fireEvent.click(getByTestId('auth-verify-resend-btn'))
+
+      await waitFor(() => {
+        expect(authService.resendVerification).toHaveBeenCalledWith('user@example.com')
+        expect(getByTestId('auth-verify-resend-done')).toBeInTheDocument()
+      })
+    })
+
+    it('email 空白時點重寄 → 不呼叫 resendVerification', async () => {
+      const { getByTestId } = await renderWithRouterAsync(
+        VerifyEmailView,
+        {},
+        '/verify-email?token=expired-token',
+      )
+      await waitFor(() => {
+        expect(getByTestId('auth-verify-failure')).toBeInTheDocument()
+      })
+
+      await fireEvent.click(getByTestId('auth-verify-resend-btn'))
+
+      expect(authService.resendVerification).not.toHaveBeenCalled()
+    })
+
+    it('重寄失敗（限流）顯示後端錯誤訊息', async () => {
+      vi.mocked(authService.resendVerification).mockRejectedValue(new Error('每分鐘限 1 次'))
+      const { getByTestId, getByText } = await renderWithRouterAsync(
+        VerifyEmailView,
+        {},
+        '/verify-email?token=expired-token',
+      )
+      await waitFor(() => {
+        expect(getByTestId('auth-verify-failure')).toBeInTheDocument()
+      })
+
+      await fireEvent.update(getByTestId('auth-verify-resend-email'), 'user@example.com')
+      await fireEvent.click(getByTestId('auth-verify-resend-btn'))
+
+      await waitFor(() => {
+        expect(getByText('每分鐘限 1 次')).toBeInTheDocument()
+      })
     })
   })
 })

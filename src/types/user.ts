@@ -7,6 +7,17 @@ export interface UpdateProfileRequest {
   bio?: string;
   website?: string;
   socialLinks?: string;
+  avatarUrl?: string;
+  location?: string;
+}
+
+// 對應後端 NotificationPreferencesRequest（5 個必填布林，每次提交完整偏好狀態）
+export interface NotificationPreferencesRequest {
+  comment: boolean;
+  like: boolean;
+  review: boolean;
+  follow: boolean;
+  newsletter: boolean;
 }
 
 export interface ChangePasswordRequest {
@@ -31,4 +42,10 @@ export interface FileMetadata {
   hasThumbnail: boolean;
   uploaderId: string;
   createdAt: string;
+}
+
+export interface FileListParams {
+  page?: number;
+  size?: number;
+  sort?: string;
 }

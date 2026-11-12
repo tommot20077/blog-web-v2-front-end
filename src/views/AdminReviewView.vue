@@ -2,7 +2,9 @@
 import { ref, computed, onMounted } from 'vue'
 import { adminService } from '../api/adminService'
 import { useToast } from '../composables/useToast'
+import AdminRail from '../components/layout/AdminRail.vue'
 import type { MyArticle } from '../types/editor'
+import { MAX_REJECT_REASON_LENGTH, exceedsLength } from '../utils/inputLimits'
 
 const { showToast } = useToast()
 
@@ -15,7 +17,8 @@ const rejectingUuid = ref<string | null>(null)
 const rejectReason = ref('')
 const PAGE_SIZE = 10
 
-const canConfirmReject = computed(() => rejectReason.value.trim().length > 0)
+const rejectReasonTooLong = computed(() => exceedsLength(rejectReason.value, MAX_REJECT_REASON_LENGTH))
+const canConfirmReject = computed(() => rejectReason.value.trim().length > 0 && !rejectReasonTooLong.value)
 
 async function fetchArticles() {
   isLoading.value = true
@@ -58,6 +61,7 @@ function cancelReject() {
 }
 
 async function handleReject(uuid: string) {
+  if (!canConfirmReject.value) return
   try {
     await adminService.rejectArticle(uuid, rejectReason.value)
     articles.value = articles.value.filter(a => a.uuid !== uuid)
@@ -78,7 +82,11 @@ onMounted(fetchArticles)
 </script>
 
 <template>
-  <div class="admin-wrap">
+  <div class="shell" data-testid="admin-review-shell">
+    <AdminRail active="admin-review" />
+
+    <main class="shell-main">
+    <div class="admin-wrap">
     <!-- 標題 -->
     <h1 class="admin-title">
       待審核文章
@@ -103,6 +111,7 @@ onMounted(fetchArticles)
         v-for="article in articles"
         :key="article.uuid"
         class="admin-card"
+        :data-testid="'admin-review-row-' + article.uuid"
       >
         <!-- 標題 + 日期 + 操作 -->
         <div class="admin-card-head">
@@ -114,6 +123,7 @@ onMounted(fetchArticles)
             <button
               type="button"
               class="admin-btn admin-btn-approve"
+              :data-testid="'admin-review-approve-' + article.uuid"
               @click="handlePublish(article.uuid)"
             >
               通過
@@ -121,6 +131,7 @@ onMounted(fetchArticles)
             <button
               type="button"
               class="admin-btn admin-btn-reject"
+              :data-testid="'admin-review-reject-' + article.uuid"
               @click="openRejectForm(article.uuid)"
             >
               退回
@@ -135,7 +146,16 @@ onMounted(fetchArticles)
             placeholder="請輸入退回理由"
             rows="3"
             class="admin-reject-textarea"
+            :maxlength="MAX_REJECT_REASON_LENGTH"
           />
+          <p
+            v-if="rejectReasonTooLong"
+            class="admin-reject-error"
+            role="alert"
+            data-testid="admin-review-reject-error"
+          >
+            退回理由最多 {{ MAX_REJECT_REASON_LENGTH }} 字，目前 {{ rejectReason.length }} 字，請刪減後再送出
+          </p>
           <div class="admin-reject-actions">
             <button
               type="button"
@@ -177,5 +197,7 @@ onMounted(fetchArticles)
         下一頁
       </button>
     </div>
+    </div>
+    </main>
   </div>
 </template>

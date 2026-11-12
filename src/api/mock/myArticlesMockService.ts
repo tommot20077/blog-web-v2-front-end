@@ -1,4 +1,4 @@
-import type { MyArticle, ArticleStatusFilter, PageResult } from '../../types/editor'
+import type { MyArticle, ArticleStatusFilter, PageResult, ArticleTransitionResult } from '../../types/editor'
 import { editorArticleStore, toMyArticle } from './data'
 
 export function getMyArticlesMock(
@@ -36,7 +36,7 @@ export function deleteMyArticleMock(uuid: string): Promise<void> {
   })
 }
 
-export function submitForReviewMock(uuid: string): Promise<void> {
+export function submitForReviewMock(uuid: string): Promise<ArticleTransitionResult> {
   return new Promise((resolve, reject) => {
     setTimeout(() => {
       const article = editorArticleStore.find(a => a.uuid === uuid)
@@ -46,7 +46,24 @@ export function submitForReviewMock(uuid: string): Promise<void> {
       }
       article.status = 'PENDING_REVIEW'
       article.updatedAt = new Date().toISOString()
-      resolve()
+      article.version += 1
+      resolve({ version: article.version })
+    }, 300)
+  })
+}
+
+export function withdrawArticleMock(uuid: string): Promise<ArticleTransitionResult> {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      const article = editorArticleStore.find(a => a.uuid === uuid)
+      if (!article) {
+        reject(new Error(`文章 ${uuid} 不存在`))
+        return
+      }
+      article.status = 'DRAFT'
+      article.updatedAt = new Date().toISOString()
+      article.version += 1
+      resolve({ version: article.version })
     }, 300)
   })
 }

@@ -369,38 +369,37 @@ describe('useFormValidation', () => {
     });
   });
 
-  describe('pattern 規則', () => {
-    it('值符合 regex 應驗證通過', () => {
+  describe('pattern 規則（4 類字元 + 長度 8-50）', () => {
+    const POLICY = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,50}$/;
+    const MSG = '密碼須為 8-50 字元，且須包含大小寫英文字母、數字與特殊字元（@$!%*?&#）';
+
+    it('四類字元齊全且長度足夠應驗證通過', () => {
       const { validateField, errors } = useFormValidation<TestForm>({
-        password: [
-          {
-            type: 'pattern',
-            params: { pattern: /^(?=.*[A-Za-z])(?=.*\d).{8,50}$/ },
-            message: '密碼須為 8-50 字元，且包含至少一個英文字母及一個數字',
-          },
-        ],
+        password: [{ type: 'pattern', params: { pattern: POLICY }, message: MSG }],
       });
 
-      expect(validateField('password', 'Test1234')).toBe(true);
+      expect(validateField('password', 'Test123!')).toBe(true);
       expect(errors.password).toBeNull();
     });
 
-    it('值不符合 regex 應驗證失敗並回傳自訂訊息', () => {
+    it('缺特殊字元應驗證失敗並回傳自訂訊息', () => {
       const { validateField, errors } = useFormValidation<TestForm>({
-        password: [
-          {
-            type: 'pattern',
-            params: { pattern: /^(?=.*[A-Za-z])(?=.*\d).{8,50}$/ },
-            message: '密碼須為 8-50 字元，且包含至少一個英文字母及一個數字',
-          },
-        ],
+        password: [{ type: 'pattern', params: { pattern: POLICY }, message: MSG }],
       });
 
-      expect(validateField('password', 'abcdefgh')).toBe(false);
-      expect(errors.password).toBe('密碼須為 8-50 字元，且包含至少一個英文字母及一個數字');
+      expect(validateField('password', 'Password123')).toBe(false);
+      expect(errors.password).toBe(MSG);
+    });
 
-      expect(validateField('password', 'Ab1')).toBe(false);
-      expect(validateField('password', '12345678')).toBe(false);
+    it('缺大寫 / 缺小寫 / 缺數字 / 長度不足皆應失敗', () => {
+      const { validateField } = useFormValidation<TestForm>({
+        password: [{ type: 'pattern', params: { pattern: POLICY }, message: MSG }],
+      });
+
+      expect(validateField('password', 'password1!')).toBe(false); // 缺大寫
+      expect(validateField('password', 'PASSWORD1!')).toBe(false); // 缺小寫
+      expect(validateField('password', 'Password!!')).toBe(false); // 缺數字
+      expect(validateField('password', 'Te1!')).toBe(false); // 長度不足
     });
 
     it('未指定 pattern 應視為通過', () => {
@@ -411,25 +410,76 @@ describe('useFormValidation', () => {
     });
   });
 
-  describe('getPasswordRules helper', () => {
-    it('空字串三條規則皆 false', () => {
+  describe('getPasswordRules helper（5 條規則）', () => {
+    it('空字串五條規則皆 false', () => {
       const { getPasswordRules } = useFormValidation<TestForm>({});
-      expect(getPasswordRules('')).toEqual({ length: false, letter: false, digit: false });
+      expect(getPasswordRules('')).toEqual({
+        length: false,
+        lowercase: false,
+        uppercase: false,
+        digit: false,
+        special: false,
+      });
     });
 
-    it('"abcdefgh" length+letter true, digit false', () => {
+    it('"abcdefgh"：length+lowercase true，其餘 false', () => {
       const { getPasswordRules } = useFormValidation<TestForm>({});
-      expect(getPasswordRules('abcdefgh')).toEqual({ length: true, letter: true, digit: false });
+      expect(getPasswordRules('abcdefgh')).toEqual({
+        length: true,
+        lowercase: true,
+        uppercase: false,
+        digit: false,
+        special: false,
+      });
     });
 
-    it('"Test1234" 三條規則皆 true', () => {
+    it('"Test123!" 五條規則皆 true', () => {
       const { getPasswordRules } = useFormValidation<TestForm>({});
-      expect(getPasswordRules('Test1234')).toEqual({ length: true, letter: true, digit: true });
+      expect(getPasswordRules('Test123!')).toEqual({
+        length: true,
+        lowercase: true,
+        uppercase: true,
+        digit: true,
+        special: true,
+      });
     });
 
-    it('"Ab1" 長度不足，length false 但 letter+digit true', () => {
+    it('"Password123"：缺特殊字元，special false 其餘 true', () => {
       const { getPasswordRules } = useFormValidation<TestForm>({});
-      expect(getPasswordRules('Ab1')).toEqual({ length: false, letter: true, digit: true });
+      expect(getPasswordRules('Password123')).toEqual({
+        length: true,
+        lowercase: true,
+        uppercase: true,
+        digit: true,
+        special: false,
+      });
+    });
+
+    it('"Te1!" 長度不足，length false 但四類字元齊全', () => {
+      const { getPasswordRules } = useFormValidation<TestForm>({});
+      expect(getPasswordRules('Te1!')).toEqual({
+        length: false,
+        lowercase: true,
+        uppercase: true,
+        digit: true,
+        special: true,
+      });
+    });
+
+    it('長度邊界：50 字元合法、51 字元 length false', () => {
+      const { getPasswordRules } = useFormValidation<TestForm>({});
+      const len50 = 'Aa1!' + 'a'.repeat(46); // 50 字元
+      const len51 = 'Aa1!' + 'a'.repeat(47); // 51 字元
+      expect(len50).toHaveLength(50);
+      expect(len51).toHaveLength(51);
+      expect(getPasswordRules(len50).length).toBe(true);
+      expect(getPasswordRules(len51).length).toBe(false);
+    });
+
+    it('特殊字元集合僅限 @$!%*?&#（其他符號不算 special）', () => {
+      const { getPasswordRules } = useFormValidation<TestForm>({});
+      expect(getPasswordRules('Test123#').special).toBe(true);
+      expect(getPasswordRules('Test123^').special).toBe(false); // ^ 不在集合
     });
   });
 });

@@ -65,6 +65,7 @@ describe('recommendService', () => {
           slug: 'hot',
           summary: '摘要',
           authorNickname: 'Author',
+          authorUuid: null,
           viewCount: 100,
           likeCount: 10,
           publishedAt: '2026-03-01',
@@ -72,10 +73,22 @@ describe('recommendService', () => {
           coverImageUrl: null,
         },
       ]);
-      expect(result[0].coverImageUrl).toBeNull();
+      expect(result[0]?.coverImageUrl).toBeNull();
       expect(apiClient.get).toHaveBeenCalledWith('/api/v1/recommend/trending', {
         params: { period: '7d', limit: 5 },
       });
+    });
+
+    it('後端帶 authorUuid 時原樣保留；缺漏（Redis 舊快取）時為 null', async () => {
+      const base = { title: 't', slug: 's', summary: '', authorNickname: 'A', tagNames: [], viewCount: 0, likeCount: 0, publishedAt: '2026-03-01' };
+      vi.mocked(apiClient.get).mockResolvedValue([
+        { ...base, uuid: 'r-1', authorUuid: 'author-1' },
+        { ...base, uuid: 'r-2', authorUuid: null },
+        { ...base, uuid: 'r-3' },
+      ]);
+
+      const result = await recommendService.getRelatedArticles('x');
+      expect(result.map(r => r.authorUuid)).toEqual(['author-1', null, null]);
     });
 
     it('網路錯誤時回傳空陣列並呼叫 console.error', async () => {
@@ -105,7 +118,7 @@ describe('recommendService', () => {
       vi.mocked(apiClient.get).mockResolvedValue(backendRaw);
 
       const result = await recommendService.getTrending('7d', 1);
-      expect(result[0].tags).toEqual(['Vue', 'JavaScript']);
+      expect(result[0]?.tags).toEqual(['Vue', 'JavaScript']);
     });
 
   });
@@ -127,11 +140,11 @@ describe('recommendService — getRelatedArticles', () => {
       expect(Array.isArray(result)).toBe(true);
     });
 
-    it('getRelatedArticles 回傳 2-3 筆推薦文章', async () => {
+    it('getRelatedArticles 預設依後端 limit=5 回傳最多 5 筆推薦文章', async () => {
       const result = await recommendService.getRelatedArticles('article-1');
 
       expect(result.length).toBeGreaterThanOrEqual(2);
-      expect(result.length).toBeLessThanOrEqual(3);
+      expect(result.length).toBeLessThanOrEqual(5);
     });
 
     it('getRelatedArticles 結果包含必要欄位', async () => {
@@ -180,9 +193,21 @@ describe('recommendService — getRelatedArticles', () => {
       const result = await recommendService.getRelatedArticles('article-uuid-1');
 
       expect(result).toHaveLength(1);
-      expect(result[0].uuid).toBe('rel-1');
-      expect(result[0].tags).toEqual(['Vue']);
-      expect(apiClient.get).toHaveBeenCalledWith('/api/v1/recommend/related/article-uuid-1');
+      expect(result[0]?.uuid).toBe('rel-1');
+      expect(result[0]?.tags).toEqual(['Vue']);
+      expect(apiClient.get).toHaveBeenCalledWith('/api/v1/recommend/related/article-uuid-1', {
+        params: { limit: 5 },
+      });
+    });
+
+    it('getRelatedArticles 帶 limit query 對齊後端參數', async () => {
+      vi.mocked(apiClient.get).mockResolvedValue([]);
+
+      await recommendService.getRelatedArticles('article-uuid-1', 7);
+
+      expect(apiClient.get).toHaveBeenCalledWith('/api/v1/recommend/related/article-uuid-1', {
+        params: { limit: 7 },
+      });
     });
 
     it('getRelatedArticles 網路錯誤時回傳空陣列', async () => {

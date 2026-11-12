@@ -40,6 +40,13 @@ describe('TagView', () => {
     expect(title?.textContent).toMatch(/vue[\s-]3/)
   })
 
+  it('以路由 slug 作為 tags 篩選向後端取文章，而非把標籤名稱當成 keyword（keyword 後端不支援，會被丟棄）', async () => {
+    await renderWithRouterAsync(TagView, {}, '/tags/vue-3')
+    await flushPromises()
+
+    expect(articleService.getArticles).toHaveBeenCalledWith(1, 100, '全部', '', { tags: ['vue-3'] })
+  })
+
   it('顯示文章列表區域', async () => {
     const { container } = await renderWithRouterAsync(TagView, {}, '/tags/vue-3')
     await flushPromises()

@@ -3,9 +3,16 @@ defineProps<{
   liked: boolean
   likeCount: number
   isPending: boolean
+  bookmarked: boolean
+  bookmarkPending: boolean
 }>()
 
-defineEmits<{ toggle: [] }>()
+defineEmits<{
+  toggle: []
+  toggleBookmark: []
+  share: []
+  viewMarkdown: []
+}>()
 </script>
 
 <template>
@@ -21,10 +28,38 @@ defineEmits<{ toggle: [] }>()
       <span data-testid="article-like-action-bar-count" class="ab-count">{{ likeCount }}</span>
     </button>
 
-    <!-- placeholders for future Stage: bookmark / share / view-as-md -->
-    <button class="ab-btn disabled" disabled title="coming soon" aria-label="Bookmark">🔖</button>
-    <button class="ab-btn disabled" disabled title="coming soon" aria-label="Share">↗</button>
-    <button class="ab-btn disabled" disabled title="coming soon" aria-label="View as Markdown">{ }</button>
+    <button
+      data-testid="article-bookmark-action-bar"
+      class="ab-btn"
+      :class="{ active: bookmarked, pulse: bookmarkPending }"
+      :disabled="bookmarkPending"
+      :aria-pressed="bookmarked"
+      :aria-label="bookmarked ? '取消收藏' : '加入收藏'"
+      :title="bookmarked ? '取消收藏' : '加入收藏'"
+      @click="$emit('toggleBookmark')"
+    >
+      <span aria-hidden="true">{{ bookmarked ? '★' : '☆' }}</span>
+    </button>
+
+    <button
+      data-testid="article-share-action-bar"
+      class="ab-btn"
+      aria-label="分享文章"
+      title="分享文章"
+      @click="$emit('share')"
+    >
+      <span aria-hidden="true">↗</span>
+    </button>
+
+    <button
+      data-testid="article-view-markdown-action-bar"
+      class="ab-btn"
+      aria-label="以 Markdown 檢視"
+      title="以 Markdown 檢視"
+      @click="$emit('viewMarkdown')"
+    >
+      <span aria-hidden="true">{ }</span>
+    </button>
   </aside>
 </template>
 
@@ -57,10 +92,6 @@ defineEmits<{ toggle: [] }>()
 }
 .ab-btn.pulse {
   animation: pulse 350ms ease-out;
-}
-.ab-btn.disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
 }
 .ab-count {
   font-size: 11px;

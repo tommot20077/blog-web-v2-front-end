@@ -1,20 +1,31 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import DOMPurify from 'dompurify'
+import { createHtmlSanitizer } from '../../utils/htmlSanitizer'
 import type { CommentItem as CommentItemType } from '../../types/comment'
 import { useCommentLike } from '../../composables/useCommentLike'
 import { useCommentPermissions } from '../../composables/useCommentPermissions'
 import CommentForm from './CommentForm.vue'
+import AuthorName from '../author/AuthorName.vue'
 
 const props = defineProps<{
   comment: CommentItemType
+  /** 「載入更多回覆」請求進行中（僅頂層留言使用） */
+  replyLoading?: boolean
+  /** 上一次載入回覆失敗（僅頂層留言使用） */
+  replyError?: boolean
 }>()
 
 const emit = defineEmits<{
   reply: [parentUuid: string, content: string]
   edit: [uuid: string, content: string]
   delete: [uuid: string]
+  loadMoreReplies: [parentUuid: string]
 }>()
+
+// 後端只內嵌前 3 則回覆；replyCount（未刪除總數）> 已帶的 replies 數 → 還有更多
+const remainingReplies = computed(
+  () => (props.comment.replyCount ?? 0) - (props.comment.replies?.length ?? 0),
+)
 
 const commentUuid = computed(() => props.comment.uuid)
 const { liked, likeCount, isPending, toggle } = useCommentLike(
@@ -49,7 +60,9 @@ const deletedLabel = computed(() => {
 })
 
 // 防 XSS：backend 已用 OWASP HtmlSanitizer 過濾，前端再 DOMPurify 多一層；mock 走同 path
-const sanitizedHtml = computed(() => DOMPurify.sanitize(props.comment.contentHtml ?? ''))
+// 使用收緊設定的獨立實例：禁 style 元素 / style 屬性 / form / iframe / 非 checkbox input（留言不需要 Shiki 例外）
+const commentSanitizer = createHtmlSanitizer()
+const sanitizedHtml = computed(() => commentSanitizer.sanitize(props.comment.contentHtml ?? ''))
 
 function formatTime(iso: string): string {
   const d = new Date(iso)
@@ -66,7 +79,10 @@ function formatTime(iso: string): string {
     <div class="av" aria-hidden="true" />
     <div class="body">
       <div class="who">
-        <b>{{ comment.deleted ? '[已刪除]' : comment.author?.nickname }}</b>
+        <b>
+          <template v-if="comment.deleted">[已刪除]</template>
+          <AuthorName v-else-if="comment.author" :uuid="comment.author.uuid" :nickname="comment.author.nickname" />
+        </b>
         <span class="when">{{ formatTime(comment.createdAt) }}</span>
         <span v-if="comment.editedAt" class="edited">(edited)</span>
       </div>
@@ -80,6 +96,7 @@ function formatTime(iso: string): string {
           v-if="isEditing"
           data-testid="comment-edit-form"
           :initial-content="comment.content"
+          aria-label="編輯留言"
           submit-label="Save"
           :show-cancel="true"
           @submit="onEditSubmit"
@@ -123,6 +140,7 @@ function formatTime(iso: string): string {
         <CommentForm
           v-if="showReplyForm"
           data-testid="comment-reply-form"
+          aria-label="回覆留言"
           submit-label="Reply"
           :show-cancel="true"
           @submit="onReplySubmit"
@@ -139,6 +157,22 @@ function formatTime(iso: string): string {
           @edit="(uuid, content) => emit('edit', uuid, content)"
           @delete="uuid => emit('delete', uuid)"
         />
+      </div>
+
+      <div v-if="remainingReplies > 0" class="replies-more">
+        <span
+          v-if="replyError"
+          class="replies-error"
+          role="alert"
+          data-testid="comment-replies-error"
+        >回覆載入失敗</span>
+        <button
+          type="button"
+          class="replies-more-btn"
+          data-testid="comment-replies-load-more"
+          :disabled="replyLoading"
+          @click="emit('loadMoreReplies', comment.uuid)"
+        >{{ replyLoading ? '載入中…' : replyError ? '重試' : `載入更多回覆（剩 ${remainingReplies} 則）` }}</button>
       </div>
     </div>
   </article>
@@ -171,11 +205,11 @@ function formatTime(iso: string): string {
   color: var(--ink, #0a0a0b);
 }
 .when {
-  color: var(--muted-2, #9a9aa0);
+  color: var(--muted, #6b6b70);
   font-size: 12px;
 }
 .edited {
-  color: var(--muted-2, #9a9aa0);
+  color: var(--muted, #6b6b70);
   font-size: 11px;
   font-style: italic;
 }
@@ -216,5 +250,30 @@ function formatTime(iso: string): string {
   margin-top: 12px;
   padding-left: 16px;
   border-left: 2px solid var(--divider, rgba(0,0,0,0.06));
+}
+.replies-more {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding-left: 16px;
+  font-size: 12px;
+}
+.replies-more-btn {
+  padding: 4px 10px;
+  border: 1px solid var(--border, rgba(0,0,0,0.1));
+  border-radius: 999px;
+  background: var(--surface, #fbfbfb);
+  cursor: pointer;
+}
+.replies-more-btn:hover:not(:disabled) {
+  background: var(--bg-sub, #ededed);
+}
+.replies-more-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.replies-error {
+  color: #e15554;
 }
 </style>

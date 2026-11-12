@@ -3,12 +3,111 @@
 @import './assets/design/views.css';
 @import './assets/design/search.css';
 @import './assets/design/settings.css';
-@import './assets/design/enhancements.css';
+
+/* ── Tailwind utilities only ─────────────────────────
+ * 刻意「不」引入 @tailwind base（preflight）：preflight 會全域重置
+ * 元素樣式，覆蓋上面手寫設計系統的既有外觀。
+ * 專案多個元件（Toast/MobileBottomNav/Editor/Auth 等）以 utility class
+ * 排版，缺此指令時那些 class 完全不會被產生 → 元件視覺塌陷。
+ * 詳見 .tailwind-audit.md
+ */
+@tailwind utilities;
 
 /* ── Vue-specific global patches ─────────────────── */
 
 /* Prevent horizontal overflow (BUG-003) */
 html, body { overflow-x: hidden; }
+
+/* ── New semantic token: --ok (「達成」語意綠) ─────────
+ * 不改 assets/design/*.css（designer source）。中性綠、與 accent 同明度階。
+ */
+:root { --ok: #3f8f5f; }
+[data-theme="dark"] { --ok: #6fbf8b; }
+
+/* ── New semantic token: --danger（「錯誤/危險」語意紅）─────────
+ * 根因：全站曾用硬編碼 #b91c1c / #ef4444 / rgba(239,68,68,*)，沒有隨主題切換
+ * 的語意 token。暗色模式下對實際暗色背景（--bg #1d1d1f、--bg-sub #242426，
+ * 見下方「Apple 色調」覆寫區塊）僅 ≈2.4~2.6:1，遠低於 WCAG AA 文字門檻
+ * 4.5:1；亮色模式對 --bg #f4f4f4 已 ≈5.9:1，合格（純暗色模式的 bug）。
+ * 計算過程與斷言見 src/dangerToken.test.ts（真的算 WCAG 對比度，非字串比對）。
+ *
+ * --danger：一般「danger 文字」用色（錯誤訊息、badge、按鈕文字/邊框）。
+ *   亮色沿用既有 #b91c1c（不變動觀感）；暗色改用 #f87171
+ *   （對 --bg-sub ≈5.6:1、對 --bg ≈6.1:1，仍留有餘裕）。
+ * --danger-strong：淡紅底（各處 color-mix(in srgb, var(--danger-strong) X%,
+ *   transparent) 半透明紅底）的基底紅，數值與改版前完全等價，禁止調深——
+ *   它同時是 20 個已驗證疊色斷言的背景基底（見 src/dangerToken.test.ts
+ *   「半透明 color-mix 疊色的合成背景對比度」describe），改它的值會連帶
+ *   改變所有淡紅底的色相，需重算全部 20 個斷言。
+ * --danger-solid：白字配實心/近實心紅底時的基底紅（「確認拒絕」「刪除」
+ *   按鈕），另立獨立 token、不沿用 --danger-strong，正是為了避免上述連動。
+ *   維持不隨主題變化的觀感（白字疊紅底不該隨主題切換），故不比照 --danger
+ *   分暗色版。色值 #bf3636 為 --danger-strong #ef4444 的 RGB 三色版同比例
+ *   縮放 80%（(239,68,68)*0.8 取整 = (191,54,54)，色相不變，因 G=B 比例
+ *   保持一致，不會偏向棕色）：
+ *     - 實色底配 #fff：contrast(#fff, #bf3636) ≈ 5.53:1
+ *     - .admin-btn-confirm-reject 的 90% 疊色（backdrop 為 --glass 疊在
+ *       --bg 上）：light ≈ 4.73:1、dark ≈ 6.23:1
+ *   三者皆 ≥ 4.5:1（WCAG AA），計算過程與斷言見 src/dangerToken.test.ts
+ *   「白字配紅底按鈕的對比度」describe。
+ * 這兩個「白字配紅底」token 與「紅字配淡紅底」（--danger 文字疊在
+ * --danger-strong 淡底上）方向相反，換色時分開處理，避免一律替換成同一個
+ * 變數而改變視覺或波及既有驗證過的斷言。
+ * 不改 assets/design/*.css（designer source），在此新增。
+ */
+:root { --danger: #b91c1c; --danger-strong: #ef4444; --danger-solid: #bf3636; }
+[data-theme="dark"] { --danger: #f87171; }
+
+/* -- New semantic token: --danger-solid-hover(白字配紅底按鈕的 hover 覆寫) --
+ * fix round 1(reviewer 自行延伸驗算發現,見 src/dangerToken.test.ts「hover
+ * 狀態的對比度」describe):.admin-btn-confirm-reject/.ma-btn--danger 原本
+ * hover 都靠 `opacity`(.8/.88)取得「有反應」的視覺效果,但 opacity 對整個
+ * 元素生效--白字與紅底一起變半透明再與 backdrop 合成,對比度因此掉回接近
+ * 修復前的原始 bug 數值:.admin-btn-confirm-reject light 模式僅 ≈3.42:1(不
+ * 合格),.ma-btn--danger light 模式僅 ≈4.57:1(現況壓線通過,餘裕僅 0.07,
+ * 無測試覆蓋、一碰即破)。
+ * 這裡改用「hover 時直接換一個更深的實色紅底」取代 opacity:不透明色不受
+ * backdrop 影響,兩個主題算出同一個對比度,不必再分別驗算 light/dark。
+ * 色值 #992b2b 為 --danger-solid #bf3636 等比例縮放 80%((191,54,54)*0.8
+ * 取整 = (153,43,43),色相不變,比照 --danger-solid 本身的推導方式):
+ *   - contrast(#fff, #992b2b) ~= 7.68:1(兩主題皆同,實色底不受 backdrop 影響)
+ *   遠高於 4.5:1,比原本壓線的 opacity 方案更穩健。
+ * 不沿用 --danger-strong/--danger-solid 本身(禁區:改了要重算既有 24 個
+ * 斷言),另立獨立 token。計算過程與斷言見 src/dangerToken.test.ts。
+ */
+:root { --danger-solid-hover: #992b2b; }
+
+/* ── 暗色階：Apple 色調（Yuan 選定 D3「Apple 柔和」）─────────
+ * 問題：原本 --bg #0d0d0f 配 --ink #ededef ≈ 15.9:1。數字高不是重點——
+ * 近純黑配近純白會產生 halation（白字邊緣發光、久看字會浮動），這才是刺眼來源。
+ * 解法（比照 apple.com）：兩端都收——背景抬離純黑、文字收掉純白。
+ * 本文對比降為 ≈ 13.2:1，仍遠高於 WCAG AA 的 4.5:1。
+ * 次級文字色 #c7c7cc / #98989d / #8e8e93 取自 Apple 實際使用的灰階。
+ * 不改 assets/design/*.css（designer source），在此覆寫；同特異性下後載入者勝。
+ */
+[data-theme="dark"] {
+  --bg: #1d1d1f;
+  --bg-sub: #242426;
+  --surface: #2b2b2e;
+  --ink: #e8e8ed;
+  --ink-2: #c7c7cc;
+  --muted: #98989d;
+  --muted-2: #8e8e93;
+  --border: rgba(255,255,255,0.13);
+  --border-strong: rgba(255,255,255,0.22);
+  --divider: rgba(255,255,255,0.10);
+  --glass: rgba(36,36,38,0.74);
+  --glass-border: rgba(255,255,255,0.11);
+}
+
+/* ── Auth pages: 消除 .auth-shell 與全域 footer 之間的死白 ──
+ * .footer { margin-top: 120px } 是 designer source（styles.css:327），不可編輯。
+ * .auth-shell（AuthFormLayout.vue）本身 min-height:100vh，已是一個獨立滿版畫面，
+ * 不需要再疊加 120px 的額外呼吸空間；footer 自身仍保有 border-top + padding-top:40px
+ * 提供視覺分隔，故只在 .footer 緊接在 .auth-shell 之後時歸零 margin-top。
+ * 只用相鄰選擇器命中「auth-shell 之後的 footer」，不影響其他頁面的 footer 間距。
+ */
+.auth-shell + .footer { margin-top: 0; }
 
 /* ── Skeleton loading animation ──────────────────── */
 @keyframes sk-shimmer {
@@ -67,7 +166,7 @@ html, body { overflow-x: hidden; }
 .auth-link:hover { opacity: .75; }
 .auth-msg { padding: 12px 16px; border-radius: 10px; font-size: 14px; line-height: 1.6; text-align: center; }
 .auth-msg-success { background: rgba(34,197,94,.1); color: #15803d; }
-.auth-msg-error { background: rgba(239,68,68,.08); color: #b91c1c; }
+.auth-msg-error { background: color-mix(in srgb, var(--danger-strong) 8%, transparent); color: var(--danger); }
 .auth-msg-info { background: var(--bg-sub); color: var(--muted); }
 
 /* sr-only utility */
@@ -90,14 +189,20 @@ html, body { overflow-x: hidden; }
 .admin-btn { padding: 6px 14px; border-radius: 20px; font-size: 13px; cursor: pointer; transition: opacity .2s; border: none; }
 .admin-btn:hover { opacity: .8; }
 .admin-btn-approve { background: var(--accent); color: #fff; }
-.admin-btn-reject { background: rgba(239,68,68,.1); color: #b91c1c; border: 1px solid rgba(239,68,68,.2) !important; }
+.admin-btn-reject { background: color-mix(in srgb, var(--danger-strong) 10%, transparent); color: var(--danger); border: 1px solid color-mix(in srgb, var(--danger-strong) 20%, transparent) !important; }
 .admin-reject-form { margin-top: 12px; display: flex; flex-direction: column; gap: 10px; }
 .admin-reject-textarea { width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--glass-border); background: var(--glass); font-size: 14px; color: var(--ink); resize: none; outline: none; transition: border-color .2s; box-sizing: border-box; }
 .admin-reject-textarea:focus { border-color: var(--accent); }
+.admin-reject-error { margin: 0; font-size: 13px; color: var(--danger); }
 .admin-reject-actions { display: flex; gap: 8px; justify-content: flex-end; }
 .admin-btn-cancel { background: var(--glass); border: 1px solid var(--glass-border) !important; color: var(--ink); }
-.admin-btn-confirm-reject { background: rgba(239,68,68,.9); color: #fff; }
+.admin-btn-confirm-reject { background: color-mix(in srgb, var(--danger-solid) 90%, transparent); color: #fff; transition: background-color .2s; }
 .admin-btn-confirm-reject:disabled { opacity: .4; cursor: not-allowed; }
+/* fix round 1:hover 改深色覆寫取代 opacity 壓底(見上方 --danger-solid-hover
+ * 說明)。用 .admin-btn.admin-btn-confirm-reject:hover(雙 class)取得比共用
+ * .admin-btn:hover 更高的 specificity,不必依賴來源順序;也不改共用規則本身,
+ * 其他 .admin-btn-*(approve/reject/cancel)的 hover 仍是 opacity:.8,不受影響。*/
+.admin-btn.admin-btn-confirm-reject:hover { background: var(--danger-solid-hover); opacity: 1; }
 .admin-empty { text-align: center; padding: 48px 0; color: var(--muted); font-family: var(--f-mono); font-size: 13px; letter-spacing: .08em; }
 .admin-loading { display: flex; justify-content: center; padding: 48px 0; gap: 8px; }
 .admin-loading-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); animation: bounce 1s infinite; }

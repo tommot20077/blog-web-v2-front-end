@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import apiClient from '../apiClient'
 import {
   articleVersionService,
-  type ArticleVersion,
   type CreateManualVersionRequest,
   type VersionDetailResponse,
   type VersionPageResponse,
@@ -20,7 +19,6 @@ describe('real articleVersionService', () => {
           uuid: 'version-uuid',
           type: 'AUTO',
           createdAt: '2026-05-09T10:00:00Z',
-          authorId: 7,
           contentLength: 1200,
           note: null,
         },
@@ -51,14 +49,12 @@ describe('real articleVersionService', () => {
       uuid: 'version-uuid',
       type: 'MANUAL',
       createdAt: '2026-05-09T10:00:00Z',
-      authorId: 7,
       note: 'before editing',
       title: 'Version title',
       slug: 'version-title',
       content: 'version content',
       status: 'DRAFT',
       summary: null,
-      categoryId: null,
       coverImageUrl: null,
       tags: ['018f3c9d-7f6c-7a01-9f9d-111111111111', '018f3c9d-7f6c-7a01-9f9d-222222222222'],
     }
@@ -72,15 +68,12 @@ describe('real articleVersionService', () => {
     expect(res).toEqual(detail)
   })
 
-  it('createManual 呼叫 POST /articles/{articleUuid}/versions/manual with body 並回傳 entity', async () => {
+  it('createManual 呼叫 POST /articles/{articleUuid}/versions/manual with body 並回傳 detail（不含內部 Long ID）', async () => {
     const request: CreateManualVersionRequest = {
       note: 'manual snapshot',
     }
-    const version: ArticleVersion = {
-      id: 11,
+    const version: VersionDetailResponse = {
       uuid: 'version-uuid',
-      articleId: 22,
-      authorId: 7,
       type: 'MANUAL',
       title: 'Manual title',
       slug: 'manual-title',
@@ -89,7 +82,6 @@ describe('real articleVersionService', () => {
       createdAt: '2026-05-09T10:00:00Z',
       note: 'manual snapshot',
       summary: null,
-      categoryId: null,
       coverImageUrl: null,
       tags: ['018f3c9d-7f6c-7a01-9f9d-111111111111'],
     }
@@ -114,12 +106,9 @@ describe('real articleVersionService', () => {
     )
   })
 
-  it('promote 呼叫 POST /articles/{articleUuid}/versions/{versionUuid}/promote 並回傳 entity', async () => {
-    const version: ArticleVersion = {
-      id: 11,
+  it('promote 呼叫 POST /articles/{articleUuid}/versions/{versionUuid}/promote 並回傳 detail（不含內部 Long ID）', async () => {
+    const version: VersionDetailResponse = {
       uuid: 'version-uuid',
-      articleId: 22,
-      authorId: 7,
       type: 'MANUAL',
       title: 'Promoted title',
       slug: 'promoted-title',

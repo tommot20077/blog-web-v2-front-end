@@ -1,5 +1,6 @@
 import { useArticleDetail } from './useArticleDetail'
-import { flushPromises } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
+import { defineComponent } from 'vue'
 import { articleService } from '../api/articleService'
 import { createMockArticleDetail } from '../test-utils'
 
@@ -9,51 +10,60 @@ vi.mock('../api/articleService', () => ({
   },
 }))
 
+function mountHarness(uuid = 'test-uuid') {
+  const Wrapper = defineComponent({
+    setup() {
+      return useArticleDetail(uuid)
+    },
+    template: '<div />',
+  })
+
+  return mount(Wrapper)
+}
+
 describe('useArticleDetail', () => {
   it('初始 isLoading 為 true', () => {
     vi.mocked(articleService.getArticleByUuid).mockReturnValue(new Promise(() => {}))
 
-    const { isLoading } = useArticleDetail('test-uuid')
+    const wrapper = mountHarness('test-uuid')
 
-    expect(isLoading.value).toBe(true)
+    expect(wrapper.vm.isLoading).toBe(true)
   })
 
   it('fetchArticle 成功後 article 有值、isLoading 為 false', async () => {
     const mockArticle = createMockArticleDetail({ uuid: 'test-uuid', title: '測試文章' })
     vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
 
-    const { article, isLoading, fetchArticle } = useArticleDetail('test-uuid')
+    const wrapper = mountHarness('test-uuid')
 
-    await fetchArticle()
     await flushPromises()
 
-    expect(article.value).toEqual(mockArticle)
-    expect(isLoading.value).toBe(false)
+    expect(wrapper.vm.article).toEqual(mockArticle)
+    expect(wrapper.vm.isLoading).toBe(false)
   })
 
   it('API 回傳 null 時 article 為 null、isLoading 為 false', async () => {
     vi.mocked(articleService.getArticleByUuid).mockResolvedValue(null)
 
-    const { article, isLoading, fetchArticle } = useArticleDetail('not-exist')
+    const wrapper = mountHarness('not-exist')
 
-    await fetchArticle()
     await flushPromises()
 
-    expect(article.value).toBeNull()
-    expect(isLoading.value).toBe(false)
+    expect(wrapper.vm.article).toBeNull()
+    expect(wrapper.vm.isLoading).toBe(false)
   })
 
   it('API 拋出例外時 article 為 null、isLoading 為 false，且 console.error 被呼叫', async () => {
     vi.mocked(articleService.getArticleByUuid).mockRejectedValue(new Error('Network error'))
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
-    const { article, isLoading, fetchArticle } = useArticleDetail('error-uuid')
+    const wrapper = mountHarness('error-uuid')
 
-    await fetchArticle()
     await flushPromises()
 
-    expect(article.value).toBeNull()
-    expect(isLoading.value).toBe(false)
+    expect(wrapper.vm.article).toBeNull()
+    expect(wrapper.vm.isLoading).toBe(false)
     expect(consoleSpy).toHaveBeenCalledWith('Error loading article details', expect.any(Error))
+    consoleSpy.mockRestore()
   })
 })

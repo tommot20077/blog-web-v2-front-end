@@ -94,7 +94,9 @@ test.describe('My Articles (F7/F8)', () => {
       })
       await page.waitForURL('/my-articles', { timeout: 5000 })
 
-      const editLink = page.getByTestId(`my-row-action-edit-${draftUuid}`)
+      const row = page.getByTestId(`my-row-${draftUuid}`)
+      await expect(row).toBeVisible({ timeout: 5000 })
+      const editLink = row.getByRole('link', { name: '編輯' })
       await expect(editLink).toBeVisible({ timeout: 5000 })
       await editLink.click()
 

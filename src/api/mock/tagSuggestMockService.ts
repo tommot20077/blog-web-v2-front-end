@@ -1,9 +1,7 @@
 import type { TagSuggestion } from '../../types/editor'
 import { mockTagPool } from './data'
 
-const MAX_SUGGESTIONS = 8
-
-export function suggestTagsMock(query: string): Promise<TagSuggestion[]> {
+export function suggestTagsMock(query: string, limit: number = 10): Promise<TagSuggestion[]> {
   return new Promise((resolve) => {
     setTimeout(() => {
       if (!query.trim()) {
@@ -13,7 +11,7 @@ export function suggestTagsMock(query: string): Promise<TagSuggestion[]> {
       const lower = query.toLowerCase()
       const matches = mockTagPool
         .filter(t => t.name.toLowerCase().startsWith(lower))
-        .slice(0, MAX_SUGGESTIONS)
+        .slice(0, limit)
       resolve(matches)
     }, 150)
   })

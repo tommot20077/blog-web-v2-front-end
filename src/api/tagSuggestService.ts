@@ -1,13 +1,13 @@
 import type { TagSuggestion } from '../types/editor'
 
 export const tagSuggestService = {
-  async suggestTags(query: string): Promise<TagSuggestion[]> {
+  async suggestTags(query: string, limit: number = 10): Promise<TagSuggestion[]> {
     if (!query.trim()) return []
     if (import.meta.env.VITE_USE_MOCK === 'true') {
       const { tagSuggestService: svc } = await import('./mock/tagSuggestService')
-      return svc.suggestTags(query)
+      return svc.suggestTags(query, limit)
     }
     const { tagSuggestService: svc } = await import('./real/tagSuggestService')
-    return svc.suggestTags(query)
+    return svc.suggestTags(query, limit)
   },
 }

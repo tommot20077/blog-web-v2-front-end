@@ -13,6 +13,7 @@ import { test, expect } from '../fixtures/base'
  */
 test.describe('MobileBottomNav 響應式顯示', () => {
   const SELECTOR = '[data-testid="mobile-bottom-nav"]'
+  const TOP_NAV_SELECTOR = '[data-testid="navbar-root"]'
 
   test('桌面寬度 1280px：bottom nav 應隱藏', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 })
@@ -39,6 +40,15 @@ test.describe('MobileBottomNav 響應式顯示', () => {
       (el) => getComputedStyle(el).display
     )
     expect(display).not.toBe('none')
+  })
+
+  test('行動寬度 375px：desktop navbar 應隱藏，避免與 bottom nav 重複', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 800 })
+    await page.goto('/')
+    const display = await page.locator(TOP_NAV_SELECTOR).evaluate(
+      (el) => getComputedStyle(el).display
+    )
+    expect(display).toBe('none')
   })
 
   test('行動寬度 767px（md 邊界 -1px）：bottom nav 應顯示', async ({ page }) => {

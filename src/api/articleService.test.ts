@@ -1,6 +1,4 @@
 import { articleService } from './articleService';
-import type { ArticleItem } from './articleService';
-import type { PageResult } from '../types/editor';
 import apiClient from './apiClient';
 import { allMockArticles } from './mock/data';
 
@@ -54,6 +52,22 @@ describe('articleService', () => {
       const result = await articleService.getArticleBySlug('non-existent-slug');
       expect(result).toBeNull();
     });
+
+    it('getArchive 委派給 mock module 並回傳跨年度資料', async () => {
+      const result = await articleService.getArchive();
+
+      expect(result.length).toBe(allMockArticles.length);
+      const years = new Set(result.map((a) => a.publishedAt.slice(0, 4)));
+      expect(years.size).toBeGreaterThan(1);
+      // 每筆含 archive 精簡欄位
+      expect(result[0]).toMatchObject({
+        uuid: expect.any(String),
+        title: expect.any(String),
+        slug: expect.any(String),
+        publishedAt: expect.any(String),
+      });
+      expect(Array.isArray(result[0]!.tags)).toBe(true);
+    });
   });
 
   // ============================================================
@@ -92,7 +106,7 @@ describe('articleService', () => {
 
         const result = await articleService.getArticles(1, 6, '全部', '');
 
-        expect(result.records[0].tags).toEqual(['Vue']);
+        expect(result.records[0]?.tags).toEqual(['Vue']);
       });
 
       it('網路錯誤 → 回傳空 PageResult 並呼叫 console.error', async () => {
@@ -128,8 +142,8 @@ describe('articleService', () => {
         expect(apiClient.get).toHaveBeenCalledOnce();
         expect(apiClient.get).toHaveBeenCalledWith('/api/v1/articles', {
           params: {
-            page: '2',
-            size: '10',
+            page: 2,
+            size: 10,
             categorySlug: 'backend',
           },
         });
@@ -148,8 +162,8 @@ describe('articleService', () => {
 
         expect(apiClient.get).toHaveBeenCalledWith('/api/v1/articles', {
           params: {
-            page: '1',
-            size: '6',
+            page: 1,
+            size: 6,
           },
         });
       });
@@ -233,6 +247,20 @@ describe('articleService', () => {
           'Fetch article by slug failed:',
           expect.any(Error),
         );
+      });
+    });
+
+    describe('getArchive', () => {
+      it('委派 real module → 呼叫 GET /api/v1/articles/archive 並回傳陣列', async () => {
+        const backend = [
+          { uuid: 'u-1', title: 'A', slug: 'a', publishedAt: '2026-01-01T00:00:00', tags: ['Vue'] },
+        ];
+        vi.mocked(apiClient.get).mockResolvedValue(backend);
+
+        const result = await articleService.getArchive();
+
+        expect(apiClient.get).toHaveBeenCalledWith('/api/v1/articles/archive');
+        expect(result).toEqual(backend);
       });
     });
   });

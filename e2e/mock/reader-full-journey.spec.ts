@@ -38,7 +38,7 @@ test.describe('讀者完整瀏覽流程', () => {
     if (await firstArticle.count() > 0) {
       await firstArticle.click()
       await expect(page).toHaveURL(/\/articles\//)
-      await expect(page.locator('[data-testid="article-root"]')).toBeVisible()
+      await articleDetailPage.waitForArticleLoaded()
     }
   })
 
