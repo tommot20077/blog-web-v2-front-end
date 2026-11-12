@@ -30,6 +30,9 @@ blob-report
 .playwright-mcp
 coverage
 e2e
+# 例外：tsconfig.node.json 把 vite.csp.config.ts 與它 import 的 e2e/csp/nginxCsp.ts 納入型別檢查，
+# 建置時的 `vue-tsc -b` 需要這個檔案，排除它會讓 docker build 失敗（TS2307）
+!e2e/csp/nginxCsp.ts
 
 # 編輯器 / 工具設定
 .vscode
