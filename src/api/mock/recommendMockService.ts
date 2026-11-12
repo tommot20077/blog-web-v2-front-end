@@ -12,6 +12,7 @@ export function getTrendingMock(limit: number): Promise<RecommendArticleResponse
         slug: a.slug,
         summary: a.summary,
         authorNickname: a.authorNickname,
+        authorUuid: a.authorUuid,
         viewCount: a.viewCount,
         likeCount: a.likeCount,
         publishedAt: a.publishedAt,
@@ -23,19 +24,20 @@ export function getTrendingMock(limit: number): Promise<RecommendArticleResponse
   });
 }
 
-// 模擬相關文章推薦：排除本篇，取前 3 篇
-export function getRelatedArticlesMock(_articleUuid: string): Promise<RecommendArticleResponse[]> {
+// 模擬相關文章推薦：排除本篇，依 limit 取回指定筆數
+export function getRelatedArticlesMock(_articleUuid: string, limit: number = 5): Promise<RecommendArticleResponse[]> {
   return new Promise((resolve) => {
     setTimeout(() => {
       const related: RecommendArticleResponse[] = allMockArticles
         .filter(a => a.uuid !== _articleUuid)
-        .slice(0, 3)
+        .slice(0, limit)
         .map(a => ({
           uuid: a.uuid,
           title: a.title,
           slug: a.slug,
           summary: a.summary,
           authorNickname: a.authorNickname,
+        authorUuid: a.authorUuid,
           viewCount: a.viewCount,
           likeCount: a.likeCount,
           publishedAt: a.publishedAt,

@@ -1,14 +1,22 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
+import {
+  MAX_COMMENT_LENGTH,
+  exceedsLength,
+  isNearLimit,
+  formatCount,
+} from '../../utils/inputLimits'
 
 const props = withDefaults(
   defineProps<{
     placeholder?: string
+    ariaLabel?: string
     submitLabel?: string
     initialContent?: string
     showCancel?: boolean
   }>(),
   {
+    ariaLabel: '留言內容',
     placeholder: '寫下你的想法⋯（Markdown 支援）',
     submitLabel: 'Post',
     initialContent: '',
@@ -27,8 +35,18 @@ watch(() => props.initialContent, (v) => {
   text.value = v
 })
 
+// 長度以 UTF-16 code unit 計（與後端 @Size 一致）；達 90% 起提示，超過上限不送出
+const exceeded = computed(() => exceedsLength(text.value, MAX_COMMENT_LENGTH))
+const showLimitHint = computed(() => isNearLimit(text.value.length, MAX_COMMENT_LENGTH))
+const limitHint = computed(() =>
+  exceeded.value
+    ? `留言超過 ${formatCount(MAX_COMMENT_LENGTH)} 字上限（目前 ${formatCount(text.value.length)} 字），請刪減後再送出`
+    : `留言已 ${formatCount(text.value.length)} / ${formatCount(MAX_COMMENT_LENGTH)} 字，快到上限了`,
+)
+
 function submit() {
   if (text.value.trim().length < 3) return
+  if (exceeded.value) return
   emit('submit', text.value)
   text.value = ''
 }
@@ -46,12 +64,21 @@ function submit() {
         v-model="text"
         data-testid="comment-textarea"
         :placeholder="placeholder"
+        :aria-label="ariaLabel"
         rows="3"
+        :maxlength="MAX_COMMENT_LENGTH"
         @keydown.meta.enter.prevent="submit"
         @keydown.ctrl.enter.prevent="submit"
       />
+      <p
+        v-if="showLimitHint"
+        class="limit-hint"
+        :class="{ over: exceeded }"
+        :role="exceeded ? 'alert' : undefined"
+        data-testid="comment-length-hint"
+      >{{ limitHint }}</p>
       <div class="row">
-        <span class="hint">⌘ + Enter 送出 · 友善至上</span>
+        <span class="hint">⌘ + Enter 送出</span>
         <div class="actions">
           <button
             v-if="showCancel"
@@ -64,7 +91,7 @@ function submit() {
             type="submit"
             class="submit"
             data-testid="comment-submit"
-            :disabled="text.trim().length < 3"
+            :disabled="text.trim().length < 3 || exceeded"
           >{{ submitLabel }}</button>
         </div>
       </div>
@@ -96,6 +123,18 @@ textarea {
   border-radius: 8px;
   resize: vertical;
   font: inherit;
+  /* 未指定 background/color 會落回瀏覽器預設的白底黑字，
+     深色模式下整塊變白（使用者回報）。明確綁定設計系統 token。 */
+  background: var(--surface);
+  color: var(--ink);
+  transition: border-color 0.2s;
+}
+textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+textarea::placeholder {
+  color: var(--muted-2);
 }
 .row {
   display: flex;
@@ -106,6 +145,14 @@ textarea {
 .hint {
   font-size: 12px;
   color: var(--muted, #6b6b70);
+}
+.limit-hint {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--muted, #6b6b70);
+}
+.limit-hint.over {
+  color: #e15554;
 }
 .actions {
   display: flex;

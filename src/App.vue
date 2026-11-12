@@ -9,6 +9,7 @@ import NavigationBar from './components/layout/NavigationBar.vue'
 import AppFooter from './components/layout/AppFooter.vue'
 import ToastContainer from './components/ui/ToastContainer.vue'
 import MobileBottomNav from './components/layout/MobileBottomNav.vue'
+import ErrorBoundary from './components/common/ErrorBoundary.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -22,8 +23,10 @@ const { observe } = useGlobalReveal()
 // Re-observe reveal elements after each route transition
 router.afterEach(() => nextTick(() => observe()))
 
+// 'admin' 加入（Task A4）：admin 後台頁面靠 AdminRail 自帶導覽，
+// 同樣不需要公開站台的 NavigationBar / AppFooter / MobileBottomNav
 const isShellOrFull = computed(() =>
-  route.meta.layout === 'shell' || route.meta.layout === 'full'
+  route.meta.layout === 'shell' || route.meta.layout === 'full' || route.meta.layout === 'admin'
 )
 
 const onGlobalKeyDown = (e: KeyboardEvent) => {
@@ -42,7 +45,7 @@ const onGlobalKeyDown = (e: KeyboardEvent) => {
 
 onMounted(async () => {
   window.addEventListener('keydown', onGlobalKeyDown)
-  await authStore.initialize()
+  await authStore.ensureHydrated()
 })
 
 onUnmounted(() => window.removeEventListener('keydown', onGlobalKeyDown))
@@ -54,17 +57,21 @@ onUnmounted(() => window.removeEventListener('keydown', onGlobalKeyDown))
 
   <!-- Shell / Full-screen pages (my-articles, settings, editor) -->
   <template v-if="isShellOrFull">
-    <router-view :key="route.path" />
+    <ErrorBoundary>
+      <router-view :key="route.path" />
+    </ErrorBoundary>
   </template>
 
   <!-- Default public layout (navbar + content + footer) -->
   <template v-else>
     <NavigationBar />
-    <router-view v-slot="{ Component, route: r }">
-      <transition name="fade" mode="out-in">
-        <component :is="Component" :key="r.path" />
-      </transition>
-    </router-view>
+    <ErrorBoundary>
+      <router-view v-slot="{ Component, route: r }">
+        <transition name="fade" mode="out-in">
+          <component :is="Component" :key="r.path" />
+        </transition>
+      </router-view>
+    </ErrorBoundary>
     <AppFooter />
     <MobileBottomNav />
   </template>

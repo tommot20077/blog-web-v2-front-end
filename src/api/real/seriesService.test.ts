@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import apiClient from '../apiClient'
 import { seriesService } from './seriesService'
-import type { Series, SeriesDetail, SeriesSummary } from './seriesService'
+import type { SeriesDetail, SeriesSummary } from './seriesService'
 import type { BackendPageResult } from '../utils'
 
 vi.mock('../apiClient')
@@ -96,46 +96,44 @@ describe('real seriesService', () => {
     expect(res).toEqual(detail)
   })
 
-  it('create 呼叫 POST /series with body 並回傳 entity', async () => {
+  it('create 呼叫 POST /series with body 並回傳 summary（不含內部 Long ID）', async () => {
     const request = { title: 'Series Title', slug: 'series-slug', description: 'Intro' }
-    const entity: Series = {
-      id: 1,
+    const summary: SeriesSummary = {
       uuid: 'series-uuid',
       title: 'Series Title',
       slug: 'series-slug',
       description: 'Intro',
       coverImageUrl: null,
-      authorId: 7,
+      author: { uuid: 'author-uuid', nickname: 'Yuan', avatarUrl: null },
       articleCount: 0,
       createdAt: '2026-05-09T00:00:00Z',
       updatedAt: '2026-05-09T01:00:00Z',
     }
-    vi.mocked(apiClient.post).mockResolvedValue(entity)
+    vi.mocked(apiClient.post).mockResolvedValue(summary)
 
     const res = await seriesService.create(request)
 
     expect(apiClient.post).toHaveBeenCalledWith('/api/v1/series', request)
-    expect(res).toEqual(entity)
+    expect(res).toEqual(summary)
   })
 
-  it('update 呼叫 PUT /series/{uuid} with body 並回傳 entity', async () => {
+  it('update 呼叫 PUT /series/{uuid} with body 並回傳 summary（不含內部 Long ID）', async () => {
     const request = { title: 'Updated Series' }
-    const entity: Series = {
-      id: 1,
+    const summary: SeriesSummary = {
       uuid: 'series-uuid',
       title: 'Updated Series',
       slug: 'series-slug',
-      authorId: 7,
+      author: { uuid: 'author-uuid', nickname: 'Yuan', avatarUrl: null },
       articleCount: 2,
       createdAt: '2026-05-09T00:00:00Z',
       updatedAt: '2026-05-09T02:00:00Z',
     }
-    vi.mocked(apiClient.put).mockResolvedValue(entity)
+    vi.mocked(apiClient.put).mockResolvedValue(summary)
 
     const res = await seriesService.update('series-uuid', request)
 
     expect(apiClient.put).toHaveBeenCalledWith('/api/v1/series/series-uuid', request)
-    expect(res).toEqual(entity)
+    expect(res).toEqual(summary)
   })
 
   it('delete 呼叫 DELETE /series/{uuid}', async () => {

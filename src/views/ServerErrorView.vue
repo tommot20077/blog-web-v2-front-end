@@ -15,8 +15,8 @@ function reload() {
       </div>
 
       <p class="err-tag">§ SERVER ERROR</p>
-      <h1 class="err-title">伺服器壞了，抱歉。</h1>
-      <p class="err-sub">這不是你的錯。我已經收到通知，正在查 log。<br />等三十秒再試，或先去別的頁面晃晃。</p>
+      <h1 class="err-title">伺服器發生錯誤。</h1>
+      <p class="err-sub">請稍後再試，或返回首頁。</p>
 
       <!-- CTAs -->
       <div class="se-actions">
@@ -26,7 +26,7 @@ function reload() {
 
       <!-- Error trace -->
       <div class="se-trace">
-        <div class="se-trace-head mono" style="color:var(--muted-2)">Error Trace · 給工程師看</div>
+        <div class="se-trace-head mono" style="color:var(--ink-2)">Error Trace · 給工程師看</div>
         <pre class="se-trace-body"><span class="se-key">request_id:</span> <span class="se-val">req_8f3a2b1c9d</span>
 <span class="se-key">timestamp: </span> 2026-05-04T08:32:11Z
 <span class="se-key">node:      </span> blog-edge-tpe-02
@@ -137,6 +137,6 @@ function reload() {
   word-break: break-all;
 }
 
-.se-key { color: var(--muted-2); }
+.se-key { color: var(--ink-2); }
 .se-val { color: var(--accent); }
 </style>

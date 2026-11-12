@@ -1,8 +1,18 @@
 import { execSync } from 'child_process'
-import { activateUser } from './fixtures/admin-helpers'
+import { activateUser, resetAuthRateLimits } from './fixtures/admin-helpers'
+import { BACKEND_READINESS_PATHS } from './readinessPaths'
 
 const BACKEND = process.env.VITE_API_BASE_URL || 'http://localhost:8080'
 const IS_CI = process.env.E2E_CI === '1'
+
+type ReadinessOptions = {
+  backendBase?: string
+  fetchImpl?: typeof fetch
+  sleep?: (ms: number) => Promise<void>
+  retries?: number
+  delayMs?: number
+  attemptTimeoutMs?: number
+}
 
 interface SeedUser {
   email: string
@@ -20,15 +30,90 @@ const SEED_USERS: SeedUser[] = [
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
-async function healthCheck() {
-  const res = await fetch(`${BACKEND}/actuator/health`).catch(() => null)
-  if (!res || !res.ok) {
-    throw new Error(
-      `Backend health check failed at ${BACKEND}/actuator/health — ` +
-      'please start infra and backend before running E2E tests. ' +
-      'Or run with E2E_MOCK=1 for mock mode.',
-    )
+const defaultSleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+type ResetLoopOptions = {
+  intervalMs?: number
+  reset?: () => void
+}
+
+/**
+ * 啟動背景限流重置迴圈，回傳 stop 函式。
+ *
+ * <p><b>為何需要</b>：後端 register / login 限流是 per-IP（{@code REGISTER_IP_MAX=10}
+ * ／60 分、{@code LOGIN_IP_MAX=20}／15 分），而整套 E2E 的請求全來自同一個 IP
+ * （compose 網路 gateway），共用同一組計數器。套件約 66 處登入呼叫、整趟約
+ * 5 分鐘內跑完（遠短於 15 分鐘窗口 → 計數器永不自動重置），跑到約第 13 個
+ * 測試就撞上 {@code LOGIN_IP_MAX}，其後每個要登入的測試都拿到 A0113、以
+ * {@code Cannot read properties of null (reading 'accessToken')} 收場——這正是
+ * CI e2e-integration job 的既有失敗根因。</p>
+ *
+ * <p>{@code global-setup} 只在起跑點清一次不夠（計數在跑的過程中累積），故此處
+ * 每隔 {@code intervalMs} 清一次 {@code auth:*:ip:*}，讓整趟壓在上限下。重置只
+ * 刪計數 key、不影響任何正常斷言（限流本身的行為應由獨立 case 覆蓋，不靠「剛好
+ * 撞到上限」來測）。</p>
+ *
+ * <p>此迴圈跑在 Playwright 主進程（globalSetup 之後、globalTeardown 之前皆存活），
+ * 由 globalSetup 回傳的 teardown 於全部測試結束後 stop。{@code unref} 確保它自身
+ * 不會擋住主進程結束。</p>
+ */
+export function startAuthRateLimitResetLoop({
+  intervalMs = 8000,
+  reset = resetAuthRateLimits,
+}: ResetLoopOptions = {}): () => void {
+  const handle = setInterval(() => {
+    // reset 失敗不該讓整套測試掛掉：清不掉時測試本來就還能跑（只是可能撞限流），
+    // 中斷 loop 反而更糟。resetAuthRateLimits 內部已吞錯，這裡是雙保險。
+    try {
+      reset()
+    } catch {
+      // 忽略：下一個 tick 再試
+    }
+  }, intervalMs)
+  // 別讓這個背景 interval 成為讓 Playwright 主進程無法退出的懸掛 handle
+  handle.unref?.()
+  return () => clearInterval(handle)
+}
+
+export async function waitForBackendReadiness({
+  backendBase = BACKEND,
+  fetchImpl = fetch,
+  sleep = defaultSleep,
+  retries = 30,
+  delayMs = 1000,
+  attemptTimeoutMs = 5000,
+}: ReadinessOptions = {}) {
+  const readinessUrls = BACKEND_READINESS_PATHS.map(path => `${backendBase}${path}`)
+  let lastError = 'unknown'
+
+  for (let attempt = 1; attempt <= retries; attempt += 1) {
+    // 每輪依序試新、舊路徑，任一 2xx 即就緒
+    for (const readinessUrl of readinessUrls) {
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), attemptTimeoutMs)
+      try {
+        const res = await fetchImpl(readinessUrl, { signal: controller.signal })
+        if (res.ok) {
+          return
+        }
+        lastError = `status ${res.status} ${await res.text().catch(() => '')}`.trim()
+      } catch (error) {
+        lastError = error instanceof Error ? error.message : String(error)
+      } finally {
+        clearTimeout(timeout)
+      }
+    }
+
+    if (attempt < retries) {
+      await sleep(delayMs)
+    }
   }
+
+  throw new Error(
+    `Backend readiness check failed at ${readinessUrls.join(' , ')} — ${lastError}. ` +
+    'please start infra and backend before running E2E tests. ' +
+    'Or run with E2E_MOCK=1 for mock mode.',
+  )
 }
 
 async function registerUser(user: SeedUser) {
@@ -186,9 +271,16 @@ async function seedCommonTags(authorToken: string): Promise<void> {
 // ── main ─────────────────────────────────────────────────────────────────────
 
 export default async function globalSetup() {
-  console.log('\n[E2E global-setup] Checking backend health...')
-  await healthCheck()
-  console.log('[E2E global-setup] Backend is healthy.')
+  console.log('\n[E2E global-setup] Checking backend readiness...')
+  await waitForBackendReadiness()
+  console.log('[E2E global-setup] Backend readiness is UP.')
+
+  // 確保 auth 限流計數從乾淨狀態起跑。後端的 register / login 限流是 per-IP，
+  // 而 E2E 全部請求同一個 IP，故重跑（本機沿用同一組 compose）時計數會累加，
+  // 導致 global-setup 自己的 admin 登入就先被 A0113 擋下、整個套件無法啟動。
+  // CI 每次是全新的 Redis，此處為 no-op。
+  console.log('[E2E global-setup] Resetting auth rate limits...')
+  resetAuthRateLimits()
 
   console.log('[E2E global-setup] Ensuring MinIO bucket...')
   ensureMinIOBucket()
@@ -224,4 +316,14 @@ export default async function globalSetup() {
   await seedCommonTags(authorToken)
 
   console.log('[E2E global-setup] Done.')
+
+  // 起跑點清一次還不夠：per-IP 登入計數會在整趟測試中累積、跑到約第 13 個
+  // 測試就撞 LOGIN_IP_MAX(20)。啟動背景迴圈週期性清 auth:*:ip:*，讓整趟壓在
+  // 上限下。回傳的函式即 Playwright globalTeardown，於全部測試結束後 stop。
+  console.log('[E2E global-setup] Starting auth rate-limit reset loop...')
+  const stopRateLimitResetLoop = startAuthRateLimitResetLoop()
+  return () => {
+    stopRateLimitResetLoop()
+    console.log('[E2E global-teardown] Auth rate-limit reset loop stopped.')
+  }
 }

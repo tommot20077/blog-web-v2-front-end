@@ -11,8 +11,8 @@ test.describe('作者上傳封面圖', () => {
   })
 
   test('上傳封面圖後顯示預覽圖', async ({ page }) => {
-    // 在 editor 側欄找到 file input 並設定測試圖檔
-    const fileInput = page.locator('input[type="file"][accept="image/*"]')
+    // 在 editor 側欄找到封面圖 file input（以 testid 定位，避免與內文圖 input 撞名）
+    const fileInput = page.getByTestId('cover-upload-input')
     await expect(fileInput).toBeAttached()
 
     // 使用 Playwright 內建的 setInputFiles（不觸發真實 dialog）
@@ -24,8 +24,8 @@ test.describe('作者上傳封面圖', () => {
   })
 
   test('移除封面圖後預覽圖消失', async ({ page }) => {
-    // 先上傳
-    const fileInput = page.locator('input[type="file"][accept="image/*"]')
+    // 先上傳（以 testid 定位封面圖 input，避免與內文圖 input 撞名）
+    const fileInput = page.getByTestId('cover-upload-input')
     const testImagePath = path.join(__dirname, '../fixtures', 'test-image.png')
     await fileInput.setInputFiles(testImagePath)
 

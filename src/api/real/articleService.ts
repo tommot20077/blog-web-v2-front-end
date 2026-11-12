@@ -1,7 +1,8 @@
 import apiClient from '../apiClient'
 import { mapPageResult } from '../utils'
 import type { BackendPageResult } from '../utils'
-import type { PageResult } from '../../types/editor'
+import type { PageResult, ArticleStatus } from '../../types/editor'
+import type { TocEntry } from '../../types/article'
 
 interface TagSummaryResponse {
   id: string
@@ -20,6 +21,8 @@ interface BackendArticleBase {
   title: string
   summary: string
   coverImageUrl: string | null
+  /** 作者公開 UUID；舊版後端或匿名投影可能缺漏，mapper 以 null 兜底 */
+  authorUuid?: string | null
   authorNickname: string
   viewCount: number
   likeCount: number
@@ -33,10 +36,28 @@ interface BackendArticleDetail extends BackendArticleBase {
   content: string
   categories: CategorySummaryResponse[]
   liked: boolean
+  bookmarked?: boolean
+  // 後端上線前欄位可能缺失（見 docs/superpowers/specs/2026-07-20-article-toc-design.md）；
+  // 無 heading 的文章回傳空陣列 []，非 null。
+  toc?: TocEntry[]
+  /** 文章狀態；用於前端判斷未發布內容（DRAFT/PENDING_REVIEW/REJECTED）需改走帶認證的圖片載入 */
+  status?: ArticleStatus
 }
 
 export interface ArticleCategory {
   uuid: string
+  name: string
+  slug: string
+}
+
+/**
+ * 帶 slug 的標籤參照，供標籤連結（RouterLink to `/tags/{slug}`）使用。
+ * 與既有的 `tags: string[]`（純名稱）並行存在，不取代它——
+ * `tags` 有 22 個 production 消費端（filter / editor form / archive 等），不可變更其語意。
+ * optional 是為了讓 mock data 與既有建構處不必全部改動即可通過型別檢查；
+ * UI 端在缺少 tagRefs 時應退回純文字渲染，不可噴錯或讓標籤消失。
+ */
+export interface ArticleTagRef {
   name: string
   slug: string
 }
@@ -46,12 +67,15 @@ export interface ArticleItem {
   title: string
   summary: string
   coverImageUrl: string | null
+  /** 作者公開 UUID（供 authorUuids 篩選）；後端未提供時為 null */
+  authorUuid: string | null
   authorNickname: string
   viewCount: number
   likeCount: number
   commentCount: number
   publishedAt: string
   tags: string[]
+  tagRefs?: ArticleTagRef[]
   slug: string
   // List response 的分類名稱陣列；real backend list 尚未提供（mapper 設 []），
   // mock data 與 client-side category filter (useArticleFilters) 依賴此欄位
@@ -62,6 +86,43 @@ export interface ArticleDetailItem extends Omit<ArticleItem, 'categories'> {
   content: string
   categories: ArticleCategory[]
   liked: boolean
+  bookmarked: boolean
+  // 選填：後端未上線前欄位可能缺失，消費端（ArticleDetail.vue）需防禦性地視為 []。
+  toc?: TocEntry[]
+  /** 文章狀態；未發布（DRAFT/PENDING_REVIEW/REJECTED）時內文圖需改走帶認證的 blob 載入 */
+  status?: ArticleStatus
+}
+
+/**
+ * 年度歸檔精簡投影
+ * 對應後端 ArticleArchiveResponse（uuid / title / slug / publishedAt / tags）
+ * tags 為標籤名稱字串陣列；後端已依 publishedAt 由新到舊排序。
+ */
+/**
+ * 公開文章列表的伺服器端篩選（後端 2026-09-27 起支援，見 api-contract.md「公開文章列表查詢」）。
+ * 多值一律以逗號分隔的單一參數送出——axios 預設把陣列序列化成 `key[]=a&key[]=b`，後端不認得。
+ */
+export interface ArticleListFilters {
+  /** 標籤 slug，AND：文章須同時帶有全部標籤 */
+  tags?: string[]
+  /** 分類 slug，OR：屬於任一分類即可 */
+  categorySlugs?: string[]
+  /** 作者公開 UUID，OR：屬於任一作者即可 */
+  authorUuids?: string[]
+  /** 只取最近 N 天內發布者；未提供或 <= 0 視為不篩選 */
+  publishedWithinDays?: number
+  /** 排序；未提供時後端預設 latest（published_at DESC） */
+  sort?: ArticleSort
+}
+
+export type ArticleSort = 'latest' | 'popular' | 'commented'
+
+export interface ArchiveItem {
+  uuid: string
+  title: string
+  slug: string
+  publishedAt: string
+  tags: string[]
 }
 
 function mapArticle(raw: BackendArticleBase): ArticleItem {
@@ -70,12 +131,14 @@ function mapArticle(raw: BackendArticleBase): ArticleItem {
     title: raw.title,
     summary: raw.summary,
     coverImageUrl: raw.coverImageUrl,
+    authorUuid: raw.authorUuid ?? null,
     authorNickname: raw.authorNickname,
     viewCount: raw.viewCount,
     likeCount: raw.likeCount,
     commentCount: raw.commentCount,
     publishedAt: raw.publishedAt,
     tags: raw.tags.map((t) => t.name),
+    tagRefs: raw.tags.map((t) => ({ name: t.name, slug: t.slug })),
     slug: raw.slug,
     // backend list response 尚未提供 categories；待後端補上後改 raw.categories.map(...)
     categories: [],
@@ -88,18 +151,43 @@ function mapArticleDetail(raw: BackendArticleDetail): ArticleDetailItem {
     content: raw.content,
     categories: (raw.categories ?? []).map((c) => ({ uuid: c.uuid, name: c.name, slug: c.slug })),
     liked: raw.liked,
+    bookmarked: raw.bookmarked ?? false,
+    toc: raw.toc,
+    status: raw.status,
   }
 }
 
 export const articleService = {
-  async getArticles(page: number, size: number, category: string, _keyword: string): Promise<PageResult<ArticleItem>> {
+  async getArticles(
+    page: number,
+    size: number,
+    category: string,
+    _keyword: string,
+    filters: ArticleListFilters = {},
+  ): Promise<PageResult<ArticleItem>> {
     try {
-      const params: Record<string, string> = {
-        page: page.toString(),
-        size: size.toString(),
+      const params: Record<string, string | number> = {
+        page,
+        size,
       }
+      const categorySlugs = [...(filters.categorySlugs ?? [])]
       if (category && category !== '全部') {
-        params.categorySlug = category.toLowerCase()
+        categorySlugs.push(category.toLowerCase())
+      }
+      if (categorySlugs.length > 0) {
+        params.categorySlug = [...new Set(categorySlugs)].join(',')
+      }
+      if (filters.tags && filters.tags.length > 0) {
+        params.tags = filters.tags.join(',')
+      }
+      if (filters.authorUuids && filters.authorUuids.length > 0) {
+        params.authorUuids = filters.authorUuids.join(',')
+      }
+      if (filters.publishedWithinDays !== undefined && filters.publishedWithinDays > 0) {
+        params.publishedWithinDays = filters.publishedWithinDays
+      }
+      if (filters.sort) {
+        params.sort = filters.sort
       }
       const data = await apiClient.get<unknown, BackendPageResult<BackendArticleBase>>('/api/v1/articles', { params })
       return mapPageResult(data, mapArticle)
@@ -127,5 +215,11 @@ export const articleService = {
       console.error('Fetch article by slug failed:', error)
       return null
     }
+  },
+
+  async getArchive(): Promise<ArchiveItem[]> {
+    // 失敗時不吞錯：向上拋出讓 view 區分「載入失敗」與「沒有文章」，
+    // 避免網路錯誤被誤顯示為空歸檔。後端 tags 已是字串陣列、且已依 publishedAt desc 排序，無需額外映射。
+    return await apiClient.get<unknown, ArchiveItem[]>('/api/v1/articles/archive')
   },
 }

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { RecommendArticleResponse } from '../../api/recommendService';
+import AuthorName from '../author/AuthorName.vue';
 
 defineProps<{
   articles: RecommendArticleResponse[];
@@ -76,7 +77,7 @@ function padIndex(i: number): string {
         <div class="meta-line">
           <div class="avatar"></div>
           <div class="who">
-            <b>{{ articles[0].authorNickname }}</b>
+            <b><AuthorName :uuid="articles[0].authorUuid" :nickname="articles[0].authorNickname" /></b>
           </div>
         </div>
       </div>

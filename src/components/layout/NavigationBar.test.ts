@@ -54,6 +54,36 @@ describe('NavigationBar', () => {
       expect(queryByTestId('navbar-user-menu')).toBeInTheDocument()
     })
 
+    it('已登入時顯示我的收藏連結', async () => {
+      const { getByTestId } = renderWithRouter(NavigationBar)
+      const authStore = useAuthStore()
+      authStore.accessToken = 'test-token'
+      authStore.user = createMockUser({ nickname: 'TestUser' })
+      await nextTick()
+
+      expect(getByTestId('navbar-link-bookmarks')).toHaveAttribute('href', '/bookmarks')
+    })
+
+    it('AUTHOR 已登入時顯示寫文章入口', async () => {
+      const { getByTestId } = renderWithRouter(NavigationBar)
+      const authStore = useAuthStore()
+      authStore.accessToken = 'test-token'
+      authStore.user = createMockUser({ nickname: 'AuthorUser', role: 'AUTHOR' })
+      await nextTick()
+
+      expect(getByTestId('navbar-link-editor')).toHaveAttribute('href', '/editor')
+    })
+
+    it('一般 USER 已登入時不顯示寫文章入口', async () => {
+      const { queryByTestId } = renderWithRouter(NavigationBar)
+      const authStore = useAuthStore()
+      authStore.accessToken = 'test-token'
+      authStore.user = createMockUser({ nickname: 'ReaderUser', role: 'USER' })
+      await nextTick()
+
+      expect(queryByTestId('navbar-link-editor')).not.toBeInTheDocument()
+    })
+
     it('已登入時不顯示 login button', async () => {
       const { queryByTestId } = renderWithRouter(NavigationBar)
       const authStore = useAuthStore()
@@ -61,6 +91,19 @@ describe('NavigationBar', () => {
       authStore.user = createMockUser({ nickname: 'TestUser' })
       await nextTick()
       expect(queryByTestId('navbar-login-btn')).not.toBeInTheDocument()
+    })
+
+    it('已登入時問候語不含驚嘆號，並使用全形逗號「你好，{暱稱}」', async () => {
+      const { getByTestId } = renderWithRouter(NavigationBar)
+      const authStore = useAuthStore()
+      authStore.accessToken = 'test-token'
+      authStore.user = createMockUser({ nickname: 'TestUser' })
+      await nextTick()
+
+      const greeting = getByTestId('navbar-user-greeting')
+      expect(greeting.textContent).toContain('你好，TestUser')
+      expect(greeting.textContent).not.toContain('!')
+      expect(greeting.textContent).not.toContain('你好, ')
     })
 
     it('點擊登出呼叫 store.logout 並導航至首頁', async () => {

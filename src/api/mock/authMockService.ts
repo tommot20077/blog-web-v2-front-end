@@ -35,9 +35,6 @@ export function loginMock(payload: LoginPayload): Promise<AuthTokens> {
     if (!user) {
       throw new Error('帳號或密碼錯誤');
     }
-    if (!user.emailVerified) {
-      throw new Error('請先驗證您的信箱');
-    }
     setCurrentLoggedInUserId(user.uuid);
     setRefreshTokenValid(true);
     return generateTokens();
@@ -46,9 +43,14 @@ export function loginMock(payload: LoginPayload): Promise<AuthTokens> {
 
 export function registerMock(payload: RegisterPayload): Promise<void> {
   return mockDelay(() => {
-    const exists = registeredUsers.some((u) => u.email === payload.email);
-    if (exists) {
-      throw new Error('此 Email 已被註冊');
+    // 對齊後端 SEC-14／Q8：檢查順序 username → nickname → email。
+    // MockUser 沒有 username 欄位，故只檢查 nickname。
+    if (registeredUsers.some((u) => u.nickname === payload.nickname)) {
+      throw new Error('該暱稱已被使用');
+    }
+    // email 已存在：不建帳號、不報錯，與新註冊回相同成功（避免帳號枚舉）
+    if (registeredUsers.some((u) => u.email === payload.email)) {
+      return;
     }
     const newUser: MockUser = {
       uuid: `user-uuid-${Date.now()}`,
@@ -106,12 +108,9 @@ export function verifyEmailMock(token: string): Promise<void> {
 
 export function verifyEmailCodeMock(email: string, code: string): Promise<void> {
   return mockDelay(() => {
-    if (!/^\d{6}$/.test(code)) {
-      throw new Error('驗證碼格式不正確');
-    }
     const user = registeredUsers.find((u) => u.email === email);
-    if (!user) {
-      throw new Error('驗證碼無效或已過期');
+    if (!user || code !== '123456') {
+      throw new Error('無效的信箱驗證碼');
     }
     user.emailVerified = true;
   });

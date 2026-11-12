@@ -1,35 +1,53 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { allMockArticles } from '../api/mock/data'
+import { articleService } from '../api/articleService'
+import type { ArchiveItem } from '../api/articleService'
 
 interface YearGroup {
   year: string
-  articles: typeof allMockArticles
+  articles: ArchiveItem[]
 }
 
+const articles = ref<ArchiveItem[]>([])
+const loading = ref(true)
+const error = ref(false)
+
+onMounted(async () => {
+  try {
+    articles.value = await articleService.getArchive()
+  } catch {
+    error.value = true
+  } finally {
+    loading.value = false
+  }
+})
+
 const byYear = computed<YearGroup[]>(() => {
-  const map = new Map<string, typeof allMockArticles>()
-  allMockArticles.forEach(a => {
+  const map = new Map<string, ArchiveItem[]>()
+  articles.value.forEach(a => {
     const y = a.publishedAt.slice(0, 4)
     if (!map.has(y)) map.set(y, [])
     map.get(y)!.push(a)
   })
   return [...map.entries()]
     .sort((a, b) => b[0].localeCompare(a[0]))
-    .map(([year, articles]) => ({
+    .map(([year, list]) => ({
       year,
-      // 同一年內依 publishedAt desc 排序，避免 mock 種子順序造成時間倒亂
-      articles: [...articles].sort((a, b) => b.publishedAt.localeCompare(a.publishedAt)),
+      // 同一年內依 publishedAt desc 排序，避免後端/種子順序造成時間倒亂
+      articles: [...list].sort((a, b) => b.publishedAt.localeCompare(a.publishedAt)),
     }))
 })
 
 const stats = computed(() => {
-  const total = allMockArticles.length
+  const total = articles.value.length
   const years = byYear.value.length
-  const tags = new Set(allMockArticles.flatMap(a => a.tags)).size
+  const tags = new Set(articles.value.flatMap(a => a.tags)).size
   return { total, years, tags }
 })
+
+const isEmpty = computed(() => !loading.value && !error.value && articles.value.length === 0)
+const hasData = computed(() => !loading.value && !error.value && articles.value.length > 0)
 
 function fmtDate(d: string) {
   const p = d.slice(0, 10).split('-')
@@ -43,7 +61,7 @@ function fmtDate(d: string) {
     <!-- Header -->
     <header class="ar-header wrap">
       <div class="ar-header-text">
-        <div class="ar-eyebrow mono" style="color:var(--muted-2)">§ ARCHIVE · 全部文章</div>
+        <div class="ar-eyebrow mono" style="color:var(--ink-2)">§ ARCHIVE · 全部文章</div>
         <h1 class="ar-title">每一篇<em>都還記得。</em></h1>
         <p class="ar-sub">從第一篇到現在，全部 {{ stats.total }} 篇按時間排好。</p>
       </div>
@@ -56,8 +74,23 @@ function fmtDate(d: string) {
 
     <div class="ar-divider wrap" />
 
+    <!-- Loading -->
+    <div v-if="loading" class="ar-state wrap" data-testid="archive-loading">
+      <span class="mono">載入中…</span>
+    </div>
+
+    <!-- Error -->
+    <div v-else-if="error" class="ar-state wrap" data-testid="archive-error">
+      <span class="mono">載入失敗，請稍後再試。</span>
+    </div>
+
+    <!-- Empty -->
+    <div v-else-if="isEmpty" class="ar-state wrap" data-testid="archive-empty">
+      <span class="mono">目前還沒有任何文章。</span>
+    </div>
+
     <!-- Year groups -->
-    <main class="ar-main wrap">
+    <main v-else-if="hasData" class="ar-main wrap">
       <section
         v-for="group in byYear"
         :key="group.year"
@@ -112,6 +145,10 @@ function fmtDate(d: string) {
 
 .ar-divider { height: 1px; background: var(--divider); margin-bottom: 48px; }
 
+/* Loading / Empty / Error states */
+.ar-state { padding: 64px 0; text-align: center; color: var(--muted); }
+.ar-state .mono { font-family: var(--f-mono); font-size: 12px; letter-spacing: 0.08em; }
+
 /* Year groups */
 .ar-year-group { margin-bottom: 52px; }
 
@@ -141,13 +178,13 @@ function fmtDate(d: string) {
   border-radius: 4px;
 }
 
-.ar-date { font-family: var(--f-mono); font-size: 10px; color: var(--muted-2); letter-spacing: 0.06em; white-space: nowrap; }
+.ar-date { font-family: var(--f-mono); font-size: 10px; color: var(--ink-2); letter-spacing: 0.06em; white-space: nowrap; }
 
 .ar-row-title { margin: 0; font-family: var(--f-display); font-size: 14.5px; font-weight: 500; color: var(--ink); }
 .ar-row:hover .ar-row-title { color: var(--accent); }
 
 .ar-row-tags { display: flex; gap: 6px; }
-.ar-tag { font-family: var(--f-mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted-2); white-space: nowrap; }
+.ar-tag { font-family: var(--f-mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-2); white-space: nowrap; }
 
 @media (max-width: 640px) {
   .ar-header { flex-direction: column; align-items: flex-start; gap: 16px; }

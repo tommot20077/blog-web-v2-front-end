@@ -9,7 +9,7 @@ const props = defineProps<{ articleUuid: string }>()
 const articleUuidRef = toRef(props, 'articleUuid')
 const {
   list, totalCommentCount, totalTopLevels, page, size, isLoading,
-  fetchPage, post, reply, edit, remove,
+  fetchPage, loadMoreReplies, getReplyState, post, reply, edit, remove,
 } = useComments(articleUuidRef)
 
 const totalPages = computed(() => Math.max(1, Math.ceil(totalTopLevels.value / size)))
@@ -44,6 +44,9 @@ async function onDelete(uuid: string) {
         v-for="c in list"
         :key="c.uuid"
         :comment="c"
+        :reply-loading="getReplyState(c.uuid).isLoading"
+        :reply-error="getReplyState(c.uuid).error"
+        @load-more-replies="loadMoreReplies"
         @reply="onReply"
         @edit="onEdit"
         @delete="onDelete"

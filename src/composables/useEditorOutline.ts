@@ -19,11 +19,11 @@ export function useEditorOutline(
       .map((line, idx) => {
         const match = line.match(/^(#{1,3})\s+(.+)/)
         if (!match) return null
-        const hashes = match[1]
+        const marker = match[1]
         const text = match[2]
-        if (!hashes || !text) return null
+        if (!marker || !text) return null
         return {
-          level: hashes.length as 1 | 2 | 3,
+          level: marker.length as 1 | 2 | 3,
           text: text.replace(/[*_`~]+/g, '').trim(),
           lineIndex: idx,
         }
@@ -33,8 +33,8 @@ export function useEditorOutline(
 
   function updateCursorLine(lineIndex: number) {
     const above = outline.value.filter(h => h.lineIndex <= lineIndex)
-    const active = above.length > 0 ? above[above.length - 1] : undefined
-    activeLineIndex.value = active ? active.lineIndex : -1
+    const current = above.length > 0 ? above[above.length - 1] : undefined
+    activeLineIndex.value = current ? current.lineIndex : -1
   }
 
   function jumpToLine(lineIndex: number) {

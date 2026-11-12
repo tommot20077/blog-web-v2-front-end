@@ -10,12 +10,20 @@ const TOAST_TYPE = {
 
 type ToastType = (typeof TOAST_TYPE)[keyof typeof TOAST_TYPE];
 
+interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
+
 interface ToastMessage {
   id: string;
   message: string;
-  sub?: string;
   type: ToastType;
   duration: number;
+  /** 選用：toast 附帶的動作按鈕（例如「重新整理」） */
+  action?: ToastAction;
+  /** 選用：去重 key。同 key 的 toast 同時最多一則，新的取代舊的（例如 429 限流提示） */
+  key?: string;
 }
 
 const MAX_TOASTS = 5;
@@ -30,9 +38,23 @@ const toasts = ref<ToastMessage[]>([]);
 const timers = new Map<string, ReturnType<typeof setTimeout>>();
 
 export function useToast() {
-  const showToast = (message: string, type: ToastType = 'info', duration = 4000, sub?: string) => {
+  const showToast = (
+    message: string,
+    type: ToastType = 'info',
+    duration = 4000,
+    action?: ToastAction,
+    key?: string,
+  ) => {
+    // 同 key 先移除舊的（連同計時器），再加入新的
+    if (key !== undefined) {
+      toasts.value.filter(t => t.key === key).forEach(t => removeToast(t.id));
+    }
     const id = `toast-${++idCounter}`;
-    const toast: ToastMessage = { id, message, sub, type, duration };
+    const toast: ToastMessage = {
+      id, message, type, duration,
+      ...(action ? { action } : {}),
+      ...(key !== undefined ? { key } : {}),
+    };
 
     toasts.value.push(toast);
 
@@ -72,4 +94,4 @@ export function useToast() {
   };
 }
 
-export type { ToastType, ToastMessage };
+export type { ToastType, ToastMessage, ToastAction };

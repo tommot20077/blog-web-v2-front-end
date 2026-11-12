@@ -7,7 +7,6 @@ export interface VersionSummaryResponse {
   uuid: string
   type: VersionType
   createdAt: string
-  authorId: number
   contentLength: number
   note?: string | null
 }
@@ -16,32 +15,12 @@ export interface VersionDetailResponse {
   uuid: string
   type: VersionType
   createdAt: string
-  authorId: number
   note?: string | null
   title: string
   slug: string
   content: string
   status: ArticleStatus
   summary?: string | null
-  categoryId?: number | null
-  coverImageUrl?: string | null
-  tags?: string[] | null
-}
-
-export interface ArticleVersion {
-  id: number
-  uuid: string
-  articleId: number
-  authorId: number
-  type: VersionType
-  title: string
-  slug: string
-  content: string
-  status: ArticleStatus
-  createdAt: string
-  note?: string | null
-  summary?: string | null
-  categoryId?: number | null
   coverImageUrl?: string | null
   tags?: string[] | null
 }
@@ -84,8 +63,8 @@ export const articleVersionService = {
   async createManual(
     articleUuid: string,
     request: CreateManualVersionRequest,
-  ): Promise<ArticleVersion> {
-    return apiClient.post<unknown, ArticleVersion>(
+  ): Promise<VersionDetailResponse> {
+    return apiClient.post<unknown, VersionDetailResponse>(
       `/api/v1/articles/${articleUuid}/versions/manual`,
       request,
     )
@@ -95,8 +74,8 @@ export const articleVersionService = {
     await apiClient.delete(`/api/v1/articles/${articleUuid}/versions/${versionUuid}`)
   },
 
-  async promote(articleUuid: string, versionUuid: string): Promise<ArticleVersion> {
-    return apiClient.post<unknown, ArticleVersion>(
+  async promote(articleUuid: string, versionUuid: string): Promise<VersionDetailResponse> {
+    return apiClient.post<unknown, VersionDetailResponse>(
       `/api/v1/articles/${articleUuid}/versions/${versionUuid}/promote`,
     )
   },

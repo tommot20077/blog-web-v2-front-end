@@ -29,7 +29,7 @@ export class EditorPage {
     this.editorContainer = page.getByTestId('editor-root')
     this.saveDraftButton = page.getByTestId('editor-save-btn')
     this.submitReviewButton = page.getByTestId('editor-publish-btn')
-    this.wordCount = page.locator('.editor-word-count').first()
+    this.wordCount = page.getByTestId('editor-word-count')
     this.summaryTextarea = page.getByPlaceholder(/文章摘要/)
   }
 

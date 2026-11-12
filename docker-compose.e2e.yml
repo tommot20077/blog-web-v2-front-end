@@ -2,7 +2,7 @@ name: blog-e2e
 
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     environment:
       POSTGRES_DB: blog_e2e
       POSTGRES_USER: e2e_user
@@ -14,7 +14,7 @@ services:
       retries: 10
 
   redis:
-    image: redis:8-alpine
+    image: redis:8.8.0-alpine
     command: redis-server --requirepass e2e_pass
     healthcheck:
       test: ["CMD", "redis-cli", "-a", "e2e_pass", "ping"]
@@ -23,7 +23,7 @@ services:
       retries: 10
 
   rabbitmq:
-    image: rabbitmq:3-management-alpine
+    image: rabbitmq:4.2.2-management-alpine
     environment:
       RABBITMQ_DEFAULT_USER: e2e_user
       RABBITMQ_DEFAULT_PASS: e2e_pass
@@ -35,20 +35,25 @@ services:
       retries: 10
       start_period: 30s
 
-  minio:
-    image: minio/minio
-    command: server /data --console-address ":9001"
+  # S3 相容物件儲存。MinIO 官方映像檔已無法匿名拉取，與後端、infra 一致改用 SeaweedFS；
+  # 映像檔預設執行 `weed mini`（master + volume + filer + S3 於單一容器），S3 在 8333。
+  # 對外仍開 9000，讓瀏覽器載入上傳預覽的 port 不變。
+  seaweedfs:
+    image: chrislusf/seaweedfs:4.47
+    ports:
+      - "9000:8333"
     environment:
-      MINIO_ROOT_USER: e2e_minio
-      MINIO_ROOT_PASSWORD: e2e_minio_pass
+      AWS_ACCESS_KEY_ID: e2e_s3
+      AWS_SECRET_ACCESS_KEY: e2e_s3_pass
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8333/healthz"]
       interval: 5s
       timeout: 3s
-      retries: 10
+      retries: 20
+      start_period: 10s
 
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.17.4
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.2.4
     environment:
       discovery.type: single-node
       xpack.security.enabled: "true"
@@ -63,11 +68,28 @@ services:
       retries: 20
       start_period: 30s
 
+  # 郵件測試服務：後端把信寄到這裡（SMTP 1025，僅 compose 網路內可達），E2E 透過 8025 的 HTTP API 讀信。
+  # 後端 A1 決策後 verification_tokens 只存雜湊，明文 token 只在信件連結裡。映像檔釘死確切版本。
+  mailpit:
+    image: axllent/mailpit:v1.21.8
+    ports:
+      - "8025:8025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   backend:
     image: blog-backend:e2e
     ports:
       - "9010:9010"
     environment:
+      # 後端沒有啟用 dev/demo/e2e/test 任一 profile 時視為正式環境，缺 JWT_PRIVATE_KEY 會拒絕啟動；
+      # e2e profile 只用來標示非正式環境（允許臨時 JWT 金鑰），其餘設定仍由下方環境變數提供
+      SPRING_PROFILES_ACTIVE: e2e
+      # 後端 SEC-21：springdoc 預設關閉；OpenAPI 快照從本堆疊抓取，須明確開啟（見 runbook-integration.md §8）
+      SPRINGDOC_ENABLED: "true"
       SERVER_PORT: "9010"
       DATABASE_URL: jdbc:postgresql://postgres:5432/blog_e2e
       DATABASE_USERNAME: e2e_user
@@ -83,14 +105,31 @@ services:
       ELASTICSEARCH_URIS: http://elasticsearch:9200
       ELASTICSEARCH_USERNAME: elastic
       ELASTICSEARCH_PASSWORD: e2e_elastic_pass
-      MINIO_ENDPOINT: http://minio:9000
-      MINIO_ACCESS_KEY: e2e_minio
-      MINIO_SECRET_KEY: e2e_minio_pass
+      # 後端仍以 MinIO Java SDK 連線，變數名稱沿用 MINIO_*
+      MINIO_ENDPOINT: http://seaweedfs:8333
+      MINIO_ACCESS_KEY: e2e_s3
+      MINIO_SECRET_KEY: e2e_s3_pass
       MINIO_BUCKET: blog-files
       APP_CORS_ALLOWED_ORIGINS: http://localhost:5500
       JWT_EXPIRATION: "86400000"
       MANAGEMENT_HEALTH_ELASTICSEARCH_ENABLED: "false"
       MANAGEMENT_HEALTH_MAIL_ENABLED: "false"
+      # 寄信改到 mailpit（既有 Spring mail 屬性）：無帳密、不用 STARTTLS
+      SPRING_MAIL_HOST: mailpit
+      SPRING_MAIL_PORT: "1025"
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: "false"
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: "false"
+      # 後端 A4 通用寫入限流（article-write 30/分、search 120/分 per IP 等）：整套 E2E 全部來自同一個 IP、
+      # 同一組種子帳號，數分鐘內會超過預設門檻而回 A0009（429），使建立文章等 fixture 拿到 data=null。
+      # 限流本身由後端 RateLimitE2E 等測試覆蓋；這裡只把 E2E 堆疊的門檻調高（後端支援以環境變數覆寫）。
+      APP_RATE_LIMIT_COMMENT_WRITE_LIMIT: "100000"
+      APP_RATE_LIMIT_INTERACTION_WRITE_LIMIT: "100000"
+      APP_RATE_LIMIT_READING_PROGRESS_LIMIT: "100000"
+      APP_RATE_LIMIT_UPLOAD_LIMIT: "100000"
+      APP_RATE_LIMIT_ARTICLE_WRITE_LIMIT: "100000"
+      APP_RATE_LIMIT_ACCOUNT_WRITE_LIMIT: "100000"
+      APP_RATE_LIMIT_SEARCH_LIMIT: "100000"
+      APP_RATE_LIMIT_SEARCH_SUGGEST_LIMIT: "100000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -98,12 +137,17 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-      minio:
+      seaweedfs:
         condition: service_healthy
       elasticsearch:
         condition: service_healthy
+      mailpit:
+        condition: service_healthy
+    # 新後端：主 port 只剩 /readyz（actuator 搬到 management port，該 port 刻意不發布到 host）；
+    # 舊後端：仍是 /actuator/health。CI 會 checkout 後端預設分支，兩種都可能出現，任一成功即視為健康
+    # 後端 image 是 eclipse-temurin:21-jre-alpine，沒有 curl，只有 busybox wget
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9010/actuator/health"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:9010/readyz || wget -q -O /dev/null http://127.0.0.1:9010/actuator/health"]
       interval: 10s
       timeout: 5s
       retries: 20

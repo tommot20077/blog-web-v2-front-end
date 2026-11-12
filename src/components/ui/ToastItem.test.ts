@@ -20,20 +20,6 @@ describe('ToastItem', () => {
     expect(wrapper.text()).toContain('操作成功');
   });
 
-  it('提供 sub 時渲染副標', () => {
-    const wrapper = mount(ToastItem, {
-      props: { toast: createToast({ message: '主標', sub: '副標說明' }) },
-    });
-    expect(wrapper.text()).toContain('副標說明');
-  });
-
-  it('未提供 sub 時不渲染副標 span', () => {
-    const wrapper = mount(ToastItem, {
-      props: { toast: createToast({ message: '主標' }) },
-    });
-    expect(wrapper.find('[data-testid="toast-sub"]').exists()).toBe(false);
-  });
-
   it('點擊關閉按鈕觸發 close 事件', async () => {
     const wrapper = mount(ToastItem, {
       props: { toast: createToast() },
@@ -43,47 +29,53 @@ describe('ToastItem', () => {
     expect(wrapper.emitted('close')![0]).toEqual(['toast-1']);
   });
 
-  it('root 套用 .toast 與類型 class（success）', () => {
+  it('success 類型顯示對應樣式', () => {
     const wrapper = mount(ToastItem, {
       props: { toast: createToast({ type: 'success' }) },
     });
-    const classes = wrapper.classes();
-    expect(classes).toContain('toast');
-    expect(classes).toContain('success');
+    expect(wrapper.find('[data-testid="toast-indicator"]').classes()).toContain('bg-green-500');
   });
 
-  it('root 套用 .toast 與類型 class（error）', () => {
+  it('error 類型顯示對應樣式', () => {
     const wrapper = mount(ToastItem, {
       props: { toast: createToast({ type: 'error' }) },
     });
-    expect(wrapper.classes()).toContain('error');
+    expect(wrapper.find('[data-testid="toast-indicator"]').classes()).toContain('bg-red-500');
   });
 
-  it('root 套用 .toast 與類型 class（warning）', () => {
+  it('warning 類型顯示對應樣式', () => {
     const wrapper = mount(ToastItem, {
       props: { toast: createToast({ type: 'warning' }) },
     });
-    expect(wrapper.classes()).toContain('warning');
+    expect(wrapper.find('[data-testid="toast-indicator"]').classes()).toContain('bg-yellow-500');
   });
 
-  it('root 套用 .toast 與類型 class（info）', () => {
+  it('info 類型顯示對應樣式', () => {
     const wrapper = mount(ToastItem, {
       props: { toast: createToast({ type: 'info' }) },
     });
-    expect(wrapper.classes()).toContain('info');
+    expect(wrapper.find('[data-testid="toast-indicator"]').classes()).toContain('bg-blue-500');
+  });
+  it('有 action 時渲染動作按鈕，點擊呼叫 onClick', async () => {
+    const onClick = vi.fn();
+    const wrapper = mount(ToastItem, {
+      props: { toast: createToast({ action: { label: '重新整理', onClick } }) },
+    });
+    const btn = wrapper.find('[data-testid="toast-action"]');
+    expect(btn.text()).toBe('重新整理');
+    await btn.trigger('click');
+    expect(onClick).toHaveBeenCalledTimes(1);
   });
 
-  it('圖示對應類型顯示對應符號', () => {
-    const success = mount(ToastItem, { props: { toast: createToast({ type: 'success' }) } });
-    expect(success.find('[data-testid="toast-indicator"]').text()).toBe('✓');
+  it('沒有 action 時不渲染動作按鈕', () => {
+    const wrapper = mount(ToastItem, { props: { toast: createToast() } });
+    expect(wrapper.find('[data-testid="toast-action"]').exists()).toBe(false);
+  });
 
-    const error = mount(ToastItem, { props: { toast: createToast({ type: 'error' }) } });
-    expect(error.find('[data-testid="toast-indicator"]').text()).toBe('!');
-
-    const warning = mount(ToastItem, { props: { toast: createToast({ type: 'warning' }) } });
-    expect(warning.find('[data-testid="toast-indicator"]').text()).toBe('!');
-
-    const info = mount(ToastItem, { props: { toast: createToast({ type: 'info' }) } });
-    expect(info.find('[data-testid="toast-indicator"]').text()).toBe('i');
+  it('FE-04：關閉鈕有 aria-label，「✕」對輔助科技隱藏', () => {
+    const wrapper = mount(ToastItem, { props: { toast: createToast() } });
+    const btn = wrapper.get('[data-testid="toast-close"]');
+    expect(btn.attributes('aria-label')).toBe('關閉通知');
+    expect(btn.find('[aria-hidden="true"]').exists()).toBe(true);
   });
 });

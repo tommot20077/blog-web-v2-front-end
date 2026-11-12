@@ -11,7 +11,8 @@ test.describe('A 域 logout (A9)', () => {
     await page.getByTestId('auth-login-submit').click();
     await page.waitForURL((url) => !url.pathname.startsWith('/login'), { timeout: 5000 });
 
-    // 確認登入完成
+    // 確認登入完成（頭像下拉選單：先展開選單才看得到暱稱問候語）
+    await page.getByTestId('navbar-avatar').click();
     await expect(page.getByTestId('navbar-user-greeting')).toBeVisible();
     const cookiesBefore = await context.cookies();
     const refreshBefore = cookiesBefore.find((c) => c.name === 'refreshToken');

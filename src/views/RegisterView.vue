@@ -1,15 +1,24 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
-import { useFormValidation } from '../composables/useFormValidation';
+import {
+  useFormValidation,
+  PASSWORD_POLICY_PATTERN,
+  PASSWORD_POLICY_MESSAGE,
+} from '../composables/useFormValidation';
 import { useToast } from '../composables/useToast';
 import AuthFormLayout from '../components/auth/AuthFormLayout.vue';
 import FormField from '../components/ui/FormField.vue';
 import PasswordStrengthMeter from '../components/auth/PasswordStrengthMeter.vue';
 import PasswordRulesChecklist from '../components/auth/PasswordRulesChecklist.vue';
+import RegisterSuccess from '../components/auth/RegisterSuccess.vue';
+import {
+  MAX_NICKNAME_LENGTH,
+  MIN_USERNAME_LENGTH,
+  MAX_USERNAME_LENGTH,
+  exceedsLength,
+} from '../utils/inputLimits';
 
-const router = useRouter();
 const authStore = useAuthStore();
 const { showToast } = useToast();
 
@@ -21,6 +30,16 @@ const password = ref('');
 
 /** 載入狀態 */
 const isLoading = ref(false);
+
+/**
+ * D1「右欄原地切換」：註冊成功後不跳頁，右欄改顯示 RegisterSuccess，
+ * 左側 hero 由 AuthFormLayout 維持不動。isSuccess 也同步關閉標準的
+ * 標題/副標題與「已有帳號？」footer，避免與成功畫面自帶的標題重複。
+ */
+const isSuccess = ref(false);
+const registeredEmail = ref('');
+const layoutTitle = computed(() => (isSuccess.value ? '' : '註冊'));
+const layoutSubtitle = computed(() => (isSuccess.value ? undefined : '建立您的帳號'));
 
 /** 表單驗證 */
 const { errors, validateForm, getPasswordStrength } = useFormValidation<{
@@ -35,18 +54,32 @@ const { errors, validateForm, getPasswordStrength } = useFormValidation<{
   ],
   username: [
     { type: 'required', message: '請輸入使用者名稱' },
-    { type: 'minLength', message: '使用者名稱最少需要 3 個字元', params: { min: 3 } },
+    {
+      type: 'minLength',
+      message: `使用者名稱最少需要 ${MIN_USERNAME_LENGTH} 個字元`,
+      params: { min: MIN_USERNAME_LENGTH },
+    },
+    {
+      type: 'custom',
+      message: `使用者名稱最多 ${MAX_USERNAME_LENGTH} 個字元`,
+      validator: (v) => !exceedsLength(String(v), MAX_USERNAME_LENGTH),
+    },
   ],
   nickname: [
     { type: 'required', message: '請輸入暱稱' },
     { type: 'minLength', message: '暱稱最少需要 2 個字元', params: { min: 2 } },
+    {
+      type: 'custom',
+      message: `暱稱最多 ${MAX_NICKNAME_LENGTH} 個字元`,
+      validator: (v) => !exceedsLength(String(v), MAX_NICKNAME_LENGTH),
+    },
   ],
   password: [
     { type: 'required', message: '請輸入密碼' },
     {
       type: 'pattern',
-      message: '密碼須為 8-50 字元，且包含至少一個英文字母及一個數字',
-      params: { pattern: /^(?=.*[A-Za-z])(?=.*\d).{8,50}$/ },
+      message: PASSWORD_POLICY_MESSAGE,
+      params: { pattern: PASSWORD_POLICY_PATTERN },
     },
   ],
 });
@@ -71,8 +104,9 @@ async function handleSubmit() {
   isLoading.value = true;
   try {
     await authStore.register(formData);
-    showToast('註冊成功！請至信箱驗證您的帳號', 'success');
-    await router.push({ name: 'check-email', query: { email: email.value } });
+    // D1：不再用一閃即逝的 toast + 跳頁，改為右欄原地顯示持久的成功畫面。
+    registeredEmail.value = email.value;
+    isSuccess.value = true;
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : '註冊失敗，請稍後再試';
     showToast(message, 'error');
@@ -84,13 +118,22 @@ async function handleSubmit() {
 
 <template>
   <AuthFormLayout
-    title="註冊"
-    subtitle="建立您的帳號"
+    :title="layoutTitle"
+    :subtitle="layoutSubtitle"
     heroTitle="Start writing<br>your story."
     heroTagline="MY BLOG WEB. — EST 2023"
     titleTestId="auth-register-title"
   >
-    <form class="auth-form" @submit.prevent="handleSubmit">
+    <RegisterSuccess
+      v-if="isSuccess"
+      :email="registeredEmail"
+    />
+
+    <form
+      v-else
+      class="auth-form"
+      @submit.prevent="handleSubmit"
+    >
       <FormField
         data-testid="auth-register-field-email"
         v-model="email"
@@ -107,6 +150,7 @@ async function handleSubmit() {
         label="使用者名稱"
         type="text"
         placeholder="請輸入使用者名稱（英文、數字）"
+        :maxlength="MAX_USERNAME_LENGTH"
         :error="errors.username"
         :disabled="isLoading"
       />
@@ -117,6 +161,7 @@ async function handleSubmit() {
         label="暱稱"
         type="text"
         placeholder="請輸入暱稱"
+        :maxlength="MAX_NICKNAME_LENGTH"
         :error="errors.nickname"
         :disabled="isLoading"
       />
@@ -144,7 +189,10 @@ async function handleSubmit() {
       </button>
     </form>
 
-    <template #footer>
+    <template
+      v-if="!isSuccess"
+      #footer
+    >
       <span style="color: var(--ink)">已有帳號？</span>
       <RouterLink
         data-testid="auth-register-alt-link"

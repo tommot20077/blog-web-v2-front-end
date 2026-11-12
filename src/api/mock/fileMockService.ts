@@ -1,5 +1,5 @@
 import type { FileUploadResponse, FileUsageType } from '../../types/editor'
-import type { FileMetadata } from '../../types/user'
+import type { FileListParams, FileMetadata } from '../../types/user'
 
 export function uploadFileMock(file: File, usageType: FileUsageType): Promise<FileUploadResponse> {
   return new Promise((resolve) => {
@@ -42,7 +42,7 @@ export function deleteFileMock(_id: string): Promise<void> {
   })
 }
 
-export function getUserFilesMock(): Promise<FileMetadata[]> {
+export function getUserFilesMock(_params: FileListParams = {}): Promise<FileMetadata[]> {
   return new Promise((resolve) => {
     setTimeout(() => {
       resolve([

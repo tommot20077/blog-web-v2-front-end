@@ -47,4 +47,66 @@ describe('CommentForm', () => {
     await wrapper.find('[data-testid="comment-cancel"]').trigger('click')
     expect(wrapper.emitted('cancel')).toHaveLength(1)
   })
+
+  it('FE-09：textarea 有可存取名稱（預設「留言內容」），可由 ariaLabel prop 覆寫', () => {
+    const wrapper = mount(CommentForm)
+    expect(wrapper.get('[data-testid="comment-textarea"]').attributes('aria-label')).toBe('留言內容')
+
+    const reply = mount(CommentForm, { props: { ariaLabel: '回覆留言' } })
+    expect(reply.get('[data-testid="comment-textarea"]').attributes('aria-label')).toBe('回覆留言')
+  })
+
+  // ── W7F-7：留言內容上限 2000（快照 Create/EditCommentRequest.content maxLength）──
+  describe('留言長度上限 2000（新增／編輯／回覆共用此表單）', () => {
+    it('textarea 帶 maxlength=2000', () => {
+      const wrapper = mount(CommentForm)
+      expect(wrapper.get('[data-testid="comment-textarea"]').attributes('maxlength')).toBe('2000')
+    })
+
+    it('剛好 2000 字可以送出', async () => {
+      const wrapper = mount(CommentForm)
+      await wrapper.get('[data-testid="comment-textarea"]').setValue('留'.repeat(2000))
+      await wrapper.find('form').trigger('submit')
+      expect(wrapper.emitted('submit')).toHaveLength(1)
+      expect(wrapper.emitted('submit')![0]![0]).toBe('留'.repeat(2000))
+    })
+
+    it('2001 字不送出、顯示超出提示、送出鈕停用', async () => {
+      const wrapper = mount(CommentForm)
+      await wrapper.get('[data-testid="comment-textarea"]').setValue('留'.repeat(2001))
+      await wrapper.find('form').trigger('submit')
+      expect(wrapper.emitted('submit')).toBeUndefined()
+      const hint = wrapper.get('[data-testid="comment-length-hint"]')
+      expect(hint.text()).toContain('留言超過 2,000 字上限（目前 2,001 字）')
+      expect(hint.attributes('role')).toBe('alert')
+      expect((wrapper.get('[data-testid="comment-submit"]').element as HTMLButtonElement).disabled).toBe(true)
+    })
+
+    it('2001 字按 Ctrl+Enter 也不送出', async () => {
+      const wrapper = mount(CommentForm)
+      const textarea = wrapper.get('[data-testid="comment-textarea"]')
+      await textarea.setValue('a'.repeat(2001))
+      await textarea.trigger('keydown', { key: 'Enter', ctrlKey: true })
+      expect(wrapper.emitted('submit')).toBeUndefined()
+    })
+
+    it('未達 90%（1799 字）不顯示字數提示', async () => {
+      const wrapper = mount(CommentForm)
+      await wrapper.get('[data-testid="comment-textarea"]').setValue('a'.repeat(1799))
+      expect(wrapper.find('[data-testid="comment-length-hint"]').exists()).toBe(false)
+    })
+
+    it('達 90%（1800 字）顯示 1,800 / 2,000 字提示', async () => {
+      const wrapper = mount(CommentForm)
+      await wrapper.get('[data-testid="comment-textarea"]').setValue('a'.repeat(1800))
+      expect(wrapper.get('[data-testid="comment-length-hint"]').text()).toContain('1,800 / 2,000')
+    })
+
+    it('編輯用（initialContent）超過上限同樣擋下', async () => {
+      const wrapper = mount(CommentForm, { props: { initialContent: 'a'.repeat(2001), showCancel: true } })
+      await wrapper.find('form').trigger('submit')
+      expect(wrapper.emitted('submit')).toBeUndefined()
+      expect(wrapper.find('[data-testid="comment-length-hint"]').exists()).toBe(true)
+    })
+  })
 })

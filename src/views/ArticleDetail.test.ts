@@ -1,10 +1,35 @@
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { render, screen, fireEvent } from '@testing-library/vue'
 import { flushPromises } from '@vue/test-utils'
 import ArticleDetail from './ArticleDetail.vue'
 import { createTestRouter, createMockArticleDetail } from '../test-utils'
 import { articleService } from '../api/articleService'
-import type { ArticleCategory } from '../api/real/articleService'
+import type { ArticleCategory, ArticleDetailItem } from '../api/real/articleService'
+import type { TocEntry } from '../types/article'
+
+const {
+  mockUsePersistedReadingProgress,
+  mockUseMarkdownRenderer,
+  mockUseArticleHighlights,
+  mockUseInlineArticleHighlights,
+  mockUseArticleTextSelection,
+  mockShareArticle,
+} = vi.hoisted(() => ({
+  mockUsePersistedReadingProgress: vi.fn(),
+  mockUseMarkdownRenderer: vi.fn(),
+  mockUseArticleHighlights: vi.fn(),
+  mockUseInlineArticleHighlights: vi.fn(),
+  mockUseArticleTextSelection: vi.fn(),
+  mockShareArticle: vi.fn(),
+}))
+
+let mockApplyHighlights: ReturnType<typeof vi.fn>
+let mockHighlightsRef: ReturnType<typeof ref>
+let mockCreateHighlight: ReturnType<typeof vi.fn>
+let mockUpdateHighlight: ReturnType<typeof vi.fn>
+let mockDeleteHighlight: ReturnType<typeof vi.fn>
+let mockLoadHighlights: ReturnType<typeof vi.fn>
+let mockClearSelection: ReturnType<typeof vi.fn>
 
 vi.mock('../api/articleService', () => ({
   articleService: {
@@ -14,10 +39,7 @@ vi.mock('../api/articleService', () => ({
 }))
 
 vi.mock('../composables/useMarkdownRenderer', () => ({
-  useMarkdownRenderer: vi.fn((content: { value: string }) => ({
-    renderedHtml: computed(() => `<p>${content.value}</p>`),
-    isReady: ref(true),
-  })),
+  useMarkdownRenderer: mockUseMarkdownRenderer,
 }))
 
 vi.mock('../composables/useWordCount', () => ({
@@ -35,6 +57,79 @@ vi.mock('../composables/useArticleLike', () => ({
     isPending: ref(false),
     toggle: vi.fn(),
   })),
+}))
+
+vi.mock('../composables/useArticleBookmark', () => ({
+  useArticleBookmark: vi.fn((_uuid: unknown, initial: { bookmarked: boolean }) => ({
+    bookmarked: ref(initial.bookmarked),
+    isPending: ref(false),
+    toggle: vi.fn(),
+  })),
+}))
+
+vi.mock('../components/article/shareArticle', () => ({
+  shareArticle: mockShareArticle,
+}))
+
+vi.mock('../components/article/MarkdownViewModal.vue', () => ({
+  default: {
+    name: 'MarkdownViewModal',
+    props: ['content'],
+    emits: ['close'],
+    template: `
+      <div data-testid="mock-markdown-modal">
+        <pre data-testid="mock-markdown-modal-content">{{ content }}</pre>
+        <button data-testid="mock-markdown-modal-close" @click="$emit('close')">close</button>
+      </div>
+    `,
+  },
+}))
+
+vi.mock('../composables/usePersistedReadingProgress', () => ({
+  usePersistedReadingProgress: mockUsePersistedReadingProgress,
+}))
+
+vi.mock('../composables/useArticleHighlights', () => ({
+  useArticleHighlights: mockUseArticleHighlights,
+}))
+
+vi.mock('../composables/useInlineArticleHighlights', () => ({
+  useInlineArticleHighlights: mockUseInlineArticleHighlights,
+}))
+
+vi.mock('../composables/useArticleTextSelection', () => ({
+  useArticleTextSelection: mockUseArticleTextSelection,
+}))
+
+vi.mock('../components/article/ArticleTextSelectionToolbar.vue', () => ({
+  default: {
+    name: 'ArticleTextSelectionToolbar',
+    props: ['selectionPayload', 'selectionError', 'selectionAnchor', 'isPending'],
+    emits: ['create'],
+    template: `
+      <div>
+        <p v-if="selectionError" data-testid="mock-highlight-selection-error">{{ selectionError }}</p>
+        <p v-if="selectionAnchor" data-testid="mock-highlight-selection-anchor">{{ selectionAnchor.top }},{{ selectionAnchor.left }}</p>
+        <button data-testid="mock-highlight-toolbar" @click="$emit('create', selectionPayload)">toolbar</button>
+      </div>
+    `,
+  },
+}))
+
+vi.mock('../components/article/ArticleHighlightPanel.vue', () => ({
+  default: {
+    name: 'ArticleHighlightPanel',
+    props: ['highlights', 'locatedByHighlightUuid', 'isLoading', 'isMutating', 'loadError'],
+    emits: ['update', 'delete', 'retry'],
+    template: `
+      <section data-testid="mock-highlight-panel">
+        <p v-if="loadError" data-testid="mock-highlight-load-error">load error</p>
+        <button data-testid="mock-highlight-update" @click="$emit('update', 'highlight-uuid', { note: 'updated note' })">update</button>
+        <button data-testid="mock-highlight-delete" @click="$emit('delete', 'highlight-uuid')">delete</button>
+        <button data-testid="mock-highlight-retry" @click="$emit('retry')">retry</button>
+      </section>
+    `,
+  },
 }))
 
 vi.mock('../composables/useComments', () => ({
@@ -72,6 +167,40 @@ async function renderArticleDetail() {
 describe('ArticleDetail 頁面', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
+    mockUsePersistedReadingProgress.mockClear()
+    mockShareArticle.mockClear()
+    mockApplyHighlights = vi.fn()
+    mockHighlightsRef = ref([])
+    mockCreateHighlight = vi.fn()
+    mockUpdateHighlight = vi.fn()
+    mockDeleteHighlight = vi.fn()
+    mockLoadHighlights = vi.fn()
+    mockClearSelection = vi.fn()
+    mockUseMarkdownRenderer.mockImplementation((content: { value: string }) => ({
+      renderedHtml: computed(() => `<p>${content.value}</p>`),
+      isReady: ref(true),
+    }))
+    mockUseArticleHighlights.mockReturnValue({
+      highlights: mockHighlightsRef,
+      isLoading: ref(false),
+      isMutating: ref(false),
+      loadError: ref(false),
+      createHighlight: mockCreateHighlight,
+      updateHighlight: mockUpdateHighlight,
+      deleteHighlight: mockDeleteHighlight,
+      loadHighlights: mockLoadHighlights,
+    })
+    mockUseInlineArticleHighlights.mockReturnValue({
+      locatedByHighlightUuid: ref(new Map()),
+      applyHighlights: mockApplyHighlights,
+    })
+    mockUseArticleTextSelection.mockReturnValue({
+      selectionPayload: ref(null),
+      selectionError: ref(null),
+      selectionAnchor: ref(null),
+      clearSelection: mockClearSelection,
+      refreshSelection: vi.fn(),
+    })
   })
 
   it('載入中顯示「萃取文章細節中...」', async () => {
@@ -156,6 +285,187 @@ describe('ArticleDetail 頁面', () => {
     expect(articleRoot).not.toBeInTheDocument()
   })
 
+  it('將文章 UUID 與本地閱讀進度傳入持久化 composable', async () => {
+    const mockArticle = createMockArticleDetail({ uuid: 'article-uuid' })
+    vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+    await renderArticleDetail()
+    await flushPromises()
+
+    expect(mockUsePersistedReadingProgress).toHaveBeenCalledOnce()
+    const [uuidRef, progressRef] = mockUsePersistedReadingProgress.mock.calls[0]!
+    expect(uuidRef.value).toBe('article-uuid')
+    expect(progressRef.value).toBe(0)
+  })
+
+  it('將文章 UUID 與 article body ref 接到 highlight composables', async () => {
+    const mockArticle = createMockArticleDetail({ uuid: 'article-uuid', content: 'hello highlight' })
+    vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+    const { container } = await renderArticleDetail()
+    await flushPromises()
+
+    expect(mockUseArticleHighlights).toHaveBeenCalledOnce()
+    const [uuidRef] = mockUseArticleHighlights.mock.calls[0]!
+    expect(uuidRef.value).toBe('article-uuid')
+
+    expect(mockUseArticleTextSelection).toHaveBeenCalledOnce()
+    const [bodyRefForSelection] = mockUseArticleTextSelection.mock.calls[0]!
+    expect(bodyRefForSelection.value).toBe(container.querySelector('[data-testid="article-body"]'))
+
+    expect(mockUseInlineArticleHighlights).toHaveBeenCalledOnce()
+    const [bodyRefForInline, highlightsRefForInline] = mockUseInlineArticleHighlights.mock.calls[0]!
+    expect(bodyRefForInline.value).toBe(container.querySelector('[data-testid="article-body"]'))
+    expect(highlightsRefForInline).toBe(mockHighlightsRef)
+    expect(mockApplyHighlights).toHaveBeenCalled()
+    expect(container.querySelector('[data-testid="mock-highlight-toolbar"]')).toBeInTheDocument()
+    expect(container.querySelector('[data-testid="mock-highlight-panel"]')).toBeInTheDocument()
+  })
+
+  it('toolbar 建立 highlight 成功後清除選取狀態', async () => {
+    const selectionPayload = { snippet: 'hello', prefix: '', suffix: ' highlight' }
+    const createdHighlight = {
+      uuid: 'highlight-uuid',
+      snippet: 'hello',
+      prefix: '',
+      suffix: ' highlight',
+      note: null,
+      color: '#ffeb3b',
+      createdAt: '2026-05-16T00:00:00Z',
+      updatedAt: '2026-05-16T00:00:00Z',
+    }
+    mockCreateHighlight.mockResolvedValue(createdHighlight)
+    mockUseArticleTextSelection.mockReturnValue({
+      selectionPayload: ref(selectionPayload),
+      selectionError: ref(null),
+      selectionAnchor: ref(null),
+      clearSelection: mockClearSelection,
+      refreshSelection: vi.fn(),
+    })
+    const mockArticle = createMockArticleDetail({ uuid: 'article-uuid', content: 'hello highlight' })
+    vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+    await renderArticleDetail()
+    await flushPromises()
+    await fireEvent.click(screen.getByTestId('mock-highlight-toolbar'))
+    await flushPromises()
+
+    expect(mockCreateHighlight).toHaveBeenCalledWith(selectionPayload)
+    expect(mockClearSelection).toHaveBeenCalledOnce()
+  })
+
+  it('toolbar 建立 highlight 失敗時不清除選取狀態', async () => {
+    const selectionPayload = { snippet: 'hello', prefix: '', suffix: ' highlight' }
+    mockCreateHighlight.mockResolvedValue(null)
+    mockUseArticleTextSelection.mockReturnValue({
+      selectionPayload: ref(selectionPayload),
+      selectionError: ref(null),
+      selectionAnchor: ref(null),
+      clearSelection: mockClearSelection,
+      refreshSelection: vi.fn(),
+    })
+    const mockArticle = createMockArticleDetail({ uuid: 'article-uuid', content: 'hello highlight' })
+    vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+    await renderArticleDetail()
+    await flushPromises()
+    await fireEvent.click(screen.getByTestId('mock-highlight-toolbar'))
+    await flushPromises()
+
+    expect(mockCreateHighlight).toHaveBeenCalledWith(selectionPayload)
+    expect(mockClearSelection).not.toHaveBeenCalled()
+  })
+
+  it('將選取錯誤傳給 highlight toolbar 顯示', async () => {
+    mockUseArticleTextSelection.mockReturnValue({
+      selectionPayload: ref(null),
+      selectionError: ref('選取文字不可超過 500 字'),
+      selectionAnchor: ref(null),
+      clearSelection: mockClearSelection,
+      refreshSelection: vi.fn(),
+    })
+    const mockArticle = createMockArticleDetail({ uuid: 'article-uuid', content: 'hello highlight' })
+    vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+    await renderArticleDetail()
+    await flushPromises()
+
+    expect(screen.getByTestId('mock-highlight-selection-error')).toHaveTextContent('選取文字不可超過 500 字')
+  })
+
+  it('將選取 anchor 傳給 highlight toolbar 定位', async () => {
+    mockUseArticleTextSelection.mockReturnValue({
+      selectionPayload: ref({ snippet: 'hello', prefix: '', suffix: ' highlight' }),
+      selectionError: ref(null),
+      selectionAnchor: ref({ top: 120, left: 240 }),
+      clearSelection: mockClearSelection,
+      refreshSelection: vi.fn(),
+    })
+    const mockArticle = createMockArticleDetail({ uuid: 'article-uuid', content: 'hello highlight' })
+    vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+    await renderArticleDetail()
+    await flushPromises()
+
+    expect(screen.getByTestId('mock-highlight-selection-anchor')).toHaveTextContent('120,240')
+  })
+
+  it('將 highlight load error 與 retry 接到 panel', async () => {
+    mockUseArticleHighlights.mockReturnValue({
+      highlights: mockHighlightsRef,
+      isLoading: ref(false),
+      isMutating: ref(false),
+      loadError: ref(true),
+      createHighlight: mockCreateHighlight,
+      updateHighlight: mockUpdateHighlight,
+      deleteHighlight: mockDeleteHighlight,
+      loadHighlights: mockLoadHighlights,
+    })
+    const mockArticle = createMockArticleDetail({ uuid: 'article-uuid', content: 'hello highlight' })
+    vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+    await renderArticleDetail()
+    await flushPromises()
+    await fireEvent.click(screen.getByTestId('mock-highlight-retry'))
+
+    expect(screen.getByTestId('mock-highlight-load-error')).toBeInTheDocument()
+    expect(mockLoadHighlights).toHaveBeenCalledOnce()
+  })
+
+  it('panel update 與 delete 事件接到 highlight state handlers', async () => {
+    const mockArticle = createMockArticleDetail({ uuid: 'article-uuid', content: 'hello highlight' })
+    vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+    await renderArticleDetail()
+    await flushPromises()
+    await fireEvent.click(screen.getByTestId('mock-highlight-update'))
+    await fireEvent.click(screen.getByTestId('mock-highlight-delete'))
+
+    expect(mockUpdateHighlight).toHaveBeenCalledWith('highlight-uuid', { note: 'updated note' })
+    expect(mockDeleteHighlight).toHaveBeenCalledWith('highlight-uuid')
+  })
+
+  it('renderedHtml 變更後重新套用 inline highlights', async () => {
+    const renderedHtml = ref('<p>initial highlight</p>')
+    mockUseMarkdownRenderer.mockReturnValue({
+      renderedHtml,
+      isReady: ref(true),
+    })
+    const mockArticle = createMockArticleDetail({ uuid: 'article-uuid', content: 'initial highlight' })
+    vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+    await renderArticleDetail()
+    await flushPromises()
+    const initialApplyCount = mockApplyHighlights.mock.calls.length
+
+    renderedHtml.value = '<p>changed highlight</p>'
+    await nextTick()
+    await nextTick()
+    await flushPromises()
+
+    expect(mockApplyHighlights.mock.calls.length).toBeGreaterThan(initialApplyCount)
+  })
+
   describe('文章標頭 UI 增強', () => {
     it('有封面圖時顯示 img 元素', async () => {
       const mockArticle = createMockArticleDetail({
@@ -193,6 +503,29 @@ describe('ArticleDetail 頁面', () => {
       expect(authorEl?.textContent).toContain('Yuan')
     })
 
+    it('有 authorUuid → 作者名連到 /author/{uuid}', async () => {
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(
+        createMockArticleDetail({ authorNickname: 'Yuan', authorUuid: 'author-1' }),
+      )
+      const { container } = await renderArticleDetail()
+      await flushPromises()
+      const link = container.querySelector('[data-testid="article-author"] a')
+      expect(link).not.toBeNull()
+      expect(link?.getAttribute('href')).toBe('/author/author-1')
+      expect(link?.textContent).toBe('Yuan')
+    })
+
+    it('authorUuid 為 null → 作者名是純文字，不是連結', async () => {
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(
+        createMockArticleDetail({ authorNickname: 'Yuan', authorUuid: null }),
+      )
+      const { container } = await renderArticleDetail()
+      await flushPromises()
+      const el = container.querySelector('[data-testid="article-author"]')
+      expect(el?.textContent).toContain('Yuan')
+      expect(el?.querySelector('a')).toBeNull()
+    })
+
     it('動態閱讀時間使用 useWordCount 回傳值（mock 回傳 3 分鐘）', async () => {
       const mockArticle = createMockArticleDetail()
       vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
@@ -213,6 +546,18 @@ describe('ArticleDetail 頁面', () => {
       const likeEl = container.querySelector('[data-testid="article-like-footer-count"]')
       expect(likeEl).toBeInTheDocument()
       expect(likeEl?.textContent).toContain('42')
+    })
+
+    it('文章已收藏時 action rail 顯示 active bookmark', async () => {
+      const mockArticle = createMockArticleDetail({ bookmarked: true })
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+      const { container } = await renderArticleDetail()
+      await flushPromises()
+
+      const bookmarkBtn = container.querySelector('[data-testid="article-bookmark-action-bar"]')
+      expect(bookmarkBtn).toBeInTheDocument()
+      expect(bookmarkBtn).toHaveClass('active')
     })
 
     it('顯示留言數', async () => {
@@ -265,6 +610,62 @@ describe('ArticleDetail 頁面', () => {
     })
   })
 
+  describe('標籤連結', () => {
+    it('有 tagRefs 時，標籤渲染為連向 /tags/{slug} 的連結', async () => {
+      const mockArticle = createMockArticleDetail({
+        tags: ['Frontend', 'Vue'],
+        tagRefs: [
+          { name: 'Frontend', slug: 'frontend' },
+          { name: 'Vue', slug: 'vue' },
+        ],
+      })
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+      const { container } = await renderArticleDetail()
+      await flushPromises()
+
+      const tagsEl = container.querySelector('[data-testid="article-tags"]')!
+      const links = tagsEl.querySelectorAll('a')
+      expect(links).toHaveLength(2)
+      expect(links[0]).toHaveAttribute('href', '/tags/frontend')
+      expect(links[1]).toHaveAttribute('href', '/tags/vue')
+      expect(links[0]?.textContent).toContain('Frontend')
+      expect(links[1]?.textContent).toContain('Vue')
+    })
+
+    it('點擊標籤連結會導航至對應 tag 頁面', async () => {
+      const mockArticle = createMockArticleDetail({
+        tags: ['Frontend'],
+        tagRefs: [{ name: 'Frontend', slug: 'frontend' }],
+      })
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+      const { container, router } = await renderArticleDetail()
+      await flushPromises()
+
+      const link = container.querySelector('[data-testid="article-tags"] a')!
+      await fireEvent.click(link)
+      await flushPromises()
+
+      expect(router.currentRoute.value.path).toBe('/tags/frontend')
+    })
+
+    it('tagRefs 缺失時（mock 模式 / 舊資料）退回純文字渲染，不噴錯且標籤不消失', async () => {
+      const mockArticle = createMockArticleDetail({
+        tags: ['Vue', 'TypeScript'],
+      })
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+      const { container } = await renderArticleDetail()
+      await flushPromises()
+
+      const tagsEl = container.querySelector('[data-testid="article-tags"]')!
+      expect(tagsEl.querySelectorAll('a')).toHaveLength(0)
+      expect(tagsEl.textContent).toContain('Vue')
+      expect(tagsEl.textContent).toContain('TypeScript')
+    })
+  })
+
   describe('返回頂部按鈕', () => {
     it('點擊返回頂部按鈕呼叫 window.scrollTo({ top: 0 })', async () => {
       const scrollToSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
@@ -283,6 +684,302 @@ describe('ArticleDetail 頁面', () => {
       await fireEvent.click(scrollBtn)
 
       expect(scrollToSpy).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' })
+    })
+  })
+
+  describe('分享與 Markdown 檢視', () => {
+    it('點擊分享按鈕呼叫 shareArticle 並帶入目前網址', async () => {
+      const mockArticle = createMockArticleDetail()
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+      const { container } = await renderArticleDetail()
+      await flushPromises()
+
+      const shareBtn = container.querySelector('[data-testid="article-share-action-bar"]')!
+      await fireEvent.click(shareBtn)
+
+      expect(mockShareArticle).toHaveBeenCalledWith(window.location.href)
+    })
+
+    it('初始不顯示 Markdown 檢視彈窗', async () => {
+      const mockArticle = createMockArticleDetail()
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+      const { container } = await renderArticleDetail()
+      await flushPromises()
+
+      expect(container.querySelector('[data-testid="mock-markdown-modal"]')).not.toBeInTheDocument()
+    })
+
+    it('點擊「以 Markdown 檢視」按鈕開啟彈窗，內容等於 article.content 原始 markdown', async () => {
+      const mockArticle = createMockArticleDetail({ content: '# 原始 Markdown 內容' })
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+      const { container } = await renderArticleDetail()
+      await flushPromises()
+
+      const viewMarkdownBtn = container.querySelector('[data-testid="article-view-markdown-action-bar"]')!
+      await fireEvent.click(viewMarkdownBtn)
+
+      const modal = container.querySelector('[data-testid="mock-markdown-modal"]')
+      expect(modal).toBeInTheDocument()
+      expect(container.querySelector('[data-testid="mock-markdown-modal-content"]')).toHaveTextContent('# 原始 Markdown 內容')
+    })
+
+    it('彈窗 close 事件觸發後隱藏彈窗', async () => {
+      const mockArticle = createMockArticleDetail({ content: '# 原始 Markdown 內容' })
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+      const { container } = await renderArticleDetail()
+      await flushPromises()
+
+      const viewMarkdownBtn = container.querySelector('[data-testid="article-view-markdown-action-bar"]')!
+      await fireEvent.click(viewMarkdownBtn)
+      expect(container.querySelector('[data-testid="mock-markdown-modal"]')).toBeInTheDocument()
+
+      const closeBtn = container.querySelector('[data-testid="mock-markdown-modal-close"]')!
+      await fireEvent.click(closeBtn)
+
+      expect(container.querySelector('[data-testid="mock-markdown-modal"]')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('TOC 整合（T7）', () => {
+    it('.art-nav-dot 死點已移除', async () => {
+      const mockArticle = createMockArticleDetail()
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+      const { container } = await renderArticleDetail()
+      await flushPromises()
+
+      expect(container.querySelector('.art-nav-dot')).toBeNull()
+    })
+
+    it('文章含 toc 時渲染 ArticleToc 並傳入正確資料', async () => {
+      const toc: TocEntry[] = [
+        { id: 'heading-安裝步驟', text: '安裝步驟', level: 2 },
+        { id: 'heading-常見問題', text: '常見問題', level: 2 },
+      ]
+      const mockArticle = createMockArticleDetail({ toc })
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+      const { container } = await renderArticleDetail()
+      await flushPromises()
+
+      expect(container.querySelector('[data-testid="article-toc"]')).toBeInTheDocument()
+      expect(screen.getByTestId('toc-link-heading-安裝步驟')).toBeInTheDocument()
+      expect(screen.getByTestId('toc-link-heading-常見問題')).toBeInTheDocument()
+    })
+
+    it('toc 為空陣列時不渲染 ArticleToc（無空殼）', async () => {
+      const mockArticle = createMockArticleDetail({ toc: [] })
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+      const { container } = await renderArticleDetail()
+      await flushPromises()
+
+      expect(container.querySelector('[data-testid="article-toc"]')).not.toBeInTheDocument()
+    })
+
+    it('API 回應缺少 toc 欄位時（後端未上線前）不噴錯，且視為空陣列不渲染 ArticleToc', async () => {
+      const mockArticle = createMockArticleDetail()
+      delete (mockArticle as Partial<ArticleDetailItem>).toc
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+      const { container } = await renderArticleDetail()
+      await flushPromises()
+
+      expect(container.querySelector('[data-testid="article-title"]')).toBeInTheDocument()
+      expect(container.querySelector('[data-testid="article-toc"]')).not.toBeInTheDocument()
+    })
+
+    it('點擊 TOC 項目時捲動至對應標題', async () => {
+      const scrollIntoViewSpy = vi.fn()
+      Element.prototype.scrollIntoView = scrollIntoViewSpy
+      const toc: TocEntry[] = [{ id: 'heading-安裝步驟', text: '安裝步驟', level: 2 }]
+      const mockArticle = createMockArticleDetail({ toc, content: '## 安裝步驟\n內容' })
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+      // 註：故意不在 mock 產出的 HTML 上預先烤入 id（真實的 useMarkdownRenderer／markdown-it
+      // 就是這樣：純 markdown 客端重渲染出的 <h2> 不含任何 id）。這樣本測試才會真的走到
+      // ArticleDetail 依 toc 順序把 id 指派到標題的那段邏輯，而不是繞過它、測不出原本的 bug。
+      // renderedHtml 也要隨 markdownSource（文章非同步載入完成後才有值）由空轉為有內容，
+      // 才能重現真實時序，讓 watch(renderedHtml) 真的觸發一次變化（否則 watch 永遠不會
+      // 因為初始值從未改變而執行，等同又繞過了要測的那段邏輯）。
+      mockUseMarkdownRenderer.mockImplementation((content: { value: string }) => ({
+        renderedHtml: computed(() => (content.value ? '<h2>安裝步驟</h2><p>內容</p>' : '')),
+        isReady: ref(true),
+      }))
+
+      await renderArticleDetail()
+      await flushPromises()
+      await nextTick()
+      await nextTick()
+
+      await fireEvent.click(screen.getByTestId('toc-link-heading-安裝步驟'))
+
+      expect(scrollIntoViewSpy).toHaveBeenCalled()
+    })
+
+    it('深連結 #heading-xxx 進站時，內容非同步載入完成後補捲至該標題', async () => {
+      const scrollIntoViewSpy = vi.fn()
+      Element.prototype.scrollIntoView = scrollIntoViewSpy
+      const mockArticle = createMockArticleDetail({
+        toc: [{ id: 'heading-常見問題', text: '常見問題', level: 2 }],
+      })
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+      // renderedHtml 需隨 markdownSource（文章非同步載入完成後才有值）由空轉為有內容，
+      // 才能重現「內容非同步載入完成後才補捲」的真實時序，讓 watch(renderedHtml) 真的觸發一次變化。
+      // 同上：不預先烤入 id，讓補捲邏輯真正依賴 ArticleDetail 自己指派的 id。
+      mockUseMarkdownRenderer.mockImplementation((content: { value: string }) => ({
+        renderedHtml: computed(() => (content.value ? '<h2>常見問題</h2>' : '')),
+        isReady: ref(true),
+      }))
+
+      const router = createTestRouter('/articles/test-uuid#heading-常見問題')
+      await router.isReady()
+      render(ArticleDetail, { global: { plugins: [router] } })
+      await flushPromises()
+      await nextTick()
+      await nextTick()
+
+      expect(scrollIntoViewSpy).toHaveBeenCalled()
+    })
+
+    it('深連結目標不存在時不拋錯', async () => {
+      const scrollIntoViewSpy = vi.fn()
+      Element.prototype.scrollIntoView = scrollIntoViewSpy
+      const mockArticle = createMockArticleDetail({ toc: [] })
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+      const router = createTestRouter('/articles/test-uuid#heading-不存在')
+      await router.isReady()
+
+      await expect((async () => {
+        render(ArticleDetail, { global: { plugins: [router] } })
+        await flushPromises()
+        await nextTick()
+      })()).resolves.not.toThrow()
+
+      expect(scrollIntoViewSpy).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('TOC 標題 id 指派（修復點擊不跳轉的根因）', () => {
+    it('renderedHtml 的 h2/h3 依序被指派 toc[i].id（模擬 markdown-it 無 id 的真實情況）', async () => {
+      const toc: TocEntry[] = [
+        { id: 'heading-安裝步驟', text: '安裝步驟', level: 2 },
+        { id: 'heading-常見問題', text: '常見問題', level: 2 },
+      ]
+      const mockArticle = createMockArticleDetail({ toc, content: '## 安裝步驟\n內容\n## 常見問題\n內容' })
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+      mockUseMarkdownRenderer.mockImplementation((content: { value: string }) => ({
+        renderedHtml: computed(() => (content.value
+          ? '<h2>安裝步驟</h2><p>內容</p><h2>常見問題</h2><p>內容</p>'
+          : '')),
+        isReady: ref(true),
+      }))
+
+      const { container } = await renderArticleDetail()
+      await flushPromises()
+      await nextTick()
+      await nextTick()
+
+      const headings = container.querySelectorAll('[data-testid="article-body"] h2')
+      expect(headings).toHaveLength(2)
+      expect(headings[0]).toHaveAttribute('id', 'heading-安裝步驟')
+      expect(headings[1]).toHaveAttribute('id', 'heading-常見問題')
+    })
+
+    it('DOM 標題數少於 toc 長度時，只指派可對應的、不拋錯', async () => {
+      const toc: TocEntry[] = [
+        { id: 'heading-a', text: 'A', level: 2 },
+        { id: 'heading-b', text: 'B', level: 2 },
+        { id: 'heading-c', text: 'C', level: 2 }, // 無對應的第三個標題
+      ]
+      const mockArticle = createMockArticleDetail({ toc, content: '## A\n內容\n## B\n內容' })
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+      mockUseMarkdownRenderer.mockImplementation((content: { value: string }) => ({
+        renderedHtml: computed(() => (content.value ? '<h2>A</h2><p>內容</p><h2>B</h2><p>內容</p>' : '')),
+        isReady: ref(true),
+      }))
+
+      let container: HTMLElement
+      await expect((async () => {
+        const result = await renderArticleDetail()
+        container = result.container
+        await flushPromises()
+        await nextTick()
+        await nextTick()
+      })()).resolves.not.toThrow()
+
+      const headings = container!.querySelectorAll('[data-testid="article-body"] h2')
+      expect(headings).toHaveLength(2)
+      expect(headings[0]).toHaveAttribute('id', 'heading-a')
+      expect(headings[1]).toHaveAttribute('id', 'heading-b')
+    })
+
+    it('toc 長度少於 DOM 標題數時，只指派前面對應的，多出來的標題維持無 id', async () => {
+      const toc: TocEntry[] = [{ id: 'heading-a', text: 'A', level: 2 }]
+      const mockArticle = createMockArticleDetail({ toc, content: '## A\n內容\n## B\n內容' })
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+      mockUseMarkdownRenderer.mockImplementation((content: { value: string }) => ({
+        renderedHtml: computed(() => (content.value ? '<h2>A</h2><p>內容</p><h2>B</h2><p>內容</p>' : '')),
+        isReady: ref(true),
+      }))
+
+      const { container } = await renderArticleDetail()
+      await flushPromises()
+      await nextTick()
+      await nextTick()
+
+      const headings = container.querySelectorAll('[data-testid="article-body"] h2')
+      expect(headings[0]).toHaveAttribute('id', 'heading-a')
+      expect(headings[1].id).toBe('')
+    })
+
+    it('renderedHtml 二次變動（模擬 Shiki 就緒後重繪）後 id 仍正確指派（idempotent）', async () => {
+      const toc: TocEntry[] = [{ id: 'heading-a', text: 'A', level: 2 }]
+      const renderedHtml = ref('')
+      mockUseMarkdownRenderer.mockImplementation(() => ({
+        renderedHtml,
+        isReady: ref(true),
+      }))
+      const mockArticle = createMockArticleDetail({ toc, content: '## A\n內容' })
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+
+      const { container } = await renderArticleDetail()
+      await flushPromises()
+
+      // 第一次渲染（無高亮版本）
+      renderedHtml.value = '<h2>A</h2><p>內容</p>'
+      await nextTick()
+      await nextTick()
+      let heading = container.querySelector('[data-testid="article-body"] h2')
+      expect(heading).toHaveAttribute('id', 'heading-a')
+
+      // 第二次渲染（模擬 Shiki 就緒後重繪，DOM 節點整個被換掉）
+      renderedHtml.value = '<h2>A</h2><p>不同內容（高亮後）</p>'
+      await nextTick()
+      await nextTick()
+      heading = container.querySelector('[data-testid="article-body"] h2')
+      expect(heading).toHaveAttribute('id', 'heading-a')
+    })
+
+    it('toc 為空陣列時不指派任何 id、不拋錯', async () => {
+      const mockArticle = createMockArticleDetail({ toc: [], content: '## A\n內容' })
+      vi.mocked(articleService.getArticleByUuid).mockResolvedValue(mockArticle)
+      mockUseMarkdownRenderer.mockImplementation((content: { value: string }) => ({
+        renderedHtml: computed(() => (content.value ? '<h2>A</h2><p>內容</p>' : '')),
+        isReady: ref(true),
+      }))
+
+      const { container } = await renderArticleDetail()
+      await flushPromises()
+      await nextTick()
+      await nextTick()
+
+      const heading = container.querySelector('[data-testid="article-body"] h2')
+      expect(heading!.id).toBe('')
     })
   })
 })

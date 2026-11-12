@@ -1,5 +1,6 @@
 import { adminService } from './adminService'
 import apiClient from './apiClient'
+import { resetAdminSearchMockState } from './mock/adminMockService'
 
 vi.mock('./apiClient', () => ({
   default: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
@@ -24,6 +25,15 @@ describe('adminService', () => {
       })
     })
 
+    it('reindexSearch 委派 mock 並回傳 RUNNING 作業', async () => {
+      resetAdminSearchMockState()
+      const job = await adminService.reindexSearch()
+      expect(job.state).toBe('RUNNING')
+      expect(job.processed).toBe(0)
+      expect(typeof job.jobId).toBe('string')
+      resetAdminSearchMockState()
+    })
+
     it('getPendingCount 委派 mock 並回傳數字', async () => {
       const count = await adminService.getPendingCount()
       expect(typeof count).toBe('number')
@@ -39,6 +49,38 @@ describe('adminService', () => {
       const result = await adminService.rejectArticle('editor-pending-1', '需要修改的詳細理由說明文字。')
       expect(result.status).toBe('REJECTED')
       expect(result.rejectReason).toBe('需要修改的詳細理由說明文字。')
+    })
+
+    it('getCategoriesFull 委派 mock 並回傳陣列，含 description 與 sortOrder', async () => {
+      const result = await adminService.getCategoriesFull()
+      expect(Array.isArray(result)).toBe(true)
+      expect(result.length).toBeGreaterThanOrEqual(2)
+      result.forEach(category => {
+        expect(category).toHaveProperty('sortOrder')
+        expect(category).toHaveProperty('description')
+      })
+      expect(result.some(category => category.description === null)).toBe(true)
+    })
+
+    it('getTagsFull 委派 mock 並回傳陣列，含 color/icon/usageCount', async () => {
+      const result = await adminService.getTagsFull()
+      expect(Array.isArray(result)).toBe(true)
+      expect(result.length).toBeGreaterThanOrEqual(2)
+      result.forEach(tag => {
+        expect(tag).toHaveProperty('color')
+        expect(tag).toHaveProperty('icon')
+        expect(tag).toHaveProperty('usageCount')
+      })
+      expect(result.some(tag => tag.usageCount > 0)).toBe(true)
+      expect(result.some(tag => tag.usageCount === 0)).toBe(true)
+    })
+
+    it('getSearchStatus 委派 mock 並回傳 healthy=true 與正整數 documentCount', async () => {
+      const result = await adminService.getSearchStatus()
+      expect(result.healthy).toBe(true)
+      expect(typeof result.documentCount).toBe('number')
+      expect(result.documentCount).toBeGreaterThan(0)
+      expect(typeof result.lastReindexAt).toBe('string')
     })
   })
 
@@ -82,11 +124,102 @@ describe('adminService', () => {
       expect(apiClient.post).toHaveBeenCalledWith('/api/v1/articles/p1/reject', { reason: '退回原因說明文字' })
     })
 
+    it('createCategory 呼叫 POST /api/v1/admin/categories 並使用後端 CreateCategoryRequest 欄位', async () => {
+      const request = { name: '架構', slug: 'architecture', description: '架構文章', sortOrder: 20 }
+      const response = { uuid: 'cat-1', ...request }
+      vi.mocked(apiClient.post).mockResolvedValue(response)
+
+      const result = await adminService.createCategory(request)
+
+      expect(result).toEqual(response)
+      expect(apiClient.post).toHaveBeenCalledWith('/api/v1/admin/categories', request)
+    })
+
+    it('updateCategory 呼叫 PUT /api/v1/admin/categories/:uuid 並使用後端 UpdateCategoryRequest 欄位', async () => {
+      const request = { name: '新架構', sortOrder: 30 }
+      const response = { uuid: 'cat-1', name: '新架構', slug: 'architecture', description: '架構文章', sortOrder: 30 }
+      vi.mocked(apiClient.put).mockResolvedValue(response)
+
+      const result = await adminService.updateCategory('cat-1', request)
+
+      expect(result).toEqual(response)
+      expect(apiClient.put).toHaveBeenCalledWith('/api/v1/admin/categories/cat-1', request)
+    })
+
+    it('deleteCategory 呼叫 DELETE /api/v1/admin/categories/:uuid', async () => {
+      vi.mocked(apiClient.delete).mockResolvedValue(undefined)
+
+      await adminService.deleteCategory('cat-1')
+
+      expect(apiClient.delete).toHaveBeenCalledWith('/api/v1/admin/categories/cat-1')
+    })
+
+    it('updateTag 呼叫 PUT /api/v1/admin/tags/:id 並使用後端 UpdateTagRequest 欄位', async () => {
+      const request = { color: '#42b883', icon: 'tag', description: 'Vue articles' }
+      const response = { id: 'tag-1', name: 'Vue', slug: 'vue', usageCount: 10, ...request }
+      vi.mocked(apiClient.put).mockResolvedValue(response)
+
+      const result = await adminService.updateTag('tag-1', request)
+
+      expect(result).toEqual(response)
+      expect(apiClient.put).toHaveBeenCalledWith('/api/v1/admin/tags/tag-1', request)
+    })
+
+    it('deleteTag 呼叫 DELETE /api/v1/admin/tags/:id', async () => {
+      vi.mocked(apiClient.delete).mockResolvedValue(undefined)
+
+      await adminService.deleteTag('tag-1')
+
+      expect(apiClient.delete).toHaveBeenCalledWith('/api/v1/admin/tags/tag-1')
+    })
+
+    it('reindexSearch 呼叫 POST /api/v1/admin/search/reindex 並回傳剛建立的作業（202）', async () => {
+      const job = {
+        jobId: 'job-1',
+        state: 'RUNNING',
+        processed: 0,
+        total: null,
+        startedAt: '2026-11-07T10:00:00',
+        finishedAt: null,
+        error: null,
+      }
+      vi.mocked(apiClient.post).mockResolvedValue(job)
+
+      const result = await adminService.reindexSearch()
+
+      expect(apiClient.post).toHaveBeenCalledWith('/api/v1/admin/search/reindex')
+      expect(result).toEqual(job)
+    })
+
     it('getPendingCount API 錯誤時回傳 0', async () => {
       vi.mocked(apiClient.get).mockRejectedValue(new Error('fail'))
       vi.spyOn(console, 'error').mockImplementation(() => {})
       const result = await adminService.getPendingCount()
       expect(result).toBe(0)
+    })
+
+    it('getCategoriesFull 呼叫 GET /api/v1/categories', async () => {
+      const mockResult = [{ uuid: 'cat-1', name: '架構', slug: 'architecture', description: null, sortOrder: 10 }]
+      vi.mocked(apiClient.get).mockResolvedValue(mockResult)
+      const result = await adminService.getCategoriesFull()
+      expect(result).toEqual(mockResult)
+      expect(apiClient.get).toHaveBeenCalledWith('/api/v1/categories')
+    })
+
+    it('getTagsFull 呼叫 GET /api/v1/tags/all', async () => {
+      const mockResult = [{ id: 'tag-1', name: 'Vue', slug: 'vue', usageCount: 5 }]
+      vi.mocked(apiClient.get).mockResolvedValue(mockResult)
+      const result = await adminService.getTagsFull()
+      expect(result).toEqual(mockResult)
+      expect(apiClient.get).toHaveBeenCalledWith('/api/v1/tags/all')
+    })
+
+    it('getSearchStatus 呼叫 GET /api/v1/admin/search/status', async () => {
+      const mockResult = { documentCount: 13, lastReindexAt: '2026-07-20T21:30:00', healthy: true }
+      vi.mocked(apiClient.get).mockResolvedValue(mockResult)
+      const result = await adminService.getSearchStatus()
+      expect(result).toEqual(mockResult)
+      expect(apiClient.get).toHaveBeenCalledWith('/api/v1/admin/search/status')
     })
   })
 })

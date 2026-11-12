@@ -62,13 +62,11 @@ test.describe('按鈕互動 — 色彩對比度（WCAG AA）', () => {
     await articleListPage.goto()
     await articleListPage.waitForArticlesLoaded()
 
-    // 確保在 Grid 模式且有多頁
+    await page.getByRole('button', { name: 'Pages', exact: true }).click()
+
+    // 確保有多頁
     const page2Btn = page.getByRole('button', { name: '2' })
-    const hasPage2 = await page2Btn.isVisible().catch(() => false)
-    if (!hasPage2) {
-      test.skip()
-      return
-    }
+    await expect(page2Btn).toBeVisible()
 
     const colorInfo = await page2Btn.evaluate((btn) => {
       const style = window.getComputedStyle(btn)
@@ -138,13 +136,12 @@ test.describe('按鈕互動 — 手機底部導覽', { tag: '@mobile' }, () => {
     await expect(page).toHaveURL('/login')
   })
 
-  test('ThemeSwitcher 在手機版應可見（BUG-005）', async ({ page, themeSwitcher }) => {
+  test('ThemeSwitcher 在手機版應可見（BUG-005）', async ({ page }) => {
     await page.goto('/articles')
     await page.waitForLoadState('networkidle')
 
-    // BUG-005：修復前此測試失敗（ThemeSwitcher 被 hidden md:flex 隱藏）
-    // DOM 中有兩個 ThemeSwitcher（mobile/desktop），取第一個（mobile）確認可見
-    await expect(page.getByTestId('navbar-theme-toggle').first()).toBeVisible()
+    // Mobile viewport hides the desktop navbar, so assert the toggle inside the bottom nav.
+    await expect(page.getByTestId('mobile-bottom-nav').getByLabel('切換深淺色模式')).toBeVisible()
   })
 })
 

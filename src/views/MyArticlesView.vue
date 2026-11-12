@@ -1,20 +1,30 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { myArticlesService } from '../api/myArticlesService'
 import { useToast } from '../composables/useToast'
-import {
-  ARTICLE_STATUS_LABELS,
-} from '../types/editor'
+import { useAuthStore } from '../stores/auth'
+import ShellRail from '../components/layout/ShellRail.vue'
+import { ARTICLE_STATUS_LABELS } from '../types/editor'
 import type { MyArticle, ArticleStatusFilter } from '../types/editor'
+import { isRateLimited } from '../utils/apiErrors'
 
 const { showToast } = useToast()
+const authStore = useAuthStore()
+
+// 作者後台署名：顯示目前登入者暱稱，暱稱不存在時 fallback 為純「作者後台」
+// （避免渲染出 undefined 或孤立的「·」，Yuan 2026-07-26 文案稽核核准）
+const authorBackLabel = computed(() => {
+  const nickname = authStore.user?.nickname
+  return nickname ? `作者後台 · ${nickname}` : '作者後台'
+})
 
 const articles = ref<MyArticle[]>([])
 const currentFilter = ref<ArticleStatusFilter>('ALL')
 const currentPage = ref(1)
 const totalPages = ref(1)
 const isLoading = ref(true)
+const withdrawingUuid = ref<string | null>(null)
 const PAGE_SIZE = 10
 
 async function fetchArticles() {
@@ -44,8 +54,22 @@ async function handleSubmit(uuid: string) {
     await myArticlesService.submitForReview(uuid)
     showToast('已送出審核', 'success')
     await fetchArticles()
-  } catch {
-    showToast('送出失敗', 'error')
+  } catch (error) {
+    // 429 由 apiClient 的全域 toast 提示，不再疊自己的錯誤 toast
+    if (!isRateLimited(error)) showToast('送出失敗', 'error')
+  }
+}
+
+async function handleWithdraw(uuid: string) {
+  withdrawingUuid.value = uuid
+  try {
+    await myArticlesService.withdrawArticle(uuid)
+    showToast('已抽回文章', 'success')
+    await fetchArticles()
+  } catch (error) {
+    if (!isRateLimited(error)) showToast(error instanceof Error ? error.message : '抽回失敗', 'error')
+  } finally {
+    withdrawingUuid.value = null
   }
 }
 
@@ -53,8 +77,8 @@ async function handleDelete(uuid: string) {
   try {
     await myArticlesService.deleteArticle(uuid)
     await fetchArticles()
-  } catch {
-    showToast('刪除失敗', 'error')
+  } catch (error) {
+    if (!isRateLimited(error)) showToast('刪除失敗', 'error')
   }
 }
 function formatDate(iso: string) {
@@ -74,18 +98,13 @@ onMounted(fetchArticles)
   <div class="shell" data-testid="my-root">
 
     <!-- Left rail -->
-    <nav class="shell-rail">
-      <div class="brand">
-        <span class="mark" />
-        <span class="name">MY BLOG WEB.</span>
-      </div>
-
+    <ShellRail active="my-articles">
       <span class="rail-section">WORKSPACE</span>
 
-      <button class="rail-item active" data-testid="my-header-title">
+      <div class="rail-item" data-testid="my-header-title">
         我的文章
         <span class="n">{{ articles.length }}</span>
-      </button>
+      </div>
 
       <RouterLink to="/editor" class="rail-item" data-testid="my-new-btn">
         開始新文章
@@ -105,19 +124,15 @@ onMounted(fetchArticles)
       >
         {{ label }}
       </button>
-
-      <div class="rail-foot">
-        <RouterLink to="/">← Blog 首頁</RouterLink>
-      </div>
-    </nav>
+    </ShellRail>
 
     <!-- Main content -->
     <div class="shell-main">
 
       <!-- Back breadcrumb -->
       <div class="shell-back">
-        <span class="mono" style="font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted-2)">
-          作者後台 · YUAN LUCA
+        <span class="mono" style="font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-2)">
+          {{ authorBackLabel }}
         </span>
       </div>
 
@@ -159,26 +174,36 @@ onMounted(fetchArticles)
                 </span>
               </td>
               <td><time>{{ formatDate(article.updatedAt) }}</time></td>
-              <td class="ma-actions">
-                <RouterLink
-                  v-if="article.status === 'DRAFT' || article.status === 'REJECTED'"
-                  :to="`/editor/${article.uuid}`"
-                  class="ma-btn"
-                  :data-testid="'my-row-action-edit-' + article.uuid"
-                >編輯</RouterLink>
-                <button
-                  v-if="article.status === 'DRAFT'"
-                  type="button"
-                  class="ma-btn ma-btn--accent"
-                  @click="handleSubmit(article.uuid)"
-                >送出審核</button>
-                <button
-                  v-if="article.status === 'DRAFT'"
-                  type="button"
-                  class="ma-btn ma-btn--danger"
-                  :data-testid="'my-row-action-delete-' + article.uuid"
-                  @click="handleDelete(article.uuid)"
-                >刪除</button>
+              <td>
+                <div class="ma-actions">
+                  <RouterLink
+                    v-if="article.status === 'DRAFT' || article.status === 'REJECTED'"
+                    :to="`/editor/${article.uuid}`"
+                    class="ma-btn"
+                    :data-testid="'my-row-action-edit-' + article.uuid"
+                  >編輯</RouterLink>
+                  <button
+                    v-if="article.status === 'DRAFT'"
+                    type="button"
+                    class="ma-btn ma-btn--accent"
+                    @click="handleSubmit(article.uuid)"
+                  >送出審核</button>
+                  <button
+                    v-if="article.status === 'DRAFT'"
+                    type="button"
+                    class="ma-btn ma-btn--danger"
+                    :data-testid="'my-row-action-delete-' + article.uuid"
+                    @click="handleDelete(article.uuid)"
+                  >刪除</button>
+                  <button
+                    v-if="article.status === 'PENDING_REVIEW'"
+                    type="button"
+                    class="ma-btn"
+                    :data-testid="'my-row-action-withdraw-' + article.uuid"
+                    :disabled="withdrawingUuid === article.uuid"
+                    @click="handleWithdraw(article.uuid)"
+                  >抽回</button>
+                </div>
               </td>
             </tr>
             <tr
@@ -212,12 +237,12 @@ onMounted(fetchArticles)
 .ma-loading { padding: 3rem 0; display: flex; justify-content: center; }
 .ma-table { width: 100%; border-collapse: collapse; margin-top: 24px; }
 .ma-table th, .ma-table td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--divider); font-size: 13.5px; }
-.ma-table th { font-family: var(--f-mono); font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--muted-2); }
+.ma-table th { font-family: var(--f-mono); font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--ink-2); }
 .ma-status { display: inline-block; padding: 3px 10px; border-radius: 999px; font-family: var(--f-mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
 .ma-status.DRAFT { background: var(--bg-sub); color: var(--muted); }
 .ma-status.PUBLISHED { background: rgba(34,197,94,.12); color: #15803d; }
 .ma-status.PENDING_REVIEW { background: rgba(234,179,8,.12); color: #a16207; }
-.ma-status.REJECTED { background: rgba(239,68,68,.12); color: #b91c1c; }
+.ma-status.REJECTED { background: color-mix(in srgb, var(--danger-strong) 12%, transparent); color: var(--danger); }
 .ma-status.ARCHIVED { background: rgba(99,102,241,.12); color: #4338ca; }
 .ma-actions { display: flex; gap: 6px; align-items: center; }
 .ma-btn {
@@ -229,8 +254,12 @@ onMounted(fetchArticles)
 .ma-btn:disabled { opacity: .35; cursor: not-allowed; }
 .ma-btn--accent { background: var(--accent); border-color: var(--accent); color: #fff; }
 .ma-btn--accent:hover { opacity: .88; background: var(--accent); }
-.ma-btn--danger { background: #ef4444; border-color: #ef4444; color: #fff; }
-.ma-btn--danger:hover { opacity: .88; background: #ef4444; }
-.ma-reject-reason { background: rgba(239,68,68,.05); color: #b91c1c; font-size: 13px; }
+.ma-btn--danger { background: var(--danger-solid); border-color: var(--danger-solid); color: #fff; }
+/* fix round 1:hover 改深色覆寫(--danger-solid-hover,見 src/index.css)取代
+ * opacity 壓底--opacity 對整個元素生效,白字也會被拉暗,對比度掉回接近原始
+ * bug 數值(light 模式修復前 ~=4.57:1,餘裕僅 0.07)。.ma-btn 已有
+ * transition: all .15s,hover 換色會沿用該 transition 自動漸變。*/
+.ma-btn--danger:hover { opacity: 1; background: var(--danger-solid-hover); border-color: var(--danger-solid-hover); }
+.ma-reject-reason { background: color-mix(in srgb, var(--danger-strong) 5%, transparent); color: var(--danger); font-size: 13px; }
 .ma-pagination { display: flex; align-items: center; gap: 12px; margin-top: 28px; }
 </style>

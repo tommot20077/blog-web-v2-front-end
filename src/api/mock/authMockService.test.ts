@@ -1,4 +1,4 @@
-import { resetAuthMockState } from './authMockData';
+import { resetAuthMockState, registeredUsers } from './authMockData';
 import {
   loginMock,
   registerMock,
@@ -49,22 +49,6 @@ describe('authMockService', () => {
       await assertion;
     });
 
-    it('未驗證信箱用戶登入 → 拋出錯誤', async () => {
-      const regPromise = registerMock({
-        email: 'unverified@test.com',
-        password: 'Password1',
-        username: 'unverified',
-        nickname: 'Unverified',
-      });
-      await vi.advanceTimersByTimeAsync(500);
-      await regPromise;
-
-      const promise = loginMock({ identifier: 'unverified@test.com', password: 'Password1' });
-      const assertion = expect(promise).rejects.toThrow('請先驗證您的信箱');
-      await vi.advanceTimersByTimeAsync(500);
-      await assertion;
-    });
-
     it('以 nickname 作為 identifier 登入 → 回傳 AuthTokens', async () => {
       const promise = loginMock({ identifier: 'Yuan', password: 'Password1' });
       await vi.advanceTimersByTimeAsync(500);
@@ -89,13 +73,40 @@ describe('authMockService', () => {
       await expect(promise).resolves.toBeUndefined();
     });
 
-    it('註冊重複 email → 拋出錯誤', async () => {
+    // SEC-14／Q8：email 已存在 → 靜默成功，不建帳號、不改原使用者
+    it('註冊重複 email → 靜默 resolve，不新增使用者、不改原密碼', async () => {
+      const before = registeredUsers.length;
+      const promise = registerMock({
+        email: 'admin@test.com',
+        password: 'Other1234',
+        nickname: 'Dup',
+      });
+      await vi.advanceTimersByTimeAsync(500);
+
+      await expect(promise).resolves.toBeUndefined();
+      expect(registeredUsers.length).toBe(before);
+      expect(registeredUsers.find((u) => u.email === 'admin@test.com')?.password).toBe('Password1');
+    });
+
+    // MockUser 無 username 欄位，只能對 nickname 做重複檢查
+    it('註冊重複 nickname → 拋出「該暱稱已被使用」', async () => {
+      const promise = registerMock({
+        email: 'fresh@test.com',
+        password: 'Password1',
+        nickname: 'Admin',
+      });
+      const assertion = expect(promise).rejects.toThrow('該暱稱已被使用');
+      await vi.advanceTimersByTimeAsync(500);
+      await assertion;
+    });
+
+    it('nickname 與 email 皆重複 → 以 nickname 錯誤優先（順序 nickname → email）', async () => {
       const promise = registerMock({
         email: 'admin@test.com',
         password: 'Password1',
-        nickname: 'Dup',
+        nickname: 'Admin',
       });
-      const assertion = expect(promise).rejects.toThrow('此 Email 已被註冊');
+      const assertion = expect(promise).rejects.toThrow('該暱稱已被使用');
       await vi.advanceTimersByTimeAsync(500);
       await assertion;
     });

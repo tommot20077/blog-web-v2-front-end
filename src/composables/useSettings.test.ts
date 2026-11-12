@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
-import { defineComponent } from 'vue'
+import { defineComponent, reactive, nextTick } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
 
 function makeTestComponent(setup: () => Record<string, unknown>) {
@@ -10,6 +10,7 @@ function makeTestComponent(setup: () => Record<string, unknown>) {
 vi.mock('../api/userService', () => ({
   userService: {
     updateProfile: vi.fn().mockResolvedValue({}),
+    updateNotifications: vi.fn().mockResolvedValue({}),
     changePassword: vi.fn().mockResolvedValue({}),
     deleteAccount: vi.fn().mockResolvedValue({}),
   },
@@ -70,57 +71,80 @@ describe('useSettings', () => {
     })
   })
 
-  describe('localStorage 持久化', () => {
-    it('setSection 將 activeSection 寫入 localStorage', async () => {
+  describe('activeSection 狀態改由 SettingsView 透過路由 query 掌管（2026-07-19 樹狀導覽併欄）', () => {
+    it('useSettings() 不再回傳 activeSection / setSection（不再用 localStorage 記錄區塊）', async () => {
       const { useSettings } = await import('./useSettings')
-      let capturedSetSection: ((s: string) => void) | null = null
 
+      let captured: Record<string, unknown> | null = null
       const TestComp = makeTestComponent(() => {
-        const { setSection } = useSettings()
-        capturedSetSection = setSection
+        captured = useSettings() as unknown as Record<string, unknown>
         return {}
       })
 
       mount(TestComp)
-      capturedSetSection!('account')
-      expect(localStorage.getItem('blog.settings.section')).toBe('account')
+      expect(captured).not.toHaveProperty('activeSection')
+      expect(captured).not.toHaveProperty('setSection')
     })
 
-    it('activeSection 初始值從 localStorage 讀取', async () => {
-      localStorage.setItem('blog.settings.section', 'social')
+    it('不再寫入 blog.settings.section 到 localStorage', async () => {
       const { useSettings } = await import('./useSettings')
-
-      let capturedActiveSection: { value: string } | null = null
       const TestComp = makeTestComponent(() => {
-        const { activeSection } = useSettings()
-        capturedActiveSection = activeSection
+        useSettings()
         return {}
       })
 
       mount(TestComp)
-      expect(capturedActiveSection!.value).toBe('social')
+      expect(localStorage.getItem('blog.settings.section')).toBeNull()
     })
   })
 
   describe('removeAvatar', () => {
-    it('removeAvatar 同時清除 localStorage 的 blog.settings.avatarUrl', async () => {
-      localStorage.setItem('blog.settings.avatarUrl', 'https://cdn.example.com/old.png')
+    it('removeAvatar 清除 avatarUrl ref（不再使用 localStorage）', async () => {
       const { useSettings } = await import('./useSettings')
 
-      let capturedRemoveAvatar: (() => void) | null = null
+      let s: ReturnType<typeof useSettings> | null = null
       const TestComp = makeTestComponent(() => {
-        const { removeAvatar } = useSettings()
-        capturedRemoveAvatar = removeAvatar
+        s = useSettings()
         return {}
       })
 
       mount(TestComp)
-      capturedRemoveAvatar!()
+      ;(s!.avatarUrl as { value: string | null }).value = 'https://cdn.example.com/old.png'
+      s!.removeAvatar()
+      expect(s!.avatarUrl.value).toBeNull()
+      // 確認沒有寫入任何 avatarUrl localStorage key
       expect(localStorage.getItem('blog.settings.avatarUrl')).toBeNull()
     })
   })
 
   describe('saveProfile error/toast', () => {
+    it('A4：saveProfile 遇到 429 → 不顯示自己的失敗 toast（全域 429 toast 已提示）', async () => {
+      const { userService } = await import('../api/userService')
+      vi.mocked(userService.updateProfile).mockRejectedValueOnce(
+        Object.assign(new Error('操作太頻繁，請 30 秒後再試'), { status: 429, code: 'A0009' }),
+      )
+
+      const { useToast } = await import('./useToast')
+      const mockShowToast = vi.fn()
+      vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast })
+
+      vi.resetModules()
+      const { useSettings } = await import('./useSettings')
+
+      let capturedSaveProfile: (() => Promise<void>) | null = null
+      const TestComp = makeTestComponent(() => {
+        const s = useSettings()
+        capturedSaveProfile = s.saveProfile
+        return {}
+      })
+
+      mount(TestComp)
+      await capturedSaveProfile!()
+
+      expect(userService.updateProfile).toHaveBeenCalled()
+      expect(mockShowToast).not.toHaveBeenCalledWith(expect.anything(), 'error')
+    })
+
     it('saveProfile 失敗時顯示 error toast', async () => {
       const { userService } = await import('../api/userService')
       vi.mocked(userService.updateProfile).mockRejectedValueOnce(new Error('Network error'))
@@ -168,6 +192,54 @@ describe('useSettings', () => {
     })
   })
 
+  describe('A6／A6b：頭像大小與錯誤訊息', () => {
+    const MB = 1024 * 1024
+    const sizedFile = (size: number) => {
+      const file = new File(['x'], 'avatar.png', { type: 'image/png' })
+      Object.defineProperty(file, 'size', { value: size })
+      return file
+    }
+
+    async function setupSettings() {
+      const { useToast } = await import('./useToast')
+      const mockShowToast = vi.fn()
+      vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast })
+      vi.resetModules()
+      const { useSettings } = await import('./useSettings')
+      let s: ReturnType<typeof useSettings> | null = null
+      mount(makeTestComponent(() => { s = useSettings(); return {} }))
+      return { s: s!, mockShowToast }
+    }
+
+    it('selectAvatarFile：超過 5MB 直接提示、不接受該檔案', async () => {
+      const { s, mockShowToast } = await setupSettings()
+      expect(s.selectAvatarFile(sizedFile(5 * MB + 1))).toBe(false)
+      expect(s.avatarFile.value).toBeNull()
+      expect(mockShowToast).toHaveBeenCalledWith('檔案太大（頭像上限 5MB）', 'error')
+    })
+
+    it('selectAvatarFile：剛好 5MB 可以', async () => {
+      const { s, mockShowToast } = await setupSettings()
+      const file = sizedFile(5 * MB)
+      expect(s.selectAvatarFile(file)).toBe(true)
+      expect(s.avatarFile.value?.size).toBe(5 * MB)
+      expect(s.avatarFile.value?.name).toBe('avatar.png')
+      expect(mockShowToast).not.toHaveBeenCalled()
+    })
+
+    it.each([
+      ['A0402', '檔案太大（文章圖片上限 20MB，頭像上限 5MB）'], // 後端回來的 A0402 拿不到情境，保留通用文案
+      ['A0406', '圖片尺寸過大（總像素需小於 1 億）'],
+      ['A0407', '頭像檔案無效，請重新上傳'],
+    ])('saveProfile 遇到 %s 時顯示對應的友善訊息', async (code, friendly) => {
+      const { userService } = await import('../api/userService')
+      vi.mocked(userService.updateProfile).mockRejectedValueOnce(Object.assign(new Error('後端訊息'), { code }))
+      const { s, mockShowToast } = await setupSettings()
+      await s.saveProfile()
+      expect(mockShowToast).toHaveBeenCalledWith(friendly, 'error')
+    })
+  })
+
   describe('saveAccount 密碼驗證', () => {
     it('新密碼不一致時不呼叫 API，並顯示 toast', async () => {
       const { userService } = await import('../api/userService')
@@ -192,6 +264,424 @@ describe('useSettings', () => {
 
       expect(userService.changePassword).not.toHaveBeenCalled()
       expect(mockShowToast).toHaveBeenCalledWith('新密碼不一致', 'error')
+    })
+  })
+
+  describe('avatarUrl / location 改接後端', () => {
+    it('saveProfile 將 avatarUrl 與 location 一併送至 updateProfile', async () => {
+      const { useAuthStore } = await import('../stores/auth')
+      vi.mocked(useAuthStore).mockReturnValue({
+        user: {
+          nickname: 'TestUser', bio: '測試', email: 'test@example.com',
+          avatarUrl: 'https://cdn.example.com/me.png', website: null,
+          socialLinks: null, location: 'Tokyo',
+        },
+        fetchUser: vi.fn().mockResolvedValue(undefined),
+        logout: vi.fn(),
+      } as unknown as ReturnType<typeof useAuthStore>)
+
+      const { userService } = await import('../api/userService')
+      vi.resetModules()
+      const { useSettings } = await import('./useSettings')
+
+      let s: ReturnType<typeof useSettings> | null = null
+      const TestComp = makeTestComponent(() => { s = useSettings(); return {} })
+      mount(TestComp)
+
+      s!.nickname.value = 'TestUser'
+      s!.location.value = 'Berlin'
+      ;(s!.avatarUrl as { value: string | null }).value = 'https://cdn.example.com/new.png'
+      await s!.saveProfile()
+
+      expect(userService.updateProfile).toHaveBeenCalledWith(
+        expect.objectContaining({
+          nickname: 'TestUser',
+          avatarUrl: 'https://cdn.example.com/new.png',
+          location: 'Berlin',
+        }),
+      )
+    })
+
+    it('saveProfile 不再寫入 blog.settings.avatarUrl / blog.settings.location 到 localStorage', async () => {
+      const { useSettings } = await import('./useSettings')
+      let s: ReturnType<typeof useSettings> | null = null
+      const TestComp = makeTestComponent(() => { s = useSettings(); return {} })
+      mount(TestComp)
+
+      s!.location.value = 'Berlin'
+      await s!.saveProfile()
+
+      expect(localStorage.getItem('blog.settings.avatarUrl')).toBeNull()
+      expect(localStorage.getItem('blog.settings.location')).toBeNull()
+    })
+
+    it('location 初始值由 authStore.user.location 載入（而非 localStorage）', async () => {
+      const { useAuthStore } = await import('../stores/auth')
+      vi.mocked(useAuthStore).mockReturnValue({
+        user: {
+          nickname: 'TestUser', bio: '', email: 'test@example.com',
+          avatarUrl: null, website: null, socialLinks: null, location: 'Osaka',
+        },
+        fetchUser: vi.fn().mockResolvedValue(undefined),
+        logout: vi.fn(),
+      } as unknown as ReturnType<typeof useAuthStore>)
+
+      vi.resetModules()
+      const { useSettings } = await import('./useSettings')
+      let s: ReturnType<typeof useSettings> | null = null
+      const TestComp = makeTestComponent(() => { s = useSettings(); return {} })
+      mount(TestComp)
+
+      expect(s!.location.value).toBe('Osaka')
+    })
+  })
+
+  describe('通知偏好改接後端', () => {
+    it('初始值由 authStore.user 的 notification* 欄位載入', async () => {
+      const { useAuthStore } = await import('../stores/auth')
+      vi.mocked(useAuthStore).mockReturnValue({
+        user: {
+          nickname: 'TestUser', bio: '', email: 'test@example.com',
+          avatarUrl: null, website: null, socialLinks: null, location: null,
+          notificationComment: false, notificationLike: true,
+          notificationReview: false, notificationFollow: true,
+          notificationNewsletter: false,
+        },
+        fetchUser: vi.fn().mockResolvedValue(undefined),
+        logout: vi.fn(),
+      } as unknown as ReturnType<typeof useAuthStore>)
+
+      vi.resetModules()
+      const { useSettings } = await import('./useSettings')
+      let s: ReturnType<typeof useSettings> | null = null
+      const TestComp = makeTestComponent(() => { s = useSettings(); return {} })
+      mount(TestComp)
+
+      expect(s!.nComment.value).toBe(false)
+      expect(s!.nLike.value).toBe(true)
+      expect(s!.nReview.value).toBe(false)
+      expect(s!.nFollow.value).toBe(true)
+      expect(s!.nNewsletter.value).toBe(false)
+    })
+
+    it('saveNotifications 呼叫 updateNotifications 並帶上 5 個布林偏好（後端欄位名）', async () => {
+      const { userService } = await import('../api/userService')
+      const { useSettings } = await import('./useSettings')
+
+      let s: ReturnType<typeof useSettings> | null = null
+      const TestComp = makeTestComponent(() => { s = useSettings(); return {} })
+      mount(TestComp)
+
+      s!.nComment.value = true
+      s!.nLike.value = false
+      s!.nReview.value = true
+      s!.nFollow.value = false
+      s!.nNewsletter.value = true
+      await s!.saveNotifications()
+
+      expect(userService.updateNotifications).toHaveBeenCalledWith({
+        comment: true,
+        like: false,
+        review: true,
+        follow: false,
+        newsletter: true,
+      })
+    })
+
+    it('saveNotifications 不再寫入 blog.settings.n* 到 localStorage', async () => {
+      const { useSettings } = await import('./useSettings')
+      let s: ReturnType<typeof useSettings> | null = null
+      const TestComp = makeTestComponent(() => { s = useSettings(); return {} })
+      mount(TestComp)
+
+      await s!.saveNotifications()
+
+      expect(localStorage.getItem('blog.settings.nComment')).toBeNull()
+      expect(localStorage.getItem('blog.settings.nLike')).toBeNull()
+      expect(localStorage.getItem('blog.settings.nReview')).toBeNull()
+      expect(localStorage.getItem('blog.settings.nFollow')).toBeNull()
+      expect(localStorage.getItem('blog.settings.nNewsletter')).toBeNull()
+    })
+
+    it('saveNotifications 失敗時顯示 error toast', async () => {
+      const { userService } = await import('../api/userService')
+      vi.mocked(userService.updateNotifications).mockRejectedValueOnce(new Error('Network error'))
+
+      const { useToast } = await import('./useToast')
+      const mockShowToast = vi.fn()
+      vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast })
+
+      vi.resetModules()
+      const { useSettings } = await import('./useSettings')
+      let s: ReturnType<typeof useSettings> | null = null
+      const TestComp = makeTestComponent(() => { s = useSettings(); return {} })
+      mount(TestComp)
+
+      await s!.saveNotifications()
+      expect(mockShowToast).toHaveBeenCalledWith('儲存通知設定失敗', 'error')
+    })
+  })
+  describe('公開頁欄位即時驗證（website／社群帳號名稱）', () => {
+    async function setup(userOverrides: Record<string, unknown> = {}) {
+      const { useAuthStore } = await import('../stores/auth')
+      vi.mocked(useAuthStore).mockReturnValue({
+        user: {
+          uuid: 'me-uuid', nickname: 'TestUser', bio: '', email: 'test@example.com',
+          avatarUrl: null, website: null, socialLinks: null, location: null,
+          ...userOverrides,
+        },
+        fetchUser: vi.fn().mockResolvedValue(undefined),
+        logout: vi.fn(),
+      } as unknown as ReturnType<typeof useAuthStore>)
+      const { useSettings } = await import('./useSettings')
+      const { userService } = await import('../api/userService')
+      vi.mocked(userService.updateProfile).mockClear()
+      let s: ReturnType<typeof useSettings> | null = null
+      mount(makeTestComponent(() => { s = useSettings(); return {} }))
+      return { s: s!, userService }
+    }
+
+    it('website 不是 http(s) → websiteError 有訊息，saveProfile 不呼叫 API', async () => {
+      const { s, userService } = await setup()
+      s.website.value = 'javascript:alert(1)'
+      expect(s.websiteError.value).not.toBe('')
+      await s.saveProfile()
+      expect(userService.updateProfile).not.toHaveBeenCalled()
+    })
+
+    it.each(['https://example.com', 'http://example.com/a?b=1', ''])('website %j 合格', async (v) => {
+      const { s, userService } = await setup()
+      s.website.value = v
+      expect(s.websiteError.value).toBe('')
+      await s.saveProfile()
+      expect(userService.updateProfile).toHaveBeenCalledTimes(1)
+    })
+
+    it('website 超過後端上限 255 字 → 不合格', async () => {
+      const { s } = await setup()
+      s.website.value = 'https://example.com/' + 'a'.repeat(256)
+      expect(s.websiteError.value).not.toBe('')
+    })
+
+    it.each([
+      ['github', 'https://github.com/octocat'],
+      ['twitter', '@@user'],
+      ['linkedin', 'a/b'],
+      ['github', 'my handle'],
+      ['twitter', 'javascript:alert(1)'],
+      ['linkedin', 'a'.repeat(101)],
+    ] as const)('%s 填 %j → 對應欄位有錯誤，saveSocial 不呼叫 API', async (field, value) => {
+      const { s, userService } = await setup()
+      s[field].value = value
+      const err = { github: s.githubError, twitter: s.twitterError, linkedin: s.linkedinError }[field]
+      expect(err.value).not.toBe('')
+      expect(s.hasSocialErrors.value).toBe(true)
+      await s.saveSocial()
+      expect(userService.updateProfile).not.toHaveBeenCalled()
+    })
+
+    it('合格的帳號名稱（含前導 @、中文、空白＝未填）→ 無錯誤並送出 JSON', async () => {
+      const { s, userService } = await setup()
+      s.github.value = 'octocat'
+      s.twitter.value = '@yuan_dev'
+      s.linkedin.value = ''
+      expect(s.hasSocialErrors.value).toBe(false)
+      await s.saveSocial()
+      expect(userService.updateProfile).toHaveBeenCalledWith(expect.objectContaining({
+        socialLinks: JSON.stringify({ github: 'octocat', twitter: '@yuan_dev', linkedin: '' }),
+      }))
+    })
+
+    it('既有資料是舊的網址格式 → 載入後即顯示錯誤，提醒改成帳號名稱', async () => {
+      const { s } = await setup({ socialLinks: JSON.stringify({ github: 'https://github.com/old', twitter: '', linkedin: '' }) })
+      expect(s.githubError.value).not.toBe('')
+      expect(s.hasSocialErrors.value).toBe(true)
+    })
+
+    it('庫中是舊網址格式 → 只改暱稱 saveProfile 仍成功，送出的 socialLinks 已把不合格值清成空字串', async () => {
+      const { s, userService } = await setup({
+        socialLinks: JSON.stringify({ github: 'https://github.com/old', twitter: '@ok', linkedin: 'a/b' }),
+      })
+      s.nickname.value = 'NewNick'
+      await s.saveProfile()
+      expect(userService.updateProfile).toHaveBeenCalledTimes(1)
+      const sent = vi.mocked(userService.updateProfile).mock.calls[0][0] as { socialLinks?: string }
+      expect(JSON.parse(sent.socialLinks!)).toEqual({ github: '', twitter: '@ok', linkedin: '' })
+    })
+
+    it('庫中 socialLinks 無法解析 → 送出的是合法 JSON（全空），不原樣送垃圾字串', async () => {
+      const { s, userService } = await setup({ socialLinks: 'not-json' })
+      await s.saveProfile()
+      const sent = vi.mocked(userService.updateProfile).mock.calls[0][0] as { socialLinks?: string }
+      expect(JSON.parse(sent.socialLinks!)).toEqual({ github: '', twitter: '', linkedin: '' })
+    })
+
+    it('庫中 socialLinks 為 null → 維持不送（undefined）', async () => {
+      const { s, userService } = await setup({ socialLinks: null })
+      await s.saveProfile()
+      const sent = vi.mocked(userService.updateProfile).mock.calls[0][0] as { socialLinks?: string }
+      expect(sent.socialLinks).toBeUndefined()
+    })
+
+    it('publicProfilePath 指向 /author/{我的 uuid}；沒有 uuid 時為 null', async () => {
+      const a = await setup()
+      expect(a.s.publicProfilePath.value).toBe('/author/me-uuid')
+      vi.resetModules()
+      const b = await setup({ uuid: undefined })
+      expect(b.s.publicProfilePath.value).toBeNull()
+    })
+  })
+
+  describe('blob URL 覆寫時 revoke（FE-10）', () => {
+    let revokeSpy: ReturnType<typeof vi.fn>
+    const BLOB = 'blob:http://localhost/old-preview'
+
+    const originalRevoke = URL.revokeObjectURL
+
+    beforeEach(async () => {
+      revokeSpy = vi.fn()
+      // vitest.config mockReset: true 會清掉 vi.mock 工廠內的預設回傳值，這裡明確指定
+      const { fileService } = await import('../api/fileService')
+      vi.mocked(fileService.uploadFile).mockResolvedValue({ url: 'https://cdn.example.com/avatar.png' } as never)
+      URL.revokeObjectURL = revokeSpy as unknown as typeof URL.revokeObjectURL
+    })
+
+    afterEach(() => {
+      URL.revokeObjectURL = originalRevoke
+    })
+
+    async function setup(user: Record<string, unknown> = { nickname: 'T', avatarUrl: null }) {
+      const { useAuthStore } = await import('../stores/auth')
+      const store = reactive({
+        user,
+        fetchUser: vi.fn().mockResolvedValue(undefined),
+        logout: vi.fn(),
+      })
+      vi.mocked(useAuthStore).mockReturnValue(store as unknown as ReturnType<typeof useAuthStore>)
+      vi.resetModules()
+      const { useSettings } = await import('./useSettings')
+      let s: ReturnType<typeof useSettings> | null = null
+      mount(makeTestComponent(() => { s = useSettings(); return {} }))
+      return { s: s!, store }
+    }
+
+    it('saveProfile 上傳成功後以 resp.url 覆寫 → revoke 舊 blob URL', async () => {
+      const { s } = await setup()
+      s.avatarUrl.value = BLOB
+      s.avatarFile.value = new File(['x'], 'a.png', { type: 'image/png' })
+      await s.saveProfile()
+
+      expect(revokeSpy).toHaveBeenCalledWith(BLOB)
+      expect(s.avatarUrl.value).toBe('https://cdn.example.com/avatar.png')
+    })
+
+    it('saveProfile 上傳前舊值不是 blob → 不呼叫 revoke', async () => {
+      const { s } = await setup()
+      s.avatarUrl.value = 'https://cdn.example.com/old.png'
+      s.avatarFile.value = new File(['x'], 'a.png', { type: 'image/png' })
+      await s.saveProfile()
+
+      expect(revokeSpy).not.toHaveBeenCalled()
+    })
+
+    it('hydrateProfile（authStore.user 更新）覆寫 blob 預覽 → revoke 舊 blob URL', async () => {
+      const { s, store } = await setup()
+      s.avatarUrl.value = BLOB
+      store.user = { nickname: 'T2', avatarUrl: 'https://cdn.example.com/server.png' }
+      await nextTick()
+
+      expect(revokeSpy).toHaveBeenCalledWith(BLOB)
+      expect(s.avatarUrl.value).toBe('https://cdn.example.com/server.png')
+    })
+  })
+
+  describe('hydrateProfile 保留未存檔的頭像選擇（FE-10 追加）', () => {
+    it('有 pending avatarFile 時 authStore.user 更新 → 不覆寫預覽也不 revoke', async () => {
+      const revokeSpy = vi.fn()
+      const original = URL.revokeObjectURL
+      URL.revokeObjectURL = revokeSpy as unknown as typeof URL.revokeObjectURL
+      try {
+        const { useAuthStore } = await import('../stores/auth')
+        const store = reactive({
+          user: { nickname: 'T', avatarUrl: null } as Record<string, unknown>,
+          fetchUser: vi.fn().mockResolvedValue(undefined),
+          logout: vi.fn(),
+        })
+        vi.mocked(useAuthStore).mockReturnValue(store as unknown as ReturnType<typeof useAuthStore>)
+        vi.resetModules()
+        const { useSettings } = await import('./useSettings')
+        let s: ReturnType<typeof useSettings> | null = null
+        mount(makeTestComponent(() => { s = useSettings(); return {} }))
+
+        const blob = 'blob:http://localhost/pending'
+        s!.avatarUrl.value = blob
+        s!.avatarFile.value = new File(['x'], 'a.png', { type: 'image/png' })
+        store.user = { nickname: 'T2', avatarUrl: 'https://cdn.example.com/server.png' }
+        await nextTick()
+
+        expect(s!.avatarUrl.value).toBe(blob)
+        expect(s!.avatarFile.value).not.toBeNull()
+        expect(revokeSpy).not.toHaveBeenCalled()
+        expect(s!.nickname.value).toBe('T2')
+      } finally {
+        URL.revokeObjectURL = original
+      }
+    })
+  })
+
+  // ── W7F-7：個人資料與刪除帳號的長度預檢（快照 UpdateProfileRequest／DeleteAccountRequest）──
+  describe('W7F-7 長度上限預檢', () => {
+    async function setup() {
+      const { userService } = await import('../api/userService')
+      vi.mocked(userService.updateProfile).mockClear()
+      vi.mocked(userService.deleteAccount).mockClear()
+      const { useToast } = await import('./useToast')
+      const mockShowToast = vi.fn()
+      vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast })
+      vi.resetModules()
+      const { useSettings } = await import('./useSettings')
+      let s!: ReturnType<typeof useSettings>
+      mount(makeTestComponent(() => {
+        s = useSettings()
+        return {}
+      }))
+      return { s, userService, mockShowToast }
+    }
+
+    it.each([
+      ['nickname', 50, '顯示名稱最多 50 字'],
+      ['bio', 500, '個人簡介最多 500 字'],
+      ['location', 100, '所在地最多 100 字'],
+    ] as const)('%s 剛好 %i 字可以儲存', async (field, max) => {
+      const { s, userService } = await setup()
+      s[field].value = '字'.repeat(max)
+      await s.saveProfile()
+      expect(userService.updateProfile).toHaveBeenCalledTimes(1)
+    })
+
+    it.each([
+      ['nickname', 50, '顯示名稱最多 50 字'],
+      ['bio', 500, '個人簡介最多 500 字'],
+      ['location', 100, '所在地最多 100 字'],
+    ] as const)('%s 超過 %i 字不呼叫 API 並提示', async (field, max, message) => {
+      const { s, userService, mockShowToast } = await setup()
+      s[field].value = '字'.repeat(max + 1)
+      await s.saveProfile()
+      expect(userService.updateProfile).not.toHaveBeenCalled()
+      expect(mockShowToast).toHaveBeenCalledWith(expect.stringContaining(message), 'error')
+    })
+
+    it.each([6, 50])('刪除帳號：密碼剛好 %i 字可以送出', async (len) => {
+      const { s, userService } = await setup()
+      await s.deleteAccount('p'.repeat(len))
+      expect(userService.deleteAccount).toHaveBeenCalledWith({ password: 'p'.repeat(len) })
+    })
+
+    it.each([5, 51])('刪除帳號：密碼 %i 字不呼叫 API 並提示', async (len) => {
+      const { s, userService, mockShowToast } = await setup()
+      await s.deleteAccount('p'.repeat(len))
+      expect(userService.deleteAccount).not.toHaveBeenCalled()
+      expect(mockShowToast).toHaveBeenCalledWith(expect.stringContaining('密碼長度須為 6 到 50 字'), 'error')
     })
   })
 })

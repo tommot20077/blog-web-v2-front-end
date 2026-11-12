@@ -1,6 +1,6 @@
 import apiClient from '../apiClient'
 import type { FileUploadResponse, FileUsageType } from '../../types/editor'
-import type { FileMetadata } from '../../types/user'
+import type { FileListParams, FileMetadata } from '../../types/user'
 
 export const fileService = {
   async uploadFile(file: File, usageType: FileUsageType): Promise<FileUploadResponse> {
@@ -20,9 +20,9 @@ export const fileService = {
     return apiClient.delete<unknown, void>(`/api/v1/files/${id}`)
   },
 
-  async getUserFiles(): Promise<FileMetadata[]> {
+  async getUserFiles(params: FileListParams = {}): Promise<FileMetadata[]> {
     try {
-      return await apiClient.get<unknown, FileMetadata[]>('/api/v1/users/me/files')
+      return await apiClient.get<unknown, FileMetadata[]>('/api/v1/users/me/files', { params })
     } catch (error) {
       console.error('Failed to fetch user files:', error)
       return []

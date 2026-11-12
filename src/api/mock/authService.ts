@@ -5,8 +5,8 @@ import {
   logoutMock,
   forgotPasswordMock,
   resetPasswordMock,
-  verifyEmailMock,
   verifyEmailCodeMock,
+  verifyEmailMock,
   getMeMock,
   resendVerificationMock,
 } from './authMockService'

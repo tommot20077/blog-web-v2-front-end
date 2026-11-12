@@ -41,7 +41,7 @@ test.describe('作者撰寫文章 (integration)', () => {
     const uuid = createBody.data.uuid
 
     try {
-      const get = await request.get(`${BACKEND}/api/v1/articles/${uuid}/edit`, {
+      const get = await request.get(`${BACKEND}/api/v1/articles/${uuid}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       const getBody = await get.json()
@@ -53,30 +53,57 @@ test.describe('作者撰寫文章 (integration)', () => {
     }
   })
 
-  test('F10: 標題超過 120 字應收到後端驗證錯誤訊息', async ({ page, editorPage }) => {
-    const longTitle = 'a'.repeat(121)
-    await editorPage.fillTitle(longTitle)
+  test('F10: 標題輸入框限制 120 字，輸入第 121 字起被截斷', async ({ page, editorPage }) => {
+    // W7F-6：title input 帶 maxlength=120，真實輸入（含貼上）無法超過上限
+    await editorPage.fillTitle('a'.repeat(121))
+
+    const titleInput = page.getByTestId('editor-title-input')
+    await expect(titleInput).toHaveAttribute('maxlength', '120')
+    await expect(titleInput).toHaveValue('a'.repeat(120))
+  })
+
+  test('F10: 標題超過 120 字（繞過 maxlength），前端預檢擋下且不送出請求並顯示原因', async ({ page, editorPage }) => {
+    // W7F-6：即使 maxlength 被繞過（程式寫值），存檔前仍預檢；超過時不呼叫 API，toast 說明原因
     await editorPage.fillContent('long-title test')
+    await page.getByTestId('editor-title-input').evaluate((el, value) => {
+      const input = el as HTMLInputElement
+      input.value = value
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    }, 'a'.repeat(121))
 
     const startUrl = page.url()
 
-    // 嘗試送出（攔截 POST /articles，儲存草稿）
-    const responsePromise = page.waitForResponse(
-      (r) => r.url().includes('/api/v1/articles') && r.request().method() === 'POST'
-    )
+    const articleWrites: string[] = []
+    page.on('request', (r) => {
+      if (r.url().includes('/api/v1/articles') && r.method() === 'POST') articleWrites.push(r.url())
+    })
+
     await editorPage.saveDraft()
 
-    const response = await responsePromise
+    const toastMessage = page.getByTestId('toast-message').first()
+    await expect(toastMessage).toContainText('標題最多 120 字（目前 121 字）', { timeout: 5000 })
+    await expect(page.getByText('草稿已儲存')).toHaveCount(0)
+
+    // 預檢在送出前攔下：不得有任何 POST /articles
+    expect(articleWrites).toEqual([])
+    // URL 應仍在編輯器（未跳走）
+    expect(page.url()).toBe(startUrl)
+  })
+
+  test('F10: 標題超過 120 字，後端仍以驗證錯誤拒絕（直接打 API，保留後端覆蓋）', async ({ request }) => {
+    const author = (await import('../fixtures/auth')).getCredentials('author')
+    const loginResp = await request.post(`${BACKEND}/api/v1/auth/login`, {
+      data: { identifier: author.email, password: author.password },
+    })
+    const token = (await loginResp.json()).data.accessToken
+
+    const response = await request.post(`${BACKEND}/api/v1/articles`, {
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      data: { title: 'a'.repeat(121), summary: 's', content: 'c', coverImageUrl: null, categoryIds: [], tagNames: [] },
+    })
     const body = await response.json()
     expect(body.code).toBe('400')
     expect(body.message).toContain('標題長度')
-
-    // toast 顯示錯誤（editor saveDraft 統一顯示「儲存失敗」，後端原始訊息可從 response body 取得 — 已上方驗）
-    const toastMessage = page.getByTestId('toast-message').first()
-    await expect(toastMessage).toContainText('儲存失敗', { timeout: 5000 })
-
-    // URL 應仍在編輯器（未跳走）
-    expect(page.url()).toBe(startUrl)
   })
 
   test('F10: markdown 內容含 XSS payload, DOMPurify 應攔截', async ({ page, editorPage, request }) => {

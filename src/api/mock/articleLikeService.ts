@@ -1,10 +1,22 @@
-const likedArticles = new Set<string>()
+import {
+  isArticleLiked,
+  removeArticleLike,
+  resetArticleLikeState,
+  seedArticleLike,
+} from './articleInteractionMockState'
+
+export function resetArticleLikeMockState(): void {
+  resetArticleLikeState()
+}
 
 export const articleLikeService = {
   async like(uuid: string): Promise<void> {
-    likedArticles.add(uuid)
+    seedArticleLike(uuid)
   },
   async unlike(uuid: string): Promise<void> {
-    likedArticles.delete(uuid)
+    removeArticleLike(uuid)
   },
+  isLiked: isArticleLiked,
 }
+
+export { seedArticleLike, isArticleLiked }

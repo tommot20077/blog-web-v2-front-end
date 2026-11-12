@@ -73,7 +73,9 @@ test.describe('Settings (B1/B2/B3/B4)', () => {
   test('B3+B4: 改密碼後舊 token 失效 (401), 新密碼可登入', async ({ request }) => {
     const author = getCredentials('author')
     const oldPw = author.password
-    const newPw = `Test_${Date.now()}!`
+    // 後端 PasswordPolicy 允許的特殊字元為 @$!%*?&#，不含底線 `_`；
+    // 舊值 `Test_...!` 會被 @Pattern 擋下回 400（限流連環爆修好後才顯形）。
+    const newPw = `Test${Date.now()}!`
 
     const loginResp = await request.post(`${BACKEND}/api/v1/auth/login`, {
       data: { identifier: author.email, password: oldPw },

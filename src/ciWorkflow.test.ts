@@ -1,13 +1,298 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 
+function readWorkflow() {
+  return readFileSync('.github/workflows/ci.yml', 'utf8')
+}
+
+function workflowJob(name: string): string {
+  const workflow = readWorkflow().replace(/\r\n/g, '\n')
+  const marker = `  ${name}:\n`
+  const start = workflow.indexOf(marker)
+
+  if (start === -1) {
+    return ''
+  }
+
+  const afterStart = workflow.slice(start + marker.length)
+  const nextJob = afterStart.search(/\n  [a-zA-Z0-9_-]+:\n/)
+
+  return marker + (nextJob === -1 ? afterStart : afterStart.slice(0, nextJob))
+}
+
+function workflowStep(job: string, name: string): string {
+  const normalizedJob = job.replace(/\r\n/g, '\n')
+  return normalizedJob.match(new RegExp(`- name: ${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[\\s\\S]*?(?=\\n      - name:|\\n      - uses:|$)`))?.[0] ?? ''
+}
+
 describe('frontend CI workflow', () => {
+  it('runs CI only for long-lived main/develop branches', () => {
+    const workflow = readWorkflow()
+
+    expect(workflow).toContain('push:')
+    expect(workflow).toContain('pull_request:')
+    expect(workflow).toContain('branches: [main, develop]')
+    expect(workflow).not.toContain('feature/p0-red-e2e')
+  })
+
+  it('cancels superseded branch runs and uses least-privilege contents access', () => {
+    const workflow = readWorkflow()
+
+    expect(workflow).toContain('workflow_dispatch:')
+    expect(workflow).toContain('permissions:')
+    expect(workflow).toContain('contents: read')
+    expect(workflow).toContain('concurrency:')
+    expect(workflow).toContain('group: ${{ github.workflow }}-${{ github.ref }}')
+    expect(workflow).toContain('cancel-in-progress: true')
+  })
+
+  it('keeps every job bounded by an explicit timeout', () => {
+    const jobs = [
+      'unit-and-component-tests',
+      'build',
+      'coverage',
+      'e2e-tests',
+      'e2e-integration',
+    ]
+
+    for (const jobName of jobs) {
+      expect(workflowJob(jobName), `${jobName} should have timeout-minutes`).toMatch(/timeout-minutes:\s*\d+/)
+    }
+  })
+
+  it('unit, build, coverage, and mock e2e jobs use Node 22 with npm ci', () => {
+    for (const jobName of ['unit-and-component-tests', 'build', 'coverage', 'e2e-tests']) {
+      const job = workflowJob(jobName)
+      expect(job).toContain('actions/setup-node@v4')
+      expect(job).toContain('node-version: 22')
+      expect(job).toContain("cache: 'npm'")
+      expect(job).toContain('npm ci')
+    }
+  })
+
+  it('coverage job uploads the coverage artifact with bounded retention', () => {
+    const coverage = workflowJob('coverage')
+
+    expect(coverage).toContain('npm run test:coverage')
+    expect(coverage).toContain('actions/upload-artifact@v4')
+    expect(coverage).toContain('name: coverage-report')
+    expect(coverage).toContain('path: coverage/')
+    expect(coverage).toContain('retention-days: 14')
+  })
+
+  it('build job runs the production build as a required CI gate', () => {
+    const build = workflowJob('build')
+
+    expect(build).toContain('npm run build')
+    expect(build).toContain('timeout-minutes: 15')
+  })
+
+  it('mock E2E job runs in mock mode and uploads Playwright reports', () => {
+    const e2e = workflowJob('e2e-tests')
+
+    expect(e2e).toContain('npx playwright install --with-deps chromium')
+    expect(e2e).toContain('npm run test:e2e:mock')
+    expect(e2e).toContain('CI: true')
+    expect(e2e).toContain('name: playwright-report')
+    expect(e2e).toContain('path: playwright-report/')
+  })
+
+  // A2（XSS-03）：CSP 已改為強制，E2E 以 nginx.conf 的同一串政策驗證零違規；CI 必須跑它，政策一改才會紅燈。
+  it('mock E2E job also runs the CSP violation E2E and uploads its own report', () => {
+    const e2e = workflowJob('e2e-tests')
+    const cspStep = workflowStep(e2e, 'Run CSP violation E2E')
+    const uploadStep = workflowStep(e2e, 'Upload CSP E2E report')
+
+    expect(cspStep).toContain('npm run test:e2e:csp')
+    expect(cspStep).toContain('if: ${{ !cancelled() }}')
+    expect(cspStep).toContain('PLAYWRIGHT_HTML_REPORT: playwright-report-csp')
+    expect(uploadStep).toContain('name: playwright-report-csp')
+    expect(uploadStep).toContain('path: playwright-report-csp/')
+  })
+
+  it('browser E2E jobs wait for unit tests and the production build gate', () => {
+    const requiredGates = 'needs: [unit-and-component-tests, build]'
+
+    expect(workflowJob('e2e-tests')).toContain(requiredGates)
+    expect(workflowJob('e2e-integration')).toContain(requiredGates)
+  })
+
+  it('real-backend E2E checks out and builds the backend before running browser tests', () => {
+    const integration = workflowJob('e2e-integration')
+
+    expect(integration).toContain('repository: tommot20077/blog-web-v2')
+    expect(integration).toContain('path: backend')
+    expect(integration).toContain('java-version: \'21\'')
+    expect(integration).toContain('cache: maven')
+    expect(integration).toContain('./mvnw -B clean package -DskipTests --no-transfer-progress')
+    expect(integration).toContain('docker build -t blog-backend:e2e .')
+  })
+
   it('real-backend E2E tests use the e2e backend port', () => {
-    const workflow = readFileSync('.github/workflows/ci.yml', 'utf8')
-    const realBackendE2eStep = workflow.match(
-      /- name: Run E2E tests \(real backend\)[\s\S]*?(?=\n\n      - name:|\n      - uses:|$)/,
-    )?.[0]
+    const realBackendE2eStep = workflowStep(
+      workflowJob('e2e-integration'),
+      'Run E2E tests (real backend)',
+    )
 
     expect(realBackendE2eStep).toContain('VITE_API_BASE_URL: http://localhost:9010')
+  })
+
+  // 後端把 actuator 搬到 management port（主 port 的 /actuator/health 消失），主 port 改提供 /livez、/readyz。
+  // CI 會 checkout 後端預設分支建 image，新舊後端都可能出現：先試 /readyz，失敗再退回 /actuator/health。
+  describe('real-backend E2E 健康檢查同時相容新舊後端', () => {
+    const readyz = 'http://localhost:9010/readyz'
+    const legacy = 'http://localhost:9010/actuator/health'
+    // 後端 image（eclipse-temurin:21-jre-alpine）沒有 curl，只有 busybox wget；容器內用 127.0.0.1
+    const composeReadyz = 'wget -q -O /dev/null http://127.0.0.1:9010/readyz'
+    const composeLegacy = 'wget -q -O /dev/null http://127.0.0.1:9010/actuator/health'
+
+    it('compose 的 backend healthcheck 先試 /readyz，失敗再試 /actuator/health', () => {
+      const compose = readFileSync('docker-compose.e2e.yml', 'utf8')
+      const backendService = compose.slice(compose.indexOf('  backend:'))
+      const test = backendService.match(/healthcheck:\s*\n\s*test:\s*(\[.*\])/)?.[1] ?? ''
+
+      expect(test).toContain('CMD-SHELL')
+      expect(test).toContain(`${composeReadyz} || ${composeLegacy}`)
+      expect(test).not.toContain('curl')
+    })
+
+    it('CI 等待迴圈先試 /readyz，失敗再試 /actuator/health，任一成功即視為健康', () => {
+      const wait = workflowStep(workflowJob('e2e-integration'), 'Wait for backend healthy')
+
+      expect(wait).toContain(readyz)
+      expect(wait).toContain(legacy)
+      expect(wait.indexOf(readyz)).toBeLessThan(wait.indexOf(legacy))
+      expect(wait).toMatch(/curl -sf --max-time 5 http:\/\/localhost:9010\/readyz[^\n|]*\|\|\s*curl -sf --max-time 5 http:\/\/localhost:9010\/actuator\/health/)
+    })
+
+    it('compose 不把後端 management port（9091）發布到 host', () => {
+      const compose = readFileSync('docker-compose.e2e.yml', 'utf8')
+
+      expect(compose).not.toContain('9091')
+    })
+  })
+
+  it('real-backend E2E captures stack logs on failure and always tears down containers', () => {
+    const integration = workflowJob('e2e-integration')
+    const captureLogs = workflowStep(integration, 'Capture E2E stack logs')
+    const uploadLogs = workflowStep(integration, 'Upload E2E stack logs')
+    const tearDown = workflowStep(integration, 'Tear down E2E stack')
+
+    expect(captureLogs).toContain('if: failure()')
+    expect(captureLogs).toContain('docker compose -f docker-compose.e2e.yml logs --no-color')
+    expect(uploadLogs).toContain('if: failure()')
+    expect(uploadLogs).toContain('name: e2e-stack-logs')
+    expect(uploadLogs).toContain('path: e2e-artifacts/')
+    expect(tearDown).toContain('if: always()')
+    expect(tearDown).toContain('docker compose -f docker-compose.e2e.yml down -v')
+  })
+
+  it('real-backend E2E disables mail health because CI has no SMTP credentials', () => {
+    const compose = readFileSync('docker-compose.e2e.yml', 'utf8')
+    const backendStart = compose.indexOf('  backend:')
+    const backendEnd = compose.indexOf('    depends_on:', backendStart)
+    const backendService = compose.slice(backendStart, backendEnd)
+
+    expect(backendService).toContain('MANAGEMENT_HEALTH_MAIL_ENABLED: "false"')
+  })
+
+  // 後端 SEC-12／SEC-13（tommot20077/blog-web-v2#95）：沒有啟用 dev/demo/e2e/test 任一 profile 時視為正式環境，
+  // 缺 JWT_PRIVATE_KEY 會 fail-fast 拒絕啟動。e2e 堆疊必須明確標成 e2e profile，才會使用自動產生的臨時金鑰。
+  it('real-backend E2E runs the backend under the e2e Spring profile so it is not treated as production', () => {
+    const compose = readFileSync('docker-compose.e2e.yml', 'utf8')
+    const backendStart = compose.indexOf('  backend:')
+    const backendEnd = compose.indexOf('    depends_on:', backendStart)
+    const backendService = compose.slice(backendStart, backendEnd)
+
+    expect(backendService).toContain('SPRING_PROFILES_ACTIVE: e2e')
+    expect(backendService).not.toMatch(/SPRING_PROFILES_ACTIVE:.*prod/)
+  })
+
+  // 後端 SEC-21（Yuan 2026-11-04）：springdoc 預設關閉，只有 dev/demo 或 SPRINGDOC_ENABLED=true 才開。
+  // OpenAPI 快照（api-reference/openapi.json）是從這個 e2e 堆疊抓的，必須明確開啟。
+  it('real-backend E2E enables springdoc so the OpenAPI snapshot can be fetched from this stack', () => {
+    const compose = readFileSync('docker-compose.e2e.yml', 'utf8')
+    const backendStart = compose.indexOf('  backend:')
+    const backendEnd = compose.indexOf('    depends_on:', backendStart)
+    const backendService = compose.slice(backendStart, backendEnd)
+
+    expect(backendService).toContain('SPRINGDOC_ENABLED: "true"')
+  })
+
+  it('real-backend E2E exposes the S3 public port 9000 for browser-loaded upload previews (SeaweedFS S3 listens on 8333)', () => {
+    const compose = readFileSync('docker-compose.e2e.yml', 'utf8')
+    const s3Start = compose.indexOf('  seaweedfs:')
+    const s3End = compose.indexOf('  elasticsearch:', s3Start)
+    const s3Service = compose.slice(s3Start, s3End)
+
+    expect(s3Start).toBeGreaterThan(-1)
+    expect(s3Service).toContain('ports:')
+    expect(s3Service).toContain('"9000:8333"')
+  })
+
+  // minio/minio 已無法匿名拉取（pull access denied），e2e-integration 因此在 Start E2E stack 就失敗。
+  // 後端與 infra 已於 2026-09-27 改用 SeaweedFS，e2e 堆疊須一致。
+  it('real-backend E2E uses a pinned SeaweedFS image instead of the no-longer-pullable minio/minio', () => {
+    const compose = readFileSync('docker-compose.e2e.yml', 'utf8')
+
+    expect(compose).not.toContain('minio/minio')
+    expect(compose).toContain('image: chrislusf/seaweedfs:4.47')
+  })
+
+  it('real-backend E2E backend reaches the S3 endpoint over the compose network with matching credentials', () => {
+    const compose = readFileSync('docker-compose.e2e.yml', 'utf8')
+    const backendStart = compose.indexOf('  backend:')
+    const backendService = compose.slice(backendStart)
+    const s3Start = compose.indexOf('  seaweedfs:')
+    const s3Service = compose.slice(s3Start, compose.indexOf('  elasticsearch:', s3Start))
+
+    expect(backendService).toContain('MINIO_ENDPOINT: http://seaweedfs:8333')
+    expect(backendService).toContain('MINIO_ACCESS_KEY: e2e_s3')
+    expect(backendService).toContain('MINIO_SECRET_KEY: e2e_s3_pass')
+    expect(s3Service).toContain('AWS_ACCESS_KEY_ID: e2e_s3')
+    expect(s3Service).toContain('AWS_SECRET_ACCESS_KEY: e2e_s3_pass')
+    expect(backendService).toMatch(/seaweedfs:\s+condition: service_healthy/)
+  })
+
+  it('production build tsconfig excludes test-only files', () => {
+    const tsconfig = readFileSync('tsconfig.app.json', 'utf8')
+
+    expect(tsconfig).toContain('"exclude"')
+    expect(tsconfig).toContain('"src/**/*.test.ts"')
+    expect(tsconfig).toContain('"src/**/*.spec.ts"')
+    expect(tsconfig).toContain('"src/test-utils/**"')
+  })
+
+  describe('real-backend E2E 郵件服務（mailpit）', () => {
+    const compose = () => readFileSync('docker-compose.e2e.yml', 'utf8')
+    const service = (name: string, next: string) => {
+      const c = compose()
+      const start = c.indexOf(`  ${name}:`)
+      return c.slice(start, c.indexOf(`  ${next}:`, start))
+    }
+
+    it('mailpit 映像檔釘死確切版本，不用 latest', () => {
+      expect(compose()).toMatch(/image: axllent\/mailpit:v\d+\.\d+\.\d+/)
+      expect(compose()).not.toContain('mailpit:latest')
+    })
+
+    it('mailpit 發布 8025（測試讀信的 HTTP API），不發布 SMTP 1025', () => {
+      const mailpit = service('mailpit', 'backend')
+      expect(mailpit).toContain('"8025:8025"')
+      expect(mailpit).not.toContain('1025:1025')
+    })
+
+    it('backend 以既有 Spring mail 屬性寄信到 mailpit，關閉 auth 與 starttls', () => {
+      const backend = compose().slice(compose().indexOf('  backend:'))
+      expect(backend).toContain('SPRING_MAIL_HOST: mailpit')
+      expect(backend).toContain('SPRING_MAIL_PORT: "1025"')
+      expect(backend).toContain('SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: "false"')
+      expect(backend).toContain('SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: "false"')
+    })
+
+    it('backend 等 mailpit 起來才啟動', () => {
+      const backend = compose().slice(compose().indexOf('  backend:'))
+      expect(backend).toMatch(/depends_on:[\s\S]*mailpit:\s+condition: service_healthy/)
+    })
   })
 })

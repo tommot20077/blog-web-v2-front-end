@@ -12,7 +12,7 @@ declare module 'vue-router' {
     requiresAuth?: boolean
     requiredRole?: UserRole
     guestOnly?: boolean
-    layout?: 'default' | 'shell' | 'full'
+    layout?: 'default' | 'shell' | 'full' | 'admin'
   }
 }
 
@@ -60,12 +60,6 @@ const router = createRouter({
       meta: { guestOnly: true }
     },
     {
-      path: '/check-email',
-      name: 'check-email',
-      component: () => import('../views/CheckEmailView.vue'),
-      meta: { guestOnly: true }
-    },
-    {
       path: '/reset-password',
       name: 'reset-password',
       component: () => import('../views/ResetPasswordView.vue'),
@@ -96,16 +90,46 @@ const router = createRouter({
       meta: { requiresAuth: true, layout: 'shell' as const }
     },
     {
+      path: '/bookmarks',
+      name: 'bookmarks',
+      component: () => import('../views/BookmarksView.vue'),
+      meta: { requiresAuth: true, layout: 'shell' as const }
+    },
+    {
       path: '/settings',
       name: 'settings',
       component: () => import('../views/SettingsView.vue'),
       meta: { requiresAuth: true, layout: 'shell' as const }
     },
     {
+      path: '/admin',
+      name: 'admin-dashboard',
+      component: () => import('../views/AdminDashboardView.vue'),
+      meta: { requiresAuth: true, requiredRole: 'ADMIN' as UserRole, layout: 'admin' as const }
+    },
+    {
       path: '/admin/review',
       name: 'admin-review',
       component: () => import('../views/AdminReviewView.vue'),
-      meta: { requiresAuth: true, requiredRole: 'ADMIN' as UserRole }
+      meta: { requiresAuth: true, requiredRole: 'ADMIN' as UserRole, layout: 'admin' as const }
+    },
+    {
+      path: '/admin/categories',
+      name: 'admin-categories',
+      component: () => import('../views/AdminCategoriesView.vue'),
+      meta: { requiresAuth: true, requiredRole: 'ADMIN' as UserRole, layout: 'admin' as const }
+    },
+    {
+      path: '/admin/tags',
+      name: 'admin-tags',
+      component: () => import('../views/AdminTagsView.vue'),
+      meta: { requiresAuth: true, requiredRole: 'ADMIN' as UserRole, layout: 'admin' as const }
+    },
+    {
+      path: '/admin/search',
+      name: 'admin-search',
+      component: () => import('../views/AdminSearchView.vue'),
+      meta: { requiresAuth: true, requiredRole: 'ADMIN' as UserRole, layout: 'admin' as const }
     },
     {
       path: '/tags',
@@ -135,10 +159,9 @@ const router = createRouter({
       meta: { requiresAuth: true, requiredRole: 'AUTHOR' as UserRole, layout: 'shell' as const }
     },
     {
-      path: '/author/:handle',
+      path: '/author/:uuid',
       name: 'author',
-      component: () => import('../views/AuthorView.vue'),
-      props: true
+      component: () => import('../views/AuthorView.vue')
     },
     {
       path: '/:pathMatch(.*)*',
@@ -146,7 +169,19 @@ const router = createRouter({
       component: () => import('../views/NotFoundView.vue')
     }
   ],
-  scrollBehavior() {
+  scrollBehavior(to, _from, savedPosition) {
+    // 錨點導航（例：導覽列 About 指向 /#about）：
+    // 原本無條件回傳 top:0，等於把 to.hash 整個吃掉，使用者按 About 只會跳回首頁頂端。
+    // top 偏移量用於避開固定在畫面上方的導覽列（.nav-wrap: top 18px + 高約 56px）。
+    if (to.hash) {
+      return { el: to.hash, behavior: 'smooth', top: 90 }
+    }
+
+    // 瀏覽器上一頁／下一頁：還原先前捲動位置，符合使用者預期
+    if (savedPosition) {
+      return savedPosition
+    }
+
     return { top: 0, behavior: 'smooth' }
   }
 });
@@ -165,8 +200,7 @@ export function setupGuards(targetRouter: Router) {
     const authStore = useAuthStore()
     const { showToast } = useToast()
 
-    // 等待初始 refresh token 嘗試完成，防止 hard reload 時 accessToken 尚未還原就被踢出
-    await authStore.initialize()
+    await authStore.ensureHydrated()
 
     // 需要認證但未登入
     if (to.meta.requiresAuth && !authStore.isAuthenticated) {

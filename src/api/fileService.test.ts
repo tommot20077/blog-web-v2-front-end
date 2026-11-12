@@ -55,6 +55,28 @@ describe('fileService', () => {
       )
     })
 
+    it('uploadFile 對後端回傳的相對路徑 url 原樣透傳（新契約：後端不再回傳絕對網址）', async () => {
+      const mockResponse = { id: 'f1', url: '/api/v1/files/f1/content', width: 800, height: 600, size: 1024, usageType: 'ARTICLE_COVER' as const }
+      vi.mocked(apiClient.post).mockResolvedValue(mockResponse)
+
+      const file = new File(['x'], 'img.png', { type: 'image/png' })
+      const result = await fileService.uploadFile(file, 'ARTICLE_COVER')
+
+      expect(result).toEqual(mockResponse)
+      expect(result.url).toBe('/api/v1/files/f1/content')
+    })
+
+    it('uploadFile 不再改寫 MinIO hostname（改寫補丁已移除，任何 url 一律原樣透傳）', async () => {
+      const mockResponse = { id: 'f1', url: 'http://minio:9000/blog-files/img.png', width: 800, height: 600, size: 1024, usageType: 'ARTICLE_COVER' as const }
+      vi.mocked(apiClient.post).mockResolvedValue(mockResponse)
+
+      const file = new File(['x'], 'img.png', { type: 'image/png' })
+      const result = await fileService.uploadFile(file, 'ARTICLE_COVER')
+
+      expect(result).toEqual(mockResponse)
+      expect(result.url).toBe('http://minio:9000/blog-files/img.png')
+    })
+
     it('API 錯誤時拋出錯誤', async () => {
       vi.mocked(apiClient.post).mockRejectedValue(new Error('Upload failed'))
       const file = new File(['x'], 'img.png', { type: 'image/png' })
@@ -82,7 +104,18 @@ describe('fileService', () => {
 
       const result = await fileService.getUserFiles()
       expect(result).toEqual(mockFiles)
-      expect(apiClient.get).toHaveBeenCalledWith('/api/v1/users/me/files')
+      expect(apiClient.get).toHaveBeenCalledWith('/api/v1/users/me/files', { params: {} })
+    })
+
+    it('getUserFiles 帶 page/size/sort 對齊後端 Pageable 參數', async () => {
+      const mockFiles = [{ id: 'f1', originalName: 'img.png', contentType: 'image/png', size: 1024, usageType: 'ARTICLE_CONTENT' as const, hasThumbnail: false, uploaderId: 'u1', createdAt: '2026-01-01T00:00:00Z' }]
+      vi.mocked(apiClient.get).mockResolvedValue(mockFiles)
+
+      const result = await fileService.getUserFiles({ page: 2, size: 5, sort: 'createdAt,desc' })
+      expect(result).toEqual(mockFiles)
+      expect(apiClient.get).toHaveBeenCalledWith('/api/v1/users/me/files', {
+        params: { page: 2, size: 5, sort: 'createdAt,desc' },
+      })
     })
 
     it('getUserFiles API 錯誤時回傳空陣列', async () => {
@@ -90,6 +123,56 @@ describe('fileService', () => {
       vi.spyOn(console, 'error').mockImplementation(() => {})
       const result = await fileService.getUserFiles()
       expect(result).toEqual([])
+    })
+  })
+
+  describe('A6b：上傳前大小檢查（超過不呼叫 API）', () => {
+    const MB = 1024 * 1024
+    const sizedFile = (size: number) => {
+      const file = new File(['x'], 'big.png', { type: 'image/png' })
+      Object.defineProperty(file, 'size', { value: size })
+      return file
+    }
+    const okResponse = { id: 'f1', url: '/api/v1/files/f1/content', width: 1, height: 1, size: 1, usageType: 'AVATAR' as const }
+
+    describe.each([['true'], ['false']])('VITE_USE_MOCK=%s', (useMock) => {
+      beforeEach(() => {
+        vi.stubEnv('VITE_USE_MOCK', useMock)
+        vi.mocked(apiClient.post).mockReset()
+        vi.mocked(apiClient.post).mockResolvedValue(okResponse)
+      })
+      afterEach(() => vi.unstubAllEnvs())
+
+      it('頭像超過 5MB：reject A0402，訊息只顯示頭像上限，不送出', async () => {
+        await expect(fileService.uploadFile(sizedFile(5 * MB + 1), 'AVATAR')).rejects.toMatchObject({
+          code: 'A0402',
+          message: '檔案太大（頭像上限 5MB）',
+        })
+        expect(apiClient.post).not.toHaveBeenCalled()
+      })
+
+      it.each(['ARTICLE_CONTENT', 'ARTICLE_COVER'] as const)('%s 超過 20MB：reject A0402，訊息只顯示文章圖片上限，不送出', async (usage) => {
+        await expect(fileService.uploadFile(sizedFile(20 * MB + 1), usage)).rejects.toMatchObject({
+          code: 'A0402',
+          message: '檔案太大（文章圖片上限 20MB）',
+        })
+        expect(apiClient.post).not.toHaveBeenCalled()
+      })
+    })
+
+    describe('剛好等於上限可以送出（API 模式）', () => {
+      beforeEach(() => {
+        vi.stubEnv('VITE_USE_MOCK', 'false')
+        vi.mocked(apiClient.post).mockReset()
+        vi.mocked(apiClient.post).mockResolvedValue(okResponse)
+      })
+      afterEach(() => vi.unstubAllEnvs())
+
+      it('頭像 5MB、文章圖片 20MB 都會呼叫 API', async () => {
+        await fileService.uploadFile(sizedFile(5 * MB), 'AVATAR')
+        await fileService.uploadFile(sizedFile(20 * MB), 'ARTICLE_CONTENT')
+        expect(apiClient.post).toHaveBeenCalledTimes(2)
+      })
     })
   })
 })

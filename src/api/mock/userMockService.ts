@@ -1,6 +1,17 @@
-import type { UpdateProfileRequest, ChangePasswordRequest, DeleteAccountRequest } from '../../types/user'
+import type {
+  UpdateProfileRequest,
+  NotificationPreferencesRequest,
+  ChangePasswordRequest,
+  DeleteAccountRequest,
+} from '../../types/user'
 
 export function updateProfileMock(_data: UpdateProfileRequest): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(() => resolve(), 200)
+  })
+}
+
+export function updateNotificationsMock(_data: NotificationPreferencesRequest): Promise<void> {
   return new Promise((resolve) => {
     setTimeout(() => resolve(), 200)
   })
