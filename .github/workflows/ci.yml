@@ -237,7 +237,10 @@ jobs:
     name: 建置 image
     runs-on: ubuntu-latest
     needs: test
+    # 匯總 job test 的上游 e2e-integration 只在 PR 執行，push 時是 skipped；不加 !cancelled() 的話，
+    # 隱含的 success() 會因依賴鏈上有 skipped 的 job 而跳過這個 job（main 第一次發版時實際發生）
     if: >-
+      !cancelled() &&
       needs.test.result == 'success' &&
       (github.event_name == 'pull_request' ||
        (github.event_name == 'push' && github.ref == 'refs/heads/main'))
@@ -293,7 +296,10 @@ jobs:
     name: 更新 person-infra 的 image tag
     runs-on: ubuntu-latest
     needs: image
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # 同上：依賴鏈上有 skipped 的 job，要用 !cancelled() 並明確檢查 image 的結果
+    if: >-
+      !cancelled() && needs.image.result == 'success' &&
+      github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       contents: read
     env:
