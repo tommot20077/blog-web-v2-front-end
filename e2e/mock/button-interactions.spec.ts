@@ -111,7 +111,9 @@ test.describe('按鈕互動 — 手機底部導覽', { tag: '@mobile' }, () => {
     mobileBottomNav,
   }) => {
     await page.goto('/')
-    await page.waitForLoadState('networkidle')
+    // 等導覽列本身，不用 networkidle：mock 資料的封面圖來自外部的 picsum.photos，
+    // 對方慢或卡住時網路永遠不會 idle（與 e2e/csp/csp-violations.spec.ts 的 visit() 同一個原則）
+    await expect(mobileBottomNav.searchTab).toBeVisible()
 
     await mobileBottomNav.clickSearchTab()
 
@@ -138,8 +140,8 @@ test.describe('按鈕互動 — 手機底部導覽', { tag: '@mobile' }, () => {
 
   test('ThemeSwitcher 在手機版應可見（BUG-005）', async ({ page }) => {
     await page.goto('/articles')
-    await page.waitForLoadState('networkidle')
 
+    // 不等 networkidle（外部的 mock 封面圖會讓它逾時）；toBeVisible 本身會等到元素出現
     // Mobile viewport hides the desktop navbar, so assert the toggle inside the bottom nav.
     await expect(page.getByTestId('mobile-bottom-nav').getByLabel('切換深淺色模式')).toBeVisible()
   })
