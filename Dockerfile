@@ -18,8 +18,8 @@ RUN npm ci
 COPY . .
 
 # production build：vue-tsc 型別檢查 + vite build。
-# Vite 於 `vite build` 自動載入 mode=production 的 .env.production，
-# 因此 VITE_API_BASE_URL=https://90030.xyz 會被打進 bundle。
+# Vite 於 `vite build` 自動載入 mode=production 的 .env.production；其中不設定 VITE_API_BASE_URL，
+# apiClient 用同網域相對路徑（/api/** 由入口轉給後端），同一個 image 可以用在所有環境。
 RUN npm run build
 
 # ---------------------------------------------------------------------------

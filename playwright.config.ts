@@ -45,9 +45,10 @@ export default defineConfig({
         url: 'http://localhost:5500',
         reuseExistingServer: false,
         timeout: 180_000,
-        // API 位址取正式環境的值（.env.production），否則 .env.mock 的 localhost:9010 不在 connect-src，
-        // 會量到正式環境不存在的違規。process.env 的 VITE_* 優先於 .env 檔。
-        env: { VITE_API_BASE_URL: loadEnv('production', process.cwd(), 'VITE_').VITE_API_BASE_URL },
+        // API 位址取正式環境的值（.env.production；目前不設定＝同網域相對路徑），否則 .env.mock 的
+        // localhost:9010 不在 connect-src，會量到正式環境不存在的違規。process.env 的 VITE_* 優先於 .env 檔
+        // （空字串也算有值），所以沒設定時明確給空字串。
+        env: { VITE_API_BASE_URL: loadEnv('production', process.cwd(), 'VITE_').VITE_API_BASE_URL ?? '' },
       }
     : {
         command: 'npx vite --host localhost --port 5500',

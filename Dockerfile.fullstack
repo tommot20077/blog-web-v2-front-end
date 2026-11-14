@@ -4,13 +4,13 @@
 #
 # 與既有 ./Dockerfile 的唯一差異：接受 build arg VITE_API_BASE_URL，於 build 前
 # 寫入 .env.production.local（Vite 對 production mode 的最高優先 env 檔），藉此把
-# API base 從正式的 https://90030.xyz 覆寫為本地後端（預設 http://localhost:9010）。
+# API base 從正式建置的同網域相對路徑覆寫為本地後端（預設 http://localhost:9010）。
 #
 # 為何用 .env.production.local 而非 build arg 直接餵 process.env：
 #   Vite 對「VITE_」前綴變數的來源以 .env 檔為主，於映像內生成此檔最穩定可預期，
 #   且 .dockerignore 排除的是「複製進來的」*.local，這裡是 build 階段內生成，不受影響。
 #
-# 既有 ./Dockerfile（prod：直接 bake .env.production=https://90030.xyz）完全不動。
+# 既有 ./Dockerfile（prod：.env.production，同網域相對路徑）完全不動。
 # =============================================================================
 
 # ---------------------------------------------------------------------------
