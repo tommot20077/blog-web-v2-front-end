@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { AxiosHeaders } from 'axios'
 import type { InternalAxiosRequestConfig, AxiosResponse } from 'axios'
 import { createPinia, setActivePinia } from 'pinia'
@@ -114,6 +116,33 @@ describe('apiClient', () => {
       await import('./apiClient')
 
       expect(capturedCreateConfig.baseURL).toBe('http://localhost:9010')
+    })
+
+    // 正式環境前端與 API 同網域（/api/** 由入口轉給後端）：不寫死網域，同一個 image 可用在所有環境
+    it('正式建置（PROD）且未設定 VITE_API_BASE_URL 時 baseURL 為空字串（同網域相對路徑）', async () => {
+      vi.stubEnv('VITE_API_BASE_URL', '')
+      vi.stubEnv('PROD', true)
+      vi.stubEnv('DEV', false)
+      vi.resetModules()
+      await import('./apiClient')
+
+      expect(capturedCreateConfig.baseURL).toBe('')
+    })
+
+    it('正式建置（PROD）仍可用 VITE_API_BASE_URL 指定其他網域', async () => {
+      vi.stubEnv('VITE_API_BASE_URL', 'https://api.example.com')
+      vi.stubEnv('PROD', true)
+      vi.stubEnv('DEV', false)
+      vi.resetModules()
+      await import('./apiClient')
+
+      expect(capturedCreateConfig.baseURL).toBe('https://api.example.com')
+    })
+
+    it('.env.production 不寫死 API 網域（正式 image 一律走同網域）', () => {
+      const content = readFileSync(resolve(process.cwd(), '.env.production'), 'utf8')
+      const line = content.split('\n').find((l) => /^\s*VITE_API_BASE_URL\s*=/.test(l))
+      expect(line?.split('=')[1]?.trim() ?? '').toBe('')
     })
 
     it('設定 withCredentials: true 以發送 HttpOnly cookie', () => {

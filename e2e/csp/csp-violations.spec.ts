@@ -40,10 +40,10 @@ const test = base.extend<{ violations: Violation[] }>({
   violations: async ({ page }, use) => {
     const violations: Violation[] = []
 
-    // 建置時 API 位址是正式環境的 https://90030.xyz（見 playwright.config.ts）；mock 模式本來不打網路，
-    // 只有 useAuthedImages 會直接請求檔案，這裡攔下回 404，避免測試連到真實主機。
+    // 建置時 API 位址與正式環境相同（同網域相對路徑，見 playwright.config.ts）；mock 模式本來不打網路，
+    // 只有 useAuthedImages 會直接請求檔案，這裡攔下 /api/** 回 404（preview server 沒有後端）。
     // page.route 在網路層攔截，CSP 檢查仍在它之前發生，不影響違規的偵測。
-    await page.route('https://90030.xyz/**', (route) => route.fulfill({ status: 404, body: '' }))
+    await page.route('**/api/**', (route) => route.fulfill({ status: 404, body: '' }))
 
     await page.exposeFunction('__reportCspViolation', (v: Violation) => {
       if (!isMockOnlyImageHost(v)) violations.push(v)
