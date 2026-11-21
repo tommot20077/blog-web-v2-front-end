@@ -2182,58 +2182,6 @@
         }
       }
     },
-    "/api/v1/auth/verify-email-code": {
-      "post": {
-        "tags": [
-          "認證"
-        ],
-        "summary": "使用驗證碼驗證電子信箱",
-        "description": "公開。透過驗證信中的 6 位數驗證碼啟用帳號；失敗次數過多會被限流。",
-        "operationId": "verifyEmailCode",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/VerifyEmailCodeRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "400": {
-            "description": "A0001 參數校驗失敗；A0104 驗證碼錯誤或已過期；A0113 驗證嘗試次數過多",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "成功",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponseVoid"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "B0001 系統執行出錯",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/auth/reset-password": {
       "post": {
         "tags": [
@@ -7411,27 +7359,6 @@
         },
         "required": [
           "token"
-        ]
-      },
-      "VerifyEmailCodeRequest": {
-        "type": "object",
-        "description": "信箱驗證碼請求",
-        "properties": {
-          "email": {
-            "type": "string",
-            "description": "電子信箱",
-            "example": "user@example.com"
-          },
-          "code": {
-            "type": "string",
-            "description": "6 位數驗證碼",
-            "example": 123456,
-            "pattern": "\\d{6}"
-          }
-        },
-        "required": [
-          "code",
-          "email"
         ]
       },
       "ResetPasswordRequest": {

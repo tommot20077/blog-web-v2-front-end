@@ -210,16 +210,14 @@ describe('authService', () => {
       expect(mockGet).not.toHaveBeenCalled()
     })
 
-    it('verifyEmailCode 使用 apiClient.post 呼叫後端驗證碼端點', async () => {
-      mockPost.mockResolvedValue(undefined)
+    it('不提供 verifyEmailCode：信箱驗證只走連結，後端已移除 /verify-email-code', async () => {
+      const facade = await import('./authService')
+      const real = await import('./real/authService')
+      const mock = await import('./mock/authService')
 
-      const { authService } = await import('./authService')
-      await authService.verifyEmailCode('user@test.com', '123456')
-
-      expect(mockPost).toHaveBeenCalledWith('/api/v1/auth/verify-email-code', {
-        email: 'user@test.com',
-        code: '123456',
-      })
+      expect(facade.authService).not.toHaveProperty('verifyEmailCode')
+      expect(real.authService).not.toHaveProperty('verifyEmailCode')
+      expect(mock.authService).not.toHaveProperty('verifyEmailCode')
     })
 
     it('getMe 使用 apiClient.get 呼叫正確的 URL', async () => {
